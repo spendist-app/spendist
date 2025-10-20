@@ -43,6 +43,11 @@ const pl = {
   navbar: {
     settings: 'Ustawienia',
     signOut: 'Wyloguj się',
+    dashboard: 'Pulpit',
+    transactions: 'Transakcje',
+    modules: 'Moduły',
+    modulesRecurring: 'Płatności cykliczne',
+    menuToggle: 'Otwórz menu nawigacji',
   },
   landing: {
     title: 'Witamy w Spendist',
@@ -192,6 +197,35 @@ const pl = {
   notifications: {
     errors: {
       generic: 'Coś poszło nie tak. Spróbuj ponownie.',
+    },
+  },
+  dashboard: {
+    badge: 'Pulpit',
+    title: 'Twoje centrum dowodzenia',
+    description: 'Śledź bilanse, przepływy i nadchodzące aktywności. Widok rozbuduje się wraz ze Spendist.',
+    placeholder: {
+      title: 'Widżety pulpitu są w przygotowaniu',
+      body: 'Wkrótce pojawią się tu wglądy, podsumowania i skróty dopasowane do Twoich nawyków.',
+    },
+  },
+  transactions: {
+    badge: 'Transakcje',
+    title: 'Wszystkie wydatki w jednym miejscu',
+    description: 'Wyszukuj, filtruj i analizuj transakcje z różnych kont. Pracujemy nad narzędziami do zbiorczych operacji.',
+    placeholder: {
+      title: 'Tabela transakcji w drodze',
+      body: 'Import, kategoryzacja i rozliczenia będą właśnie tutaj — dopracowujemy doświadczenie.',
+    },
+  },
+  modules: {
+    recurringPayments: {
+      badge: 'Moduły',
+      title: 'Płatności cykliczne',
+      description: 'Kontroluj automatyczne obciążenia. Monitoruj odnowienia i nadchodzące rachunki w jednym miejscu.',
+      placeholder: {
+        title: 'Moduł płatności cyklicznych w przygotowaniu',
+        body: 'Już wkrótce zobaczysz harmonogramy, przypomnienia i wskazówki optymalizacyjne dla subskrypcji.',
+      },
     },
   },
 };

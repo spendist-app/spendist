@@ -19,7 +19,7 @@ const waitForAuthState = (predicate: (isAuthenticated: boolean) => GuardResult) 
 export const redirectAuthenticatedToHomeGuard: CanActivateFn = () => {
   const router = inject(Router);
   return waitForAuthState((isAuthenticated) =>
-    isAuthenticated ? router.parseUrl('/home') : true
+    isAuthenticated ? router.parseUrl('/dashboard') : true
   );
 };
 

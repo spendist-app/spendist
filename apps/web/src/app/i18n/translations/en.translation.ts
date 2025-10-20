@@ -43,6 +43,11 @@ const en = {
   navbar: {
     settings: 'Settings',
     signOut: 'Sign out',
+    dashboard: 'Dashboard',
+    transactions: 'Transactions',
+    modules: 'Modules',
+    modulesRecurring: 'Recurring payments',
+    menuToggle: 'Open navigation menu',
   },
   landing: {
     title: 'Welcome to Spendist',
@@ -192,6 +197,35 @@ const en = {
   notifications: {
     errors: {
       generic: 'Something went wrong. Please try again.',
+    },
+  },
+  dashboard: {
+    badge: 'Dashboard',
+    title: 'Your personalised command centre',
+    description: 'Track balances, cash flow, and upcoming activity. This view will evolve as Spendist grows.',
+    placeholder: {
+      title: 'Dashboard widgets are on the way',
+      body: 'Stay tuned for insights, summaries, and controls tailored to your spending habits.',
+    },
+  },
+  transactions: {
+    badge: 'Transactions',
+    title: 'All spending in one timeline',
+    description: 'Search, filter, and review transactions across accounts. Tools for bulk actions are coming soon.',
+    placeholder: {
+      title: 'Transaction table arriving shortly',
+      body: 'Import, categorisation, and reconciliation live here — we are polishing the experience.',
+    },
+  },
+  modules: {
+    recurringPayments: {
+      badge: 'Modules',
+      title: 'Recurring payments',
+      description: 'Keep automatic charges under control. Monitor renewals and upcoming bills in one place.',
+      placeholder: {
+        title: 'Recurring payments module in progress',
+        body: 'We will soon show schedules, reminders, and optimisation tips for your subscriptions.',
+      },
     },
   },
 };

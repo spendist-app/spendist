@@ -132,7 +132,7 @@ export class LoginPageComponent {
         return;
       }
 
-      await this.router.navigateByUrl('/home');
+      await this.router.navigateByUrl('/dashboard');
     } finally {
       this.submitting.set(false);
     }

@@ -10,13 +10,71 @@ import { ThemeService } from '../theme.service';
   selector: 'app-navbar',
   imports: [RouterLink, TranslocoPipe],
   template: `
-    <nav class="navbar bg-base-100/80 backdrop-blur shadow-sm">
-      <div class="flex-1">
+    <nav class="navbar flex-wrap gap-3 bg-base-100/80 px-4 py-3 backdrop-blur shadow-sm">
+      <div class="flex items-center gap-2">
+        <div class="dropdown md:hidden">
+          <button
+            type="button"
+            tabindex="0"
+            class="btn btn-ghost btn-square"
+            [attr.aria-label]="'navbar.menuToggle' | transloco"
+          >
+            <span class="text-2xl leading-none">☰</span>
+          </button>
+          <ul
+            tabindex="0"
+            class="menu menu-sm dropdown-content mt-3 w-56 rounded-box border border-base-200 bg-base-100 p-2 shadow-lg"
+          >
+            <li>
+              <a routerLink="/dashboard">{{ 'navbar.dashboard' | transloco }}</a>
+            </li>
+            <li>
+              <a routerLink="/transactions">{{ 'navbar.transactions' | transloco }}</a>
+            </li>
+            <li tabindex="0">
+              <a class="justify-between">
+                {{ 'navbar.modules' | transloco }}
+              </a>
+              <ul class="menu menu-xs ml-3 mt-1 space-y-1 rounded-md border border-base-200 bg-base-100 p-2">
+                <li>
+                  <a routerLink="/modules/recurring-payments">
+                    {{ 'navbar.modulesRecurring' | transloco }}
+                  </a>
+                </li>
+              </ul>
+            </li>
+          </ul>
+        </div>
         <a class="btn btn-ghost text-xl normal-case" routerLink="/">
           {{ 'common.appName' | transloco }}
         </a>
       </div>
-      <div class="flex items-center gap-3">
+
+      <div class="hidden flex-1 justify-center md:flex">
+        <ul class="menu menu-horizontal rounded-box border border-base-200 bg-base-100/80 px-3 text-sm shadow-sm">
+          <li>
+            <a routerLink="/dashboard" routerLinkActive="active">{{ 'navbar.dashboard' | transloco }}</a>
+          </li>
+          <li>
+            <a routerLink="/transactions" routerLinkActive="active">{{ 'navbar.transactions' | transloco }}</a>
+          </li>
+          <li tabindex="0">
+            <a class="flex items-center gap-2">
+              {{ 'navbar.modules' | transloco }}
+              <span aria-hidden="true">▾</span>
+            </a>
+            <ul class="menu menu-sm bg-base-100 p-2 shadow">
+              <li>
+                <a routerLink="/modules/recurring-payments" routerLinkActive="active">
+                  {{ 'navbar.modulesRecurring' | transloco }}
+                </a>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+
+      <div class="flex flex-1 items-center justify-end gap-3 md:flex-none">
         <label class="sr-only" for="language-selector">
           {{ 'common.language.label' | transloco }}
         </label>
@@ -32,8 +90,8 @@ import { ThemeService } from '../theme.service';
             </option>
           }
         </select>
-      </div>
-      <div class="flex-none">
+
+        <div class="flex-none">
         @if (auth.loading()) {
           <span
             class="loading loading-spinner loading-md text-primary"
@@ -87,6 +145,7 @@ import { ThemeService } from '../theme.service';
             </div>
           }
         }
+      </div>
       </div>
     </nav>
   `,
