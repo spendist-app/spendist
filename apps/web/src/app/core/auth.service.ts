@@ -1,6 +1,8 @@
 import { EnvironmentInjector, Injectable, OnDestroy, computed, inject, signal } from '@angular/core';
 import { PostgrestError, Session, User } from '@supabase/supabase-js';
 import { SUPABASE_CLIENT } from './supabase';
+import { ensureDefaultCategoriesForUser } from './default-categories';
+import { DEFAULT_LANGUAGE, LanguageCode } from '../i18n/languages';
 
 interface AuthState {
   session: Session | null;
@@ -126,6 +128,14 @@ export class AuthService implements OnDestroy {
 
       if (profileError) {
         return { error: this.normalizeProfileError(profileError) };
+      }
+
+      const userLanguage = (payload.language ?? DEFAULT_LANGUAGE) as LanguageCode;
+
+      try {
+        await ensureDefaultCategoriesForUser(this.supabase, user.id, userLanguage);
+      } catch (seedError) {
+        console.error('[AuthService] Failed to seed default categories', seedError);
       }
 
       return { user };
