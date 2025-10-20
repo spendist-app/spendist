@@ -5,9 +5,11 @@ import {
   Validators,
 } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { TranslocoPipe } from '@ngneat/transloco';
 import { AuthService } from '../../core/auth.service';
+import { LanguageService } from '../../core/language.service';
+import { DEFAULT_LANGUAGE as FALLBACK_LANGUAGE } from '../../i18n/languages';
 
-const DEFAULT_LANGUAGE = 'en';
 const DEFAULT_CURRENCY = 'PLN';
 
 const passwordsMatchValidator = (passwordKey: string, confirmPasswordKey: string) => {
@@ -53,16 +55,20 @@ function createUsernameFromName(name: string): string {
 @Component({
   standalone: true,
   selector: 'app-signup-page',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, TranslocoPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
       <div class="w-full max-w-md space-y-8 rounded-2xl bg-base-100/70 p-8 shadow-xl backdrop-blur">
         <header class="space-y-2 text-center">
-          <h1 class="text-3xl font-semibold leading-tight">Create your account</h1>
+          <h1 class="text-3xl font-semibold leading-tight">
+            {{ 'auth.signup.title' | transloco }}
+          </h1>
           <p class="text-base-content/70">
-            Already have an account?
-            <a class="link link-primary" routerLink="/login">Log in</a>
+            {{ 'auth.signup.subtitle' | transloco }}
+            <a class="link link-primary" routerLink="/login">
+              {{ 'auth.signup.loginLink' | transloco }}
+            </a>
           </p>
         </header>
 
@@ -76,7 +82,9 @@ function createUsernameFromName(name: string): string {
           <fieldset class="grid gap-4">
             <div class="form-control">
               <label class="label" for="name">
-                <span class="label-text text-sm font-medium">Name</span>
+                <span class="label-text text-sm font-medium">
+                  {{ 'auth.signup.nameLabel' | transloco }}
+                </span>
               </label>
               <input
                 id="name"
@@ -87,13 +95,17 @@ function createUsernameFromName(name: string): string {
                 required
               />
               @if (controls.name.touched && controls.name.invalid) {
-                <span class="label-text-alt text-error">Please enter your name (min. 2 characters).</span>
+                <span class="label-text-alt text-error">
+                  {{ 'auth.signup.nameError' | transloco }}
+                </span>
               }
             </div>
 
             <div class="form-control">
               <label class="label" for="email">
-                <span class="label-text text-sm font-medium">Email</span>
+                <span class="label-text text-sm font-medium">
+                  {{ 'auth.signup.emailLabel' | transloco }}
+                </span>
               </label>
               <input
                 id="email"
@@ -104,13 +116,17 @@ function createUsernameFromName(name: string): string {
                 required
               />
               @if (controls.email.touched && controls.email.invalid) {
-                <span class="label-text-alt text-error">Enter a valid email address.</span>
+                <span class="label-text-alt text-error">
+                  {{ 'auth.signup.emailError' | transloco }}
+                </span>
               }
             </div>
 
             <div class="form-control">
               <label class="label" for="password">
-                <span class="label-text text-sm font-medium">Password</span>
+                <span class="label-text text-sm font-medium">
+                  {{ 'auth.signup.passwordLabel' | transloco }}
+                </span>
               </label>
               <input
                 id="password"
@@ -122,14 +138,16 @@ function createUsernameFromName(name: string): string {
               />
               @if (controls.password.touched && controls.password.invalid) {
                 <span class="label-text-alt text-error">
-                  Use at least 8 characters including letters and numbers.
+                  {{ 'auth.signup.passwordHelper' | transloco }}
                 </span>
               }
             </div>
 
             <div class="form-control">
               <label class="label" for="confirmPassword">
-                <span class="label-text text-sm font-medium">Confirm password</span>
+                <span class="label-text text-sm font-medium">
+                  {{ 'auth.signup.passwordConfirmLabel' | transloco }}
+                </span>
               </label>
               <input
                 id="confirmPassword"
@@ -141,7 +159,7 @@ function createUsernameFromName(name: string): string {
               />
               @if (passwordsDoNotMatch()) {
                 <span class="label-text-alt text-error">
-                  Passwords must match.
+                  {{ 'auth.signup.passwordConfirmError' | transloco }}
                 </span>
               }
             </div>
@@ -154,15 +172,15 @@ function createUsernameFromName(name: string): string {
           >
             @if (submitting()) {
               <span class="loading loading-spinner loading-sm"></span>
-              Creating account...
+              {{ 'auth.signup.submitBusy' | transloco }}
             } @else {
-              Sign up
+              {{ 'auth.signup.submitIdle' | transloco }}
             }
           </button>
         </form>
 
         <p class="text-xs text-base-content/60 text-center">
-          By continuing you agree to our future Terms of Service and Privacy Policy.
+          {{ 'auth.signup.tosNotice' | transloco }}
         </p>
       </div>
     </section>
@@ -172,6 +190,7 @@ export class SignupPageComponent {
   private readonly formBuilder = inject(NonNullableFormBuilder);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly languageService = inject(LanguageService);
 
   readonly form = this.formBuilder.group(
     {
@@ -218,6 +237,7 @@ export class SignupPageComponent {
       const { name, email, password } = this.form.getRawValue();
       const safeName = name.trim();
       const username = createUsernameFromName(safeName);
+      const language = this.languageService.currentLanguage() ?? FALLBACK_LANGUAGE;
 
       const result = await this.auth.signUp({
         email,
@@ -225,7 +245,7 @@ export class SignupPageComponent {
         username,
         fullName: safeName,
         timezone: detectTimezone(),
-        language: DEFAULT_LANGUAGE,
+        language,
         defaultCurrency: DEFAULT_CURRENCY,
         avatarUrl: buildAvatarUrl(username),
       });

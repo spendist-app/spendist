@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { signal, computed } from '@angular/core';
 import { App } from './app';
 import { AuthService } from './core/auth.service';
+import { provideAppTransloco } from './i18n/transloco.providers';
 
 class AuthServiceStub {
   private readonly state = signal({
@@ -33,6 +34,7 @@ describe('App', () => {
           provide: AuthService,
           useClass: AuthServiceStub,
         },
+        ...provideAppTransloco(),
       ],
     }).compileComponents();
     authStub = TestBed.inject(AuthService) as AuthServiceStub;

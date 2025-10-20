@@ -8,6 +8,7 @@ import { appRoutes } from './app.routes';
 import { provideClientHydration } from '@angular/platform-browser';
 import { provideSupabase } from './core/supabase';
 import { supabaseConfig } from './config/supabase.config';
+import { provideAppTransloco } from './i18n/transloco.providers';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -16,5 +17,6 @@ export const appConfig: ApplicationConfig = {
     provideZonelessChangeDetection(),
     provideRouter(appRoutes),
     provideSupabase(supabaseConfig),
+    ...provideAppTransloco(),
   ],
 };

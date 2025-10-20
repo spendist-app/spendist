@@ -1,21 +1,26 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { TranslocoPipe } from '@ngneat/transloco';
 import { AuthService } from '../../core/auth.service';
 
 @Component({
   standalone: true,
   selector: 'app-login-page',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, TranslocoPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
       <div class="w-full max-w-md space-y-8 rounded-2xl bg-base-100/70 p-8 shadow-xl backdrop-blur">
         <header class="space-y-2 text-center">
-          <h1 class="text-3xl font-semibold leading-tight">Welcome back</h1>
+          <h1 class="text-3xl font-semibold leading-tight">
+            {{ 'auth.login.title' | transloco }}
+          </h1>
           <p class="text-base-content/70">
-            Need an account?
-            <a class="link link-primary" routerLink="/signup">Sign up</a>
+            {{ 'auth.login.subtitle' | transloco }}
+            <a class="link link-primary" routerLink="/signup">
+              {{ 'auth.login.signupLink' | transloco }}
+            </a>
           </p>
         </header>
 
@@ -29,7 +34,9 @@ import { AuthService } from '../../core/auth.service';
           <fieldset class="grid gap-4">
             <div class="form-control">
               <label class="label" for="email">
-                <span class="label-text text-sm font-medium">Email</span>
+                <span class="label-text text-sm font-medium">
+                  {{ 'auth.login.emailLabel' | transloco }}
+                </span>
               </label>
               <input
                 id="email"
@@ -40,13 +47,17 @@ import { AuthService } from '../../core/auth.service';
                 required
               />
               @if (controls.email.touched && controls.email.invalid) {
-                <span class="label-text-alt text-error">Enter a valid email address.</span>
+                <span class="label-text-alt text-error">
+                  {{ 'auth.login.emailError' | transloco }}
+                </span>
               }
             </div>
 
             <div class="form-control">
               <label class="label" for="password">
-                <span class="label-text text-sm font-medium">Password</span>
+                <span class="label-text text-sm font-medium">
+                  {{ 'auth.login.passwordLabel' | transloco }}
+                </span>
               </label>
               <input
                 id="password"
@@ -57,7 +68,9 @@ import { AuthService } from '../../core/auth.service';
                 required
               />
               @if (controls.password.touched && controls.password.invalid) {
-                <span class="label-text-alt text-error">Password is required.</span>
+                <span class="label-text-alt text-error">
+                  {{ 'auth.login.passwordError' | transloco }}
+                </span>
               }
             </div>
           </fieldset>
@@ -69,9 +82,9 @@ import { AuthService } from '../../core/auth.service';
           >
             @if (submitting()) {
               <span class="loading loading-spinner loading-sm"></span>
-              Signing in...
+              {{ 'auth.login.submitBusy' | transloco }}
             } @else {
-              Log in
+              {{ 'auth.login.submitIdle' | transloco }}
             }
           </button>
         </form>
