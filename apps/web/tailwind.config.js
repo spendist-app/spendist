@@ -1,60 +1,85 @@
-const daisyui = require('daisyui');
-const daisyuiThemes = require('daisyui/src/colors/themes');
+const fs = require('fs');
 
-module.exports = {
+const daisyuiModule = require('daisyui');
+const daisyuiPlugin = daisyuiModule?.default ?? daisyuiModule;
+
+function readDaisyuiThemes() {
+  try {
+    const themesPath = require.resolve('daisyui/theme/object.js');
+    const raw = fs.readFileSync(themesPath, 'utf8')
+      .replace(/export default\s*/, '')
+      .replace(/;?\s*$/, '');
+    return JSON.parse(raw);
+  } catch (error) {
+    console.warn('Unable to load DaisyUI theme defaults:', error);
+    return {};
+  }
+}
+
+const daisyuiThemes = readDaisyuiThemes();
+
+const lightDefaults = daisyuiThemes.light ?? {};
+const darkDefaults = daisyuiThemes.dark ?? {};
+
+/** @type {import('tailwindcss').Config} */
+const config = {
   content: [
-    './apps/web/src/**/*.{html,ts}',
-    './apps/web/src/**/*.css',
+    './src/**/*.{html,ts}',
+    './src/**/*.css',
   ],
   theme: {
     extend: {},
   },
-  plugins: [daisyui],
+  plugins: [
+    daisyuiPlugin,
+  ],
   daisyui: {
     themes: [
       {
         spendistLight: {
-          ...daisyuiThemes['[data-theme=light]'],
-          primary: '#0EA5A5',
-          'primary-content': '#042f31',
-          secondary: '#F59E0B',
-          'secondary-content': '#422100',
-          accent: '#EA580C',
-          'accent-content': '#2a0a00',
-          neutral: '#1f2933',
-          'neutral-content': '#f9fafb',
-          'base-100': '#FFFFFF',
-          'base-200': '#FFFDFB',
-          'base-300': '#F3F4F6',
-          'base-content': '#111827',
-          info: '#0EA5A5',
-          success: '#16A34A',
-          warning: '#D97706',
-          error: '#DC2626',
+          ...lightDefaults,
+          '--color-primary': '#0EA5A5',
+          '--color-primary-content': '#F8FFFF',
+          '--color-secondary': '#F59E0B',
+          '--color-secondary-content': '#422100',
+          '--color-accent': '#EA580C',
+          '--color-accent-content': '#2a0a00',
+          '--color-neutral': '#1f2933',
+          '--color-neutral-content': '#f9fafb',
+          '--color-base-100': '#FFFFFF',
+          '--color-base-200': '#FFFDFB',
+          '--color-base-300': '#F3F4F6',
+          '--color-base-content': '#111827',
+          '--color-info': '#0EA5A5',
+          '--color-success': '#16A34A',
+          '--color-warning': '#D97706',
+          '--color-error': '#DC2626',
         },
       },
       {
         spendistDark: {
-          ...daisyuiThemes['[data-theme=dark]'],
-          primary: '#2DD4BF',
-          'primary-content': '#062824',
-          secondary: '#FBBF24',
-          'secondary-content': '#3f2a06',
-          accent: '#FB923C',
-          'accent-content': '#3c1400',
-          neutral: '#2b3036',
-          'neutral-content': '#E5E7EB',
-          'base-100': '#161A1D',
-          'base-200': '#111315',
-          'base-300': '#0B0D0F',
-          'base-content': '#E5E7EB',
-          info: '#2DD4BF',
-          success: '#16A34A',
-          warning: '#FBBF24',
-          error: '#DC2626',
+          ...darkDefaults,
+          '--color-primary': '#2DD4BF',
+          '--color-primary-content': '#062824',
+          '--color-secondary': '#FBBF24',
+          '--color-secondary-content': '#3f2a06',
+          '--color-accent': '#FB923C',
+          '--color-accent-content': '#3c1400',
+          '--color-neutral': '#2b3036',
+          '--color-neutral-content': '#E5E7EB',
+          '--color-base-100': '#161A1D',
+          '--color-base-200': '#111315',
+          '--color-base-300': '#0B0D0F',
+          '--color-base-content': '#E5E7EB',
+          '--color-info': '#2DD4BF',
+          '--color-success': '#16A34A',
+          '--color-warning': '#FBBF24',
+          '--color-error': '#DC2626',
         },
       },
     ],
     darkTheme: 'spendistDark',
   },
 };
+
+module.exports = config;

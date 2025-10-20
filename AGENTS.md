@@ -16,6 +16,9 @@ Spendist is an Nx-managed Angular workspace. Application code lives under `apps/
 ## Styling Toolkit (Tailwind + DaisyUI)
 Utility-first styling is enabled through Tailwind 4 and DaisyUI 5. Extend the design system by editing `apps/web/tailwind.config.js` (e.g., `daisyui: { themes: ['emerald'] }`) and keep component-level styles minimal. Use shared utility classes in templates (`<button class="btn btn-primary">`) and add custom layers in `styles.css` if a pattern repeats across features.
 - Mobile-first layouts are the default UX rule—build for small screens first, then enhance for larger breakpoints.
+- Spendist palettes (keep these in sync with the Tailwind/DaisyUI theme tokens):
+  - Light — Background `#FFFDFB`, Surface `#FFFFFF`, Text `#111827`, Primary `#0EA5A5`, Secondary `#F59E0B`, Accent `#EA580C`, Success `#16A34A`, Warning `#D97706`, Danger `#DC2626`.
+  - Dark — Background `#111315`, Surface `#161A1D`, Text `#E5E7EB`, Primary `#2DD4BF`, Secondary `#FBBF24`, Accent `#FB923C`.
 
 ## Change Detection & Zoneless Runtime
 The app boots with `provideZonelessChangeDetection()` (`apps/web/src/app/app.config.ts`), so avoid APIs that assume `NgZone` patches DOM events. Prefer `run()` and signal-based patterns over zone hooks, and wire third-party libraries through their native callbacks. Vitest mirrors this setup by registering a `ZonelessTestModule` inside `apps/web/src/test-setup.ts`.
