@@ -28,6 +28,7 @@ const pl = {
       openProfileEditor: 'Edytuj profil',
       manageSecurity: 'Opcje zabezpieczeń',
       dismiss: 'Zamknij',
+      close: 'Zamknij',
       delete: 'Usuń',
       viewCategories: 'Pokaż kategorie',
       deleteGroup: 'Usuń grupę',
@@ -210,11 +211,107 @@ const pl = {
   },
   transactions: {
     badge: 'Transakcje',
-    title: 'Wszystkie wydatki w jednym miejscu',
-    description: 'Wyszukuj, filtruj i analizuj transakcje z różnych kont. Pracujemy nad narzędziami do zbiorczych operacji.',
-    placeholder: {
-      title: 'Tabela transakcji w drodze',
-      body: 'Import, kategoryzacja i rozliczenia będą właśnie tutaj — dopracowujemy doświadczenie.',
+    filters: {
+      categoriesTitle: 'Kategorie',
+      clearCategories: 'Wyczyść',
+      allCategories: 'Wszystkie kategorie',
+      ungroupedTitle: 'Bez grupy',
+      presets: {
+        currentMonth: 'Bieżący miesiąc',
+        previousMonth: 'Poprzedni miesiąc',
+        thisYear: 'Bieżący rok',
+        lastYear: 'Poprzedni rok',
+        allTime: 'Cały okres',
+      },
+      reset: 'Resetuj filtry',
+      searchLabel: 'Wyszukiwanie',
+      searchPlaceholder: 'Szukaj po opisie, kategorii lub walucie…',
+      fromLabel: 'Data od',
+      toLabel: 'Data do',
+      monthLabel: 'Przejdź do miesiąca',
+      monthPlaceholder: 'Wybierz miesiąc',
+      yearLabel: 'Przejdź do roku',
+      yearPlaceholder: 'Wybierz rok',
+      summaryLabel: 'Podsumowanie',
+      summaryText: 'Widocznych wyników: {{ total }}',
+    },
+    list: {
+      errorTitle: 'Nie udało się załadować transakcji',
+      retry: 'Spróbuj ponownie',
+      emptyTitle: 'Brak transakcji w filtrach',
+      emptyBody: 'Dostosuj filtry lub dodaj nową transakcję, aby zobaczyć listę.',
+      noDescription: 'Transakcja bez opisu',
+      automatic: 'Automatyczna',
+      uncategorized: 'Brak kategorii',
+      direction: {
+        income: 'Przychód',
+        expense: 'Wydatek',
+      },
+      categoryIconSr: 'Ikona kategorii: {{ label }}',
+      actions: {
+        edit: 'Edytuj',
+        duplicate: 'Duplikuj',
+        delete: 'Usuń',
+        deleteConfirm: 'Usunąć tę transakcję? Tej operacji nie można cofnąć.',
+      },
+    },
+    actions: {
+      add: 'Dodaj transakcję',
+    },
+    form: {
+      badge: {
+        create: 'Nowa',
+        edit: 'Edycja',
+      },
+      title: {
+        create: 'Dodaj transakcję',
+        edit: 'Edytuj transakcję',
+      },
+      subtitle: {
+        create: 'Zapisz kluczowe informacje — resztę rozbudujesz później.',
+        edit: 'Zaktualizuj dane poniżej, aby historia była dokładna.',
+      },
+      submit: {
+        createIdle: 'Zapisz transakcję',
+        editIdle: 'Zaktualizuj transakcję',
+        busy: 'Zapisywanie…',
+      },
+      submitErrorTitle: 'Nie udało się zapisać transakcji.',
+      fields: {
+        description: 'Opis',
+        category: 'Kategoria',
+        date: 'Data',
+        amount: 'Kwota',
+        currency: 'Waluta',
+        direction: 'Typ',
+        quantity: 'Ile pozycji?',
+        tags: 'Tagi',
+        wallet: 'Portfel',
+      },
+      directions: {
+        income: 'Przychód',
+        expense: 'Wydatek',
+      },
+      placeholders: {
+        description: 'Opcjonalna notatka, np. Zakupy spożywcze',
+        category: 'Wybierz kategorię',
+        wallet: 'Wybierz portfel (opcjonalnie)',
+        tagInput: 'Wpisz tag i naciśnij Enter…',
+      },
+      validation: {
+        amount: 'Podaj kwotę większą od zera.',
+      },
+      actions: {
+        clearTags: 'Wyczyść wybór',
+        removeTag: 'Usuń {{ name }}',
+        showAdvanced: 'Pokaż pola zaawansowane',
+        hideAdvanced: 'Ukryj pola zaawansowane',
+      },
+      help: {
+        quantity: 'Użyj, gdy zapisujesz kilka identycznych pozycji za jednym razem.',
+        advancedDisclaimer: 'Przypisz portfel, jeśli prowadzisz oddzielne salda.',
+      },
+      emptyTags: 'Zacznij pisać, aby dodać pierwszy tag lub wybierz z podpowiedzi.',
     },
   },
   modules: {
@@ -222,9 +319,110 @@ const pl = {
       badge: 'Moduły',
       title: 'Płatności cykliczne',
       description: 'Kontroluj automatyczne obciążenia. Monitoruj odnowienia i nadchodzące rachunki w jednym miejscu.',
-      placeholder: {
-        title: 'Moduł płatności cyklicznych w przygotowaniu',
-        body: 'Już wkrótce zobaczysz harmonogramy, przypomnienia i wskazówki optymalizacyjne dla subskrypcji.',
+      stats: {
+        monthly: {
+          label: 'Wydatki w tym miesiącu',
+          caption: 'Suma wydatków z transakcji cyklicznych w bieżącym miesiącu.',
+        },
+        yearly: {
+          label: 'Wydatki w tym roku',
+          caption: 'Łączne wydatki z płatności cyklicznych od początku roku.',
+        },
+      },
+      actions: {
+        add: 'Dodaj płatność cykliczną',
+      },
+      form: {
+        badge: 'Dodaj płatność',
+        title: 'Zaplanuj płatność cykliczną',
+        subtitle: 'Ustal częstotliwość, kategorię i tagi. Nowe wpisy dodamy automatycznie.',
+        editTitle: 'Zaktualizuj płatność cykliczną',
+        editSubtitle: 'Zmieniaj częstotliwość, kwotę lub tagi. Kolejne obciążenia dostosujemy do nowych danych.',
+        fields: {
+          name: {
+            label: 'Nazwa',
+            placeholder: 'Netflix, czynsz, siłownia…',
+            error: 'Podaj nazwę (maks. 120 znaków).',
+            duplicate: 'Masz już płatność cykliczną o tej nazwie.',
+          },
+          category: {
+            label: 'Kategoria',
+            placeholder: 'Wybierz kategorię',
+            error: 'Wybierz kategorię dla tej płatności.',
+          },
+          amount: {
+            label: 'Kwota',
+            error: 'Wpisz kwotę większą od zera.',
+          },
+          currency: {
+            label: 'Waluta',
+            error: 'Użyj 3-literowego kodu waluty, np. PLN.',
+          },
+          direction: {
+            label: 'Typ',
+            options: {
+              expense: 'Wydatek',
+              income: 'Przychód',
+            },
+          },
+          schedule: {
+            label: 'Harmonogram (cron)',
+            placeholder: '0 12 1 * *',
+            error: 'Wpisz poprawne wyrażenie cron.',
+            hint: 'Standardowy format cron: minuta godzina dzień-miesiąca miesiąc dzień-tygodnia.',
+          },
+          startDate: {
+            label: 'Start',
+            error: 'Wybierz datę pierwszego uruchomienia.',
+          },
+          endDate: {
+            label: 'Zakończenie',
+            optional: '(opcjonalnie)',
+          },
+          exchangeRate: {
+            label: 'Kurs walutowy',
+            optional: '(opcjonalnie)',
+          },
+          tags: {
+            label: 'Tagi',
+            hint: 'Dołącz istniejące tagi – zostaną skopiowane do nowych transakcji.',
+            empty: 'Dodaj tag w widoku transakcji, aby pojawił się tutaj.',
+          },
+        },
+        actions: {
+          submit: 'Zapisz płatność cykliczną',
+          update: 'Zaktualizuj płatność cykliczną',
+          cancelEdit: 'Anuluj edycję',
+        },
+        notifications: {
+          error: 'Nie udało się zapisać płatności cyklicznej. Spróbuj ponownie za chwilę.',
+          duplicateName: 'Płatność cykliczna o tej nazwie już istnieje. Zmień etykietę lub edytuj istniejący wpis.',
+        },
+      },
+      list: {
+        badge: 'Przegląd',
+        title: 'Aktywne płatności cykliczne',
+        subtitle: 'Terminy kolejnych obciążeń, przypisane kategorie i tagi.',
+        empty: {
+          title: 'Brak płatności cyklicznych',
+          body: 'Dodaj pierwszą płatność, aby śledzić automatyczne obciążenia.',
+        },
+        fields: {
+          schedule: 'Harmonogram',
+          startDate: 'Początek',
+          endDate: 'Koniec',
+          noEndDate: 'Bez końca',
+          exchangeRate: 'Kurs',
+        },
+        direction: {
+          expense: 'Wydatek',
+          income: 'Przychód',
+        },
+        actions: {
+          edit: 'Edytuj',
+          delete: 'Usuń',
+        },
+        confirmDelete: 'Usunąć „{{ name }}”? Kolejne uruchomienia zostaną zatrzymane.',
       },
     },
   },
