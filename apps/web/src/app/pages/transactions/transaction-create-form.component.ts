@@ -11,6 +11,7 @@ import {
   input,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TranslocoPipe } from '@ngneat/transloco';
 import {
   TransactionsStore,
@@ -298,6 +299,21 @@ interface CurrencyOptionView {
               <div class="mt-4 grid gap-4 sm:grid-cols-1">
                 <label class="form-control">
                   <span class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60">
+                    {{ 'transactions.form.fields.amountInDefault' | transloco }}
+                    <span class="font-medium text-base-content">({{ store.defaultCurrency() }})</span>
+                  </span>
+                  <input
+                    formControlName="foreignAmount"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    class="input input-bordered"
+                    placeholder="0.00"
+                  />
+                </label>
+
+                <label class="form-control">
+                  <span class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60">
                     {{ 'transactions.form.fields.wallet' | transloco }}
                   </span>
                   <select formControlName="walletId" class="select select-bordered">
@@ -394,6 +410,7 @@ export class TransactionCreateFormComponent {
     tags: this.formBuilder.control<TagSelection[]>([], {
       nonNullable: true,
     }),
+    foreignAmount: this.formBuilder.control<string>(''),
     walletId: this.formBuilder.control<string>('', {
       nonNullable: true,
     }),
@@ -449,6 +466,7 @@ export class TransactionCreateFormComponent {
       if (!hasCurrent) {
         control.setValue(options[0].symbol, { emitEvent: false });
         control.markAsPristine();
+        this.syncAmountInDefault();
         return;
       }
 
@@ -461,16 +479,17 @@ export class TransactionCreateFormComponent {
         if (current !== defaultCurrency) {
           control.setValue(defaultCurrency, { emitEvent: false });
           control.markAsPristine();
+          this.syncAmountInDefault();
         }
       }
     });
 
     effect(() => {
       if (this.showAdvanced()) {
-        const select = this.host.nativeElement.querySelector('[formControlName="walletId"]') as
-          | HTMLSelectElement
+        const input = this.host.nativeElement.querySelector('[formControlName="foreignAmount"]') as
+          | HTMLInputElement
           | null;
-        select?.focus();
+        input?.focus();
       }
     });
 
@@ -485,6 +504,14 @@ export class TransactionCreateFormComponent {
       if (current >= suggestions.length) {
         this.highlightedSuggestion.set(-1);
       }
+    });
+
+    this.form.controls.amount.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
+      this.syncAmountInDefault();
+    });
+
+    this.form.controls.currency.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
+      this.syncAmountInDefault();
     });
   }
 
@@ -759,6 +786,8 @@ export class TransactionCreateFormComponent {
 
     const walletId = raw.walletId.trim();
     const selectedCurrency = raw.currency ? raw.currency.toUpperCase() : this.store.defaultCurrency();
+    const defaultCurrency = this.store.defaultCurrency();
+    const amountInDefault = raw.foreignAmount ? this.parseNumber(raw.foreignAmount) : null;
     const basePayload: UpdateTransactionPayload = {
       description: raw.description?.trim() ? raw.description.trim() : null,
       categoryId: raw.categoryId,
@@ -767,8 +796,8 @@ export class TransactionCreateFormComponent {
       currency: selectedCurrency || this.store.defaultCurrency(),
       direction: raw.direction,
       tagIds: Array.from(new Set(finalTagIds)),
-      foreignAmount: null,
-      foreignCurrency: null,
+      foreignAmount: amountInDefault,
+      foreignCurrency: amountInDefault ? defaultCurrency : null,
       walletId: walletId ? walletId : null,
     };
 
@@ -808,6 +837,7 @@ export class TransactionCreateFormComponent {
       direction: 'expense',
       quantity: 1,
       tags: [] as TagSelection[],
+      foreignAmount: '',
       walletId: '',
     });
     this.form.markAsPristine();
@@ -815,6 +845,7 @@ export class TransactionCreateFormComponent {
     this.showAdvanced.set(false);
     this.store.dismissMutationError();
     this.tagInput.set('');
+    this.syncAmountInDefault();
   }
 
   private populateFormForEdit(transaction: TransactionViewModel): void {
@@ -827,6 +858,7 @@ export class TransactionCreateFormComponent {
       direction: transaction.direction,
       quantity: 1,
       tags: this.mapTagIdsToSelections(transaction.tagIds),
+      foreignAmount: this.formatAmountInDefault(transaction),
       walletId: '',
     });
     this.form.markAsPristine();
@@ -834,6 +866,7 @@ export class TransactionCreateFormComponent {
     this.showAdvanced.set(false);
     this.store.dismissMutationError();
     this.tagInput.set('');
+    this.syncAmountInDefault();
   }
 
   private populateFormForCreatePrefill(transaction: TransactionViewModel): void {
@@ -846,6 +879,7 @@ export class TransactionCreateFormComponent {
       direction: transaction.direction,
       quantity: 1,
       tags: this.mapTagIdsToSelections(transaction.tagIds),
+      foreignAmount: this.formatAmountInDefault(transaction),
       walletId: '',
     });
     this.form.markAsPristine();
@@ -853,6 +887,7 @@ export class TransactionCreateFormComponent {
     this.showAdvanced.set(false);
     this.store.dismissMutationError();
     this.tagInput.set('');
+    this.syncAmountInDefault();
   }
 
   private todayIsoString(): string {
@@ -906,6 +941,51 @@ export class TransactionCreateFormComponent {
       const tag = tagLookup.get(id);
       return tag ? { id: tag.id, name: tag.name } : { id, name: id };
     });
+  }
+
+  private formatAmountInDefault(transaction: TransactionViewModel): string {
+    if (!transaction.exchangeRate || transaction.exchangeRate <= 0) {
+      return '';
+    }
+
+    const amount = transaction.amount / transaction.exchangeRate;
+    return Number.isFinite(amount) ? amount.toFixed(2) : '';
+  }
+
+  private calculateExchangeRate(sourceCurrency: string, targetCurrency: string): number | null {
+    if (!sourceCurrency || !targetCurrency) {
+      return null;
+    }
+
+    if (sourceCurrency === targetCurrency) {
+      return 1;
+    }
+
+    // TODO: Replace stub implementation with a real FX lookup.
+    return 1;
+  }
+
+  private syncAmountInDefault(): void {
+    const amountControl = this.form.controls.amount;
+    const currencyControl = this.form.controls.currency;
+    const defaultAmountControl = this.form.controls.foreignAmount;
+
+    const amount = this.parseNumber(amountControl.value);
+    if (amount === null) {
+      defaultAmountControl.setValue('', { emitEvent: false });
+      return;
+    }
+
+    const currency = (currencyControl.value ?? '').toUpperCase();
+    const defaultCurrency = this.store.defaultCurrency().toUpperCase();
+    const rate = this.calculateExchangeRate(currency || defaultCurrency, defaultCurrency);
+
+    if (rate === null) {
+      return;
+    }
+
+    const defaultAmount = amount * rate;
+    defaultAmountControl.setValue(defaultAmount.toFixed(2), { emitEvent: false });
   }
 
   private parseNumber(raw: string | number | null | undefined): number | null {

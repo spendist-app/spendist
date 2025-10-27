@@ -283,6 +283,7 @@ const en = {
         date: 'Date',
         amount: 'Amount',
         currency: 'Currency',
+        amountInDefault: 'Amount in default currency',
         direction: 'Type',
         quantity: 'How many entries?',
         tags: 'Tags',
@@ -309,7 +310,7 @@ const en = {
       },
       help: {
         quantity: 'Use this when recording identical items bought together.',
-        advancedDisclaimer: 'Assign a wallet if you track balances separately.',
+        advancedDisclaimer: 'Capture the value in your default currency or assign a wallet when needed.',
       },
       emptyTags: 'Start typing to create your first tag or choose from suggestions.',
     },

@@ -283,6 +283,7 @@ const pl = {
         date: 'Data',
         amount: 'Kwota',
         currency: 'Waluta',
+        amountInDefault: 'Kwota w walucie domyślnej',
         direction: 'Typ',
         quantity: 'Ile pozycji?',
         tags: 'Tagi',
@@ -309,7 +310,7 @@ const pl = {
       },
       help: {
         quantity: 'Użyj, gdy zapisujesz kilka identycznych pozycji za jednym razem.',
-        advancedDisclaimer: 'Przypisz portfel, jeśli prowadzisz oddzielne salda.',
+        advancedDisclaimer: 'W razie potrzeby podaj kwotę w walucie domyślnej lub przypisz portfel.',
       },
       emptyTags: 'Zacznij pisać, aby dodać pierwszy tag lub wybierz z podpowiedzi.',
     },
