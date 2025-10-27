@@ -4,6 +4,8 @@ import { SUPABASE_CLIENT } from './supabase';
 import { ensureDefaultCategoriesForUser } from './default-categories';
 import { DEFAULT_LANGUAGE, LanguageCode } from '../i18n/languages';
 
+const DEFAULT_CURRENCY_ID = 1;
+
 interface AuthState {
   session: Session | null;
   loading: boolean;
@@ -21,7 +23,7 @@ export interface SignUpPayload {
   fullName: string;
   timezone: string;
   language?: string;
-  defaultCurrency?: string;
+  defaultCurrencyId?: number;
   avatarUrl?: string | null;
 }
 
@@ -95,7 +97,7 @@ export class AuthService implements OnDestroy {
             username: payload.username,
             full_name: payload.fullName,
             language: payload.language ?? 'en',
-            default_currency: payload.defaultCurrency ?? 'PLN',
+            default_currency_id: payload.defaultCurrencyId ?? DEFAULT_CURRENCY_ID,
             timezone: payload.timezone,
             avatar_url: payload.avatarUrl ?? null,
           },
@@ -117,7 +119,7 @@ export class AuthService implements OnDestroy {
           username: payload.username,
           full_name: payload.fullName,
           avatar_url: payload.avatarUrl ?? null,
-          default_currency: payload.defaultCurrency ?? 'PLN',
+          default_currency_id: payload.defaultCurrencyId ?? DEFAULT_CURRENCY_ID,
           language: payload.language ?? 'en',
           timezone: payload.timezone,
         },

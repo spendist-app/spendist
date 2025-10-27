@@ -1,35 +1,77 @@
-import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { TranslocoPipe } from '@ngneat/transloco';
+import { RecurringPaymentFormComponent } from './recurring-payment-form.component';
+import { RecurringPaymentListComponent } from './recurring-payment-list.component';
+import { RecurringPaymentsStore } from './recurring-payments.store';
 
 @Component({
   standalone: true,
   selector: 'app-recurring-payments-page',
-  imports: [TranslocoPipe],
+  imports: [CommonModule, TranslocoPipe, RecurringPaymentFormComponent, RecurringPaymentListComponent],
+  providers: [RecurringPaymentsStore],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="mx-auto flex min-h-[calc(100vh-6rem)] w-full max-w-5xl flex-col gap-4 px-4 py-12 sm:py-16">
-      <header class="space-y-2 text-center sm:text-left">
-        <p class="badge badge-primary badge-outline text-xs uppercase tracking-wide">
-          {{ 'modules.recurringPayments.badge' | transloco }}
-        </p>
-        <h1 class="text-3xl font-semibold sm:text-4xl">
-          {{ 'modules.recurringPayments.title' | transloco }}
-        </h1>
-        <p class="text-base-content/70 sm:max-w-2xl">
-          {{ 'modules.recurringPayments.description' | transloco }}
-        </p>
-      </header>
-
-      <article
-        class="grid flex-1 place-items-center rounded-3xl border border-dashed border-base-300 bg-base-100/70 px-6 py-16 text-center text-base-content/60 shadow-sm"
-      >
-        <div class="space-y-3">
-          <h2 class="text-xl font-semibold">{{ 'modules.recurringPayments.placeholder.title' | transloco }}</h2>
-          <p class="max-w-xl text-sm sm:text-base">
-            {{ 'modules.recurringPayments.placeholder.body' | transloco }}
+      <section class="grid gap-4 sm:grid-cols-2">
+        <article class="rounded-3xl border border-base-200 bg-base-100/80 p-6 shadow-sm">
+          <p class="text-xs uppercase tracking-wide text-base-content/60">
+            {{ 'modules.recurringPayments.stats.monthly.label' | transloco }}
           </p>
-        </div>
-      </article>
+          <p class="mt-2 text-3xl font-semibold text-primary">
+            {{ store.stats().monthlyExpense | number: '1.2-2' }}
+            <span class="text-base text-base-content/70">{{ store.defaultCurrency() }}</span>
+          </p>
+          <p class="mt-1 text-sm text-base-content/60">
+            {{ 'modules.recurringPayments.stats.monthly.caption' | transloco }}
+          </p>
+        </article>
+        <article class="rounded-3xl border border-base-200 bg-base-100/80 p-6 shadow-sm">
+          <p class="text-xs uppercase tracking-wide text-base-content/60">
+            {{ 'modules.recurringPayments.stats.yearly.label' | transloco }}
+          </p>
+          <p class="mt-2 text-3xl font-semibold text-primary">
+            {{ store.stats().yearlyExpense | number: '1.2-2' }}
+            <span class="text-base text-base-content/70">{{ store.defaultCurrency() }}</span>
+          </p>
+          <p class="mt-1 text-sm text-base-content/60">
+            {{ 'modules.recurringPayments.stats.yearly.caption' | transloco }}
+          </p>
+        </article>
+      </section>
+
+      <section class="relative flex-1">
+        <app-recurring-payment-list class="h-full" (editRequested)="openForm()" (createRequested)="startCreate()" />
+
+        <button
+          type="button"
+          class="btn btn-primary btn-circle fixed bottom-6 right-6 z-20 shadow-lg transition hover:scale-110 focus-visible:scale-110 sm:bottom-10 sm:right-10"
+          (click)="startCreate()"
+          aria-label="{{ 'modules.recurringPayments.form.badge' | transloco }}"
+        >
+          <span class="text-2xl leading-none">+</span>
+        </button>
+      </section>
+
+      <app-recurring-payment-form [open]="formOpen()" (dismiss)="closeForm()" />
     </section>
   `,
 })
-export class RecurringPaymentsPageComponent {}
+export class RecurringPaymentsPageComponent {
+  readonly store = inject(RecurringPaymentsStore);
+  readonly formOpen = signal(false);
+
+  openForm(): void {
+    this.formOpen.set(true);
+  }
+
+  startCreate(): void {
+    this.store.cancelEditing();
+    this.openForm();
+  }
+
+  closeForm(): void {
+    this.formOpen.set(false);
+    this.store.cancelEditing();
+  }
+}

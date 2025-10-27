@@ -3,6 +3,7 @@ import { PostgrestError, SupabaseClient } from '@supabase/supabase-js';
 import { AuthService } from '../../core/auth.service';
 import { SUPABASE_CLIENT } from '../../core/supabase';
 import { canonicalHeroIconName } from '../../shared/icons/heroicons';
+import type { CategoryGroupRow, CategoryRow } from '@spendist/data-access/supabase-types';
 
 export interface CategoryEntity {
   readonly id: string;
@@ -49,23 +50,6 @@ class SettingsStoreError extends Error {
     this.name = 'SettingsStoreError';
   }
 }
-
-type CategoryRow = {
-  id: string;
-  owner_id: string;
-  name: string;
-  color: string | null;
-  icon: string | null;
-  group_id: string;
-};
-
-type CategoryGroupRow = {
-  id: string;
-  owner_id: string;
-  name: string;
-  color: string | null;
-  icon: string | null;
-};
 
 @Injectable()
 export class SettingsStore {

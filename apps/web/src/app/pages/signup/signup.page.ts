@@ -10,7 +10,7 @@ import { AuthService } from '../../core/auth.service';
 import { LanguageService } from '../../core/language.service';
 import { DEFAULT_LANGUAGE as FALLBACK_LANGUAGE } from '../../i18n/languages';
 
-const DEFAULT_CURRENCY = 'PLN';
+const DEFAULT_CURRENCY_ID = 1;
 
 const passwordsMatchValidator = (passwordKey: string, confirmPasswordKey: string) => {
   return (group: { get: (key: string) => { value: string } | null }) => {
@@ -246,7 +246,7 @@ export class SignupPageComponent {
         fullName: safeName,
         timezone: detectTimezone(),
         language,
-        defaultCurrency: DEFAULT_CURRENCY,
+        defaultCurrencyId: DEFAULT_CURRENCY_ID,
         avatarUrl: buildAvatarUrl(username),
       });
 

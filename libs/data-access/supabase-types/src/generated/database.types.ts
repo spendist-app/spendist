@@ -13,11 +13,114 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      categories: {
+        Row: {
+          color: string | null
+          group_id: string
+          icon: string | null
+          id: string
+          name: string
+          owner_id: string
+        }
+        Insert: {
+          color?: string | null
+          group_id: string
+          icon?: string | null
+          id?: string
+          name: string
+          owner_id: string
+        }
+        Update: {
+          color?: string | null
+          group_id?: string
+          icon?: string | null
+          id?: string
+          name?: string
+          owner_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categories_group_fk"
+            columns: ["owner_id", "group_id"]
+            isOneToOne: false
+            referencedRelation: "categories_group"
+            referencedColumns: ["owner_id", "id"]
+          },
+          {
+            foreignKeyName: "categories_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "categories_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_transactions_overview"
+            referencedColumns: ["owner_id"]
+          },
+        ]
+      }
+      categories_group: {
+        Row: {
+          color: string | null
+          icon: string | null
+          id: string
+          name: string
+          owner_id: string
+        }
+        Insert: {
+          color?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          owner_id: string
+        }
+        Update: {
+          color?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          owner_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categories_group_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "categories_group_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_transactions_overview"
+          referencedColumns: ["owner_id"]
+        },
+      ]
+      }
+      currencies: {
+        Row: {
+          id: number
+          symbol: string
+        }
+        Insert: {
+          id: number
+          symbol: string
+        }
+        Update: {
+          id?: number
+          symbol?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
           created_at: string
-          default_currency: string
+          default_currency_id: number
           full_name: string
           id: string
           language: string
@@ -28,7 +131,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string
-          default_currency?: string
+          default_currency_id?: number
           full_name: string
           id: string
           language?: string
@@ -39,7 +142,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string
-          default_currency?: string
+          default_currency_id?: number
           full_name?: string
           id?: string
           language?: string
@@ -47,17 +150,337 @@ export type Database = {
           updated_at?: string
           username?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_default_currency_id_fkey"
+            columns: ["default_currency_id"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recurring_transaction_tags: {
+        Row: {
+          owner_id: string
+          recurring_transaction_id: string
+          tag_id: string
+        }
+        Insert: {
+          owner_id: string
+          recurring_transaction_id: string
+          tag_id: string
+        }
+        Update: {
+          owner_id?: string
+          recurring_transaction_id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_transaction_tags_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_transaction_tags_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_transactions_overview"
+            referencedColumns: ["owner_id"]
+          },
+          {
+            foreignKeyName: "recurring_transaction_tags_recurring_fk"
+            columns: ["owner_id", "recurring_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_transactions"
+            referencedColumns: ["owner_id", "id"]
+          },
+          {
+            foreignKeyName: "recurring_transaction_tags_tag_fk"
+            columns: ["owner_id", "tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["owner_id", "id"]
+          },
+        ]
+      }
+      recurring_transactions: {
+        Row: {
+          amount: number
+          category_id: string
+          cron_job_id: number | null
+          currency: string
+          direction: Database["public"]["Enums"]["transaction_direction"]
+          end_date: string | null
+          exchange_rate: number | null
+          id: string
+          last_run_at: string | null
+          name: string
+          owner_id: string
+          schedule: string
+          start_date: string
+        }
+        Insert: {
+          amount: number
+          category_id: string
+          cron_job_id?: number | null
+          currency: string
+          direction?: Database["public"]["Enums"]["transaction_direction"]
+          end_date?: string | null
+          exchange_rate?: number | null
+          id?: string
+          last_run_at?: string | null
+          name: string
+          owner_id: string
+          schedule: string
+          start_date: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string
+          cron_job_id?: number | null
+          currency?: string
+          direction?: Database["public"]["Enums"]["transaction_direction"]
+          end_date?: string | null
+          exchange_rate?: number | null
+          id?: string
+          last_run_at?: string | null
+          name?: string
+          owner_id?: string
+          schedule?: string
+          start_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_transactions_category_owner_fk"
+            columns: ["owner_id", "category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["owner_id", "id"]
+          },
+          {
+            foreignKeyName: "recurring_transactions_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_transactions_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_transactions_overview"
+            referencedColumns: ["owner_id"]
+          },
+        ]
+      }
+      tags: {
+        Row: {
+          color: string | null
+          icon: string | null
+          id: string
+          name: string
+          owner_id: string
+        }
+        Insert: {
+          color?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          owner_id: string
+        }
+        Update: {
+          color?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          owner_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tags_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tags_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_transactions_overview"
+            referencedColumns: ["owner_id"]
+          },
+        ]
+      }
+      transaction_tags: {
+        Row: {
+          owner_id: string
+          tag_id: string
+          transaction_id: string
+        }
+        Insert: {
+          owner_id: string
+          tag_id: string
+          transaction_id: string
+        }
+        Update: {
+          owner_id?: string
+          tag_id?: string
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transaction_tags_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_tags_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_transactions_overview"
+            referencedColumns: ["owner_id"]
+          },
+          {
+            foreignKeyName: "transaction_tags_tag_fk"
+            columns: ["owner_id", "tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["owner_id", "id"]
+          },
+          {
+            foreignKeyName: "transaction_tags_transaction_fk"
+            columns: ["owner_id", "transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["owner_id", "id"]
+          },
+        ]
+      }
+      transactions: {
+        Row: {
+          amount: number
+          category_id: string
+          currency: string
+          description: string | null
+          direction: Database["public"]["Enums"]["transaction_direction"]
+          exchange_rate: number | null
+          id: string
+          is_automatic: boolean
+          occurred_at: string
+          owner_id: string
+        }
+        Insert: {
+          amount: number
+          category_id: string
+          currency: string
+          description?: string | null
+          direction: Database["public"]["Enums"]["transaction_direction"]
+          exchange_rate?: number | null
+          id?: string
+          is_automatic?: boolean
+          occurred_at: string
+          owner_id: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string
+          currency?: string
+          description?: string | null
+          direction?: Database["public"]["Enums"]["transaction_direction"]
+          exchange_rate?: number | null
+          id?: string
+          is_automatic?: boolean
+          occurred_at?: string
+          owner_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_category_owner_fk"
+            columns: ["owner_id", "category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["owner_id", "id"]
+          },
+          {
+            foreignKeyName: "transactions_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_transactions_overview"
+            referencedColumns: ["owner_id"]
+          },
+        ]
+      }
+      wallets: {
+        Row: {
+          id: string
+          name: string
+          owner_id: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          owner_id: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          owner_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallets_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wallets_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: true
+            referencedRelation: "recurring_transactions_overview"
+            referencedColumns: ["owner_id"]
+          },
+        ]
       }
     }
     Views: {
-      [_ in never]: never
+      recurring_transactions_overview: {
+        Row: {
+          monthly_expense: number | null
+          owner_id: string | null
+          recurring_transactions: Json | null
+          yearly_expense: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      enqueue_recurring_transaction: {
+        Args: { p_recurring_id: string; p_run_at?: string }
+        Returns: string
+      }
+      seed_default_categories: {
+        Args: { p_owner: string }
+        Returns: undefined
+      }
     }
     Enums: {
-      [_ in never]: never
+      transaction_direction: "income" | "expense"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -716,7 +1139,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      transaction_direction: ["income", "expense"],
+    },
   },
   storage: {
     Enums: {
@@ -724,4 +1149,3 @@ export const Constants = {
     },
   },
 } as const
-

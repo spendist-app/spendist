@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { TranslocoPipe } from '@ngneat/transloco';
 import { AuthService } from '../auth.service';
@@ -68,17 +68,38 @@ import { ThemeService } from '../theme.service';
               {{ 'navbar.transactions' | transloco }}
             </a>
           </li>
-          <li class="dropdown dropdown-hover">
-            <label tabindex="0" class="flex cursor-pointer items-center gap-1 rounded-xl px-4 py-2 font-medium">
+          <li
+            class="dropdown"
+            [class.dropdown-open]="modulesMenuOpen()"
+            (mouseenter)="openModulesMenu()"
+            (mouseleave)="closeModulesMenu()"
+            (focusin)="openModulesMenu()"
+            (focusout)="handleModulesFocusOut($event)"
+          >
+            <button
+              type="button"
+              class="flex items-center gap-1 rounded-xl px-4 py-2 font-medium"
+              (click)="toggleModulesMenu()"
+              (keydown.escape)="closeModulesMenu()"
+              [attr.aria-haspopup]="'menu'"
+              [attr.aria-expanded]="modulesMenuOpen()"
+            >
               <span>{{ 'navbar.modules' | transloco }}</span>
               <span aria-hidden="true">▾</span>
-            </label>
+            </button>
             <ul
               tabindex="0"
-              class="dropdown-content menu menu-sm z-[1] mt-2 w-60 space-y-1 rounded-2xl border border-base-200 bg-base-100/95 p-3 shadow-xl"
+              class="dropdown-content menu menu-sm z-[1] w-60 space-y-1 rounded-2xl border border-base-200 bg-base-100/95 p-3 shadow-xl"
+              (mouseenter)="openModulesMenu()"
+              (mouseleave)="closeModulesMenu()"
             >
               <li>
-                <a class="rounded-lg px-3 py-2 text-sm" routerLink="/modules/recurring-payments" routerLinkActive="active">
+                <a
+                  class="rounded-lg px-3 py-2 text-sm"
+                  routerLink="/modules/recurring-payments"
+                  routerLinkActive="active"
+                  (click)="closeModulesMenu()"
+                >
                   {{ 'navbar.modulesRecurring' | transloco }}
                 </a>
               </li>
@@ -171,6 +192,7 @@ export class NavbarComponent {
   private readonly themeService = inject(ThemeService);
   private readonly languageService = inject(LanguageService);
 
+  readonly modulesMenuOpen = signal(false);
   readonly languages = this.languageService.availableLanguages;
   readonly activeLanguage = computed(() => this.languageService.currentLanguage());
 
@@ -198,6 +220,31 @@ export class NavbarComponent {
   readonly themeToggleLabel = computed(() =>
     this.isDark() ? 'common.theme.useLight' : 'common.theme.useDark'
   );
+
+  openModulesMenu(): void {
+    this.modulesMenuOpen.set(true);
+  }
+
+  closeModulesMenu(): void {
+    this.modulesMenuOpen.set(false);
+  }
+
+  toggleModulesMenu(): void {
+    this.modulesMenuOpen.update((open) => !open);
+  }
+
+  handleModulesFocusOut(event: FocusEvent): void {
+    const nextElement = event.relatedTarget as HTMLElement | null;
+    const currentTarget = event.currentTarget as HTMLElement | null;
+    if (!currentTarget) {
+      this.closeModulesMenu();
+      return;
+    }
+
+    if (!nextElement || !currentTarget.contains(nextElement)) {
+      this.closeModulesMenu();
+    }
+  }
 
   toggleTheme(): void {
     this.themeService.toggleTheme();
