@@ -49,3 +49,7 @@ When writing complex features or significant refactors, use an ExecPlan (as desc
 ## Progress
 
 Notuj progress w plikach .agent/*
+
+## Supabase Migrations & Functions
+- Każda nowa migracja lub funkcja tworzona w Supabase musi równolegle trafić do katalogu `supabase/migrations` w repozytorium (commit razem z kodem, który jej potrzebuje).
+- Synchronizuj historię (`supabase migration list --local/--db-url`) przed push, żeby uniknąć rozjazdów między bazą a repo.

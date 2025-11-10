@@ -55,12 +55,15 @@ interface MonthYearOption {
 
             <button
               type="button"
-              class="btn btn-outline btn-sm justify-start gap-3"
+              class="btn btn-outline btn-sm w-full justify-start gap-3"
               [class.btn-active]="!store.hasActiveCategoryFilter()"
               (click)="store.clearCategorySelection()"
             >
               <span class="size-2 rounded-full bg-base-content/20" aria-hidden="true"></span>
-              <span>{{ 'transactions.filters.allCategories' | transloco }}</span>
+              <span class="truncate text-sm">{{ 'transactions.filters.allCategories' | transloco }}</span>
+              <span class="ml-auto text-sm font-semibold text-base-content/70">
+                {{ formatExpenseTotal(store.overallExpenseTotal()) }}
+              </span>
             </button>
 
             <nav class="space-y-5">
@@ -75,9 +78,14 @@ interface MonthYearOption {
                       ></span>
                       <h3 class="text-sm font-semibold text-base-content">{{ group.name }}</h3>
                     </div>
-                    <span class="text-xs text-base-content/50">
-                      {{ group.categories.length }}
-                    </span>
+                    <div class="flex flex-col items-end text-right">
+                      <span class="text-sm font-semibold text-base-content">
+                        {{ formatExpenseTotal(store.groupExpenseTotal(group.id)) }}
+                      </span>
+                      <span class="text-xs text-base-content/50">
+                        {{ group.categories.length }}
+                      </span>
+                    </div>
                   </header>
                   <div class="mt-3 space-y-2">
                     @for (category of group.categories; track category.id) {
@@ -93,6 +101,9 @@ interface MonthYearOption {
                           aria-hidden="true"
                         ></span>
                         <span class="flex-1 truncate text-sm">{{ category.name }}</span>
+                        <span class="text-sm font-medium text-base-content/70">
+                          {{ formatExpenseTotal(store.categoryExpenseTotal(category.id)) }}
+                        </span>
                       </button>
                     }
                   </div>
@@ -102,9 +113,14 @@ interface MonthYearOption {
 
             @if (store.ungroupedCategories().length > 0) {
               <section class="rounded-xl border border-dashed border-base-200 p-3">
-                <h3 class="text-xs font-semibold uppercase tracking-wide text-base-content/50">
+                <div class="flex items-center justify-between gap-3">
+                  <h3 class="text-xs font-semibold uppercase tracking-wide text-base-content/50">
                   {{ 'transactions.filters.ungroupedTitle' | transloco }}
-                </h3>
+                  </h3>
+                  <span class="text-xs font-semibold text-base-content/70">
+                    {{ formatExpenseTotal(store.groupExpenseTotal(null)) }}
+                  </span>
+                </div>
                 <div class="mt-2 flex flex-wrap gap-2">
                   @for (category of store.ungroupedCategories(); track category.id) {
                     <button
@@ -114,7 +130,12 @@ interface MonthYearOption {
                       (click)="store.toggleCategorySelection(category.id)"
                     >
                       <span class="size-2 rounded-full bg-primary" aria-hidden="true"></span>
-                      <span>{{ category.name }}</span>
+                      <span class="truncate">
+                        {{ category.name }}
+                      </span>
+                      <span class="text-xs font-semibold text-base-content/70">
+                        {{ formatExpenseTotal(store.categoryExpenseTotal(category.id)) }}
+                      </span>
                     </button>
                   }
                 </div>
@@ -463,6 +484,18 @@ export class TransactionsPageComponent implements OnDestroy {
     }
     body.classList.toggle('overflow-hidden', this.createFormOpen());
   });
+
+  protected formatExpenseTotal(amount: number): string {
+    const locale = this.locale();
+    const currency = this.store.defaultCurrency();
+    const value = amount === 0 ? 0 : -amount;
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency,
+      maximumFractionDigits: 2,
+      minimumFractionDigits: 2,
+    }).format(value);
+  }
 
   protected formatAmount(transaction: TransactionViewModel): string {
     const locale = this.locale();

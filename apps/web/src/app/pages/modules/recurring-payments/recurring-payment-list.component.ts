@@ -86,6 +86,11 @@ import { RecurringPaymentsStore, RecurringTransactionEntity } from './recurring-
                     }
                   </div>
                   <div class="flex flex-wrap items-center gap-2 text-sm">
+                    @if (transaction.walletName) {
+                      <span class="badge badge-primary badge-outline text-xs">
+                        {{ transaction.walletName }}
+                      </span>
+                    }
                     @if (transaction.category) {
                       <span class="badge badge-ghost text-xs">
                         {{ transaction.category.name }}

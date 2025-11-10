@@ -105,15 +105,51 @@ const en = {
         description: 'Identity, preferences, security',
         header: 'Profile overview',
         text:
-          'Keep your personal details current so insights, notifications, and currencies stay in sync.',
+          'Keep your personal details current so insights, notifications, and preferences stay in sync.',
         note:
           'Advanced profile preferences (notifications, integrations) will live here soon.',
         name: 'Joanna Doe',
-        currency: 'Primary currency',
         language: 'Language',
         timezone: 'Timezone',
         blurb:
           'Your profile details power budgets, reporting, and workspace collaboration (coming soon).',
+      },
+      wallets: {
+        label: 'Wallets',
+        description: 'Accounts, currencies, defaults',
+        header: 'Wallets & balances',
+        text:
+          'Create separate wallets for your accounts, assign currencies, and decide which one should be the default choice in Spendist.',
+        addWallet: 'Add wallet',
+        status: {
+          errorTitle: 'We couldn’t finish that wallet action.',
+        },
+        list: {
+          title: 'Wallets',
+          emptyTitle: 'No wallets yet',
+          emptyBody: 'Create a wallet to start tracking balances and assign it a currency.',
+          defaultBadge: 'Default',
+          makeDefault: 'Make default',
+        },
+        form: {
+          createTitle: 'Create wallet',
+          editTitle: 'Edit wallet',
+          description: 'Name the wallet, select a currency, and decide whether it should be the default option.',
+          nameLabel: 'Wallet name',
+          namePlaceholder: 'e.g. Daily expenses',
+          currencyLabel: 'Currency',
+          defaultLabel: 'Set as default wallet',
+          defaultHelp: 'The default wallet is preselected whenever you create a new transaction.',
+          submitCreate: 'Save wallet',
+          submitUpdate: 'Update wallet',
+          cancelEdit: 'Cancel edit',
+        },
+        errors: {
+          nameRequired: 'Provide a wallet name.',
+          onlyOneDefault: 'Only one wallet can be marked as default.',
+          generic: 'Unable to update the wallet. Please try again.',
+          notFound: 'The wallet you tried to update could not be found.',
+        },
       },
       categories: {
         label: 'Categories',
@@ -296,7 +332,7 @@ const en = {
       placeholders: {
         description: 'Optional note, e.g. Grocery run',
         category: 'Select category',
-        wallet: 'Select wallet (optional)',
+        wallet: 'Select wallet',
         tagInput: 'Type a tag and press Enter…',
       },
       validation: {
@@ -310,7 +346,7 @@ const en = {
       },
       help: {
         quantity: 'Use this when recording identical items bought together.',
-        advancedDisclaimer: 'Capture the value in your default currency or assign a wallet when needed.',
+        advancedDisclaimer: 'Transactions default to your primary wallet — choose another if this one should be tracked elsewhere.',
       },
       emptyTags: 'Start typing to create your first tag or choose from suggestions.',
     },
@@ -351,13 +387,15 @@ const en = {
             placeholder: 'Select category',
             error: 'Choose a category to classify this payment.',
           },
+          wallet: {
+            label: 'Wallet',
+            placeholder: 'Select wallet',
+            error: 'Pick the wallet that should fund this recurring payment.',
+            currencyHint: 'Transactions will use the {{ currency }} currency from this wallet.',
+          },
           amount: {
             label: 'Amount',
             error: 'Enter an amount greater than zero.',
-          },
-          currency: {
-            label: 'Currency',
-            error: 'Use a 3-letter currency code, e.g. PLN.',
           },
           direction: {
             label: 'Type',
@@ -413,6 +451,7 @@ const en = {
           startDate: 'Starts',
           endDate: 'Ends',
           noEndDate: 'No end date',
+          wallet: 'Wallet',
           exchangeRate: 'Exchange rate',
         },
         direction: {

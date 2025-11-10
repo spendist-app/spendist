@@ -300,7 +300,7 @@ interface CurrencyOptionView {
                 <label class="form-control">
                   <span class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60">
                     {{ 'transactions.form.fields.amountInDefault' | transloco }}
-                    <span class="font-medium text-base-content">({{ store.defaultCurrency() }})</span>
+                    <span class="font-medium text-base-content">({{ walletCurrency() }})</span>
                   </span>
                   <input
                     formControlName="foreignAmount"
@@ -316,10 +316,12 @@ interface CurrencyOptionView {
                   <span class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60">
                     {{ 'transactions.form.fields.wallet' | transloco }}
                   </span>
-                  <select formControlName="walletId" class="select select-bordered">
-                    <option value="">
-                      {{ 'transactions.form.placeholders.wallet' | transloco }}
-                    </option>
+                  <select formControlName="walletId" class="select select-bordered" required>
+                    @if (wallets().length === 0) {
+                      <option value="" disabled>
+                        {{ 'transactions.form.placeholders.wallet' | transloco }}
+                      </option>
+                    }
                     @for (wallet of wallets(); track wallet.id) {
                       <option [value]="wallet.id">{{ wallet.name }}</option>
                     }
@@ -365,18 +367,12 @@ export class TransactionCreateFormComponent {
   protected readonly isEditMode = computed(() => this.mode() === 'edit');
   protected readonly tags = computed<readonly TagEntity[]>(() => this.store.tags());
   protected readonly wallets = computed<readonly WalletEntity[]>(() => this.store.wallets());
+  private readonly selectedWalletCurrency = signal(this.store.defaultCurrency());
+  protected readonly walletCurrency = computed(() => this.selectedWalletCurrency());
   protected readonly categoryView = computed(() => this.buildCategoryView());
-  protected readonly currencyOptions = computed<readonly CurrencyOptionView[]>(() => {
-    const options = this.store.currencies();
-    const defaultCurrency = this.store.defaultCurrency();
-    if (options.length === 0) {
-      return [{ id: -1, symbol: defaultCurrency }];
-    }
-
-    return options.some((option) => option.symbol === defaultCurrency)
-      ? options
-      : [{ id: -1, symbol: defaultCurrency }, ...options];
-  });
+  protected readonly currencyOptions = computed<readonly CurrencyOptionView[]>(() => [
+    { id: -1, symbol: this.walletCurrency() },
+  ]);
 
   protected readonly form = this.formBuilder.group({
     description: this.formBuilder.control<string>('', {
@@ -412,6 +408,7 @@ export class TransactionCreateFormComponent {
     }),
     foreignAmount: this.formBuilder.control<string>(''),
     walletId: this.formBuilder.control<string>('', {
+      validators: [Validators.required],
       nonNullable: true,
     }),
   });
@@ -454,33 +451,59 @@ export class TransactionCreateFormComponent {
     });
 
     effect(() => {
-      const options = this.currencyOptions();
-      if (options.length === 0) {
+      const wallets = this.wallets();
+      const walletControl = this.form.controls.walletId;
+      const mode = this.mode();
+      const transaction = this.transaction();
+      const prefill = this.prefill();
+
+      if (wallets.length === 0) {
+        if (walletControl.value !== '') {
+          walletControl.setValue('', { emitEvent: false });
+          walletControl.markAsPristine();
+        }
+        this.syncWalletCurrency(null);
         return;
       }
 
-      const control = this.form.controls.currency;
-      const current = control.value;
-      const hasCurrent = options.some((option) => option.symbol === current);
+      let desiredWallet: WalletEntity | undefined;
 
-      if (!hasCurrent) {
-        control.setValue(options[0].symbol, { emitEvent: false });
+      if (mode === 'edit' && transaction) {
+        desiredWallet = wallets.find((wallet) => wallet.id === transaction.walletId);
+      } else if (prefill) {
+        desiredWallet = wallets.find((wallet) => wallet.id === prefill.walletId);
+      } else if (walletControl.value) {
+        desiredWallet = wallets.find((wallet) => wallet.id === walletControl.value);
+      }
+
+      if (!desiredWallet) {
+        const preferredId = this.store.defaultWalletId();
+        desiredWallet =
+          wallets.find((wallet) => wallet.id === preferredId) ??
+          wallets.find((wallet) => wallet.isDefault) ??
+          wallets[0];
+      }
+
+      if (!desiredWallet) {
+        return;
+      }
+
+      if (walletControl.value !== desiredWallet.id) {
+        walletControl.setValue(desiredWallet.id, { emitEvent: false });
+        walletControl.markAsPristine();
+      }
+
+      this.syncWalletCurrency(desiredWallet.id);
+    });
+
+    effect(() => {
+      const desiredCurrency = this.walletCurrency();
+      const control = this.form.controls.currency;
+
+      if (control.value !== desiredCurrency) {
+        control.setValue(desiredCurrency, { emitEvent: false });
         control.markAsPristine();
         this.syncAmountInDefault();
-        return;
-      }
-
-      if (this.isEditMode() || this.prefill()) {
-        return;
-      }
-
-      if (!control.dirty) {
-        const defaultCurrency = this.store.defaultCurrency();
-        if (current !== defaultCurrency) {
-          control.setValue(defaultCurrency, { emitEvent: false });
-          control.markAsPristine();
-          this.syncAmountInDefault();
-        }
       }
     });
 
@@ -513,6 +536,12 @@ export class TransactionCreateFormComponent {
     this.form.controls.currency.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
       this.syncAmountInDefault();
     });
+
+    this.form.controls.walletId.valueChanges.pipe(takeUntilDestroyed()).subscribe((walletId) => {
+      this.syncWalletCurrency(typeof walletId === 'string' ? walletId : null);
+    });
+
+    this.syncWalletCurrency(typeof this.form.controls.walletId.value === 'string' ? this.form.controls.walletId.value : null);
   }
 
   protected clearTags(): void {
@@ -785,20 +814,24 @@ export class TransactionCreateFormComponent {
       .filter((id): id is string => !!id);
 
     const walletId = raw.walletId.trim();
-    const selectedCurrency = raw.currency ? raw.currency.toUpperCase() : this.store.defaultCurrency();
-    const defaultCurrency = this.store.defaultCurrency();
+    if (!walletId) {
+      this.form.controls.walletId.setErrors({ required: true });
+      return;
+    }
+    const selectedCurrency = this.walletCurrency().toUpperCase();
+    const defaultCurrency = selectedCurrency;
     const amountInDefault = raw.foreignAmount ? this.parseNumber(raw.foreignAmount) : null;
     const basePayload: UpdateTransactionPayload = {
       description: raw.description?.trim() ? raw.description.trim() : null,
       categoryId: raw.categoryId,
       occurredAt,
       amount,
-      currency: selectedCurrency || this.store.defaultCurrency(),
+      currency: selectedCurrency,
       direction: raw.direction,
       tagIds: Array.from(new Set(finalTagIds)),
       foreignAmount: amountInDefault,
       foreignCurrency: amountInDefault ? defaultCurrency : null,
-      walletId: walletId ? walletId : null,
+      walletId,
     };
 
     if (mode === 'create') {
@@ -838,13 +871,14 @@ export class TransactionCreateFormComponent {
       quantity: 1,
       tags: [] as TagSelection[],
       foreignAmount: '',
-      walletId: '',
+      walletId: this.store.defaultWalletId() ?? '',
     });
     this.form.markAsPristine();
     this.form.markAsUntouched();
     this.showAdvanced.set(false);
     this.store.dismissMutationError();
     this.tagInput.set('');
+    this.syncWalletCurrency(this.form.controls.walletId.value);
     this.syncAmountInDefault();
   }
 
@@ -859,13 +893,14 @@ export class TransactionCreateFormComponent {
       quantity: 1,
       tags: this.mapTagIdsToSelections(transaction.tagIds),
       foreignAmount: this.formatAmountInDefault(transaction),
-      walletId: '',
+      walletId: transaction.walletId,
     });
     this.form.markAsPristine();
     this.form.markAsUntouched();
     this.showAdvanced.set(false);
     this.store.dismissMutationError();
     this.tagInput.set('');
+    this.syncWalletCurrency(transaction.walletId);
     this.syncAmountInDefault();
   }
 
@@ -880,13 +915,14 @@ export class TransactionCreateFormComponent {
       quantity: 1,
       tags: this.mapTagIdsToSelections(transaction.tagIds),
       foreignAmount: this.formatAmountInDefault(transaction),
-      walletId: '',
+      walletId: transaction.walletId,
     });
     this.form.markAsPristine();
     this.form.markAsUntouched();
     this.showAdvanced.set(false);
     this.store.dismissMutationError();
     this.tagInput.set('');
+    this.syncWalletCurrency(transaction.walletId);
     this.syncAmountInDefault();
   }
 
@@ -952,6 +988,19 @@ export class TransactionCreateFormComponent {
     return Number.isFinite(amount) ? amount.toFixed(2) : '';
   }
 
+  private syncWalletCurrency(walletId: string | null | undefined): void {
+    const wallets = this.wallets();
+    const wallet = walletId ? wallets.find((item) => item.id === walletId) ?? null : null;
+    const currency = wallet?.currency ?? this.store.defaultCurrency();
+    this.selectedWalletCurrency.set(currency);
+
+    const currencyControl = this.form.controls.currency;
+    if (currencyControl.value !== currency) {
+      currencyControl.setValue(currency, { emitEvent: false });
+      currencyControl.markAsPristine();
+    }
+  }
+
   private calculateExchangeRate(sourceCurrency: string, targetCurrency: string): number | null {
     if (!sourceCurrency || !targetCurrency) {
       return null;
@@ -977,7 +1026,7 @@ export class TransactionCreateFormComponent {
     }
 
     const currency = (currencyControl.value ?? '').toUpperCase();
-    const defaultCurrency = this.store.defaultCurrency().toUpperCase();
+    const defaultCurrency = this.walletCurrency().toUpperCase();
     const rate = this.calculateExchangeRate(currency || defaultCurrency, defaultCurrency);
 
     if (rate === null) {

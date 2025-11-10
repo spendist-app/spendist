@@ -18,25 +18,23 @@ import {
 } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TranslocoPipe, TranslocoService } from '@ngneat/transloco';
-import { RecurringPaymentsStore, RecurringTransactionDirection } from './recurring-payments.store';
+import {
+  RecurringPaymentsStore,
+  RecurringTransactionDirection,
+  WalletEntity,
+} from './recurring-payments.store';
 
 type RecurringFormGroup = FormGroup<{
   readonly name: FormControl<string>;
   readonly categoryId: FormControl<string>;
   readonly amount: FormControl<number | null>;
-  readonly currency: FormControl<string>;
   readonly direction: FormControl<RecurringTransactionDirection>;
   readonly startDate: FormControl<string>;
   readonly endDate: FormControl<string | null>;
   readonly schedule: FormControl<string>;
-  readonly exchangeRate: FormControl<number | null>;
+  readonly walletId: FormControl<string>;
   readonly tagIds: FormControl<string[]>;
-}>;
-
-interface CurrencyOptionView {
-  readonly id: number;
-  readonly symbol: string;
-}
+}>; 
 
 @Component({
   standalone: true,
@@ -142,6 +140,28 @@ interface CurrencyOptionView {
               </div>
 
               <div class="grid gap-2">
+                <label class="text-sm font-semibold text-base-content" for="recurring-wallet">
+                  {{ 'modules.recurringPayments.form.fields.wallet.label' | transloco }}
+                </label>
+                <select id="recurring-wallet" class="select select-bordered w-full" formControlName="walletId">
+                  <option value="">
+                    {{ 'modules.recurringPayments.form.fields.wallet.placeholder' | transloco }}
+                  </option>
+                  @for (wallet of wallets(); track wallet.id) {
+                    <option [value]="wallet.id">{{ wallet.name }}</option>
+                  }
+                </select>
+                @if (walletControl.invalid && (walletControl.dirty || walletControl.touched)) {
+                  <p class="text-xs text-error">
+                    {{ 'modules.recurringPayments.form.fields.wallet.error' | transloco }}
+                  </p>
+                }
+                <p class="text-xs text-base-content/60">
+                  {{ 'modules.recurringPayments.form.fields.wallet.currencyHint' | transloco:{ currency: walletCurrency() } }}
+                </p>
+              </div>
+
+              <div class="grid gap-2">
                 <label class="text-sm font-semibold text-base-content" for="recurring-amount">
                   {{ 'modules.recurringPayments.form.fields.amount.label' | transloco }}
                 </label>
@@ -155,24 +175,13 @@ interface CurrencyOptionView {
                     formControlName="amount"
                     autocomplete="off"
                   />
-                  <select
-                    formControlName="currency"
-                    class="select join-item select-bordered uppercase shrink-0 w-24 sm:w-28"
-                    aria-label="{{ 'modules.recurringPayments.form.fields.currency.label' | transloco }}"
-                  >
-                    @for (option of currencyOptions(); track option.id) {
-                      <option [value]="option.symbol">{{ option.symbol }}</option>
-                    }
-                  </select>
+                  <div class="join-item flex items-center bg-base-200 px-3 text-sm font-semibold uppercase text-base-content">
+                    {{ walletCurrency() }}
+                  </div>
                 </div>
                 @if (amountControl.invalid && (amountControl.dirty || amountControl.touched)) {
                   <p class="text-xs text-error">
                     {{ 'modules.recurringPayments.form.fields.amount.error' | transloco }}
-                  </p>
-                }
-                @if (currencyControl.invalid && (currencyControl.dirty || currencyControl.touched)) {
-                  <p class="text-xs text-error">
-                    {{ 'modules.recurringPayments.form.fields.currency.error' | transloco }}
                   </p>
                 }
               </div>
@@ -237,24 +246,6 @@ interface CurrencyOptionView {
                   </label>
                   <input id="recurring-end-date" class="input input-bordered" type="date" formControlName="endDate" />
                 </div>
-              </div>
-
-              <div class="grid gap-2">
-                <label class="text-sm font-semibold text-base-content" for="recurring-exchange-rate">
-                  {{ 'modules.recurringPayments.form.fields.exchangeRate.label' | transloco }}
-                  <span class="text-xs text-base-content/60">
-                    {{ 'modules.recurringPayments.form.fields.exchangeRate.optional' | transloco }}
-                  </span>
-                </label>
-                <input
-                  id="recurring-exchange-rate"
-                  class="input input-bordered"
-                  type="number"
-                  min="0"
-                  step="0.0001"
-                  formControlName="exchangeRate"
-                  autocomplete="off"
-                />
               </div>
 
               <fieldset class="grid gap-2">
@@ -335,14 +326,9 @@ export class RecurringPaymentFormComponent {
     amount: new FormControl<number | null>(null, {
       validators: [Validators.required, Validators.min(0.01)],
     }),
-    currency: new FormControl('', {
+    walletId: new FormControl('', {
       nonNullable: true,
-      validators: [
-        Validators.required,
-        Validators.minLength(3),
-        Validators.maxLength(3),
-        Validators.pattern(/^[A-Z]{3}$/),
-      ],
+      validators: [Validators.required],
     }),
     direction: new FormControl<RecurringTransactionDirection>('expense', {
       nonNullable: true,
@@ -356,9 +342,6 @@ export class RecurringPaymentFormComponent {
       nonNullable: true,
       validators: [Validators.required, Validators.minLength(3)],
     }),
-    exchangeRate: new FormControl<number | null>(null, {
-      validators: [Validators.min(0)],
-    }),
     tagIds: new FormControl<string[]>([], {
       nonNullable: true,
     }),
@@ -367,22 +350,13 @@ export class RecurringPaymentFormComponent {
   readonly nameControl = this.form.controls.name;
   readonly categoryControl = this.form.controls.categoryId;
   readonly amountControl = this.form.controls.amount;
-  readonly currencyControl = this.form.controls.currency;
+  readonly walletControl = this.form.controls.walletId;
   readonly scheduleControl = this.form.controls.schedule;
   readonly startDateControl = this.form.controls.startDate;
   readonly selectedTags = signal<string[]>([]);
-  readonly currencyOptions = computed<readonly CurrencyOptionView[]>(() => {
-    const options = this.store.currencies();
-    const defaultCurrency = this.store.defaultCurrency();
-
-    if (options.length === 0) {
-      return [{ id: -1, symbol: defaultCurrency }];
-    }
-
-    return options.some((option) => option.symbol === defaultCurrency)
-      ? options
-      : [{ id: -1, symbol: defaultCurrency }, ...options];
-  });
+  private readonly selectedWalletCurrency = signal(this.store.defaultCurrency());
+  readonly walletCurrency = computed(() => this.selectedWalletCurrency());
+  readonly wallets = computed<readonly WalletEntity[]>(() => this.store.wallets());
 
   constructor() {
     this.nameControl.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
@@ -407,33 +381,6 @@ export class RecurringPaymentFormComponent {
     });
 
     effect(() => {
-      const options = this.currencyOptions();
-      if (options.length === 0) {
-        return;
-      }
-
-      const defaultCurrency = this.store.defaultCurrency();
-      const control = this.currencyControl;
-      const current = (control.value ?? '').toUpperCase();
-      const hasCurrent = options.some((option) => option.symbol === current);
-
-      if (!hasCurrent) {
-        control.setValue(options[0].symbol, { emitEvent: false });
-        control.markAsPristine();
-        return;
-      }
-
-      if (this.store.isEditing()) {
-        return;
-      }
-
-      if (!control.dirty && current !== defaultCurrency) {
-        control.setValue(defaultCurrency, { emitEvent: false });
-        control.markAsPristine();
-      }
-    });
-
-    effect(() => {
       const tags = this.selectedTags();
       this.form.controls.tagIds.setValue(tags, { emitEvent: false });
     });
@@ -451,18 +398,19 @@ export class RecurringPaymentFormComponent {
           name: editing.name,
           categoryId: editing.categoryId,
           amount: editing.amount,
-          currency: editing.currency.toUpperCase(),
+          walletId: editing.walletId,
           direction: editing.direction,
           startDate: this.formatDate(editing.startDate),
           endDate: editing.endDate ? this.formatDate(editing.endDate) : null,
           schedule: editing.schedule,
-          exchangeRate: editing.exchangeRate ?? null,
           tagIds,
         },
         { emitEvent: false },
       );
 
       this.selectedTags.set(tagIds);
+      this.form.controls.tagIds.setValue(tagIds, { emitEvent: false });
+      this.syncWalletCurrency(editing.walletId);
       this.submissionError.set(null);
       this.form.markAsPristine();
       this.form.markAsUntouched();
@@ -474,7 +422,10 @@ export class RecurringPaymentFormComponent {
       const filtered = current.filter((id) => available.has(id));
       if (filtered.length !== current.length) {
         this.selectedTags.set(filtered);
+        this.form.controls.tagIds.setValue(filtered, { emitEvent: false });
+        return;
       }
+      this.form.controls.tagIds.setValue(current, { emitEvent: false });
     });
 
     effect(() => {
@@ -483,6 +434,23 @@ export class RecurringPaymentFormComponent {
       }
 
       this.resetForm();
+    });
+
+    this.walletControl.valueChanges.pipe(takeUntilDestroyed()).subscribe((walletId) => {
+      this.syncWalletCurrency(typeof walletId === 'string' ? walletId : null);
+      this.submissionError.set(null);
+    });
+
+    effect(() => {
+      const wallets = this.wallets();
+      const currentWalletId = this.walletControl.value;
+      if (!wallets.some((wallet) => wallet.id === currentWalletId)) {
+        const fallback = this.store.defaultWalletId() ?? wallets[0]?.id ?? '';
+        this.walletControl.setValue(fallback, { emitEvent: false });
+        this.syncWalletCurrency(fallback);
+        return;
+      }
+      this.syncWalletCurrency(typeof currentWalletId === 'string' ? currentWalletId : null);
     });
   }
 
@@ -494,36 +462,33 @@ export class RecurringPaymentFormComponent {
 
     this.submissionError.set(null);
 
-    const {
-      name,
-      categoryId,
-      amount,
-      currency,
-      direction,
-      startDate,
-      endDate,
-      schedule,
-      exchangeRate,
-      tagIds,
-    } = this.form.value;
+    const { name, categoryId, amount, direction, startDate, endDate, schedule, walletId } = this.form.value;
 
     if (amount == null) {
       this.submissionError.set(this.transloco.translate('modules.recurringPayments.form.fields.amount.error'));
       return;
     }
 
+    const resolvedWalletId = (walletId ?? '').trim();
+    if (!resolvedWalletId) {
+      this.walletControl.setErrors({ required: true });
+      this.walletControl.markAsTouched();
+      return;
+    }
+
+    const tags = this.selectedTags();
+
     const editing = this.store.editingRecurring();
     const payload = {
       name: name?.trim() ?? '',
       categoryId: categoryId ?? '',
       amount: Number(amount),
-      currency: (currency ?? '').toUpperCase(),
       direction: (direction ?? 'expense') as RecurringTransactionDirection,
       startDate: startDate ?? this.formatDate(this.today),
       endDate: endDate && endDate.length > 0 ? endDate : null,
       schedule: schedule ?? '',
-      exchangeRate: exchangeRate != null ? Number(exchangeRate) : null,
-      tagIds: tagIds ?? [],
+      tagIds: tags,
+      walletId: resolvedWalletId,
     };
 
     try {
@@ -567,15 +532,15 @@ export class RecurringPaymentFormComponent {
       return;
     }
 
-    this.selectedTags.update((current) => {
-      if (checkbox.checked) {
-        if (current.includes(tagId)) {
-          return current;
-        }
-        return [...current, tagId];
-      }
-      return current.filter((id) => id !== tagId);
-    });
+    const current = this.selectedTags();
+    const next = checkbox.checked
+      ? current.includes(tagId)
+        ? current
+        : [...current, tagId]
+      : current.filter((id) => id !== tagId);
+
+    this.selectedTags.set(next);
+    this.form.controls.tagIds.setValue(next, { emitEvent: false });
   }
 
   onDismiss(): void {
@@ -583,23 +548,32 @@ export class RecurringPaymentFormComponent {
   }
 
   private resetForm(): void {
+    const defaultWalletId = this.store.defaultWalletId();
     this.form.reset(
       {
         name: '',
         categoryId: '',
         amount: null,
-        currency: this.store.defaultCurrency(),
+        walletId: defaultWalletId ?? '',
         direction: 'expense',
         startDate: this.formatDate(this.today),
         endDate: null,
         schedule: '0 12 1 * *',
-        exchangeRate: null,
         tagIds: [],
       },
       { emitEvent: false },
     );
     this.selectedTags.set([]);
     this.submissionError.set(null);
+    this.form.controls.tagIds.setValue([], { emitEvent: false });
+    this.syncWalletCurrency(defaultWalletId);
+  }
+
+  private syncWalletCurrency(walletId: string | null | undefined): void {
+    const wallets = this.store.wallets();
+    const wallet = walletId ? wallets.find((item) => item.id === walletId) ?? null : null;
+    const currency = wallet?.currency ?? this.store.defaultCurrency();
+    this.selectedWalletCurrency.set(currency);
   }
 
   private formatDate(date: Date): string {

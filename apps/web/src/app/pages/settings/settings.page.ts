@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } 
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslocoPipe, TranslocoService } from '@ngneat/transloco';
 import { NgIcon } from '@ng-icons/core';
-import { SettingsStore, CategoryEntity, CategoryGroupEntity } from './settings.store';
+import { SettingsStore, CategoryEntity, CategoryGroupEntity, WalletEntity } from './settings.store';
 import {
   canonicalHeroIconName,
   formatHeroIconLabel as formatHeroIconLabelFn,
@@ -11,7 +11,7 @@ import {
 } from '../../shared/icons/heroicons';
 import { HeroIconPickerComponent } from '../../shared/icons/hero-icon-picker.component';
 
-type SettingsPanelId = 'profile' | 'categories';
+type SettingsPanelId = 'profile' | 'wallets' | 'categories';
 type CategoriesTabId = 'list' | 'groups';
 type CategoryEditorMode = 'create' | 'edit';
 type GroupEditorMode = 'create' | 'edit';
@@ -60,7 +60,7 @@ interface CategoryGroupWithCount extends CategoryGroupEntity {
               @for (panel of panels; track panel.id) {
                 <button
                   type="button"
-                  class="btn btn-ghost justify-start gap-3 px-4 py-3 text-left transition"
+                  class="btn btn-ghost w-full justify-start gap-3 px-4 py-3 text-left transition"
                   [class.btn-active]="panel.id === activePanel()"
                   [class.bg-base-200]="panel.id === activePanel()"
                   [class.shadow-sm]="panel.id === activePanel()"
@@ -105,10 +105,6 @@ interface CategoryGroupWithCount extends CategoryGroupEntity {
                       {{ 'settings.panels.profile.name' | transloco }}
                     </h3>
                     <p class="text-sm text-base-content/70">
-                      {{ 'settings.panels.profile.currency' | transloco }}:
-                      <span class="font-medium text-base-content">PLN</span>
-                    </p>
-                    <p class="text-sm text-base-content/70">
                       {{ 'settings.panels.profile.language' | transloco }}:
                       {{ 'common.language.english' | transloco }} ·
                       {{ 'settings.panels.profile.timezone' | transloco }}: Europe/Warsaw
@@ -134,6 +130,183 @@ interface CategoryGroupWithCount extends CategoryGroupEntity {
               <div class="rounded-2xl border border-dashed border-base-300 bg-base-100/50 p-6 text-sm text-base-content/70">
                 {{ 'settings.panels.profile.note' | transloco }}
               </div>
+            </section>
+          } @else if (activePanel() === 'wallets') {
+            <section class="space-y-6">
+              <header class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 class="text-2xl font-semibold">
+                    {{ 'settings.panels.wallets.header' | transloco }}
+                  </h2>
+                  <p class="max-w-2xl text-base-content/70">
+                    {{ 'settings.panels.wallets.text' | transloco }}
+                  </p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    class="btn btn-primary btn-sm"
+                    (click)="openWalletCreator()"
+                    [disabled]="walletMutationPending()"
+                  >
+                    {{ 'settings.panels.wallets.addWallet' | transloco }}
+                  </button>
+                </div>
+              </header>
+
+              @if (walletError(); as walletError) {
+                <div class="alert alert-error flex-col items-start gap-2 rounded-2xl border border-error/20 bg-error/10 p-4 text-sm text-error">
+                  <div class="font-semibold">
+                    {{ 'settings.panels.wallets.status.errorTitle' | transloco }}
+                  </div>
+                  <div>{{ walletError | transloco }}</div>
+                  <button type="button" class="btn btn-sm btn-ghost text-error" (click)="store.clearWalletError()">
+                    {{ 'common.actions.dismiss' | transloco }}
+                  </button>
+                </div>
+              }
+
+              @if (store.loading()) {
+                <div class="flex justify-center py-16">
+                  <span class="loading loading-lg text-primary" aria-hidden="true"></span>
+                </div>
+              } @else {
+                <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,360px)]">
+                  <section class="space-y-3" aria-label="{{ 'settings.panels.wallets.list.title' | transloco }}">
+                    @if (store.wallets().length === 0) {
+                      <div class="rounded-2xl border border-dashed border-base-300 bg-base-100/60 p-6 text-sm text-base-content/70">
+                        <p class="text-base font-semibold text-base-content">
+                          {{ 'settings.panels.wallets.list.emptyTitle' | transloco }}
+                        </p>
+                        <p>
+                          {{ 'settings.panels.wallets.list.emptyBody' | transloco }}
+                        </p>
+                      </div>
+                    } @else {
+                      @for (wallet of store.wallets(); track wallet.id) {
+                        <article
+                          class="rounded-2xl border border-base-300 bg-base-100/80 p-4 shadow-sm transition"
+                          [class.border-primary]="walletEditorMode() === 'edit' && editingWalletId() === wallet.id"
+                          [class.shadow-md]="walletEditorMode() === 'edit' && editingWalletId() === wallet.id"
+                        >
+                          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <button
+                              type="button"
+                              class="btn btn-ghost btn-sm w-full justify-start sm:w-auto"
+                              [class.btn-active]="walletEditorMode() === 'edit' && editingWalletId() === wallet.id"
+                              (click)="openWalletEditor(wallet.id)"
+                            >
+                              <span class="flex flex-col items-start">
+                                <span class="text-sm font-semibold text-base-content">{{ wallet.name }}</span>
+                                <span class="text-xs text-base-content/60">{{ wallet.currency }}</span>
+                              </span>
+                            </button>
+                            <div class="flex flex-wrap items-center gap-2">
+                              @if (wallet.isDefault) {
+                                <span class="badge badge-primary badge-sm">
+                                  {{ 'settings.panels.wallets.list.defaultBadge' | transloco }}
+                                </span>
+                              } @else {
+                                <button
+                                  type="button"
+                                  class="btn btn-outline btn-xs"
+                                  (click)="makeWalletDefault(wallet)"
+                                  [disabled]="walletMutationPending()"
+                                >
+                                  {{ 'settings.panels.wallets.list.makeDefault' | transloco }}
+                                </button>
+                              }
+                            </div>
+                          </div>
+                        </article>
+                      }
+                    }
+                  </section>
+
+                  <section class="rounded-2xl border border-base-300 bg-base-100/80 p-6 shadow-sm">
+                    <form class="space-y-4" [formGroup]="walletForm" (ngSubmit)="submitWalletForm()">
+                      <header class="space-y-1">
+                        <h3 class="text-xl font-semibold text-base-content">
+                          {{ (walletEditorMode() === 'edit' ? 'settings.panels.wallets.form.editTitle' : 'settings.panels.wallets.form.createTitle') | transloco }}
+                        </h3>
+                        <p class="text-sm text-base-content/70">
+                          {{ 'settings.panels.wallets.form.description' | transloco }}
+                        </p>
+                      </header>
+
+                      <label class="form-control">
+                        <span class="label-text text-sm font-semibold text-base-content">
+                          {{ 'settings.panels.wallets.form.nameLabel' | transloco }}
+                        </span>
+                        <input
+                          type="text"
+                          class="input input-bordered"
+                          formControlName="name"
+                          maxlength="60"
+                          [attr.placeholder]="'settings.panels.wallets.form.namePlaceholder' | transloco"
+                        />
+                        @if (walletFormControls.name.touched && walletFormControls.name.invalid) {
+                          <span class="mt-1 text-xs text-error">
+                            {{ 'settings.panels.wallets.errors.nameRequired' | transloco }}
+                          </span>
+                        }
+                      </label>
+
+                      <label class="form-control">
+                        <span class="label-text text-sm font-semibold text-base-content">
+                          {{ 'settings.panels.wallets.form.currencyLabel' | transloco }}
+                        </span>
+                        <select class="select select-bordered uppercase" formControlName="currencyId">
+                          @for (option of walletCurrencies(); track option.id) {
+                            <option [ngValue]="option.id">{{ option.symbol }}</option>
+                          }
+                        </select>
+                      </label>
+
+                      <label class="flex items-center gap-3 rounded-xl border border-base-300 bg-base-100/70 px-4 py-3 text-sm">
+                        <input type="checkbox" class="checkbox" formControlName="isDefault" />
+                        <span class="flex-1">
+                          <span class="block font-semibold text-base-content">
+                            {{ 'settings.panels.wallets.form.defaultLabel' | transloco }}
+                          </span>
+                          <span class="block text-xs text-base-content/60">
+                            {{ 'settings.panels.wallets.form.defaultHelp' | transloco }}
+                          </span>
+                        </span>
+                      </label>
+
+                      <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                        <button
+                          type="submit"
+                          class="btn btn-primary w-full sm:w-auto"
+                          [disabled]="walletMutationPending()"
+                        >
+                          @if (walletMutationPending()) {
+                            <span class="loading loading-spinner loading-sm"></span>
+                          }
+                          <span>
+                            {{
+                              (walletEditorMode() === 'edit'
+                                ? 'settings.panels.wallets.form.submitUpdate'
+                                : 'settings.panels.wallets.form.submitCreate') | transloco
+                            }}
+                          </span>
+                        </button>
+                        @if (walletEditorMode() === 'edit') {
+                          <button
+                            type="button"
+                            class="btn btn-ghost w-full sm:w-auto"
+                            (click)="cancelWalletEdit()"
+                            [disabled]="walletMutationPending()"
+                          >
+                            {{ 'settings.panels.wallets.form.cancelEdit' | transloco }}
+                          </button>
+                        }
+                      </div>
+                    </form>
+                  </section>
+                </div>
+              }
             </section>
           } @else {
             <section class="space-y-6">
@@ -664,6 +837,11 @@ export class SettingsPageComponent {
       descriptionKey: 'settings.panels.profile.description',
     },
     {
+      id: 'wallets',
+      labelKey: 'settings.panels.wallets.label',
+      descriptionKey: 'settings.panels.wallets.description',
+    },
+    {
       id: 'categories',
       labelKey: 'settings.panels.categories.label',
       descriptionKey: 'settings.panels.categories.description',
@@ -733,6 +911,17 @@ export class SettingsPageComponent {
 
   protected readonly categoryFormControls = this.categoryForm.controls;
   protected readonly categoryGroupFormControls = this.categoryGroupForm.controls;
+  protected readonly walletForm = this.fb.group({
+    name: this.fb.control('', { validators: [Validators.required, Validators.maxLength(60)] }),
+    currencyId: this.fb.control<number | null>(null, { validators: [Validators.required] }),
+    isDefault: this.fb.control(false),
+  });
+  protected readonly walletFormControls = this.walletForm.controls;
+  protected readonly walletEditorMode = signal<'create' | 'edit'>('create');
+  protected readonly editingWalletId = signal<string | null>(null);
+  protected readonly walletMutationPending = computed(() => this.store.walletMutationPending());
+  protected readonly walletError = computed(() => this.store.walletError());
+  protected readonly walletCurrencies = computed(() => this.store.currencies());
 
   constructor() {
     effect(() => {
@@ -770,6 +959,60 @@ export class SettingsPageComponent {
         this.openGroupCreator();
       }
     });
+
+    effect(() => {
+      const wallets = this.store.wallets();
+      const mode = this.walletEditorMode();
+      const editingId = this.editingWalletId();
+
+      if (mode === 'edit') {
+        if (!editingId) {
+          return;
+        }
+
+        if (!wallets.some((wallet) => wallet.id === editingId)) {
+          if (wallets.length > 0) {
+            this.openWalletEditor(wallets[0].id);
+          } else {
+            this.openWalletCreator();
+          }
+        }
+        return;
+      }
+
+      if (mode === 'create' && !this.walletForm.dirty) {
+        this.resetWalletForm();
+      }
+
+      if (wallets.length === 0 && this.activePanel() === 'wallets') {
+        this.store.clearWalletError();
+      }
+    });
+
+    effect(() => {
+      const currencies = this.walletCurrencies();
+      if (currencies.length === 0) {
+        return;
+      }
+
+      const control = this.walletFormControls.currencyId;
+      const currentValue = control.value;
+      const hasMatch = currencies.some((currency) => currency.id === currentValue);
+      if (hasMatch && currentValue !== null) {
+        return;
+      }
+
+      const fallback = this.resolveDefaultCurrencyId();
+      const wasDirty = control.dirty;
+      const wasTouched = control.touched;
+      control.setValue(fallback, { emitEvent: false });
+      if (!wasDirty) {
+        control.markAsPristine();
+      }
+      if (!wasTouched) {
+        control.markAsUntouched();
+      }
+    });
   }
 
   protected coerceIconValue(icon: string | null): string {
@@ -791,6 +1034,19 @@ export class SettingsPageComponent {
     if (panel === 'profile') {
       this.categoryEditorMode.set(null);
       this.groupEditorMode.set(null);
+      this.walletEditorMode.set('create');
+      this.editingWalletId.set(null);
+      return;
+    }
+    if (panel === 'wallets') {
+      const wallets = this.store.wallets();
+      if (wallets.length > 0) {
+        const currentId = this.editingWalletId();
+        const targetId = currentId && wallets.some((wallet) => wallet.id === currentId) ? currentId : wallets[0].id;
+        this.openWalletEditor(targetId);
+      } else {
+        this.openWalletCreator();
+      }
     }
   }
 
@@ -1017,6 +1273,96 @@ export class SettingsPageComponent {
     this.selectGroupFilter(groupId);
   }
 
+  protected openWalletCreator(): void {
+    this.walletEditorMode.set('create');
+    this.editingWalletId.set(null);
+    this.store.clearWalletError();
+    this.resetWalletForm();
+  }
+
+  protected openWalletEditor(walletId: string): void {
+    const wallet = this.store.wallets().find((item) => item.id === walletId);
+    if (!wallet) {
+      return;
+    }
+
+    this.walletEditorMode.set('edit');
+    this.editingWalletId.set(walletId);
+    this.store.clearWalletError();
+    this.resetWalletForm({
+      name: wallet.name,
+      currencyId: wallet.currencyId,
+      isDefault: wallet.isDefault,
+    });
+  }
+
+  protected cancelWalletEdit(): void {
+    this.openWalletCreator();
+  }
+
+  protected async submitWalletForm(): Promise<void> {
+    if (this.walletMutationPending()) {
+      return;
+    }
+
+    if (this.walletForm.invalid) {
+      this.walletForm.markAllAsTouched();
+      return;
+    }
+
+    const { name, currencyId, isDefault } = this.walletForm.getRawValue();
+    const numericCurrencyId =
+      typeof currencyId === 'number' ? currencyId : Number(currencyId ?? NaN);
+
+    if (!Number.isFinite(numericCurrencyId)) {
+      const fallback = this.resolveDefaultCurrencyId();
+      this.walletFormControls.currencyId.setValue(fallback, { emitEvent: false });
+      this.updateSelectedWalletCurrency(fallback);
+      return;
+    }
+
+    const payload = {
+      name: name ?? '',
+      currencyId: numericCurrencyId,
+      isDefault: !!isDefault,
+    };
+
+    try {
+      if (this.walletEditorMode() === 'create') {
+        await this.store.createWallet(payload);
+        this.openWalletCreator();
+      } else {
+        const walletId = this.editingWalletId();
+        if (!walletId) {
+          return;
+        }
+        await this.store.updateWallet(walletId, payload);
+        this.openWalletEditor(walletId);
+      }
+      this.walletForm.markAsPristine();
+      this.walletForm.markAsUntouched();
+    } catch {
+      // Errors surfaced by the store.
+    }
+  }
+
+  protected async makeWalletDefault(wallet: WalletEntity): Promise<void> {
+    if (this.walletMutationPending() || wallet.isDefault) {
+      return;
+    }
+
+    try {
+      await this.store.updateWallet(wallet.id, {
+        name: wallet.name,
+        currencyId: wallet.currencyId,
+        isDefault: true,
+      });
+      this.openWalletEditor(wallet.id);
+    } catch {
+      // Errors surfaced by the store.
+    }
+  }
+
   protected dismissError(): void {
     this.store.clearError();
   }
@@ -1028,5 +1374,32 @@ export class SettingsPageComponent {
   private resolveGroupColor(groupId: string): string | null {
     const group = this.store.groups().find((item) => item.id === groupId);
     return group?.color ?? null;
+  }
+
+  private resetWalletForm(overrides?: { name?: string; currencyId?: number; isDefault?: boolean }): void {
+    const fallbackCurrencyId = overrides?.currencyId ?? this.resolveDefaultCurrencyId();
+    const shouldBeDefault = overrides?.isDefault ?? (this.store.wallets().length === 0);
+
+    this.walletForm.reset(
+      {
+        name: overrides?.name ?? '',
+        currencyId: fallbackCurrencyId,
+        isDefault: shouldBeDefault,
+      },
+      { emitEvent: false },
+    );
+    this.walletForm.markAsPristine();
+    this.walletForm.markAsUntouched();
+  }
+
+  private resolveDefaultCurrencyId(): number {
+    const wallets = this.store.wallets();
+    const defaultWallet = wallets.find((wallet) => wallet.isDefault) ?? wallets[0];
+    if (defaultWallet) {
+      return defaultWallet.currencyId;
+    }
+
+    const currencies = this.store.currencies();
+    return currencies[0]?.id ?? 1;
   }
 }

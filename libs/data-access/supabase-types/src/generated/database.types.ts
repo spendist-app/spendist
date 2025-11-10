@@ -97,9 +97,9 @@ export type Database = {
             columns: ["owner_id"]
             isOneToOne: false
             referencedRelation: "recurring_transactions_overview"
-          referencedColumns: ["owner_id"]
-        },
-      ]
+            referencedColumns: ["owner_id"]
+          },
+        ]
       }
       currencies: {
         Row: {
@@ -120,7 +120,6 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
-          default_currency_id: number
           full_name: string
           id: string
           language: string
@@ -131,7 +130,6 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string
-          default_currency_id?: number
           full_name: string
           id: string
           language?: string
@@ -142,7 +140,6 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string
-          default_currency_id?: number
           full_name?: string
           id?: string
           language?: string
@@ -150,15 +147,7 @@ export type Database = {
           updated_at?: string
           username?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_default_currency_id_fkey"
-            columns: ["default_currency_id"]
-            isOneToOne: false
-            referencedRelation: "currencies"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       recurring_transaction_tags: {
         Row: {
@@ -222,6 +211,7 @@ export type Database = {
           owner_id: string
           schedule: string
           start_date: string
+          wallet_id: string
         }
         Insert: {
           amount: number
@@ -237,6 +227,7 @@ export type Database = {
           owner_id: string
           schedule: string
           start_date: string
+          wallet_id: string
         }
         Update: {
           amount?: number
@@ -252,6 +243,7 @@ export type Database = {
           owner_id?: string
           schedule?: string
           start_date?: string
+          wallet_id?: string
         }
         Relationships: [
           {
@@ -274,6 +266,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "recurring_transactions_overview"
             referencedColumns: ["owner_id"]
+          },
+          {
+            foreignKeyName: "recurring_transactions_wallet_owner_fk"
+            columns: ["owner_id", "wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["owner_id", "id"]
           },
         ]
       }
@@ -375,6 +374,7 @@ export type Database = {
           is_automatic: boolean
           occurred_at: string
           owner_id: string
+          wallet_id: string
         }
         Insert: {
           amount: number
@@ -387,6 +387,7 @@ export type Database = {
           is_automatic?: boolean
           occurred_at: string
           owner_id: string
+          wallet_id: string
         }
         Update: {
           amount?: number
@@ -399,6 +400,7 @@ export type Database = {
           is_automatic?: boolean
           occurred_at?: string
           owner_id?: string
+          wallet_id?: string
         }
         Relationships: [
           {
@@ -422,6 +424,13 @@ export type Database = {
             referencedRelation: "recurring_transactions_overview"
             referencedColumns: ["owner_id"]
           },
+          {
+            foreignKeyName: "transactions_wallet_owner_fk"
+            columns: ["owner_id", "wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["owner_id", "id"]
+          },
         ]
       }
       wallets: {
@@ -429,29 +438,42 @@ export type Database = {
           id: string
           name: string
           owner_id: string
+          is_default: boolean
+          currency_id: number
         }
         Insert: {
           id?: string
           name: string
           owner_id: string
+          is_default?: boolean
+          currency_id?: number
         }
         Update: {
           id?: string
           name?: string
           owner_id?: string
+          is_default?: boolean
+          currency_id?: number
         }
         Relationships: [
           {
             foreignKeyName: "wallets_owner_id_fkey"
             columns: ["owner_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wallets_currency_id_fkey"
+            columns: ["currency_id"]
+            isOneToOne: false
+            referencedRelation: "currencies"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "wallets_owner_id_fkey"
             columns: ["owner_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "recurring_transactions_overview"
             referencedColumns: ["owner_id"]
           },
@@ -470,13 +492,26 @@ export type Database = {
       }
     }
     Functions: {
+      category_expense_summary: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: {
+          category_color: string
+          category_icon: string
+          category_id: string
+          category_name: string
+          category_total_amount: number
+          category_transaction_count: number
+          group_color: string
+          group_icon: string
+          group_id: string
+          group_name: string
+          group_total_amount: number
+          group_transaction_count: number
+        }[]
+      }
       enqueue_recurring_transaction: {
         Args: { p_recurring_id: string; p_run_at?: string }
         Returns: string
-      }
-      seed_default_categories: {
-        Args: { p_owner: string }
-        Returns: undefined
       }
     }
     Enums: {

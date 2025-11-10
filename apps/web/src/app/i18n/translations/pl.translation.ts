@@ -105,15 +105,51 @@ const pl = {
         description: 'Tożsamość, preferencje, bezpieczeństwo',
         header: 'Przegląd profilu',
         text:
-          'Aktualizuj swoje dane, aby analizy, powiadomienia i waluty były zawsze na bieżąco.',
+          'Aktualizuj swoje dane, aby analizy, powiadomienia i preferencje były zawsze na bieżąco.',
         note:
           'Zaawansowane ustawienia profilu (powiadomienia, integracje) pojawią się tutaj wkrótce.',
         name: 'Joanna Doe',
-        currency: 'Waluta podstawowa',
         language: 'Język',
         timezone: 'Strefa czasowa',
         blurb:
           'Dane profilu zasilają budżety, raporty oraz przyszłą współpracę w zespole.',
+      },
+      wallets: {
+        label: 'Portfele',
+        description: 'Konta, waluty, domyślne ustawienia',
+        header: 'Portfele i rachunki',
+        text:
+          'Twórz portfele dla swoich kont, przypisuj im waluty i zdecyduj, który ma być domyślny w Spendist.',
+        addWallet: 'Dodaj portfel',
+        status: {
+          errorTitle: 'Nie udało się wykonać operacji na portfelu.',
+        },
+        list: {
+          title: 'Lista portfeli',
+          emptyTitle: 'Brak portfeli',
+          emptyBody: 'Dodaj portfel, aby śledzić środki i przypisać do niego walutę.',
+          defaultBadge: 'Domyślny',
+          makeDefault: 'Ustaw jako domyślny',
+        },
+        form: {
+          createTitle: 'Dodaj portfel',
+          editTitle: 'Edytuj portfel',
+          description: 'Nazwij portfel, wybierz walutę i zdecyduj, czy ma być domyślnym wyborem.',
+          nameLabel: 'Nazwa portfela',
+          namePlaceholder: 'np. Wydatki codzienne',
+          currencyLabel: 'Waluta',
+          defaultLabel: 'Ustaw jako portfel domyślny',
+          defaultHelp: 'Portfel domyślny jest podpowiadany podczas dodawania nowych transakcji.',
+          submitCreate: 'Zapisz portfel',
+          submitUpdate: 'Zapisz zmiany',
+          cancelEdit: 'Anuluj edycję',
+        },
+        errors: {
+          nameRequired: 'Podaj nazwę portfela.',
+          onlyOneDefault: 'Tylko jeden portfel może być ustawiony jako domyślny.',
+          generic: 'Nie udało się zaktualizować portfela. Spróbuj ponownie.',
+          notFound: 'Portfel, który próbujesz zaktualizować, nie istnieje.',
+        },
       },
       categories: {
         label: 'Kategorie',
@@ -296,7 +332,7 @@ const pl = {
       placeholders: {
         description: 'Opcjonalna notatka, np. Zakupy spożywcze',
         category: 'Wybierz kategorię',
-        wallet: 'Wybierz portfel (opcjonalnie)',
+        wallet: 'Wybierz portfel',
         tagInput: 'Wpisz tag i naciśnij Enter…',
       },
       validation: {
@@ -310,7 +346,7 @@ const pl = {
       },
       help: {
         quantity: 'Użyj, gdy zapisujesz kilka identycznych pozycji za jednym razem.',
-        advancedDisclaimer: 'W razie potrzeby podaj kwotę w walucie domyślnej lub przypisz portfel.',
+        advancedDisclaimer: 'Każda transakcja trafia domyślnie do głównego portfela — zmień go tutaj, jeśli ma być zaksięgowana gdzie indziej.',
       },
       emptyTags: 'Zacznij pisać, aby dodać pierwszy tag lub wybierz z podpowiedzi.',
     },
@@ -351,13 +387,15 @@ const pl = {
             placeholder: 'Wybierz kategorię',
             error: 'Wybierz kategorię dla tej płatności.',
           },
+          wallet: {
+            label: 'Portfel',
+            placeholder: 'Wybierz portfel',
+            error: 'Wskaż portfel, z którego ma pochodzić ta płatność cykliczna.',
+            currencyHint: 'Transakcje będą księgowane w walucie {{ currency }} przypisanej do portfela.',
+          },
           amount: {
             label: 'Kwota',
             error: 'Wpisz kwotę większą od zera.',
-          },
-          currency: {
-            label: 'Waluta',
-            error: 'Użyj 3-literowego kodu waluty, np. PLN.',
           },
           direction: {
             label: 'Typ',
@@ -413,6 +451,7 @@ const pl = {
           startDate: 'Początek',
           endDate: 'Koniec',
           noEndDate: 'Bez końca',
+          wallet: 'Portfel',
           exchangeRate: 'Kurs',
         },
         direction: {

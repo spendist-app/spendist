@@ -3,7 +3,7 @@ import { PostgrestError, SupabaseClient } from '@supabase/supabase-js';
 import { AuthService } from '../../core/auth.service';
 import { SUPABASE_CLIENT } from '../../core/supabase';
 import { canonicalHeroIconName } from '../../shared/icons/heroicons';
-import type { CategoryGroupRow, CategoryRow } from '@spendist/data-access/supabase-types';
+import type { CategoryGroupRow, CategoryRow, WalletRow, Tables } from '@spendist/data-access/supabase-types';
 
 export interface CategoryEntity {
   readonly id: string;
@@ -22,6 +22,15 @@ export interface CategoryGroupEntity {
   readonly icon: string | null;
 }
 
+export interface WalletEntity {
+  readonly id: string;
+  readonly ownerId: string;
+  readonly name: string;
+  readonly isDefault: boolean;
+  readonly currencyId: number;
+  readonly currency: string;
+}
+
 export interface CategoryPayload {
   readonly name: string;
   readonly color: string | null;
@@ -35,13 +44,30 @@ export interface CategoryGroupPayload {
   readonly icon: string | null;
 }
 
+export interface WalletPayload {
+  readonly name: string;
+  readonly currencyId: number;
+  readonly isDefault: boolean;
+}
+
+interface CurrencyOption {
+  readonly id: number;
+  readonly symbol: string;
+}
+
+type CurrencyRow = Tables<'currencies'>;
+
 interface SettingsState {
   readonly loading: boolean;
   readonly categories: readonly CategoryEntity[];
   readonly groups: readonly CategoryGroupEntity[];
+  readonly wallets: readonly WalletEntity[];
+  readonly currencies: readonly CurrencyOption[];
   readonly error: string | null;
   readonly categoryMutationPending: boolean;
   readonly groupMutationPending: boolean;
+  readonly walletMutationPending: boolean;
+  readonly walletError: string | null;
 }
 
 class SettingsStoreError extends Error {
@@ -61,17 +87,25 @@ export class SettingsStore {
     loading: true,
     categories: [],
     groups: [],
+    wallets: [],
+    currencies: [],
     error: null,
     categoryMutationPending: false,
     groupMutationPending: false,
+    walletMutationPending: false,
+    walletError: null,
   });
 
   readonly categories = computed(() => this.state().categories);
   readonly groups = computed(() => this.state().groups);
+  readonly wallets = computed(() => this.state().wallets);
+  readonly currencies = computed(() => this.state().currencies);
   readonly loading = computed(() => this.state().loading);
   readonly error = computed(() => this.state().error);
   readonly categoryMutationPending = computed(() => this.state().categoryMutationPending);
   readonly groupMutationPending = computed(() => this.state().groupMutationPending);
+  readonly walletMutationPending = computed(() => this.state().walletMutationPending);
+  readonly walletError = computed(() => this.state().walletError);
 
   constructor() {
     effect(() => {
@@ -86,9 +120,13 @@ export class SettingsStore {
           loading: false,
           categories: [],
           groups: [],
+          wallets: [],
+          currencies: [],
           error: null,
           categoryMutationPending: false,
           groupMutationPending: false,
+          walletMutationPending: false,
+          walletError: null,
         });
         return;
       }
@@ -116,6 +154,10 @@ export class SettingsStore {
         loading: false,
         categories: [],
         groups: [],
+        wallets: [],
+        currencies: [],
+        walletMutationPending: false,
+        walletError: null,
       }));
       return;
     }
@@ -127,7 +169,7 @@ export class SettingsStore {
     }));
 
     try {
-      const [groupsResult, categoriesResult] = await Promise.all([
+      const [groupsResult, categoriesResult, walletsResult, currenciesResult] = await Promise.all([
         this.supabase
           .from('categories_group')
           .select('*')
@@ -138,6 +180,13 @@ export class SettingsStore {
           .select('*')
           .eq('owner_id', userId)
           .order('name', { ascending: true }),
+        this.supabase
+          .from('wallets')
+          .select('*')
+          .eq('owner_id', userId)
+          .order('is_default', { ascending: false })
+          .order('name', { ascending: true }),
+        this.supabase.from('currencies').select('*').order('symbol', { ascending: true }),
       ]);
 
       if (groupsResult.error) {
@@ -148,11 +197,25 @@ export class SettingsStore {
         throw categoriesResult.error;
       }
 
+      if (walletsResult.error) {
+        throw walletsResult.error;
+      }
+
+      if (currenciesResult.error) {
+        throw currenciesResult.error;
+      }
+
       const groups = this.sortGroups(
         (groupsResult.data ?? []).map((group) => this.mapGroupRow(group as CategoryGroupRow)),
       );
       const categories = this.sortCategories(
         (categoriesResult.data ?? []).map((category) => this.mapCategoryRow(category as CategoryRow)),
+      );
+      const currenciesRaw = (currenciesResult.data ?? []).map((currency) => this.mapCurrencyRow(currency as CurrencyRow));
+      const currencies = this.sortCurrencies(currenciesRaw);
+      const currencyLookup = new Map(currenciesRaw.map((currency) => [currency.id, currency.symbol]));
+      const wallets = this.sortWallets(
+        (walletsResult.data ?? []).map((wallet) => this.mapWalletRow(wallet as WalletRow, currencyLookup)),
       );
 
       this.state.set({
@@ -160,8 +223,12 @@ export class SettingsStore {
         error: null,
         categoryMutationPending: false,
         groupMutationPending: false,
+        walletMutationPending: false,
+        walletError: null,
         categories,
         groups,
+        wallets,
+        currencies,
       });
     } catch (error) {
       const message = this.describeError(error);
@@ -170,6 +237,8 @@ export class SettingsStore {
         ...state,
         loading: false,
         error: message,
+        walletMutationPending: false,
+        walletError: message,
       }));
       throw new SettingsStoreError(message);
     }
@@ -434,6 +503,114 @@ export class SettingsStore {
     }));
   }
 
+  clearWalletError(): void {
+    this.state.update((state) => ({
+      ...state,
+      walletError: null,
+    }));
+  }
+
+  async createWallet(payload: WalletPayload): Promise<void> {
+    const userId = this.requireUserId();
+    const name = payload.name.trim();
+    if (!name) {
+      const message = 'settings.panels.wallets.errors.nameRequired';
+      this.setWalletError(message);
+      throw new SettingsStoreError(message);
+    }
+
+    this.setWalletPending(true);
+    this.setWalletError(null);
+
+    try {
+      if (payload.isDefault) {
+        const { error: clearError } = await this.supabase
+          .from('wallets')
+          .update({ is_default: false })
+          .eq('owner_id', userId);
+        if (clearError) {
+          throw clearError;
+        }
+      }
+
+      const { error } = await this.supabase
+        .from('wallets')
+        .insert({
+          owner_id: userId,
+          name,
+          currency_id: payload.currencyId,
+          is_default: payload.isDefault,
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      await this.refresh();
+    } catch (error) {
+      const message = this.describeWalletError(error);
+      this.setWalletError(message);
+      throw new SettingsStoreError(message);
+    } finally {
+      this.setWalletPending(false);
+    }
+  }
+
+  async updateWallet(walletId: string, payload: WalletPayload): Promise<void> {
+    const userId = this.requireUserId();
+    const name = payload.name.trim();
+    if (!name) {
+      const message = 'settings.panels.wallets.errors.nameRequired';
+      this.setWalletError(message);
+      throw new SettingsStoreError(message);
+    }
+
+    const currentWallet = this.state().wallets.find((wallet) => wallet.id === walletId);
+    if (!currentWallet) {
+      const message = 'settings.panels.wallets.errors.notFound';
+      this.setWalletError(message);
+      throw new SettingsStoreError(message);
+    }
+
+    this.setWalletPending(true);
+    this.setWalletError(null);
+
+    try {
+      if (payload.isDefault) {
+        const { error: clearError } = await this.supabase
+          .from('wallets')
+          .update({ is_default: false })
+          .eq('owner_id', userId)
+          .neq('id', walletId);
+        if (clearError) {
+          throw clearError;
+        }
+      }
+
+      const { error } = await this.supabase
+        .from('wallets')
+        .update({
+          name,
+          currency_id: payload.currencyId,
+          is_default: payload.isDefault,
+        })
+        .eq('owner_id', userId)
+        .eq('id', walletId);
+
+      if (error) {
+        throw error;
+      }
+
+      await this.refresh();
+    } catch (error) {
+      const message = this.describeWalletError(error);
+      this.setWalletError(message);
+      throw new SettingsStoreError(message);
+    } finally {
+      this.setWalletPending(false);
+    }
+  }
+
   private requireUserId(): string {
     const userId = this.userId();
     if (!userId) {
@@ -450,6 +627,20 @@ export class SettingsStore {
       const message = 'Select a valid category group before saving.';
       throw new SettingsStoreError(message);
     }
+  }
+
+  private setWalletPending(pending: boolean): void {
+    this.state.update((state) => ({
+      ...state,
+      walletMutationPending: pending,
+    }));
+  }
+
+  private setWalletError(message: string | null): void {
+    this.state.update((state) => ({
+      ...state,
+      walletError: message,
+    }));
   }
 
   private mapCategoryRow(row: CategoryRow): CategoryEntity {
@@ -473,12 +664,47 @@ export class SettingsStore {
     };
   }
 
+  private mapWalletRow(row: WalletRow, currencyLookup: ReadonlyMap<number, string>): WalletEntity {
+    const currencyId = row.currency_id ?? 1;
+    return {
+      id: row.id,
+      ownerId: row.owner_id,
+      name: row.name,
+      isDefault: !!row.is_default,
+      currencyId,
+      currency: currencyLookup.get(currencyId) ?? 'PLN',
+    };
+  }
+
+  private mapCurrencyRow(row: CurrencyRow): CurrencyOption {
+    return {
+      id: row.id,
+      symbol: row.symbol.toUpperCase(),
+    };
+  }
+
   private sortCategories(categories: readonly CategoryEntity[]): readonly CategoryEntity[] {
     return [...categories].sort((a, b) => a.name.localeCompare(b.name));
   }
 
+  private sortWallets(wallets: readonly WalletEntity[]): readonly WalletEntity[] {
+    return [...wallets].sort((a, b) => {
+      if (a.isDefault && !b.isDefault) {
+        return -1;
+      }
+      if (!a.isDefault && b.isDefault) {
+        return 1;
+      }
+      return a.name.localeCompare(b.name);
+    });
+  }
+
   private sortGroups(groups: readonly CategoryGroupEntity[]): readonly CategoryGroupEntity[] {
     return [...groups].sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  private sortCurrencies(currencies: readonly CurrencyOption[]): readonly CurrencyOption[] {
+    return [...currencies].sort((a, b) => a.symbol.localeCompare(b.symbol));
   }
 
   private setCategoryPending(pending: boolean): void {
@@ -531,6 +757,25 @@ export class SettingsStore {
     }
 
     return 'Something went wrong. Please try again.';
+  }
+
+  private describeWalletError(error: unknown): string {
+    if (error instanceof SettingsStoreError) {
+      return error.message;
+    }
+
+    if (this.isPostgrestError(error)) {
+      if (error.code === '23505') {
+        return 'settings.panels.wallets.errors.onlyOneDefault';
+      }
+      return 'settings.panels.wallets.errors.generic';
+    }
+
+    if (error instanceof Error) {
+      return 'settings.panels.wallets.errors.generic';
+    }
+
+    return 'settings.panels.wallets.errors.generic';
   }
 
   private describeCategoryError(error: unknown): string {
