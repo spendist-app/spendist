@@ -24,6 +24,7 @@ interface TransactionEntity {
   readonly occurredAt: Date;
   readonly description: string | null;
   readonly amount: number;
+  readonly amountInDefault: number;
   readonly currency: string;
   readonly direction: TransactionDirection;
   readonly isAutomatic: boolean;
@@ -123,6 +124,7 @@ interface NormalizedCreatePayload {
   readonly description: string | null;
   readonly occurredAt: Date;
   readonly amount: number;
+  readonly amountInDefault: number;
   readonly currency: string;
   readonly direction: TransactionDirection;
   readonly quantity: number;
@@ -136,6 +138,7 @@ interface NormalizedUpdatePayload {
   readonly description: string | null;
   readonly occurredAt: Date;
   readonly amount: number;
+  readonly amountInDefault: number;
   readonly currency: string;
   readonly direction: TransactionDirection;
   readonly tagIds: readonly string[];
@@ -652,6 +655,7 @@ export class TransactionsStore {
         description: normalized.description,
         occurred_at: normalized.occurredAt.toISOString(),
         amount: normalized.amount,
+        amount_in_default: normalized.amountInDefault,
         currency: normalized.currency,
         direction: normalized.direction,
         is_automatic: false,
@@ -734,6 +738,7 @@ export class TransactionsStore {
           description: normalized.description,
           occurred_at: normalized.occurredAt.toISOString(),
           amount: normalized.amount,
+          amount_in_default: normalized.amountInDefault,
           currency: normalized.currency,
           direction: normalized.direction,
           exchange_rate: normalized.exchangeRate,
@@ -1041,6 +1046,12 @@ export class TransactionsStore {
 
   private mapTransactionRow(row: TransactionRow): TransactionEntity {
     const amount = typeof row.amount === 'number' ? row.amount : Number(row.amount);
+    const amountInDefault =
+      typeof row.amount_in_default === 'number'
+        ? row.amount_in_default
+        : row.amount_in_default != null
+          ? Number(row.amount_in_default)
+          : amount;
     const exchangeRate =
       typeof row.exchange_rate === 'number'
         ? row.exchange_rate
@@ -1055,6 +1066,7 @@ export class TransactionsStore {
       occurredAt: new Date(row.occurred_at),
       description: row.description ?? null,
       amount: Number.isFinite(amount) ? amount : 0,
+      amountInDefault: Number.isFinite(amountInDefault) ? amountInDefault : Number.isFinite(amount) ? amount : 0,
       currency: row.currency,
       direction: row.direction,
       isAutomatic: !!row.is_automatic,
@@ -1211,17 +1223,22 @@ export class TransactionsStore {
     if (!wallet) {
       return null;
     }
-    const selectedCurrency = wallet.currency;
-    const defaultCurrency = selectedCurrency;
+    const walletCurrency = wallet.currency.toUpperCase();
+    const currency = this.normalizeCurrency(payload.currency) ?? walletCurrency;
+    const normalizedForeignAmount =
+      typeof payload.foreignAmount === 'number' && payload.foreignAmount > 0 ? payload.foreignAmount : null;
 
+    let amountInDefault = normalizedForeignAmount ?? amount;
     let exchangeRate: number | null = null;
-    if (
-      payload.foreignAmount &&
-      payload.foreignAmount > 0 &&
-      payload.foreignCurrency &&
-      this.normalizeCurrency(payload.foreignCurrency)
-    ) {
-      exchangeRate = amount / payload.foreignAmount;
+
+    if (currency !== walletCurrency) {
+      if (normalizedForeignAmount) {
+        exchangeRate = amount / normalizedForeignAmount;
+      } else {
+        amountInDefault = amount;
+      }
+    } else {
+      amountInDefault = normalizedForeignAmount ?? amount;
     }
 
     return {
@@ -1229,7 +1246,8 @@ export class TransactionsStore {
       description: description || null,
       occurredAt: this.startOfDay(payload.occurredAt),
       amount,
-      currency: selectedCurrency,
+      amountInDefault,
+      currency,
       direction: payload.direction,
       quantity,
       tagIds,
@@ -1262,17 +1280,22 @@ export class TransactionsStore {
     if (!wallet) {
       return null;
     }
-    const selectedCurrency = wallet.currency;
-    const defaultCurrency = selectedCurrency;
+    const walletCurrency = wallet.currency.toUpperCase();
+    const currency = this.normalizeCurrency(payload.currency) ?? walletCurrency;
+    const normalizedForeignAmount =
+      typeof payload.foreignAmount === 'number' && payload.foreignAmount > 0 ? payload.foreignAmount : null;
 
+    let amountInDefault = normalizedForeignAmount ?? amount;
     let exchangeRate: number | null = null;
-    if (
-      payload.foreignAmount &&
-      payload.foreignAmount > 0 &&
-      payload.foreignCurrency &&
-      this.normalizeCurrency(payload.foreignCurrency)
-    ) {
-      exchangeRate = amount / payload.foreignAmount;
+
+    if (currency !== walletCurrency) {
+      if (normalizedForeignAmount) {
+        exchangeRate = amount / normalizedForeignAmount;
+      } else {
+        amountInDefault = amount;
+      }
+    } else {
+      amountInDefault = normalizedForeignAmount ?? amount;
     }
 
     return {
@@ -1280,7 +1303,8 @@ export class TransactionsStore {
       description: description || null,
       occurredAt: this.startOfDay(payload.occurredAt),
       amount,
-      currency: selectedCurrency,
+      amountInDefault,
+      currency,
       direction: payload.direction,
       tagIds,
       exchangeRate,

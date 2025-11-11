@@ -365,6 +365,7 @@ export type Database = {
       transactions: {
         Row: {
           amount: number
+          amount_in_default: number
           category_id: string
           currency: string
           description: string | null
@@ -378,6 +379,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          amount_in_default?: number
           category_id: string
           currency: string
           description?: string | null
@@ -391,6 +393,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          amount_in_default?: number
           category_id?: string
           currency?: string
           description?: string | null
@@ -507,6 +510,33 @@ export type Database = {
           group_name: string
           group_total_amount: number
           group_transaction_count: number
+        }[]
+      }
+      available_transaction_months: {
+        Args: { p_wallet_id?: string | null }
+        Returns: {
+          month_start: string
+        }[]
+      }
+      monthly_cashflow_summary: {
+        Args: { p_months?: number; p_wallet_id?: string | null }
+        Returns: {
+          expense_total: number
+          income_total: number
+          month_start: string
+        }[]
+      }
+      monthly_category_cashflow: {
+        Args: { p_month_start?: string; p_wallet_id?: string | null }
+        Returns: {
+          category_color: string
+          category_icon: string
+          category_id: string
+          category_name: string
+          direction: Database['public']['Enums']['transaction_direction']
+          month_start: string
+          total_amount: number
+          transaction_count: number
         }[]
       }
       enqueue_recurring_transaction: {

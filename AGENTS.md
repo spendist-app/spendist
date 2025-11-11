@@ -53,3 +53,6 @@ Notuj progress w plikach .agent/*
 ## Supabase Migrations & Functions
 - Każda nowa migracja lub funkcja tworzona w Supabase musi równolegle trafić do katalogu `supabase/migrations` w repozytorium (commit razem z kodem, który jej potrzebuje).
 - Synchronizuj historię (`supabase migration list --local/--db-url`) przed push, żeby uniknąć rozjazdów między bazą a repo.
+
+## Inne 
+Zawsze sprawdzaj jaka jest data. Nie wierz swojej intuicji. Np poprzez new Date().now()

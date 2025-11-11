@@ -13,11 +13,11 @@ fallback_wallet as (
   order by owner_id, is_default desc, name, id
 )
 update public.recurring_transactions rt
-set wallet_id = coalesce(default_wallet.wallet_id, fallback_wallet.wallet_id)
-from default_wallet
-left join fallback_wallet on fallback_wallet.owner_id = rt.owner_id
-where rt.owner_id = default_wallet.owner_id
-  and rt.wallet_id is null;
+set wallet_id = coalesce(
+    (select dw.wallet_id from default_wallet dw where dw.owner_id = rt.owner_id),
+    (select fw.wallet_id from fallback_wallet fw where fw.owner_id = rt.owner_id)
+  )
+where rt.wallet_id is null;
 
 with fallback_wallet as (
   select distinct on (owner_id)

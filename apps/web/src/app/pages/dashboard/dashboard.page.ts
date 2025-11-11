@@ -1,35 +1,80 @@
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { TranslocoPipe } from '@ngneat/transloco';
+import { LanguageService } from '../../core/language.service';
+import type { LanguageCode } from '../../i18n/languages';
+import { DashboardStore } from './dashboard.store';
 
 @Component({
   standalone: true,
   selector: 'app-dashboard-page',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslocoPipe],
-  template: `
-    <section class="mx-auto flex min-h-[calc(100vh-6rem)] w-full max-w-5xl flex-col gap-4 px-4 py-12 sm:py-16">
-      <header class="space-y-2 text-center sm:text-left">
-        <p class="badge badge-primary badge-outline text-xs uppercase tracking-wide">
-          {{ 'dashboard.badge' | transloco }}
-        </p>
-        <h1 class="text-3xl font-semibold sm:text-4xl">
-          {{ 'dashboard.title' | transloco }}
-        </h1>
-        <p class="text-base-content/70 sm:max-w-2xl">
-          {{ 'dashboard.description' | transloco }}
-        </p>
-      </header>
-
-      <article
-        class="grid flex-1 place-items-center rounded-3xl border border-dashed border-base-300 bg-base-100/70 px-6 py-16 text-center text-base-content/60 shadow-sm"
-      >
-        <div class="space-y-3">
-          <h2 class="text-xl font-semibold">{{ 'dashboard.placeholder.title' | transloco }}</h2>
-          <p class="max-w-xl text-sm sm:text-base">
-            {{ 'dashboard.placeholder.body' | transloco }}
-          </p>
-        </div>
-      </article>
-    </section>
-  `,
+  providers: [DashboardStore],
+  templateUrl: './dashboard.page.html',
 })
-export class DashboardPageComponent {}
+export class DashboardPageComponent {
+  protected readonly store = inject(DashboardStore);
+  protected readonly skeletonPlaceholders = Array.from({ length: 4 }, (_, index) => index);
+
+  private readonly languageService = inject(LanguageService);
+  private readonly locale = computed(() => this.resolveLocale(this.languageService.currentLanguage()));
+
+  protected formatMonth(date: Date): string {
+    return new Intl.DateTimeFormat(this.locale(), {
+      month: 'long',
+      year: 'numeric',
+    }).format(date);
+  }
+
+  protected formatIncome(value: number): string {
+    return `+${this.formatMagnitude(value)}`;
+  }
+
+  protected formatExpense(value: number): string {
+    return `-${this.formatMagnitude(value)}`;
+  }
+
+  protected formatNet(value: number): string {
+    if (value === 0) {
+      return this.formatMagnitude(0);
+    }
+
+    const prefix = value > 0 ? '+' : '-';
+    return `${prefix}${this.formatMagnitude(Math.abs(value))}`;
+  }
+
+  protected onWalletChange(event: Event): void {
+    const select = event.target as HTMLSelectElement | null;
+    if (!select) {
+      return;
+    }
+
+    this.store.selectWallet(select.value);
+  }
+
+  protected onMonthChange(event: Event): void {
+    const select = event.target as HTMLSelectElement | null;
+    if (!select) {
+      return;
+    }
+
+    this.store.selectMonth(select.value);
+  }
+
+  private formatMagnitude(value: number): string {
+    return new Intl.NumberFormat(this.locale(), {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
+  }
+
+  private resolveLocale(language: LanguageCode): string {
+    switch (language) {
+      case 'pl':
+        return 'pl-PL';
+      case 'en':
+      default:
+        return 'en-US';
+    }
+  }
+}
