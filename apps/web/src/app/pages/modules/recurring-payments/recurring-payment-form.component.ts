@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -39,7 +38,7 @@ type RecurringFormGroup = FormGroup<{
 @Component({
   standalone: true,
   selector: 'app-recurring-payment-form',
-  imports: [CommonModule, ReactiveFormsModule, TranslocoPipe],
+  imports: [ReactiveFormsModule, TranslocoPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './recurring-payment-form.component.html',
 })

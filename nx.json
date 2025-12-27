@@ -1,8 +1,8 @@
 {
   "installation": {
-    "version": "21.6.4",
+    "version": "22.3.3",
     "plugins": {
-      "@nx/angular": "21.6.4"
+      "@nx/angular": "22.3.3"
     }
   },
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
@@ -22,13 +22,13 @@
         "{workspaceRoot}/eslint.config.mjs"
       ]
     },
-    "@nx/vite:test": {
-      "cache": true,
-      "inputs": ["default", "^default"]
-    },
     "@nx/js:tsc": {
       "cache": true,
       "dependsOn": ["^build"],
+      "inputs": ["default", "^default"]
+    },
+    "@nx/vitest:test": {
+      "cache": true,
       "inputs": ["default", "^default"]
     }
   },
@@ -51,7 +51,7 @@
       "e2eTestRunner": "playwright",
       "linter": "eslint",
       "style": "css",
-      "unitTestRunner": "vitest"
+      "unitTestRunner": "vitest-analog"
     }
   }
 }
