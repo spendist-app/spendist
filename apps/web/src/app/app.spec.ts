@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { signal, computed } from '@angular/core';
+import { provideRouter } from '@angular/router';
 import { App } from './app';
 import { AuthService } from './core/auth.service';
 import { provideAppTransloco } from './i18n/transloco.providers';
@@ -17,7 +18,15 @@ class AuthServiceStub {
 
   setAuthenticated(isAuthenticated: boolean) {
     this.state.set({
-      session: isAuthenticated ? ({ id: 'session' } as unknown) : null,
+      session: isAuthenticated
+        ? ({
+            id: 'session',
+            user: {
+              email: 'test@example.com',
+              user_metadata: {},
+            },
+          } as unknown)
+        : null,
       loading: false,
     });
   }
@@ -34,6 +43,7 @@ describe('App', () => {
           provide: AuthService,
           useClass: AuthServiceStub,
         },
+        provideRouter([]),
         ...provideAppTransloco(),
       ],
     }).compileComponents();
@@ -50,8 +60,8 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.textContent).toContain('Log in');
-    expect(compiled.textContent).toContain('Sign up');
+    expect(compiled.querySelector('a[href="/login"]')).toBeTruthy();
+    expect(compiled.querySelector('a[href="/signup"]')).toBeTruthy();
   });
 
   it('should show avatar placeholder when signed in', () => {

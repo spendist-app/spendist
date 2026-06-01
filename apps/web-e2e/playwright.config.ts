@@ -1,9 +1,17 @@
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
 import { nxE2EPreset } from '@nx/playwright/preset';
 import { workspaceRoot } from '@nx/devkit';
 
 // For CI, you may want to set BASE_URL to the deployed application.
 const baseURL = process.env['BASE_URL'] || 'http://localhost:4200';
+const e2eEnvFile =
+  process.env['E2E_ENV_FILE'] ||
+  (['.env.e2e', '.local_env.e2e'].find((file) =>
+    existsSync(resolve(workspaceRoot, file))
+  ) ??
+    '.local_env.e2e');
 
 /**
  * Read environment variables from file.
@@ -24,7 +32,7 @@ export default defineConfig({
   },
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'npx nx run web:serve',
+    command: `npx dotenv -e ${e2eEnvFile} -- npx nx serve web`,
     url: 'http://localhost:4200',
     reuseExistingServer: true,
     cwd: workspaceRoot,

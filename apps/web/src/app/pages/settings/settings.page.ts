@@ -1,8 +1,24 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
-import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
+import {
+  NonNullableFormBuilder,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { TranslocoPipe, TranslocoService } from '@ngneat/transloco';
 import { NgIcon } from '@ng-icons/core';
-import { SettingsStore, CategoryEntity, CategoryGroupEntity, WalletEntity } from './settings.store';
+import {
+  SettingsStore,
+  CategoryEntity,
+  CategoryGroupEntity,
+  WalletEntity,
+} from './settings.store';
 import {
   canonicalHeroIconName,
   formatHeroIconLabel as formatHeroIconLabelFn,
@@ -34,7 +50,12 @@ interface CategoryGroupWithCount extends CategoryGroupEntity {
   standalone: true,
   selector: 'app-settings-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, NgIcon, HeroIconPickerComponent, TranslocoPipe],
+  imports: [
+    ReactiveFormsModule,
+    NgIcon,
+    HeroIconPickerComponent,
+    TranslocoPipe,
+  ],
   providers: [SettingsStore],
   templateUrl: './settings.page.html',
 })
@@ -67,7 +88,9 @@ export class SettingsPageComponent {
 
   protected readonly activePanel = signal<SettingsPanelId>('profile');
   protected readonly activeCategoriesTab = signal<CategoriesTabId>('list');
-  protected readonly categoryEditorMode = signal<CategoryEditorMode | null>(null);
+  protected readonly categoryEditorMode = signal<CategoryEditorMode | null>(
+    null
+  );
   protected readonly groupEditorMode = signal<GroupEditorMode | null>(null);
   protected readonly editingGroupId = signal<string | null>(null);
   protected readonly selectedCategoryId = signal<string | null>(null);
@@ -76,17 +99,23 @@ export class SettingsPageComponent {
 
   protected readonly hasGroups = computed(() => this.store.groups().length > 0);
 
-  protected readonly categoryGroupsWithStats = computed<CategoryGroupWithCount[]>(() => {
+  protected readonly categoryGroupsWithStats = computed<
+    CategoryGroupWithCount[]
+  >(() => {
     const groups = this.store.groups();
     const categories = this.store.categories();
     return groups.map((group) => ({
       ...group,
-      categoriesTotal: categories.filter((category) => category.groupId === group.id).length,
+      categoriesTotal: categories.filter(
+        (category) => category.groupId === group.id
+      ).length,
     }));
   });
 
   protected readonly categoriesView = computed<CategoryViewModel[]>(() => {
-    const groups = new Map(this.store.groups().map((group) => [group.id, group.name]));
+    const groups = new Map(
+      this.store.groups().map((group) => [group.id, group.name])
+    );
     return this.store.categories().map((category) => ({
       ...category,
       groupName: groups.get(category.groupId) ?? 'Unassigned',
@@ -97,46 +126,66 @@ export class SettingsPageComponent {
     const query = this.categoryQuery().trim().toLowerCase();
     const groupFilter = this.selectedGroupFilter();
 
-    return this.categoriesView()
-      .filter((category) => {
-        const matchesGroup = groupFilter === null || category.groupId === groupFilter;
-        const matchesQuery = query.length === 0 || category.name.toLowerCase().includes(query);
-        return matchesGroup && matchesQuery;
-      });
+    return this.categoriesView().filter((category) => {
+      const matchesGroup =
+        groupFilter === null || category.groupId === groupFilter;
+      const matchesQuery =
+        query.length === 0 || category.name.toLowerCase().includes(query);
+      return matchesGroup && matchesQuery;
+    });
   });
 
-  protected readonly selectedCategory = computed<CategoryViewModel | null>(() => {
-    const id = this.selectedCategoryId();
-    if (!id) {
-      return null;
+  protected readonly selectedCategory = computed<CategoryViewModel | null>(
+    () => {
+      const id = this.selectedCategoryId();
+      if (!id) {
+        return null;
+      }
+      return (
+        this.categoriesView().find((category) => category.id === id) ?? null
+      );
     }
-    return this.categoriesView().find((category) => category.id === id) ?? null;
-  });
+  );
 
   protected readonly categoryForm = this.fb.group({
-    name: this.fb.control('', { validators: [Validators.required, Validators.maxLength(60)] }),
+    name: this.fb.control('', {
+      validators: [Validators.required, Validators.maxLength(60)],
+    }),
     groupId: this.fb.control('', { validators: [Validators.required] }),
     color: this.fb.control('', { validators: [Validators.maxLength(7)] }),
     icon: this.fb.control('', { validators: [Validators.maxLength(32)] }),
   });
 
   protected readonly categoryGroupForm = this.fb.group({
-    name: this.fb.control('', { validators: [Validators.required, Validators.maxLength(60)] }),
-    color: this.fb.control('#0EA5A5', { validators: [Validators.maxLength(7)] }),
-    icon: this.fb.control(canonicalHeroIconName('folder'), { validators: [Validators.maxLength(32)] }),
+    name: this.fb.control('', {
+      validators: [Validators.required, Validators.maxLength(60)],
+    }),
+    color: this.fb.control('#0EA5A5', {
+      validators: [Validators.maxLength(7)],
+    }),
+    icon: this.fb.control(canonicalHeroIconName('folder'), {
+      validators: [Validators.maxLength(32)],
+    }),
   });
 
   protected readonly categoryFormControls = this.categoryForm.controls;
-  protected readonly categoryGroupFormControls = this.categoryGroupForm.controls;
+  protected readonly categoryGroupFormControls =
+    this.categoryGroupForm.controls;
   protected readonly walletForm = this.fb.group({
-    name: this.fb.control('', { validators: [Validators.required, Validators.maxLength(60)] }),
-    currencyId: this.fb.control<number | null>(null, { validators: [Validators.required] }),
+    name: this.fb.control('', {
+      validators: [Validators.required, Validators.maxLength(60)],
+    }),
+    currencyId: this.fb.control<number | null>(null, {
+      validators: [Validators.required],
+    }),
     isDefault: this.fb.control(false),
   });
   protected readonly walletFormControls = this.walletForm.controls;
   protected readonly walletEditorMode = signal<'create' | 'edit'>('create');
   protected readonly editingWalletId = signal<string | null>(null);
-  protected readonly walletMutationPending = computed(() => this.store.walletMutationPending());
+  protected readonly walletMutationPending = computed(() =>
+    this.store.walletMutationPending()
+  );
   protected readonly walletError = computed(() => this.store.walletError());
   protected readonly walletCurrencies = computed(() => this.store.currencies());
 
@@ -155,7 +204,10 @@ export class SettingsPageComponent {
         return;
       }
 
-      if (!currentId || !categories.some((category) => category.id === currentId)) {
+      if (
+        !currentId ||
+        !categories.some((category) => category.id === currentId)
+      ) {
         this.selectedCategoryId.set(categories[0].id);
       }
     });
@@ -214,7 +266,9 @@ export class SettingsPageComponent {
 
       const control = this.walletFormControls.currencyId;
       const currentValue = control.value;
-      const hasMatch = currencies.some((currency) => currency.id === currentValue);
+      const hasMatch = currencies.some(
+        (currency) => currency.id === currentValue
+      );
       if (hasMatch && currentValue !== null) {
         return;
       }
@@ -244,7 +298,11 @@ export class SettingsPageComponent {
 
   protected selectPanel(panel: SettingsPanelId): void {
     this.activePanel.set(panel);
-    if (panel === 'categories' && this.store.groups().length > 0 && !this.selectedCategoryId()) {
+    if (
+      panel === 'categories' &&
+      this.store.groups().length > 0 &&
+      !this.selectedCategoryId()
+    ) {
       const first = this.categoriesView()[0]?.id ?? null;
       this.selectedCategoryId.set(first);
     }
@@ -259,7 +317,10 @@ export class SettingsPageComponent {
       const wallets = this.store.wallets();
       if (wallets.length > 0) {
         const currentId = this.editingWalletId();
-        const targetId = currentId && wallets.some((wallet) => wallet.id === currentId) ? currentId : wallets[0].id;
+        const targetId =
+          currentId && wallets.some((wallet) => wallet.id === currentId)
+            ? currentId
+            : wallets[0].id;
         this.openWalletEditor(targetId);
       } else {
         this.openWalletCreator();
@@ -285,7 +346,9 @@ export class SettingsPageComponent {
     this.categoryQuery.set(target?.value ?? '');
 
     const categories = this.filteredCategories();
-    if (!categories.some((category) => category.id === this.selectedCategoryId())) {
+    if (
+      !categories.some((category) => category.id === this.selectedCategoryId())
+    ) {
       const first = categories[0]?.id ?? null;
       this.selectedCategoryId.set(first);
     }
@@ -294,7 +357,9 @@ export class SettingsPageComponent {
   protected selectGroupFilter(groupId: string | null): void {
     this.selectedGroupFilter.set(groupId);
     const categories = this.filteredCategories();
-    if (!categories.some((category) => category.id === this.selectedCategoryId())) {
+    if (
+      !categories.some((category) => category.id === this.selectedCategoryId())
+    ) {
       const first = categories[0]?.id ?? null;
       this.selectedCategoryId.set(first);
     }
@@ -311,9 +376,7 @@ export class SettingsPageComponent {
     this.categoryEditorMode.set('create');
 
     const defaultGroup =
-      this.selectedGroupFilter() ??
-      this.store.groups()[0]?.id ??
-      '';
+      this.selectedGroupFilter() ?? this.store.groups()[0]?.id ?? '';
 
     this.categoryForm.setValue({
       name: '',
@@ -327,7 +390,9 @@ export class SettingsPageComponent {
   }
 
   protected openCategoryEditor(categoryId: string): void {
-    const category = this.store.categories().find((item) => item.id === categoryId);
+    const category = this.store
+      .categories()
+      .find((item) => item.id === categoryId);
     if (!category) {
       return;
     }
@@ -391,7 +456,9 @@ export class SettingsPageComponent {
   }
 
   protected async deleteCategory(categoryId: string): Promise<void> {
-    const message = this.transloco.translate('settings.panels.categories.modals.confirmCategoryDelete');
+    const message = this.transloco.translate(
+      'settings.panels.categories.modals.confirmCategoryDelete'
+    );
     if (!window.confirm(message)) {
       return;
     }
@@ -470,7 +537,9 @@ export class SettingsPageComponent {
   }
 
   protected async deleteCategoryGroup(groupId: string): Promise<void> {
-    const message = this.transloco.translate('settings.panels.categories.modals.confirmGroupDelete');
+    const message = this.transloco.translate(
+      'settings.panels.categories.modals.confirmGroupDelete'
+    );
     if (!window.confirm(message)) {
       return;
     }
@@ -533,7 +602,9 @@ export class SettingsPageComponent {
 
     if (!Number.isFinite(numericCurrencyId)) {
       const fallback = this.resolveDefaultCurrencyId();
-      this.walletFormControls.currencyId.setValue(fallback, { emitEvent: false });
+      this.walletFormControls.currencyId.setValue(fallback, {
+        emitEvent: false,
+      });
       return;
     }
 
@@ -583,18 +654,28 @@ export class SettingsPageComponent {
     this.store.clearError();
   }
 
-  protected openProfileEditor(): void {}
+  protected openProfileEditor(): void {
+    return;
+  }
 
-  protected manageSecurity(): void {}
+  protected manageSecurity(): void {
+    return;
+  }
 
   private resolveGroupColor(groupId: string): string | null {
     const group = this.store.groups().find((item) => item.id === groupId);
     return group?.color ?? null;
   }
 
-  private resetWalletForm(overrides?: { name?: string; currencyId?: number; isDefault?: boolean }): void {
-    const fallbackCurrencyId = overrides?.currencyId ?? this.resolveDefaultCurrencyId();
-    const shouldBeDefault = overrides?.isDefault ?? (this.store.wallets().length === 0);
+  private resetWalletForm(overrides?: {
+    name?: string;
+    currencyId?: number;
+    isDefault?: boolean;
+  }): void {
+    const fallbackCurrencyId =
+      overrides?.currencyId ?? this.resolveDefaultCurrencyId();
+    const shouldBeDefault =
+      overrides?.isDefault ?? this.store.wallets().length === 0;
 
     this.walletForm.reset(
       {
@@ -602,7 +683,7 @@ export class SettingsPageComponent {
         currencyId: fallbackCurrencyId,
         isDefault: shouldBeDefault,
       },
-      { emitEvent: false },
+      { emitEvent: false }
     );
     this.walletForm.markAsPristine();
     this.walletForm.markAsUntouched();
@@ -610,7 +691,8 @@ export class SettingsPageComponent {
 
   private resolveDefaultCurrencyId(): number {
     const wallets = this.store.wallets();
-    const defaultWallet = wallets.find((wallet) => wallet.isDefault) ?? wallets[0];
+    const defaultWallet =
+      wallets.find((wallet) => wallet.isDefault) ?? wallets[0];
     if (defaultWallet) {
       return defaultWallet.currencyId;
     }

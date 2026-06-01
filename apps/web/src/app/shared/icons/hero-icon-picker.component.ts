@@ -1,5 +1,16 @@
-import { ChangeDetectionStrategy, Component, computed, forwardRef, inject, input, signal } from '@angular/core';
-import { ControlValueAccessor, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  forwardRef,
+  input,
+  signal,
+} from '@angular/core';
+import {
+  ControlValueAccessor,
+  NG_VALUE_ACCESSOR,
+  ReactiveFormsModule,
+} from '@angular/forms';
 import { TranslocoPipe } from '@ngneat/transloco';
 import { NgIcon } from '@ng-icons/core';
 import {
@@ -9,6 +20,14 @@ import {
   heroIconSvg,
   isHeroIconName,
 } from './heroicons';
+
+const noopChange = (value: string): void => {
+  void value;
+};
+
+const noopTouched = (): void => {
+  return;
+};
 
 @Component({
   standalone: true,
@@ -37,8 +56,8 @@ export class HeroIconPickerComponent implements ControlValueAccessor {
   protected readonly disabled = signal(false);
   protected readonly search = signal('');
 
-  private onChange: (value: string) => void = () => {};
-  private onTouched: () => void = () => {};
+  private onChange: (value: string) => void = noopChange;
+  private onTouched: () => void = noopTouched;
   private touched = false;
 
   protected readonly filteredOptions = computed(() => {

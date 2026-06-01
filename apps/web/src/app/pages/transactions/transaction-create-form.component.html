@@ -1,308 +1,371 @@
-    <section class="fixed inset-0 z-30 flex items-end justify-center px-4 py-6 sm:items-center sm:py-12 lg:py-16">
-      <div class="absolute inset-0 bg-base-200/70 backdrop-blur-sm" (click)="onClose()"></div>
+<section
+  class="fixed inset-0 z-30 flex items-end justify-center px-4 py-6 sm:items-center sm:py-12 lg:py-16"
+>
+  <button
+    type="button"
+    class="absolute inset-0 bg-base-200/70 backdrop-blur-sm"
+    aria-label="Close transaction form"
+    (click)="onClose()"
+  ></button>
 
-      <div
-        class="relative z-10 w-full max-w-3xl overflow-hidden rounded-t-3xl border border-base-300 bg-base-100/95 shadow-2xl backdrop-blur sm:rounded-3xl"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="transaction-form-title"
+  <div
+    class="relative z-10 w-full max-w-3xl overflow-hidden rounded-t-3xl border border-base-300 bg-base-100/95 shadow-2xl backdrop-blur sm:rounded-3xl"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="transaction-form-title"
+  >
+    <form
+      class="flex max-h-[min(88vh,700px)] flex-col gap-6 overflow-y-auto p-6 sm:max-h-none sm:p-8"
+      [formGroup]="form"
+      (ngSubmit)="submit()"
+      autocomplete="off"
+      novalidate
+    >
+      <header
+        class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
       >
-        <form
-          class="flex max-h-[min(88vh,700px)] flex-col gap-6 overflow-y-auto p-6 sm:max-h-none sm:p-8"
-          [formGroup]="form"
-          (ngSubmit)="submit()"
-          autocomplete="off"
-          novalidate
+        <div>
+          <p
+            class="badge badge-primary badge-outline text-xs uppercase tracking-wide"
+          >
+            {{ 'transactions.form.badge.' + mode() | transloco }}
+          </p>
+          <h2
+            id="transaction-form-title"
+            class="mt-2 text-2xl font-semibold sm:text-3xl"
+          >
+            {{ 'transactions.form.title.' + mode() | transloco }}
+          </h2>
+          <p class="mt-1 max-w-2xl text-sm text-base-content/70">
+            {{ 'transactions.form.subtitle.' + mode() | transloco }}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          class="btn btn-ghost btn-sm self-end sm:self-start"
+          (click)="onClose()"
         >
-          <header class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p class="badge badge-primary badge-outline text-xs uppercase tracking-wide">
-                {{ ('transactions.form.badge.' + mode()) | transloco }}
-              </p>
-              <h2 id="transaction-form-title" class="mt-2 text-2xl font-semibold sm:text-3xl">
-                {{ ('transactions.form.title.' + mode()) | transloco }}
-              </h2>
-              <p class="mt-1 max-w-2xl text-sm text-base-content/70">
-                {{ ('transactions.form.subtitle.' + mode()) | transloco }}
-              </p>
-            </div>
+          {{ 'common.actions.close' | transloco }}
+        </button>
+      </header>
 
-            <button type="button" class="btn btn-ghost btn-sm self-end sm:self-start" (click)="onClose()">
-              {{ 'common.actions.close' | transloco }}
-            </button>
-          </header>
+      @if (store.mutationError(); as error) {
+      <div
+        class="alert alert-error flex items-start gap-3 rounded-2xl border border-error/20 bg-error/10 p-4 text-sm"
+      >
+        <span class="font-semibold">{{
+          'transactions.form.submitErrorTitle' | transloco
+        }}</span>
+        <span class="flex-1">{{ error }}</span>
+        <button
+          type="button"
+          class="btn btn-ghost btn-xs text-error"
+          (click)="store.dismissMutationError()"
+        >
+          {{ 'common.actions.dismiss' | transloco }}
+        </button>
+      </div>
+      }
 
-          @if (store.mutationError(); as error) {
-            <div class="alert alert-error flex items-start gap-3 rounded-2xl border border-error/20 bg-error/10 p-4 text-sm">
-              <span class="font-semibold">{{ 'transactions.form.submitErrorTitle' | transloco }}</span>
-              <span class="flex-1">{{ error }}</span>
-              <button type="button" class="btn btn-ghost btn-xs text-error" (click)="store.dismissMutationError()">
-                {{ 'common.actions.dismiss' | transloco }}
-              </button>
-            </div>
-          }
+      <fieldset class="grid gap-4 sm:grid-cols-2">
+        <label class="form-control">
+          <span class="label-text text-sm font-semibold text-base-content">
+            {{ 'transactions.form.fields.description' | transloco }}
+          </span>
+          <input
+            formControlName="description"
+            type="text"
+            class="input input-bordered"
+            maxlength="120"
+            placeholder="{{
+              'transactions.form.placeholders.description' | transloco
+            }}"
+          />
+        </label>
 
-          <fieldset class="grid gap-4 sm:grid-cols-2">
-            <label class="form-control">
-              <span class="label-text text-sm font-semibold text-base-content">
-                {{ 'transactions.form.fields.description' | transloco }}
-              </span>
-              <input
-                formControlName="description"
-                type="text"
-                class="input input-bordered"
-                maxlength="120"
-                placeholder="{{ 'transactions.form.placeholders.description' | transloco }}"
-              />
-            </label>
+        <label class="form-control">
+          <span class="label-text text-sm font-semibold text-base-content">
+            {{ 'transactions.form.fields.date' | transloco }}
+          </span>
+          <input
+            formControlName="occurredOn"
+            type="date"
+            class="input input-bordered"
+          />
+        </label>
 
-            <label class="form-control">
-              <span class="label-text text-sm font-semibold text-base-content">
-                {{ 'transactions.form.fields.date' | transloco }}
-              </span>
-              <input formControlName="occurredOn" type="date" class="input input-bordered" />
-            </label>
-
-            <label class="form-control sm:col-span-2">
-              <span class="label-text text-sm font-semibold text-base-content">
-                {{ 'transactions.form.fields.category' | transloco }}
-              </span>
-              <select formControlName="categoryId" class="select select-bordered w-full">
-                <option value="" disabled>
-                  {{ 'transactions.form.placeholders.category' | transloco }}
-                </option>
-                @for (group of categoryView(); track group.groupName) {
-                  @if (group.groupName) {
-                    <optgroup [label]="group.groupName">
-                      @for (item of group.options; track item.id) {
-                        <option [value]="item.id">{{ item.label }}</option>
-                      }
-                    </optgroup>
-                  } @else {
-                    @for (item of group.options; track item.id) {
-                      <option [value]="item.id">{{ item.label }}</option>
-                    }
-                  }
-                }
-              </select>
-            </label>
-
-            <label class="form-control">
-              <span class="label-text text-sm font-semibold text-base-content">
-                {{ 'transactions.form.fields.amount' | transloco }}
-              </span>
-              <div class="join w-full">
-                <input
-                  formControlName="amount"
-                  type="text"
-                  inputmode="text"
-                  class="input join-item input-bordered flex-1 min-w-0 font-mono"
-                  placeholder="0.00"
-                />
-                <select
-                  formControlName="currency"
-                  class="select join-item select-bordered uppercase shrink-0 w-24 sm:w-28"
-                  aria-label="{{ 'transactions.form.fields.currency' | transloco }}"
-                >
-                  @for (option of currencyOptions(); track option.id) {
-                    <option [value]="option.symbol">{{ option.symbol }}</option>
-                  }
-                </select>
-              </div>
-              <span class="mt-1 text-xs text-base-content/70">
-                {{ 'transactions.form.help.amountExpression' | transloco }}
-              </span>
-              @if (form.controls.amount.touched && form.controls.amount.invalid) {
-                <span class="mt-1 text-xs text-error">
-                  {{ 'transactions.form.validation.amount' | transloco }}
-                </span>
+        <label class="form-control sm:col-span-2">
+          <span class="label-text text-sm font-semibold text-base-content">
+            {{ 'transactions.form.fields.category' | transloco }}
+          </span>
+          <select
+            formControlName="categoryId"
+            class="select select-bordered w-full"
+          >
+            <option value="" disabled>
+              {{ 'transactions.form.placeholders.category' | transloco }}
+            </option>
+            @for (group of categoryView(); track group.groupName) { @if
+            (group.groupName) {
+            <optgroup [label]="group.groupName">
+              @for (item of group.options; track item.id) {
+              <option [value]="item.id">{{ item.label }}</option>
               }
-            </label>
+            </optgroup>
+            } @else { @for (item of group.options; track item.id) {
+            <option [value]="item.id">{{ item.label }}</option>
+            } } }
+          </select>
+        </label>
 
-            <div class="form-control">
-              <span class="label-text text-sm font-semibold text-base-content">
-                {{ 'transactions.form.fields.direction' | transloco }}
-              </span>
-              <div class="btn-group grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  class="btn"
-                  [class.btn-error]="form.controls.direction.value === 'expense'"
-                  [class.btn-outline]="form.controls.direction.value !== 'expense'"
-                  (click)="selectDirection('expense')"
-                >
-                  {{ 'transactions.form.directions.expense' | transloco }}
-                </button>
-                <button
-                  type="button"
-                  class="btn"
-                  [class.btn-success]="form.controls.direction.value === 'income'"
-                  [class.btn-outline]="form.controls.direction.value !== 'income'"
-                  (click)="selectDirection('income')"
-                >
-                  {{ 'transactions.form.directions.income' | transloco }}
-                </button>
-              </div>
-            </div>
+        <label class="form-control">
+          <span class="label-text text-sm font-semibold text-base-content">
+            {{ 'transactions.form.fields.amount' | transloco }}
+          </span>
+          <div class="join w-full">
+            <input
+              formControlName="amount"
+              type="text"
+              inputmode="text"
+              class="input join-item input-bordered flex-1 min-w-0 font-mono"
+              placeholder="0.00"
+            />
+            <select
+              formControlName="currency"
+              class="select join-item select-bordered uppercase shrink-0 w-24 sm:w-28"
+              aria-label="{{ 'transactions.form.fields.currency' | transloco }}"
+            >
+              @for (option of currencyOptions(); track option.id) {
+              <option [value]="option.symbol">{{ option.symbol }}</option>
+              }
+            </select>
+          </div>
+          <span class="mt-1 text-xs text-base-content/70">
+            {{ 'transactions.form.help.amountExpression' | transloco }}
+          </span>
+          @if (form.controls.amount.touched && form.controls.amount.invalid) {
+          <span class="mt-1 text-xs text-error">
+            {{ 'transactions.form.validation.amount' | transloco }}
+          </span>
+          }
+        </label>
 
-            @if (!isEditMode()) {
-              <label class="form-control">
-                <span class="label-text text-sm font-semibold text-base-content">
-                  {{ 'transactions.form.fields.quantity' | transloco }}
-                </span>
-                <input
-                  formControlName="quantity"
-                  type="number"
-                  min="1"
-                  max="50"
-                  class="input input-bordered"
-                />
-                <span class="label-text-alt text-xs text-base-content/60">
-                  {{ 'transactions.form.help.quantity' | transloco }}
-                </span>
-              </label>
-            }
-          </fieldset>
-
-          <section class="space-y-3">
-            <label class="form-control">
-              <span class="label-text text-sm font-semibold text-base-content">
-                {{ 'transactions.form.fields.tags' | transloco }}
-              </span>
-              <div class="flex flex-wrap items-center gap-2 rounded-2xl border border-base-300 bg-base-100/80 p-3">
-                @for (selection of form.controls.tags.value; track trackTagSelection($index, selection)) {
-                  <span class="badge badge-primary gap-2">
-                    <span>{{ selection.name }}</span>
-                    <button type="button" class="btn btn-ghost btn-xs p-0" (click)="removeTag(selection)">
-                      <span aria-hidden="true">×</span>
-                      <span class="sr-only">
-                        {{ 'transactions.form.actions.removeTag' | transloco: { name: selection.name } }}
-                      </span>
-                    </button>
-                  </span>
-                }
-                <div class="relative min-w-[160px] flex-1">
-                  <input
-                    type="text"
-                    class="input input-ghost w-full border-none bg-transparent focus:outline-none"
-                    [value]="tagInput()"
-                    (focus)="onTagInputFocus()"
-                    (blur)="onTagInputBlur()"
-                    (input)="onTagInput($event)"
-                    (keydown)="onTagInputKeydown($event)"
-                    placeholder="{{ 'transactions.form.placeholders.tagInput' | transloco }}"
-                    aria-label="{{ 'transactions.form.fields.tags' | transloco }}"
-                    autocomplete="off"
-                  />
-                  @if (suggestionPanelOpen()) {
-                    <ul
-                      class="absolute left-0 right-0 top-full z-20 mt-2 max-h-48 overflow-y-auto rounded-xl border border-base-300 bg-base-100 shadow-lg"
-                      role="listbox"
-                    >
-                      @for (suggestion of suggestedTags(); track suggestion.id; let i = $index) {
-                        <li>
-                          <button
-                            type="button"
-                            class="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm transition hover:bg-base-200"
-                            [class.bg-base-200]="highlightedSuggestion() === i"
-                            (mousedown)="onSuggestionClick($event, suggestion)"
-                            (mouseenter)="onSuggestionHover(i)"
-                          >
-                            <span>{{ suggestion.name }}</span>
-                            @if (suggestion.color) {
-                              <span class="size-2 rounded-full" [style.background-color]="suggestion.color" aria-hidden="true"></span>
-                            }
-                          </button>
-                        </li>
-                      }
-                    </ul>
-                  }
-                </div>
-                <button
-                  type="button"
-                  class="btn btn-ghost btn-xs"
-                  [disabled]="form.controls.tags.value.length === 0"
-                  (click)="clearTags()"
-                >
-                  {{ 'transactions.form.actions.clearTags' | transloco }}
-                </button>
-              </div>
-            </label>
-
-            @if (form.controls.tags.value.length === 0 && tags().length === 0) {
-              <p class="text-xs text-base-content/60">
-                {{ 'transactions.form.emptyTags' | transloco }}
-              </p>
-            }
-          </section>
-
-          <section class="border-t border-dashed border-base-300 pt-4">
+        <div class="form-control">
+          <span class="label-text text-sm font-semibold text-base-content">
+            {{ 'transactions.form.fields.direction' | transloco }}
+          </span>
+          <div class="btn-group grid grid-cols-2 gap-2">
             <button
               type="button"
-              class="btn btn-outline btn-sm"
-              (click)="toggleAdvanced()"
-              [attr.aria-expanded]="showAdvanced()"
+              class="btn"
+              [class.btn-error]="form.controls.direction.value === 'expense'"
+              [class.btn-outline]="form.controls.direction.value !== 'expense'"
+              (click)="selectDirection('expense')"
             >
-              @if (showAdvanced()) {
-                {{ 'transactions.form.actions.hideAdvanced' | transloco }}
-              } @else {
-                {{ 'transactions.form.actions.showAdvanced' | transloco }}
-              }
+              {{ 'transactions.form.directions.expense' | transloco }}
             </button>
+            <button
+              type="button"
+              class="btn"
+              [class.btn-success]="form.controls.direction.value === 'income'"
+              [class.btn-outline]="form.controls.direction.value !== 'income'"
+              (click)="selectDirection('income')"
+            >
+              {{ 'transactions.form.directions.income' | transloco }}
+            </button>
+          </div>
+        </div>
 
-            @if (showAdvanced()) {
-              <div class="mt-4 grid gap-4 sm:grid-cols-1">
-                <label class="form-control">
-                  <span class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60">
-                    {{ 'transactions.form.fields.amountInDefault' | transloco }}
-                    <span class="font-medium text-base-content">({{ walletCurrency() }})</span>
-                  </span>
-                  <input
-                    formControlName="foreignAmount"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    class="input input-bordered"
-                    placeholder="0.00"
-                  />
-                </label>
+        @if (!isEditMode()) {
+        <label class="form-control">
+          <span class="label-text text-sm font-semibold text-base-content">
+            {{ 'transactions.form.fields.quantity' | transloco }}
+          </span>
+          <input
+            formControlName="quantity"
+            type="number"
+            min="1"
+            max="50"
+            class="input input-bordered"
+          />
+          <span class="label-text-alt text-xs text-base-content/60">
+            {{ 'transactions.form.help.quantity' | transloco }}
+          </span>
+        </label>
+        }
+      </fieldset>
 
-                <label class="form-control">
-                  <span class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60">
-                    {{ 'transactions.form.fields.wallet' | transloco }}
-                  </span>
-                  <select formControlName="walletId" class="select select-bordered" required>
-                    @if (wallets().length === 0) {
-                      <option value="" disabled>
-                        {{ 'transactions.form.placeholders.wallet' | transloco }}
-                      </option>
-                    }
-                    @for (wallet of wallets(); track wallet.id) {
-                      <option [value]="wallet.id">{{ wallet.name }}</option>
-                    }
-                  </select>
-                </label>
-              </div>
-              <p class="mt-3 text-xs text-base-content/50">
-                {{ 'transactions.form.help.advancedDisclaimer' | transloco }}
-              </p>
+      <section class="space-y-3">
+        <label class="form-control">
+          <span class="label-text text-sm font-semibold text-base-content">
+            {{ 'transactions.form.fields.tags' | transloco }}
+          </span>
+          <div
+            class="flex flex-wrap items-center gap-2 rounded-2xl border border-base-300 bg-base-100/80 p-3"
+          >
+            @for (selection of form.controls.tags.value; track
+            trackTagSelection($index, selection)) {
+            <span class="badge badge-primary gap-2">
+              <span>{{ selection.name }}</span>
+              <button
+                type="button"
+                class="btn btn-ghost btn-xs p-0"
+                (click)="removeTag(selection)"
+              >
+                <span aria-hidden="true">×</span>
+                <span class="sr-only">
+                  {{
+                    'transactions.form.actions.removeTag'
+                      | transloco : { name: selection.name }
+                  }}
+                </span>
+              </button>
+            </span>
             }
-          </section>
-
-          <footer class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-            <button type="button" class="btn btn-ghost" (click)="onClose()">
-              {{ 'common.actions.cancel' | transloco }}
-            </button>
-            <button type="submit" class="btn btn-primary" [disabled]="store.transactionMutationPending()">
-              @if (store.transactionMutationPending()) {
-                <span class="loading loading-spinner loading-sm"></span>
-                {{ 'transactions.form.submit.busy' | transloco }}
-              } @else {
-                {{ ('transactions.form.submit.' + mode() + 'Idle') | transloco }}
+            <div class="relative min-w-[160px] flex-1">
+              <input
+                type="text"
+                class="input input-ghost w-full border-none bg-transparent focus:outline-none"
+                [value]="tagInput()"
+                (focus)="onTagInputFocus()"
+                (blur)="onTagInputBlur()"
+                (input)="onTagInput($event)"
+                (keydown)="onTagInputKeydown($event)"
+                placeholder="{{
+                  'transactions.form.placeholders.tagInput' | transloco
+                }}"
+                aria-label="{{ 'transactions.form.fields.tags' | transloco }}"
+                autocomplete="off"
+              />
+              @if (suggestionPanelOpen()) {
+              <ul
+                class="absolute left-0 right-0 top-full z-20 mt-2 max-h-48 overflow-y-auto rounded-xl border border-base-300 bg-base-100 shadow-lg"
+                role="listbox"
+              >
+                @for (suggestion of suggestedTags(); track suggestion.id; let i
+                = $index) {
+                <li>
+                  <button
+                    type="button"
+                    class="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm transition hover:bg-base-200"
+                    [class.bg-base-200]="highlightedSuggestion() === i"
+                    (mousedown)="onSuggestionClick($event, suggestion)"
+                    (mouseenter)="onSuggestionHover(i)"
+                  >
+                    <span>{{ suggestion.name }}</span>
+                    @if (suggestion.color) {
+                    <span
+                      class="size-2 rounded-full"
+                      [style.background-color]="suggestion.color"
+                      aria-hidden="true"
+                    ></span>
+                    }
+                  </button>
+                </li>
+                }
+              </ul>
               }
+            </div>
+            <button
+              type="button"
+              class="btn btn-ghost btn-xs"
+              [disabled]="form.controls.tags.value.length === 0"
+              (click)="clearTags()"
+            >
+              {{ 'transactions.form.actions.clearTags' | transloco }}
             </button>
-          </footer>
-        </form>
-      </div>
-    </section>
-  
+          </div>
+        </label>
+
+        @if (form.controls.tags.value.length === 0 && tags().length === 0) {
+        <p class="text-xs text-base-content/60">
+          {{ 'transactions.form.emptyTags' | transloco }}
+        </p>
+        }
+      </section>
+
+      <section class="border-t border-dashed border-base-300 pt-4">
+        <button
+          type="button"
+          class="btn btn-outline btn-sm"
+          (click)="toggleAdvanced()"
+          [attr.aria-expanded]="showAdvanced()"
+        >
+          @if (showAdvanced()) {
+          {{ 'transactions.form.actions.hideAdvanced' | transloco }}
+          } @else {
+          {{ 'transactions.form.actions.showAdvanced' | transloco }}
+          }
+        </button>
+
+        @if (showAdvanced()) {
+        <div class="mt-4 grid gap-4 sm:grid-cols-1">
+          <label class="form-control">
+            <span
+              class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60"
+            >
+              {{ 'transactions.form.fields.amountInDefault' | transloco }}
+              <span class="font-medium text-base-content"
+                >({{ walletCurrency() }})</span
+              >
+            </span>
+            <input
+              formControlName="foreignAmount"
+              type="number"
+              min="0"
+              step="0.01"
+              class="input input-bordered"
+              placeholder="0.00"
+            />
+          </label>
+
+          <label class="form-control">
+            <span
+              class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60"
+            >
+              {{ 'transactions.form.fields.wallet' | transloco }}
+            </span>
+            <select
+              formControlName="walletId"
+              class="select select-bordered"
+              required
+            >
+              @if (wallets().length === 0) {
+              <option value="" disabled>
+                {{ 'transactions.form.placeholders.wallet' | transloco }}
+              </option>
+              } @for (wallet of wallets(); track wallet.id) {
+              <option [value]="wallet.id">{{ wallet.name }}</option>
+              }
+            </select>
+          </label>
+        </div>
+        <p class="mt-3 text-xs text-base-content/50">
+          {{ 'transactions.form.help.advancedDisclaimer' | transloco }}
+        </p>
+        }
+      </section>
+
+      <footer
+        class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end"
+      >
+        <button type="button" class="btn btn-ghost" (click)="onClose()">
+          {{ 'common.actions.cancel' | transloco }}
+        </button>
+        <button
+          type="submit"
+          class="btn btn-primary"
+          [disabled]="store.transactionMutationPending()"
+        >
+          @if (store.transactionMutationPending()) {
+          <span class="loading loading-spinner loading-sm"></span>
+          {{ 'transactions.form.submit.busy' | transloco }}
+          } @else {
+          {{ 'transactions.form.submit.' + mode() + 'Idle' | transloco }}
+          }
+        </button>
+      </footer>
+    </form>
+  </div>
+</section>
