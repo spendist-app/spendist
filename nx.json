@@ -1,8 +1,8 @@
 {
   "installation": {
-    "version": "22.3.3",
+    "version": "22.7.5",
     "plugins": {
-      "@nx/angular": "22.3.3"
+      "@nx/angular": "22.7.5"
     }
   },
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
@@ -53,5 +53,6 @@
       "style": "css",
       "unitTestRunner": "vitest-analog"
     }
-  }
+  },
+  "analytics": true
 }
