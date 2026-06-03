@@ -8,6 +8,7 @@ import {
 import { AuthService } from '../../../core/auth.service';
 import { SUPABASE_CLIENT } from '../../../core/supabase';
 import type {
+  CategoryGroupRow,
   CategoryRow,
   RecurringTransactionRow,
   RecurringTransactionsOverviewRow,
@@ -18,8 +19,18 @@ import type {
 } from '@spendist/data-access/supabase-types';
 
 export type RecurringTransactionDirection = TransactionDirection;
+export type RecurringAmountMode = 'fixed' | 'variable';
 
 export interface RecurringCategorySummary {
+  readonly id: string;
+  readonly name: string;
+  readonly color: string | null;
+  readonly icon: string | null;
+  readonly groupId: string | null;
+  readonly parentId: string | null;
+}
+
+export interface RecurringCategoryGroupSummary {
   readonly id: string;
   readonly name: string;
   readonly color: string | null;
@@ -42,6 +53,7 @@ export interface RecurringTransactionEntity {
   readonly endDate: Date | null;
   readonly schedule: string;
   readonly amount: number;
+  readonly amountMode: RecurringAmountMode;
   readonly currency: string;
   readonly exchangeRate: number | null;
   readonly direction: RecurringTransactionDirection;
@@ -49,6 +61,16 @@ export interface RecurringTransactionEntity {
   readonly tags: readonly RecurringTagSummary[];
   readonly walletId: string;
   readonly walletName: string | null;
+}
+
+export interface RecurringOccurrenceEntity {
+  readonly id: string;
+  readonly recurringTransactionId: string;
+  readonly recurringName: string;
+  readonly scheduledFor: Date;
+  readonly amount: number | null;
+  readonly currency: string;
+  readonly transactionId: string | null;
 }
 
 interface CurrencyOption {
@@ -70,7 +92,9 @@ interface RecurringPaymentsState {
   readonly mutationError: string | null;
   readonly stats: RecurringPaymentsStats;
   readonly recurringTransactions: readonly RecurringTransactionEntity[];
+  readonly pendingOccurrences: readonly RecurringOccurrenceEntity[];
   readonly categories: readonly RecurringCategorySummary[];
+  readonly groups: readonly RecurringCategoryGroupSummary[];
   readonly tags: readonly RecurringTagSummary[];
   readonly currencies: readonly CurrencyOption[];
   readonly defaultCurrency: string;
@@ -93,12 +117,8 @@ type RecurringOverviewRow = Readonly<
   }
 >;
 
-type RecurringTransactionRowWithRelations = RecurringTransactionRow & {
-  readonly category: ReadonlyArray<CategoryRow> | null;
-  readonly tag_links: ReadonlyArray<{
-    readonly tag: TagRow | null;
-  }> | null;
-};
+type RecurringTransactionTagRow = Tables<'recurring_transaction_tags'>;
+type RecurringOccurrenceRow = Tables<'recurring_transaction_occurrences'>;
 
 export interface CreateRecurringTransactionPayload {
   readonly name: string;
@@ -107,6 +127,7 @@ export interface CreateRecurringTransactionPayload {
   readonly endDate: string | null;
   readonly schedule: string;
   readonly amount: number;
+  readonly amountMode: RecurringAmountMode;
   readonly direction: RecurringTransactionDirection;
   readonly tagIds: readonly string[];
   readonly walletId: string | null;
@@ -150,7 +171,9 @@ export class RecurringPaymentsStore {
       yearlyExpense: 0,
     },
     recurringTransactions: [],
+    pendingOccurrences: [],
     categories: [],
+    groups: [],
     tags: [],
     currencies: [],
     defaultCurrency: DEFAULT_CURRENCY,
@@ -164,7 +187,20 @@ export class RecurringPaymentsStore {
   readonly mutationError = computed(() => this.state().mutationError);
   readonly stats = computed(() => this.state().stats);
   readonly recurringTransactions = computed(() => this.state().recurringTransactions);
+  readonly pendingOccurrences = computed(() => this.state().pendingOccurrences);
   readonly categories = computed(() => this.state().categories);
+  readonly groups = computed(() => this.state().groups);
+  readonly groupedCategories = computed(() =>
+    this.state()
+      .groups.map((group) => ({
+        ...group,
+        categories: this.state().categories.filter((category) => category.groupId === group.id),
+      }))
+      .filter((group) => group.categories.length > 0)
+  );
+  readonly ungroupedCategories = computed(() =>
+    this.state().categories.filter((category) => !category.groupId)
+  );
   readonly tags = computed(() => this.state().tags);
   readonly currencies = computed(() => this.state().currencies);
   readonly defaultCurrency = computed(() => this.state().defaultCurrency);
@@ -203,7 +239,9 @@ export class RecurringPaymentsStore {
             yearlyExpense: 0,
           },
           recurringTransactions: [],
+          pendingOccurrences: [],
           categories: [],
+          groups: [],
           tags: [],
           currencies: [],
           defaultCurrency: DEFAULT_CURRENCY,
@@ -254,7 +292,9 @@ export class RecurringPaymentsStore {
           yearlyExpense: 0,
         },
         recurringTransactions: [],
+        pendingOccurrences: [],
         categories: [],
+        groups: [],
         tags: [],
         currencies: [],
         defaultCurrency: DEFAULT_CURRENCY,
@@ -270,7 +310,17 @@ export class RecurringPaymentsStore {
     }));
 
     try {
-      const [overviewResult, transactionsResult, categoriesResult, tagsResult, walletsResult, currenciesResult] =
+      const [
+        overviewResult,
+        transactionsResult,
+        occurrencesResult,
+        groupsResult,
+        categoriesResult,
+        tagsResult,
+        recurringTagsResult,
+        walletsResult,
+        currenciesResult,
+      ] =
         await Promise.all([
           this.supabase
             .from('recurring_transactions_overview')
@@ -279,40 +329,21 @@ export class RecurringPaymentsStore {
             .maybeSingle(),
         this.supabase
           .from('recurring_transactions')
-          .select(
-            `
-              id,
-              owner_id,
-              name,
-              category_id,
-              start_date,
-              end_date,
-              schedule,
-              amount,
-              currency,
-              exchange_rate,
-              direction,
-              wallet_id,
-              category:categories (
-                id,
-                name,
-                color,
-                icon
-              ),
-              tag_links:recurring_transaction_tags (
-                tag:tags (
-                  id,
-                  name,
-                  color,
-                  icon
-                )
-              )
-            `,
-          )
+          .select('*')
           .eq('owner_id', userId)
           .order('start_date', { ascending: true })
-          .order('name', { ascending: true })
-          .returns<RecurringTransactionRowWithRelations[]>(),
+          .order('name', { ascending: true }),
+        this.supabase
+          .from('recurring_transaction_occurrences')
+          .select('*')
+          .eq('owner_id', userId)
+          .is('transaction_id', null)
+          .order('scheduled_for', { ascending: true }),
+        this.supabase
+          .from('categories_group')
+          .select('*')
+          .eq('owner_id', userId)
+          .order('name', { ascending: true }),
         this.supabase
           .from('categories')
           .select('*')
@@ -323,6 +354,10 @@ export class RecurringPaymentsStore {
             .select('*')
             .eq('owner_id', userId)
             .order('name', { ascending: true }),
+        this.supabase
+          .from('recurring_transaction_tags')
+          .select('*')
+          .eq('owner_id', userId),
         this.supabase
           .from('wallets')
           .select('*')
@@ -336,11 +371,16 @@ export class RecurringPaymentsStore {
         ]);
 
       const overviewRow = this.ensureNoErrorMaybeSingle<RecurringOverviewRow>(overviewResult);
-      const transactionRows = this.ensureNoErrorArray<RecurringTransactionRowWithRelations>(transactionsResult);
+      const transactionRows = this.ensureNoErrorArray<RecurringTransactionRow>(transactionsResult);
+      const occurrenceRows = this.ensureNoErrorArray<RecurringOccurrenceRow>(occurrencesResult);
+      const groups = this.ensureNoErrorArray<CategoryGroupRow>(groupsResult).map((group) =>
+        this.mapGroupRow(group),
+      );
       const categories = this.ensureNoErrorArray<CategoryRow>(categoriesResult).map((category) =>
         this.mapCategoryRow(category),
       );
       const tags = this.ensureNoErrorArray<TagRow>(tagsResult).map((tag) => this.mapTagRow(tag));
+      const recurringTagRows = this.ensureNoErrorArray<RecurringTransactionTagRow>(recurringTagsResult);
       const currencyRows = this.ensureNoErrorArray<CurrencyRow>(currenciesResult).map((row) => this.mapCurrencyRow(row));
       const currencies = this.sortCurrencies(currencyRows);
       const currencyLookup = new Map(currencyRows.map((currency) => [currency.id, currency.symbol]));
@@ -349,7 +389,16 @@ export class RecurringPaymentsStore {
         walletRows.map((wallet) => this.mapWalletRow(wallet, currencyLookup)),
       );
       const walletLookup = new Map(wallets.map((wallet) => [wallet.id, wallet]));
-      const transactions = transactionRows.map((row) => this.mapTransactionRow(row, walletLookup));
+      const categoryLookup = new Map(categories.map((category) => [category.id, category]));
+      const tagLookup = new Map(tags.map((tag) => [tag.id, tag]));
+      const recurringTags = this.buildRecurringTagMap(recurringTagRows, tagLookup);
+      const transactions = transactionRows.map((row) =>
+        this.mapTransactionRow(row, walletLookup, categoryLookup, recurringTags),
+      );
+      const transactionLookup = new Map(transactions.map((transaction) => [transaction.id, transaction]));
+      const pendingOccurrences = occurrenceRows.map((row) =>
+        this.mapOccurrenceRow(row, transactionLookup),
+      );
       const defaultWallet =
         wallets.find((wallet) => wallet.isDefault) ??
         wallets[0] ??
@@ -366,7 +415,9 @@ export class RecurringPaymentsStore {
         mutationError: null,
         stats,
         recurringTransactions: transactions,
+        pendingOccurrences,
         categories,
+        groups,
         tags,
         currencies,
         defaultCurrency,
@@ -435,7 +486,8 @@ export class RecurringPaymentsStore {
           start_date: payload.startDate,
           end_date: payload.endDate,
           schedule: trimmedSchedule,
-          amount: payload.amount,
+          amount: payload.amountMode === 'variable' ? 0 : payload.amount,
+          amount_mode: payload.amountMode,
           currency,
           exchange_rate: null,
           direction: payload.direction,
@@ -461,6 +513,7 @@ export class RecurringPaymentsStore {
         this.ensureNoErrorInsert(tagInsertResult);
       }
 
+      await this.runBackfill(inserted.id);
       await this.refresh();
     } catch (error) {
       const message = this.describeError(error);
@@ -508,7 +561,8 @@ export class RecurringPaymentsStore {
           start_date: payload.startDate,
           end_date: payload.endDate,
           schedule: trimmedSchedule,
-          amount: payload.amount,
+          amount: payload.amountMode === 'variable' ? 0 : payload.amount,
+          amount_mode: payload.amountMode,
           currency,
           exchange_rate: null,
           direction: payload.direction,
@@ -545,6 +599,7 @@ export class RecurringPaymentsStore {
         this.ensureNoErrorInsert(tagInsertResult);
       }
 
+      await this.runBackfill(recurringId);
       this.editingId.set(null);
       await this.refresh();
     } catch (error) {
@@ -603,16 +658,48 @@ export class RecurringPaymentsStore {
     }
   }
 
+  async completePendingOccurrence(occurrenceId: string, amount: number): Promise<void> {
+    this.requireUserId();
+    this.state.update((state) => ({
+      ...state,
+      mutationPending: true,
+      mutationError: null,
+    }));
+
+    try {
+      const result = await this.supabase.rpc('complete_recurring_transaction_occurrence', {
+        p_occurrence_id: occurrenceId,
+        p_amount: amount,
+      });
+
+      if (result.error) {
+        throw result.error;
+      }
+
+      await this.refresh();
+    } catch (error) {
+      const message = this.describeError(error);
+      console.error('[RecurringPaymentsStore] Failed to complete recurring occurrence:', error);
+      this.state.update((state) => ({
+        ...state,
+        mutationPending: false,
+        mutationError: message,
+      }));
+      throw new RecurringPaymentsStoreError(message);
+    } finally {
+      this.state.update((state) => ({
+        ...state,
+        mutationPending: false,
+      }));
+    }
+  }
+
   private mapTransactionRow(
-    row: RecurringTransactionRowWithRelations,
+    row: RecurringTransactionRow,
     walletLookup: ReadonlyMap<string, WalletEntity>,
+    categoryLookup: ReadonlyMap<string, RecurringCategorySummary>,
+    recurringTags: ReadonlyMap<string, readonly RecurringTagSummary[]>,
   ): RecurringTransactionEntity {
-    const categoryRow = row.category?.[0] ?? null;
-    const tags =
-      row.tag_links
-        ?.map((link) => link.tag)
-        .filter((tag): tag is TagRow => Boolean(tag))
-        .map((tag) => this.mapTagRow(tag)) ?? [];
     const wallet = walletLookup.get(row.wallet_id ?? '');
 
     return {
@@ -624,14 +711,62 @@ export class RecurringPaymentsStore {
       endDate: row.end_date ? new Date(row.end_date) : null,
       schedule: row.schedule,
       amount: parseNumber(row.amount),
+      amountMode: (row.amount_mode ?? 'fixed') as RecurringAmountMode,
       currency: wallet?.currency ?? row.currency,
       exchangeRate: row.exchange_rate != null ? parseNumber(row.exchange_rate) : null,
       direction: row.direction,
-      category: categoryRow ? this.mapCategoryRow(categoryRow) : null,
-      tags,
+      category: categoryLookup.get(row.category_id) ?? null,
+      tags: recurringTags.get(row.id) ?? [],
       walletId: wallet?.id ?? row.wallet_id,
       walletName: wallet?.name ?? null,
     };
+  }
+
+  private mapOccurrenceRow(
+    row: RecurringOccurrenceRow,
+    transactionLookup: ReadonlyMap<string, RecurringTransactionEntity>,
+  ): RecurringOccurrenceEntity {
+    const recurring = transactionLookup.get(row.recurring_transaction_id);
+
+    return {
+      id: row.id,
+      recurringTransactionId: row.recurring_transaction_id,
+      recurringName: recurring?.name ?? '',
+      scheduledFor: new Date(row.scheduled_for),
+      amount: row.amount == null ? null : parseNumber(row.amount),
+      currency: row.currency,
+      transactionId: row.transaction_id,
+    };
+  }
+
+  private buildRecurringTagMap(
+    rows: readonly RecurringTransactionTagRow[],
+    tagLookup: ReadonlyMap<string, RecurringTagSummary>,
+  ): ReadonlyMap<string, readonly RecurringTagSummary[]> {
+    const map = new Map<string, RecurringTagSummary[]>();
+
+    for (const row of rows) {
+      const tag = tagLookup.get(row.tag_id);
+      if (!tag) {
+        continue;
+      }
+
+      const existing = map.get(row.recurring_transaction_id);
+      if (existing) {
+        existing.push(tag);
+      } else {
+        map.set(row.recurring_transaction_id, [tag]);
+      }
+    }
+
+    for (const [recurringId, tags] of map.entries()) {
+      map.set(
+        recurringId,
+        [...tags].sort((a, b) => a.name.localeCompare(b.name)),
+      );
+    }
+
+    return map;
   }
 
   private mapOverviewStats(overviewRow: RecurringOverviewRow | null): RecurringPaymentsStats {
@@ -654,6 +789,17 @@ export class RecurringPaymentsStore {
       name: category.name,
       color: category.color,
       icon: category.icon,
+      groupId: category.group_id ?? null,
+      parentId: category.parent_id ?? null,
+    };
+  }
+
+  private mapGroupRow(group: CategoryGroupRow): RecurringCategoryGroupSummary {
+    return {
+      id: group.id,
+      name: group.name,
+      color: group.color,
+      icon: group.icon,
     };
   }
 
@@ -722,6 +868,19 @@ export class RecurringPaymentsStore {
       id: row.id,
       symbol: row.symbol.toUpperCase(),
     };
+  }
+
+  private async runBackfill(recurringId: string): Promise<void> {
+    const result = await this.supabase.functions.invoke('process-recurring-payments', {
+      body: {
+        recurringId,
+        backfill: true,
+      },
+    });
+
+    if (result.error) {
+      throw new RecurringPaymentsStoreError('modules.recurringPayments.form.notifications.backfillError');
+    }
   }
 
   private ensureNoErrorSingle<T>(result: PostgrestSingleResponse<T>): T {

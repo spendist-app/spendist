@@ -36,6 +36,52 @@
           </div>
         </div>
       } @else {
+        @if (store.pendingOccurrences().length > 0) {
+          <section class="mb-4 rounded-2xl border border-warning/30 bg-warning/10 p-4">
+            <div class="mb-3">
+              <h3 class="font-semibold">
+                {{ 'modules.recurringPayments.pending.title' | transloco }}
+              </h3>
+              <p class="text-sm text-base-content/70">
+                {{ 'modules.recurringPayments.pending.subtitle' | transloco }}
+              </p>
+            </div>
+            <ul class="grid gap-2">
+              @for (occurrence of store.pendingOccurrences(); track occurrence.id) {
+                <li class="grid gap-3 rounded-xl border border-base-200 bg-base-100 p-3 sm:grid-cols-[1fr_auto] sm:items-center">
+                  <div>
+                    <p class="font-medium">{{ occurrence.recurringName }}</p>
+                    <p class="text-sm text-base-content/70">
+                      {{ occurrence.scheduledFor | date: 'longDate' }}
+                    </p>
+                  </div>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <label class="input input-bordered flex min-w-44 items-center gap-2">
+                      <input
+                        class="grow"
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        [value]="pendingAmounts()[occurrence.id] ?? ''"
+                        (input)="updatePendingAmount(occurrence.id, $event)"
+                        [attr.aria-label]="'modules.recurringPayments.pending.amount' | transloco"
+                      />
+                      <span class="text-sm font-semibold uppercase">{{ occurrence.currency }}</span>
+                    </label>
+                    <button
+                      type="button"
+                      class="btn btn-primary btn-sm"
+                      (click)="completeOccurrence(occurrence)"
+                      [disabled]="store.mutationPending()"
+                    >
+                      {{ 'modules.recurringPayments.pending.complete' | transloco }}
+                    </button>
+                  </div>
+                </li>
+              }
+            </ul>
+          </section>
+        }
         <ul class="grid gap-3">
           @for (transaction of transactions(); track transaction.id) {
             <li
@@ -50,10 +96,23 @@
                     <span class="badge badge-outline text-xs uppercase">
                       {{ linkDirectionLabel(transaction.direction) | transloco }}
                     </span>
+                    <span class="badge badge-secondary badge-outline text-xs uppercase">
+                      {{ amountModeLabel(transaction) | transloco }}
+                    </span>
                   </div>
                   <div class="text-sm text-base-content/70">
                     <span>{{ 'modules.recurringPayments.list.fields.schedule' | transloco }}:</span>
                     <code class="rounded bg-base-200 px-2 py-0.5">{{ transaction.schedule }}</code>
+                  </div>
+                  @let nextRun = nextRunAt(transaction);
+                  <div class="text-sm text-base-content/70">
+                    <span>{{ 'modules.recurringPayments.list.fields.nextRun' | transloco }}:</span>
+                    @if (nextRun) {
+                      <strong class="text-base-content">{{ nextRun | date: 'medium' }}</strong>
+                      <span class="text-primary">({{ nextRunLabel(nextRun) }})</span>
+                    } @else {
+                      <strong class="text-base-content/70">{{ nextRunLabel(nextRun) }}</strong>
+                    }
                   </div>
                   <div class="flex flex-wrap gap-3 text-sm text-base-content/70">
                     <span>
@@ -92,10 +151,16 @@
                 </div>
                 <div class="flex flex-col items-end gap-3">
                   <div class="text-right">
-                    <p class="text-2xl font-semibold text-primary">
-                      {{ transaction.amount | number: '1.2-2' }}
-                      <span class="text-sm font-medium text-base-content/80">{{ transaction.currency }}</span>
-                    </p>
+                    @if (transaction.amountMode === 'variable') {
+                      <p class="text-sm font-semibold text-secondary">
+                        {{ 'modules.recurringPayments.list.fields.variableAmount' | transloco }}
+                      </p>
+                    } @else {
+                      <p class="text-2xl font-semibold text-primary">
+                        {{ transaction.amount | number: '1.2-2' }}
+                        <span class="text-sm font-medium text-base-content/80">{{ transaction.currency }}</span>
+                      </p>
+                    }
                     @if (transaction.exchangeRate) {
                       <p class="text-xs text-base-content/60">
                         {{ 'modules.recurringPayments.list.fields.exchangeRate' | transloco }}:

@@ -17,6 +17,7 @@ import {
   SettingsStore,
   CategoryEntity,
   CategoryGroupEntity,
+  ProfileEntity,
   WalletEntity,
 } from './settings.store';
 import {
@@ -40,10 +41,19 @@ interface SettingsPanel {
 
 interface CategoryViewModel extends CategoryEntity {
   readonly groupName: string;
+  readonly path: string;
+  readonly depth: number;
+  readonly parentName: string | null;
 }
 
 interface CategoryGroupWithCount extends CategoryGroupEntity {
   readonly categoriesTotal: number;
+}
+
+interface ParentCategoryOption {
+  readonly id: string;
+  readonly label: string;
+  readonly depth: number;
 }
 
 @Component({
@@ -116,10 +126,23 @@ export class SettingsPageComponent {
     const groups = new Map(
       this.store.groups().map((group) => [group.id, group.name])
     );
-    return this.store.categories().map((category) => ({
-      ...category,
-      groupName: groups.get(category.groupId) ?? 'Unassigned',
-    }));
+    const categories = this.store.categories();
+    const categoryMap = new Map(categories.map((category) => [category.id, category]));
+
+    return categories
+      .map((category) => ({
+        ...category,
+        groupName: groups.get(category.groupId) ?? 'Unassigned',
+        path: this.buildCategoryPath(category, categoryMap),
+        depth: this.resolveCategoryDepth(category, categoryMap),
+        parentName: category.parentId ? categoryMap.get(category.parentId)?.name ?? null : null,
+      }))
+      .sort((a, b) => {
+        if (a.groupName !== b.groupName) {
+          return a.groupName.localeCompare(b.groupName);
+        }
+        return a.path.localeCompare(b.path);
+      });
   });
 
   protected readonly filteredCategories = computed<CategoryViewModel[]>(() => {
@@ -130,10 +153,34 @@ export class SettingsPageComponent {
       const matchesGroup =
         groupFilter === null || category.groupId === groupFilter;
       const matchesQuery =
-        query.length === 0 || category.name.toLowerCase().includes(query);
+        query.length === 0 || category.path.toLowerCase().includes(query);
       return matchesGroup && matchesQuery;
     });
   });
+
+  protected parentCategoryOptions(): ParentCategoryOption[] {
+    const groupId = this.categoryFormControls.groupId.value;
+    if (!groupId) {
+      return [];
+    }
+
+    const editingId = this.categoryEditorMode() === 'edit' ? this.selectedCategoryId() : null;
+    const descendants = editingId ? this.collectDescendantIds(editingId) : new Set<string>();
+
+    return this.categoriesView()
+      .filter(
+        (category) =>
+          category.groupId === groupId &&
+          category.id !== editingId &&
+          !descendants.has(category.id) &&
+          category.depth < 3
+      )
+      .map((category) => ({
+        id: category.id,
+        label: category.path,
+        depth: category.depth,
+      }));
+  }
 
   protected readonly selectedCategory = computed<CategoryViewModel | null>(
     () => {
@@ -152,6 +199,7 @@ export class SettingsPageComponent {
       validators: [Validators.required, Validators.maxLength(60)],
     }),
     groupId: this.fb.control('', { validators: [Validators.required] }),
+    parentId: this.fb.control<string | null>(null),
     color: this.fb.control('', { validators: [Validators.maxLength(7)] }),
     icon: this.fb.control('', { validators: [Validators.maxLength(32)] }),
   });
@@ -188,6 +236,16 @@ export class SettingsPageComponent {
   );
   protected readonly walletError = computed(() => this.store.walletError());
   protected readonly walletCurrencies = computed(() => this.store.currencies());
+  protected readonly profile = computed(() => this.store.profile());
+  protected readonly avatarUploadPending = computed(() =>
+    this.store.profileMutationPending()
+  );
+  protected readonly avatarUploadError = computed(() =>
+    this.store.profileError()
+  );
+  protected readonly avatarInitials = computed(() =>
+    this.resolveProfileInitials(this.profile())
+  );
 
   constructor() {
     effect(() => {
@@ -365,6 +423,20 @@ export class SettingsPageComponent {
     }
   }
 
+  protected onCategoryGroupChange(): void {
+    const parentId = this.categoryFormControls.parentId.value;
+    if (!parentId) {
+      return;
+    }
+
+    const parentStillAvailable = this.parentCategoryOptions().some(
+      (option) => option.id === parentId
+    );
+    if (!parentStillAvailable) {
+      this.categoryFormControls.parentId.setValue(null);
+    }
+  }
+
   protected openCategoryCreator(): void {
     if (!this.hasGroups()) {
       this.selectCategoriesTab('groups');
@@ -381,6 +453,7 @@ export class SettingsPageComponent {
     this.categoryForm.setValue({
       name: '',
       groupId: defaultGroup,
+      parentId: null,
       color: this.resolveGroupColor(defaultGroup) ?? '#0EA5A5',
       icon: '',
     });
@@ -403,6 +476,7 @@ export class SettingsPageComponent {
     this.categoryForm.setValue({
       name: category.name,
       groupId: category.groupId,
+      parentId: category.parentId,
       color: category.color ?? '',
       icon: this.coerceIconValue(category.icon),
     });
@@ -415,6 +489,7 @@ export class SettingsPageComponent {
     this.categoryForm.reset({
       name: '',
       groupId: '',
+      parentId: null,
       color: '',
       icon: '',
     });
@@ -434,6 +509,7 @@ export class SettingsPageComponent {
     const payload = {
       name: formValue.name,
       groupId: formValue.groupId,
+      parentId: formValue.parentId || null,
       color: formValue.color,
       icon: formValue.icon,
     };
@@ -654,6 +730,25 @@ export class SettingsPageComponent {
     this.store.clearError();
   }
 
+  protected async onAvatarSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement | null;
+    const file = input?.files?.item(0);
+
+    if (!file || this.avatarUploadPending()) {
+      return;
+    }
+
+    try {
+      await this.store.uploadAvatar(file);
+    } catch {
+      // Error is surfaced via avatarUploadError.
+    } finally {
+      if (input) {
+        input.value = '';
+      }
+    }
+  }
+
   protected openProfileEditor(): void {
     return;
   }
@@ -662,9 +757,65 @@ export class SettingsPageComponent {
     return;
   }
 
+  protected clearProfileError(): void {
+    this.store.clearProfileError();
+  }
+
   private resolveGroupColor(groupId: string): string | null {
     const group = this.store.groups().find((item) => item.id === groupId);
     return group?.color ?? null;
+  }
+
+  private buildCategoryPath(
+    category: CategoryEntity,
+    categoryMap: ReadonlyMap<string, CategoryEntity>,
+  ): string {
+    const names: string[] = [];
+    let current: CategoryEntity | undefined = category;
+    const visited = new Set<string>();
+
+    while (current && !visited.has(current.id)) {
+      visited.add(current.id);
+      names.unshift(current.name);
+      current = current.parentId ? categoryMap.get(current.parentId) : undefined;
+    }
+
+    return names.join(' / ');
+  }
+
+  private resolveCategoryDepth(
+    category: CategoryEntity,
+    categoryMap: ReadonlyMap<string, CategoryEntity>,
+  ): number {
+    let depth = 1;
+    let current = category.parentId ? categoryMap.get(category.parentId) : undefined;
+    const visited = new Set<string>([category.id]);
+
+    while (current && !visited.has(current.id)) {
+      visited.add(current.id);
+      depth += 1;
+      current = current.parentId ? categoryMap.get(current.parentId) : undefined;
+    }
+
+    return depth;
+  }
+
+  private collectDescendantIds(categoryId: string): Set<string> {
+    const descendants = new Set<string>();
+    const pending = [categoryId];
+    const categories = this.store.categories();
+
+    while (pending.length > 0) {
+      const currentId = pending.pop();
+      for (const category of categories) {
+        if (category.parentId === currentId && !descendants.has(category.id)) {
+          descendants.add(category.id);
+          pending.push(category.id);
+        }
+      }
+    }
+
+    return descendants;
   }
 
   private resetWalletForm(overrides?: {
@@ -699,5 +850,21 @@ export class SettingsPageComponent {
 
     const currencies = this.store.currencies();
     return currencies[0]?.id ?? 1;
+  }
+
+  private resolveProfileInitials(profile: ProfileEntity | null): string {
+    const source = profile?.fullName || profile?.username || 'Spendist';
+    const parts = source
+      .trim()
+      .split(/\s+/)
+      .filter((part) => part.length > 0);
+
+    if (parts.length === 0) {
+      return 'SP';
+    }
+
+    const first = parts[0]?.[0] ?? '';
+    const second = parts.length > 1 ? parts[1]?.[0] ?? '' : parts[0]?.[1] ?? '';
+    return `${first}${second}`.toUpperCase();
   }
 }

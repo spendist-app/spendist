@@ -13,6 +13,7 @@ import {
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TranslocoPipe } from '@ngneat/transloco';
+import { NgIcon } from '@ng-icons/core';
 import {
   TransactionsStore,
   TagEntity,
@@ -22,6 +23,7 @@ import {
 } from './transactions.store';
 import type { TransactionDirection } from '@spendist/data-access/supabase-types';
 import { parseAmountInput } from './transaction-amount.parser';
+import { heroIconSvg } from '../../shared/icons/heroicons';
 
 interface CategoryOption {
   readonly id: string;
@@ -43,11 +45,12 @@ interface CurrencyOptionView {
   standalone: true,
   selector: 'app-transaction-create-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, TranslocoPipe],
+  imports: [ReactiveFormsModule, TranslocoPipe, NgIcon],
   templateUrl: './transaction-create-form.component.html',
 })
 export class TransactionCreateFormComponent {
   private static readonly MAX_QUANTITY = 50;
+  protected readonly closeIcon = heroIconSvg('heroXMark');
 
   private readonly formBuilder = inject(FormBuilder);
   protected readonly store = inject(TransactionsStore);
@@ -72,9 +75,21 @@ export class TransactionCreateFormComponent {
     this.selectedWalletCurrency()
   );
   protected readonly categoryView = computed(() => this.buildCategoryView());
-  protected readonly currencyOptions = computed<readonly CurrencyOptionView[]>(
-    () => [{ id: -1, symbol: this.walletCurrency() }]
-  );
+  protected readonly currencyOptions = computed<readonly CurrencyOptionView[]>(() => {
+    const currencies = this.store.currencies();
+    if (currencies.length === 0) {
+      return [{ id: -1, symbol: this.walletCurrency() }];
+    }
+
+    const selectedCurrency = this.form.controls.currency.value?.toUpperCase();
+    const hasSelectedCurrency = selectedCurrency
+      ? currencies.some((currency) => currency.symbol.toUpperCase() === selectedCurrency)
+      : true;
+
+    return hasSelectedCurrency || !selectedCurrency
+      ? currencies
+      : [...currencies, { id: -1, symbol: selectedCurrency }];
+  });
 
   protected readonly form = this.formBuilder.group({
     description: this.formBuilder.control<string>('', {
@@ -832,12 +847,15 @@ export class TransactionCreateFormComponent {
   }[] {
     const grouped = this.store.groupedCategories();
     const ungrouped = this.store.ungroupedCategories();
+    const categoryNames = new Map(
+      this.store.categories().map((category) => [category.id, category.name])
+    );
 
     const groupedView = grouped.map((group) => ({
       groupName: group.name,
       options: group.categories.map((category) => ({
         id: category.id,
-        label: category.name,
+        label: this.buildCategoryLabel(category.id, category.name, category.parentId, categoryNames),
         groupName: group.name,
       })),
     }));
@@ -849,7 +867,7 @@ export class TransactionCreateFormComponent {
               groupName: null,
               options: ungrouped.map((category) => ({
                 id: category.id,
-                label: category.name,
+                label: this.buildCategoryLabel(category.id, category.name, category.parentId, categoryNames),
                 groupName: null,
               })),
             },
@@ -857,5 +875,29 @@ export class TransactionCreateFormComponent {
         : [];
 
     return [...groupedView, ...ungroupedView];
+  }
+
+  private buildCategoryLabel(
+    categoryId: string,
+    categoryName: string,
+    parentId: string | null,
+    categoryNames: ReadonlyMap<string, string>,
+  ): string {
+    const names = [categoryName];
+    let currentParentId = parentId;
+    const visited = new Set<string>([categoryId]);
+
+    while (currentParentId && !visited.has(currentParentId)) {
+      visited.add(currentParentId);
+      const parentName = categoryNames.get(currentParentId);
+      if (!parentName) {
+        break;
+      }
+      names.unshift(parentName);
+      const parent = this.store.categories().find((category) => category.id === currentParentId);
+      currentParentId = parent?.parentId ?? null;
+    }
+
+    return names.join(' / ');
   }
 }

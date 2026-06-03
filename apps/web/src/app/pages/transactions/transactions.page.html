@@ -319,6 +319,15 @@
                                   {{ 'transactions.list.automatic' | transloco }}
                                 </span>
                               }
+                              @if (transaction.recurringTransactionId) {
+                                <span
+                                  class="badge badge-primary badge-outline badge-sm max-w-full text-xs"
+                                  [title]="transaction.recurringTransactionId"
+                                >
+                                  {{ 'transactions.list.recurringSource' | transloco }}:
+                                  <code class="font-mono">{{ transaction.recurringTransactionId.slice(0, 8) }}</code>
+                                </span>
+                              }
                             </div>
                             <p class="text-sm text-base-content/70">
                               {{ formatDate(transaction.occurredAt) }} ·

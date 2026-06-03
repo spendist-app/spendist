@@ -56,28 +56,69 @@
 
               <div class="grid gap-4 rounded-2xl border border-base-300 bg-base-100/80 p-6 shadow-sm sm:grid-cols-2">
                 <article class="flex items-start gap-4">
-                  <div class="avatar placeholder">
-                    <div class="bg-primary/20 text-primary size-14 rounded-full">
-                      <span class="font-semibold">JD</span>
+                  @if (profile()?.avatarUrl; as avatarUrl) {
+                    <div class="avatar">
+                      <div class="size-16 rounded-full ring-2 ring-primary/20 ring-offset-2 ring-offset-base-100">
+                        <img
+                          [src]="avatarUrl"
+                          [alt]="'settings.panels.profile.avatar.alt' | transloco"
+                          class="object-cover"
+                        />
+                      </div>
                     </div>
-                  </div>
+                  } @else {
+                    <div class="avatar placeholder">
+                      <div class="bg-primary/20 text-primary size-16 rounded-full">
+                        <span class="font-semibold">{{ avatarInitials() }}</span>
+                      </div>
+                    </div>
+                  }
                   <div class="flex-1 space-y-2">
                     <h3 class="text-lg font-semibold">
-                      {{ 'settings.panels.profile.name' | transloco }}
+                      {{ profile()?.fullName || ('settings.panels.profile.fallbackName' | transloco) }}
                     </h3>
                     <p class="text-sm text-base-content/70">
                       {{ 'settings.panels.profile.language' | transloco }}:
-                      {{ 'common.language.english' | transloco }} ·
-                      {{ 'settings.panels.profile.timezone' | transloco }}: Europe/Warsaw
+                      {{ profile()?.language || ('settings.panels.profile.notSet' | transloco) }} ·
+                      {{ 'settings.panels.profile.timezone' | transloco }}:
+                      {{ profile()?.timezone || ('settings.panels.profile.notSet' | transloco) }}
                     </p>
                   </div>
                 </article>
 
                 <div class="flex flex-col justify-between gap-4">
                   <p class="text-sm text-base-content/70">
-                    {{ 'settings.panels.profile.blurb' | transloco }}
+                    {{ 'settings.panels.profile.avatar.help' | transloco }}
                   </p>
+                  @if (avatarUploadError(); as avatarError) {
+                    <div class="alert alert-error flex-col items-start gap-2 rounded-xl border border-error/20 bg-error/10 p-3 text-sm text-error">
+                      <span>{{ avatarError | transloco }}</span>
+                      <button type="button" class="btn btn-ghost btn-xs text-error" (click)="clearProfileError()">
+                        {{ 'common.actions.dismiss' | transloco }}
+                      </button>
+                    </div>
+                  }
                   <div class="flex flex-wrap gap-2">
+                    <input
+                      id="avatar-upload"
+                      type="file"
+                      class="sr-only"
+                      accept="image/png,image/jpeg,image/webp,image/gif"
+                      (change)="onAvatarSelected($event)"
+                    />
+                    <label
+                      for="avatar-upload"
+                      class="btn btn-primary btn-sm"
+                      [class.btn-disabled]="avatarUploadPending()"
+                      [attr.aria-disabled]="avatarUploadPending()"
+                    >
+                      @if (avatarUploadPending()) {
+                        <span class="loading loading-xs" aria-hidden="true"></span>
+                        {{ 'settings.panels.profile.avatar.uploading' | transloco }}
+                      } @else {
+                        {{ 'settings.panels.profile.avatar.upload' | transloco }}
+                      }
+                    </label>
                     <button type="button" class="btn btn-primary btn-sm" (click)="openProfileEditor()">
                       {{ 'common.actions.openProfileEditor' | transloco }}
                     </button>
@@ -418,7 +459,7 @@
                                   aria-hidden="true"
                                 ></span>
                                 <div>
-                                  <p class="text-sm font-semibold text-base-content">
+                                  <p class="text-sm font-semibold text-base-content" [style.padding-left.rem]="category.depth - 1">
                                     {{ category.name }}
                                     @if (category.icon; as iconKeyword) {
                                       @if (heroIconSvg(iconKeyword); as iconSvg) {
@@ -434,7 +475,7 @@
                                     }
                                   </p>
                                   <p class="text-xs text-base-content/60">
-                                    {{ category.groupName }}
+                                    {{ category.path }}
                                   </p>
                                 </div>
                               </div>
@@ -483,9 +524,26 @@
 
                           <label class="form-control w-full">
                             <span class="label-text text-sm font-semibold text-base-content">
+                              {{ 'settings.panels.categories.editor.parentLabel' | transloco }}
+                            </span>
+                            <select formControlName="parentId" class="select select-bordered w-full">
+                              <option [ngValue]="null">
+                                {{ 'settings.panels.categories.editor.parentNone' | transloco }}
+                              </option>
+                              @for (category of parentCategoryOptions(); track category.id) {
+                                <option [ngValue]="category.id">{{ category.label }}</option>
+                              }
+                            </select>
+                            <span class="mt-1 text-xs text-base-content/60">
+                              {{ 'settings.panels.categories.editor.parentHelp' | transloco }}
+                            </span>
+                          </label>
+
+                          <label class="form-control w-full">
+                            <span class="label-text text-sm font-semibold text-base-content">
                               {{ 'settings.panels.categories.editor.groupLabel' | transloco }}
                             </span>
-                            <select formControlName="groupId" class="select select-bordered w-full">
+                            <select formControlName="groupId" class="select select-bordered w-full" (change)="onCategoryGroupChange()">
                               <option value="" disabled>
                                 {{ 'settings.panels.categories.editor.groupPlaceholder' | transloco }}
                               </option>
@@ -540,7 +598,7 @@
                             </p>
                             <h3 class="text-xl font-semibold text-base-content">{{ category.name }}</h3>
                             <p class="text-sm text-base-content/70">
-                              {{ 'settings.panels.categories.details.groupedUnder' | transloco: { group: category.groupName } }}
+                              {{ category.path }}
                             </p>
                           </header>
 
@@ -550,6 +608,20 @@
                                 {{ 'settings.panels.categories.details.group' | transloco }}
                               </dt>
                               <dd>{{ category.groupName }}</dd>
+                            </div>
+                            <div class="grid gap-1">
+                              <dt class="text-xs uppercase tracking-wide text-base-content/50">
+                                {{ 'settings.panels.categories.details.parent' | transloco }}
+                              </dt>
+                              <dd>
+                                @if (category.parentName) {
+                                  {{ category.parentName }}
+                                } @else {
+                                  <span class="text-base-content/60">
+                                    {{ 'settings.panels.categories.editor.parentNone' | transloco }}
+                                  </span>
+                                }
+                              </dd>
                             </div>
                             <div class="grid gap-1">
                               <dt class="text-xs uppercase tracking-wide text-base-content/50">

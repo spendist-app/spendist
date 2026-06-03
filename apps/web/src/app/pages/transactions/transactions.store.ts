@@ -28,6 +28,8 @@ interface TransactionEntity {
   readonly currency: string;
   readonly direction: TransactionDirection;
   readonly isAutomatic: boolean;
+  readonly recurringTransactionId: string | null;
+  readonly recurringScheduledFor: Date | null;
   readonly exchangeRate: number | null;
   readonly walletId: string;
 }
@@ -1070,6 +1072,8 @@ export class TransactionsStore {
       currency: row.currency,
       direction: row.direction,
       isAutomatic: !!row.is_automatic,
+      recurringTransactionId: row.recurring_transaction_id ?? null,
+      recurringScheduledFor: row.recurring_scheduled_for ? new Date(row.recurring_scheduled_for) : null,
       exchangeRate: Number.isFinite(exchangeRate ?? NaN) ? (exchangeRate as number) : null,
       walletId: row.wallet_id,
     };
@@ -1100,6 +1104,7 @@ export class TransactionsStore {
       color: row.color,
       icon: row.icon,
       groupId: row.group_id,
+      parentId: row.parent_id ?? null,
     };
   }
 

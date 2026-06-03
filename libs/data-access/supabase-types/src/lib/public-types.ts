@@ -25,9 +25,13 @@ export type WalletUpdate = PublicTables['wallets']['Update'];
 
 export type ProfileRow = PublicTables['profiles']['Row'];
 
+export type NotificationRow = PublicTables['notifications']['Row'];
+export type NotificationUpdate = PublicTables['notifications']['Update'];
+
 export type RecurringTransactionRow = PublicTables['recurring_transactions']['Row'];
 export type RecurringTransactionInsert = PublicTables['recurring_transactions']['Insert'];
 export type RecurringTransactionUpdate = PublicTables['recurring_transactions']['Update'];
+export type RecurringTransactionOccurrenceRow = PublicTables['recurring_transaction_occurrences']['Row'];
 
 export type RecurringTransactionsOverviewRow = PublicViews['recurring_transactions_overview']['Row'];
 

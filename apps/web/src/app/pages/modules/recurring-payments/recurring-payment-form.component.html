@@ -84,8 +84,18 @@
                   <option value="">
                     {{ 'modules.recurringPayments.form.fields.category.placeholder' | transloco }}
                   </option>
-                  @for (category of store.categories(); track category.id) {
-                    <option [ngValue]="category.id">{{ category.name }}</option>
+                  @for (group of categoryView(); track group.groupName) {
+                    @if (group.groupName) {
+                      <optgroup [label]="group.groupName">
+                        @for (item of group.options; track item.id) {
+                          <option [value]="item.id">{{ item.label }}</option>
+                        }
+                      </optgroup>
+                    } @else {
+                      @for (item of group.options; track item.id) {
+                        <option [value]="item.id">{{ item.label }}</option>
+                      }
+                    }
                   }
                 </select>
                 @if (categoryControl.invalid && (categoryControl.dirty || categoryControl.touched)) {
@@ -114,6 +124,27 @@
                 }
                 <p class="text-xs text-base-content/60">
                   {{ 'modules.recurringPayments.form.fields.wallet.currencyHint' | transloco:{ currency: walletCurrency() } }}
+                </p>
+              </div>
+
+              <div class="grid gap-2">
+                <label class="text-sm font-semibold text-base-content" for="recurring-amount-mode">
+                  {{ 'modules.recurringPayments.form.fields.amountMode.label' | transloco }}
+                </label>
+                <select id="recurring-amount-mode" class="select select-bordered w-full" formControlName="amountMode">
+                  <option value="fixed">
+                    {{ 'modules.recurringPayments.form.fields.amountMode.options.fixed' | transloco }}
+                  </option>
+                  <option value="variable">
+                    {{ 'modules.recurringPayments.form.fields.amountMode.options.variable' | transloco }}
+                  </option>
+                </select>
+                <p class="text-xs text-base-content/60">
+                  {{
+                    (amountModeControl.value === 'variable'
+                      ? 'modules.recurringPayments.form.fields.amountMode.variableHint'
+                      : 'modules.recurringPayments.form.fields.amountMode.fixedHint') | transloco
+                  }}
                 </p>
               </div>
 
@@ -158,24 +189,73 @@
                 </div>
 
                 <div class="grid gap-2">
-                  <label class="text-sm font-semibold text-base-content" for="recurring-schedule">
+                  <label class="text-sm font-semibold text-base-content" for="recurring-schedule-frequency">
                     {{ 'modules.recurringPayments.form.fields.schedule.label' | transloco }}
                   </label>
-                  <input
-                    id="recurring-schedule"
-                    class="input input-bordered w-full"
-                    type="text"
-                    formControlName="schedule"
-                    autocomplete="off"
-                    [attr.placeholder]="'modules.recurringPayments.form.fields.schedule.placeholder' | transloco"
-                  />
+                  <div class="grid gap-2 sm:grid-cols-2">
+                    <select
+                      id="recurring-schedule-frequency"
+                      class="select select-bordered w-full"
+                      [value]="scheduleFrequency()"
+                      (change)="updateScheduleFrequency($event)"
+                    >
+                      <option value="daily">
+                        {{ 'modules.recurringPayments.form.fields.schedule.frequency.daily' | transloco }}
+                      </option>
+                      <option value="weekly">
+                        {{ 'modules.recurringPayments.form.fields.schedule.frequency.weekly' | transloco }}
+                      </option>
+                      <option value="monthly">
+                        {{ 'modules.recurringPayments.form.fields.schedule.frequency.monthly' | transloco }}
+                      </option>
+                    </select>
+                    <input
+                      class="input input-bordered w-full"
+                      type="time"
+                      [value]="scheduleTime()"
+                      (change)="updateScheduleTime($event)"
+                      [attr.aria-label]="'modules.recurringPayments.form.fields.schedule.time' | transloco"
+                    />
+                  </div>
+                  @if (scheduleFrequency() === 'weekly') {
+                    <select
+                      class="select select-bordered w-full"
+                      [value]="scheduleDayOfWeek()"
+                      (change)="updateScheduleDayOfWeek($event)"
+                      [attr.aria-label]="'modules.recurringPayments.form.fields.schedule.dayOfWeek' | transloco"
+                    >
+                      <option value="1">{{ 'modules.recurringPayments.form.fields.schedule.weekdays.monday' | transloco }}</option>
+                      <option value="2">{{ 'modules.recurringPayments.form.fields.schedule.weekdays.tuesday' | transloco }}</option>
+                      <option value="3">{{ 'modules.recurringPayments.form.fields.schedule.weekdays.wednesday' | transloco }}</option>
+                      <option value="4">{{ 'modules.recurringPayments.form.fields.schedule.weekdays.thursday' | transloco }}</option>
+                      <option value="5">{{ 'modules.recurringPayments.form.fields.schedule.weekdays.friday' | transloco }}</option>
+                      <option value="6">{{ 'modules.recurringPayments.form.fields.schedule.weekdays.saturday' | transloco }}</option>
+                      <option value="0">{{ 'modules.recurringPayments.form.fields.schedule.weekdays.sunday' | transloco }}</option>
+                    </select>
+                  }
+                  @if (scheduleFrequency() === 'monthly') {
+                    <label class="input input-bordered flex items-center gap-2">
+                      <span class="text-sm text-base-content/70">
+                        {{ 'modules.recurringPayments.form.fields.schedule.dayOfMonth' | transloco }}
+                      </span>
+                      <input
+                        class="grow"
+                        type="number"
+                        min="1"
+                        max="31"
+                        [value]="scheduleDayOfMonth()"
+                        (input)="updateScheduleDayOfMonth($event)"
+                      />
+                    </label>
+                  }
+                  <input type="hidden" formControlName="schedule" />
                   @if (scheduleControl.invalid && (scheduleControl.dirty || scheduleControl.touched)) {
                     <p class="text-xs text-error">
                       {{ 'modules.recurringPayments.form.fields.schedule.error' | transloco }}
                     </p>
                   }
                   <p class="text-xs text-base-content/60">
-                    {{ 'modules.recurringPayments.form.fields.schedule.hint' | transloco }}
+                    {{ 'modules.recurringPayments.form.fields.schedule.hint' | transloco:{ cron: schedulePreview() } }}
                   </p>
                 </div>
               </div>

@@ -3,12 +3,13 @@ import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { TranslocoPipe } from '@ngneat/transloco';
 import { AuthService } from '../auth.service';
 import { LanguageService } from '../language.service';
+import { NotificationsMenuComponent } from '../notifications/notifications-menu.component';
 import { ThemeService } from '../theme.service';
 
 @Component({
   standalone: true,
   selector: 'app-navbar',
-  imports: [RouterLink, RouterLinkActive, TranslocoPipe],
+  imports: [RouterLink, RouterLinkActive, TranslocoPipe, NotificationsMenuComponent],
   templateUrl: './navbar.component.html',
 })
 export class NavbarComponent {
@@ -20,6 +21,7 @@ export class NavbarComponent {
   readonly modulesMenuOpen = signal(false);
   readonly languages = this.languageService.availableLanguages;
   readonly activeLanguage = computed(() => this.languageService.currentLanguage());
+  private modulesCloseTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly initials = computed(() => {
     const session = this.auth.session();
@@ -47,14 +49,25 @@ export class NavbarComponent {
   );
 
   openModulesMenu(): void {
+    this.cancelModulesClose();
     this.modulesMenuOpen.set(true);
   }
 
   closeModulesMenu(): void {
+    this.cancelModulesClose();
     this.modulesMenuOpen.set(false);
   }
 
+  scheduleCloseModulesMenu(): void {
+    this.cancelModulesClose();
+    this.modulesCloseTimer = setTimeout(() => {
+      this.modulesMenuOpen.set(false);
+      this.modulesCloseTimer = null;
+    }, 180);
+  }
+
   toggleModulesMenu(): void {
+    this.cancelModulesClose();
     this.modulesMenuOpen.update((open) => !open);
   }
 
@@ -67,8 +80,17 @@ export class NavbarComponent {
     }
 
     if (!nextElement || !currentTarget.contains(nextElement)) {
-      this.closeModulesMenu();
+      this.scheduleCloseModulesMenu();
     }
+  }
+
+  private cancelModulesClose(): void {
+    if (!this.modulesCloseTimer) {
+      return;
+    }
+
+    clearTimeout(this.modulesCloseTimer);
+    this.modulesCloseTimer = null;
   }
 
   toggleTheme(): void {

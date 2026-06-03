@@ -103,6 +103,27 @@
                 </span>
               }
             </div>
+
+            <div class="form-control">
+              <label class="label" for="defaultCurrencyId">
+                <span class="label-text text-sm font-medium">
+                  {{ 'auth.signup.currencyLabel' | transloco }}
+                </span>
+              </label>
+              <select
+                id="defaultCurrencyId"
+                formControlName="defaultCurrencyId"
+                class="select select-bordered w-full"
+                required
+              >
+                @for (currency of currencies; track currency.id) {
+                  <option [ngValue]="currency.id">{{ currency.symbol }}</option>
+                }
+              </select>
+              <span class="label-text-alt text-base-content/60">
+                {{ 'auth.signup.currencyHelper' | transloco }}
+              </span>
+            </div>
           </fieldset>
 
           <button
@@ -124,4 +145,3 @@
         </p>
       </div>
     </section>
-  

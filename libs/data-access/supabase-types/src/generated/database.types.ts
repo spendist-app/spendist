@@ -21,6 +21,7 @@ export type Database = {
           id: string
           name: string
           owner_id: string
+          parent_id: string | null
         }
         Insert: {
           color?: string | null
@@ -29,6 +30,7 @@ export type Database = {
           id?: string
           name: string
           owner_id: string
+          parent_id?: string | null
         }
         Update: {
           color?: string | null
@@ -37,6 +39,7 @@ export type Database = {
           id?: string
           name?: string
           owner_id?: string
+          parent_id?: string | null
         }
         Relationships: [
           {
@@ -59,6 +62,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "recurring_transactions_overview"
             referencedColumns: ["owner_id"]
+          },
+          {
+            foreignKeyName: "categories_parent_fk"
+            columns: ["owner_id", "parent_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["owner_id", "id"]
           },
         ]
       }
@@ -116,6 +126,33 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          owner_id: string
+          payload: Json
+          read_at: string | null
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          owner_id: string
+          payload?: Json
+          read_at?: string | null
+          type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          owner_id?: string
+          payload?: Json
+          read_at?: string | null
+          type?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -148,6 +185,77 @@ export type Database = {
           username?: string
         }
         Relationships: []
+      }
+      recurring_transaction_occurrences: {
+        Row: {
+          amount: number | null
+          amount_in_default: number | null
+          created_at: string
+          currency: string
+          exchange_rate: number | null
+          id: string
+          owner_id: string
+          recurring_transaction_id: string
+          scheduled_for: string
+          transaction_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number | null
+          amount_in_default?: number | null
+          created_at?: string
+          currency: string
+          exchange_rate?: number | null
+          id?: string
+          owner_id: string
+          recurring_transaction_id: string
+          scheduled_for: string
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number | null
+          amount_in_default?: number | null
+          created_at?: string
+          currency?: string
+          exchange_rate?: number | null
+          id?: string
+          owner_id?: string
+          recurring_transaction_id?: string
+          scheduled_for?: string
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_transaction_occurrences_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_transaction_occurrences_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_transactions_overview"
+            referencedColumns: ["owner_id"]
+          },
+          {
+            foreignKeyName: "recurring_transaction_occurrences_recurring_fk"
+            columns: ["owner_id", "recurring_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_transactions"
+            referencedColumns: ["owner_id", "id"]
+          },
+          {
+            foreignKeyName: "recurring_transaction_occurrences_transaction_fk"
+            columns: ["owner_id", "transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["owner_id", "id"]
+          },
+        ]
       }
       recurring_transaction_tags: {
         Row: {
@@ -199,6 +307,7 @@ export type Database = {
       recurring_transactions: {
         Row: {
           amount: number
+          amount_mode: string
           category_id: string
           cron_job_id: number | null
           currency: string
@@ -215,6 +324,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          amount_mode?: string
           category_id: string
           cron_job_id?: number | null
           currency: string
@@ -231,6 +341,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          amount_mode?: string
           category_id?: string
           cron_job_id?: number | null
           currency?: string
@@ -375,6 +486,8 @@ export type Database = {
           is_automatic: boolean
           occurred_at: string
           owner_id: string
+          recurring_scheduled_for: string | null
+          recurring_transaction_id: string | null
           wallet_id: string
         }
         Insert: {
@@ -389,6 +502,8 @@ export type Database = {
           is_automatic?: boolean
           occurred_at: string
           owner_id: string
+          recurring_scheduled_for?: string | null
+          recurring_transaction_id?: string | null
           wallet_id: string
         }
         Update: {
@@ -403,6 +518,8 @@ export type Database = {
           is_automatic?: boolean
           occurred_at?: string
           owner_id?: string
+          recurring_scheduled_for?: string | null
+          recurring_transaction_id?: string | null
           wallet_id?: string
         }
         Relationships: [
@@ -428,6 +545,13 @@ export type Database = {
             referencedColumns: ["owner_id"]
           },
           {
+            foreignKeyName: "transactions_recurring_transaction_fk"
+            columns: ["owner_id", "recurring_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_transactions"
+            referencedColumns: ["owner_id", "id"]
+          },
+          {
             foreignKeyName: "transactions_wallet_owner_fk"
             columns: ["owner_id", "wallet_id"]
             isOneToOne: false
@@ -438,39 +562,39 @@ export type Database = {
       }
       wallets: {
         Row: {
+          currency_id: number
           id: string
+          is_default: boolean
           name: string
           owner_id: string
-          is_default: boolean
-          currency_id: number
         }
         Insert: {
+          currency_id?: number
           id?: string
+          is_default?: boolean
           name: string
           owner_id: string
-          is_default?: boolean
-          currency_id?: number
         }
         Update: {
+          currency_id?: number
           id?: string
+          is_default?: boolean
           name?: string
           owner_id?: string
-          is_default?: boolean
-          currency_id?: number
         }
         Relationships: [
-          {
-            foreignKeyName: "wallets_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "wallets_currency_id_fkey"
             columns: ["currency_id"]
             isOneToOne: false
             referencedRelation: "currencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wallets_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -495,6 +619,12 @@ export type Database = {
       }
     }
     Functions: {
+      available_transaction_months: {
+        Args: { p_wallet_id?: string }
+        Returns: {
+          month_start: string
+        }[]
+      }
       category_expense_summary: {
         Args: { p_from?: string; p_to?: string }
         Returns: {
@@ -512,14 +642,16 @@ export type Database = {
           group_transaction_count: number
         }[]
       }
-      available_transaction_months: {
-        Args: { p_wallet_id?: string | null }
-        Returns: {
-          month_start: string
-        }[]
+      complete_recurring_transaction_occurrence: {
+        Args: { p_amount: number; p_occurrence_id: string }
+        Returns: string
+      }
+      enqueue_recurring_transaction: {
+        Args: { p_recurring_id: string; p_run_at?: string }
+        Returns: string
       }
       monthly_cashflow_summary: {
-        Args: { p_months?: number; p_wallet_id?: string | null }
+        Args: { p_months?: number; p_wallet_id?: string }
         Returns: {
           expense_total: number
           income_total: number
@@ -527,21 +659,21 @@ export type Database = {
         }[]
       }
       monthly_category_cashflow: {
-        Args: { p_month_start?: string; p_wallet_id?: string | null }
+        Args: { p_month_start: string; p_wallet_id?: string }
         Returns: {
           category_color: string
           category_icon: string
           category_id: string
           category_name: string
-          direction: Database['public']['Enums']['transaction_direction']
+          direction: Database["public"]["Enums"]["transaction_direction"]
           month_start: string
           total_amount: number
           transaction_count: number
         }[]
       }
-      enqueue_recurring_transaction: {
-        Args: { p_recurring_id: string; p_run_at?: string }
-        Returns: string
+      resolve_preferred_currency_id: {
+        Args: { user_meta: Json }
+        Returns: number
       }
     }
     Enums: {
@@ -598,21 +730,48 @@ export type Database = {
       buckets_analytics: {
         Row: {
           created_at: string
+          deleted_at: string | null
           format: string
+          id: string
+          name: string
+          type: Database["storage"]["Enums"]["buckettype"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          format?: string
+          id?: string
+          name: string
+          type?: Database["storage"]["Enums"]["buckettype"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          format?: string
+          id?: string
+          name?: string
+          type?: Database["storage"]["Enums"]["buckettype"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      buckets_vectors: {
+        Row: {
+          created_at: string
           id: string
           type: Database["storage"]["Enums"]["buckettype"]
           updated_at: string
         }
         Insert: {
           created_at?: string
-          format?: string
           id: string
           type?: Database["storage"]["Enums"]["buckettype"]
           updated_at?: string
         }
         Update: {
           created_at?: string
-          format?: string
           id?: string
           type?: Database["storage"]["Enums"]["buckettype"]
           updated_at?: string
@@ -621,30 +780,36 @@ export type Database = {
       }
       iceberg_namespaces: {
         Row: {
-          bucket_id: string
+          bucket_name: string
+          catalog_id: string
           created_at: string
           id: string
+          metadata: Json
           name: string
           updated_at: string
         }
         Insert: {
-          bucket_id: string
+          bucket_name: string
+          catalog_id: string
           created_at?: string
           id?: string
+          metadata?: Json
           name: string
           updated_at?: string
         }
         Update: {
-          bucket_id?: string
+          bucket_name?: string
+          catalog_id?: string
           created_at?: string
           id?: string
+          metadata?: Json
           name?: string
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "iceberg_namespaces_bucket_id_fkey"
-            columns: ["bucket_id"]
+            foreignKeyName: "iceberg_namespaces_catalog_id_fkey"
+            columns: ["catalog_id"]
             isOneToOne: false
             referencedRelation: "buckets_analytics"
             referencedColumns: ["id"]
@@ -653,36 +818,48 @@ export type Database = {
       }
       iceberg_tables: {
         Row: {
-          bucket_id: string
+          bucket_name: string
+          catalog_id: string
           created_at: string
           id: string
           location: string
           name: string
           namespace_id: string
+          remote_table_id: string | null
+          shard_id: string | null
+          shard_key: string | null
           updated_at: string
         }
         Insert: {
-          bucket_id: string
+          bucket_name: string
+          catalog_id: string
           created_at?: string
           id?: string
           location: string
           name: string
           namespace_id: string
+          remote_table_id?: string | null
+          shard_id?: string | null
+          shard_key?: string | null
           updated_at?: string
         }
         Update: {
-          bucket_id?: string
+          bucket_name?: string
+          catalog_id?: string
           created_at?: string
           id?: string
           location?: string
           name?: string
           namespace_id?: string
+          remote_table_id?: string | null
+          shard_id?: string | null
+          shard_key?: string | null
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "iceberg_tables_bucket_id_fkey"
-            columns: ["bucket_id"]
+            foreignKeyName: "iceberg_tables_catalog_id_fkey"
+            columns: ["catalog_id"]
             isOneToOne: false
             referencedRelation: "buckets_analytics"
             referencedColumns: ["id"]
@@ -723,7 +900,6 @@ export type Database = {
           created_at: string | null
           id: string
           last_accessed_at: string | null
-          level: number | null
           metadata: Json | null
           name: string | null
           owner: string | null
@@ -738,7 +914,6 @@ export type Database = {
           created_at?: string | null
           id?: string
           last_accessed_at?: string | null
-          level?: number | null
           metadata?: Json | null
           name?: string | null
           owner?: string | null
@@ -753,7 +928,6 @@ export type Database = {
           created_at?: string | null
           id?: string
           last_accessed_at?: string | null
-          level?: number | null
           metadata?: Json | null
           name?: string | null
           owner?: string | null
@@ -773,38 +947,6 @@ export type Database = {
           },
         ]
       }
-      prefixes: {
-        Row: {
-          bucket_id: string
-          created_at: string | null
-          level: number
-          name: string
-          updated_at: string | null
-        }
-        Insert: {
-          bucket_id: string
-          created_at?: string | null
-          level?: number
-          name: string
-          updated_at?: string | null
-        }
-        Update: {
-          bucket_id?: string
-          created_at?: string | null
-          level?: number
-          name?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "prefixes_bucketId_fkey"
-            columns: ["bucket_id"]
-            isOneToOne: false
-            referencedRelation: "buckets"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       s3_multipart_uploads: {
         Row: {
           bucket_id: string
@@ -812,6 +954,7 @@ export type Database = {
           id: string
           in_progress_size: number
           key: string
+          metadata: Json | null
           owner_id: string | null
           upload_signature: string
           user_metadata: Json | null
@@ -823,6 +966,7 @@ export type Database = {
           id: string
           in_progress_size?: number
           key: string
+          metadata?: Json | null
           owner_id?: string | null
           upload_signature: string
           user_metadata?: Json | null
@@ -834,6 +978,7 @@ export type Database = {
           id?: string
           in_progress_size?: number
           key?: string
+          metadata?: Json | null
           owner_id?: string | null
           upload_signature?: string
           user_metadata?: Json | null
@@ -903,53 +1048,76 @@ export type Database = {
           },
         ]
       }
+      vector_indexes: {
+        Row: {
+          bucket_id: string
+          created_at: string
+          data_type: string
+          dimension: number
+          distance_metric: string
+          id: string
+          metadata_configuration: Json | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          bucket_id: string
+          created_at?: string
+          data_type: string
+          dimension: number
+          distance_metric: string
+          id?: string
+          metadata_configuration?: Json | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          bucket_id?: string
+          created_at?: string
+          data_type?: string
+          dimension?: number
+          distance_metric?: string
+          id?: string
+          metadata_configuration?: Json | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vector_indexes_bucket_id_fkey"
+            columns: ["bucket_id"]
+            isOneToOne: false
+            referencedRelation: "buckets_vectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      add_prefixes: {
-        Args: { _bucket_id: string; _name: string }
-        Returns: undefined
+      allow_any_operation: {
+        Args: { expected_operations: string[] }
+        Returns: boolean
+      }
+      allow_only_operation: {
+        Args: { expected_operation: string }
+        Returns: boolean
       }
       can_insert_object: {
         Args: { bucketid: string; metadata: Json; name: string; owner: string }
         Returns: undefined
       }
-      delete_leaf_prefixes: {
-        Args: { bucket_ids: string[]; names: string[] }
-        Returns: undefined
-      }
-      delete_prefix: {
-        Args: { _bucket_id: string; _name: string }
-        Returns: boolean
-      }
-      extension: {
-        Args: { name: string }
+      extension: { Args: { name: string }; Returns: string }
+      filename: { Args: { name: string }; Returns: string }
+      foldername: { Args: { name: string }; Returns: string[] }
+      get_common_prefix: {
+        Args: { p_delimiter: string; p_key: string; p_prefix: string }
         Returns: string
-      }
-      filename: {
-        Args: { name: string }
-        Returns: string
-      }
-      foldername: {
-        Args: { name: string }
-        Returns: string[]
-      }
-      get_level: {
-        Args: { name: string }
-        Returns: number
-      }
-      get_prefix: {
-        Args: { name: string }
-        Returns: string
-      }
-      get_prefixes: {
-        Args: { name: string }
-        Returns: string[]
       }
       get_size_by_bucket: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           bucket_id: string
           size: number
@@ -972,28 +1140,24 @@ export type Database = {
       }
       list_objects_with_delimiter: {
         Args: {
-          bucket_id: string
+          _bucket_id: string
           delimiter_param: string
           max_keys?: number
           next_token?: string
           prefix_param: string
+          sort_order?: string
           start_after?: string
         }
         Returns: {
+          created_at: string
           id: string
+          last_accessed_at: string
           metadata: Json
           name: string
           updated_at: string
         }[]
       }
-      lock_top_prefixes: {
-        Args: { bucket_ids: string[]; names: string[] }
-        Returns: undefined
-      }
-      operation: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      operation: { Args: never; Returns: string }
       search: {
         Args: {
           bucketname: string
@@ -1014,40 +1178,21 @@ export type Database = {
           updated_at: string
         }[]
       }
-      search_legacy_v1: {
+      search_by_timestamp: {
         Args: {
-          bucketname: string
-          levels?: number
-          limits?: number
-          offsets?: number
-          prefix: string
-          search?: string
-          sortcolumn?: string
-          sortorder?: string
+          p_bucket_id: string
+          p_level: number
+          p_limit: number
+          p_prefix: string
+          p_sort_column: string
+          p_sort_column_after: string
+          p_sort_order: string
+          p_start_after: string
         }
         Returns: {
           created_at: string
           id: string
-          last_accessed_at: string
-          metadata: Json
-          name: string
-          updated_at: string
-        }[]
-      }
-      search_v1_optimised: {
-        Args: {
-          bucketname: string
-          levels?: number
-          limits?: number
-          offsets?: number
-          prefix: string
-          search?: string
-          sortcolumn?: string
-          sortorder?: string
-        }
-        Returns: {
-          created_at: string
-          id: string
+          key: string
           last_accessed_at: string
           metadata: Json
           name: string
@@ -1077,7 +1222,7 @@ export type Database = {
       }
     }
     Enums: {
-      buckettype: "STANDARD" | "ANALYTICS"
+      buckettype: "STANDARD" | "ANALYTICS" | "VECTOR"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1210,7 +1355,8 @@ export const Constants = {
   },
   storage: {
     Enums: {
-      buckettype: ["STANDARD", "ANALYTICS"],
+      buckettype: ["STANDARD", "ANALYTICS", "VECTOR"],
     },
   },
 } as const
+

@@ -1,5 +1,5 @@
 <section
-  class="fixed inset-0 z-30 flex items-end justify-center px-4 py-6 sm:items-center sm:py-12 lg:py-16"
+  class="fixed inset-0 z-30 flex items-end justify-center px-3 py-3 sm:items-center sm:px-4 sm:py-6"
 >
   <button
     type="button"
@@ -9,20 +9,20 @@
   ></button>
 
   <div
-    class="relative z-10 w-full max-w-3xl overflow-hidden rounded-t-3xl border border-base-300 bg-base-100/95 shadow-2xl backdrop-blur sm:rounded-3xl"
+    class="relative z-10 flex max-h-[calc(100dvh-1.5rem)] w-full max-w-3xl flex-col overflow-hidden rounded-t-3xl border border-base-300 bg-base-100/95 shadow-2xl backdrop-blur sm:max-h-[calc(100dvh-3rem)] sm:rounded-3xl"
     role="dialog"
     aria-modal="true"
     aria-labelledby="transaction-form-title"
   >
     <form
-      class="flex max-h-[min(88vh,700px)] flex-col gap-6 overflow-y-auto p-6 sm:max-h-none sm:p-8"
+      class="flex min-h-0 flex-1 flex-col"
       [formGroup]="form"
       (ngSubmit)="submit()"
       autocomplete="off"
       novalidate
     >
       <header
-        class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
+        class="sticky top-0 z-20 flex shrink-0 flex-col gap-3 border-b border-base-200 bg-base-100/95 px-5 py-4 backdrop-blur sm:flex-row sm:items-start sm:justify-between sm:px-6"
       >
         <div>
           <p
@@ -32,23 +32,30 @@
           </p>
           <h2
             id="transaction-form-title"
-            class="mt-2 text-2xl font-semibold sm:text-3xl"
+            class="mt-1 text-2xl font-semibold sm:text-3xl"
           >
             {{ 'transactions.form.title.' + mode() | transloco }}
           </h2>
-          <p class="mt-1 max-w-2xl text-sm text-base-content/70">
+          <p class="mt-1 max-w-2xl text-xs text-base-content/70 sm:text-sm">
             {{ 'transactions.form.subtitle.' + mode() | transloco }}
           </p>
         </div>
 
         <button
           type="button"
-          class="btn btn-ghost btn-sm self-end sm:self-start"
+          class="btn btn-ghost btn-square btn-sm self-end sm:self-start"
+          [attr.aria-label]="'common.actions.close' | transloco"
           (click)="onClose()"
         >
-          {{ 'common.actions.close' | transloco }}
+          @if (closeIcon; as iconSvg) {
+            <ng-icon [svg]="iconSvg" size="18" aria-hidden="true"></ng-icon>
+          } @else {
+            <span aria-hidden="true">X</span>
+          }
         </button>
       </header>
+
+      <div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4 sm:px-6">
 
       @if (store.mutationError(); as error) {
       <div
@@ -68,7 +75,7 @@
       </div>
       }
 
-      <fieldset class="grid gap-4 sm:grid-cols-2">
+      <fieldset class="grid gap-3 sm:grid-cols-2">
         <label class="form-control">
           <span class="label-text text-sm font-semibold text-base-content">
             {{ 'transactions.form.fields.description' | transloco }}
@@ -196,7 +203,7 @@
         }
       </fieldset>
 
-      <section class="space-y-3">
+      <section class="space-y-2">
         <label class="form-control">
           <span class="label-text text-sm font-semibold text-base-content">
             {{ 'transactions.form.fields.tags' | transloco }}
@@ -285,7 +292,7 @@
         }
       </section>
 
-      <section class="border-t border-dashed border-base-300 pt-4">
+      <section class="border-t border-dashed border-base-300 pt-3">
         <button
           type="button"
           class="btn btn-outline btn-sm"
@@ -346,9 +353,10 @@
         </p>
         }
       </section>
+      </div>
 
       <footer
-        class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end"
+        class="sticky bottom-0 z-20 flex shrink-0 flex-col gap-3 border-t border-base-200 bg-base-100/95 px-5 py-4 backdrop-blur sm:flex-row sm:items-center sm:justify-end sm:px-6"
       >
         <button type="button" class="btn btn-ghost" (click)="onClose()">
           {{ 'common.actions.cancel' | transloco }}

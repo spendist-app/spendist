@@ -12,6 +12,7 @@ export interface CategoryEntity {
   readonly color: string | null;
   readonly icon: string | null;
   readonly groupId: string;
+  readonly parentId: string | null;
 }
 
 export interface CategoryGroupEntity {
@@ -31,11 +32,21 @@ export interface WalletEntity {
   readonly currency: string;
 }
 
+export interface ProfileEntity {
+  readonly id: string;
+  readonly fullName: string;
+  readonly username: string;
+  readonly avatarUrl: string | null;
+  readonly language: string;
+  readonly timezone: string;
+}
+
 export interface CategoryPayload {
   readonly name: string;
   readonly color: string | null;
   readonly icon: string | null;
   readonly groupId: string;
+  readonly parentId: string | null;
 }
 
 export interface CategoryGroupPayload {
@@ -56,6 +67,16 @@ interface CurrencyOption {
 }
 
 type CurrencyRow = Tables<'currencies'>;
+type ProfileRow = Tables<'profiles'>;
+
+const AVATAR_BUCKET = 'avatars';
+const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
+const AVATAR_MIME_TO_EXTENSION = new Map([
+  ['image/jpeg', 'jpg'],
+  ['image/png', 'png'],
+  ['image/webp', 'webp'],
+  ['image/gif', 'gif'],
+]);
 
 interface SettingsState {
   readonly loading: boolean;
@@ -63,7 +84,10 @@ interface SettingsState {
   readonly groups: readonly CategoryGroupEntity[];
   readonly wallets: readonly WalletEntity[];
   readonly currencies: readonly CurrencyOption[];
+  readonly profile: ProfileEntity | null;
   readonly error: string | null;
+  readonly profileMutationPending: boolean;
+  readonly profileError: string | null;
   readonly categoryMutationPending: boolean;
   readonly groupMutationPending: boolean;
   readonly walletMutationPending: boolean;
@@ -89,7 +113,10 @@ export class SettingsStore {
     groups: [],
     wallets: [],
     currencies: [],
+    profile: null,
     error: null,
+    profileMutationPending: false,
+    profileError: null,
     categoryMutationPending: false,
     groupMutationPending: false,
     walletMutationPending: false,
@@ -100,8 +127,11 @@ export class SettingsStore {
   readonly groups = computed(() => this.state().groups);
   readonly wallets = computed(() => this.state().wallets);
   readonly currencies = computed(() => this.state().currencies);
+  readonly profile = computed(() => this.state().profile);
   readonly loading = computed(() => this.state().loading);
   readonly error = computed(() => this.state().error);
+  readonly profileMutationPending = computed(() => this.state().profileMutationPending);
+  readonly profileError = computed(() => this.state().profileError);
   readonly categoryMutationPending = computed(() => this.state().categoryMutationPending);
   readonly groupMutationPending = computed(() => this.state().groupMutationPending);
   readonly walletMutationPending = computed(() => this.state().walletMutationPending);
@@ -122,7 +152,10 @@ export class SettingsStore {
           groups: [],
           wallets: [],
           currencies: [],
+          profile: null,
           error: null,
+          profileMutationPending: false,
+          profileError: null,
           categoryMutationPending: false,
           groupMutationPending: false,
           walletMutationPending: false,
@@ -156,8 +189,11 @@ export class SettingsStore {
         groups: [],
         wallets: [],
         currencies: [],
+        profile: null,
         walletMutationPending: false,
+        profileMutationPending: false,
         walletError: null,
+        profileError: null,
       }));
       return;
     }
@@ -169,7 +205,8 @@ export class SettingsStore {
     }));
 
     try {
-      const [groupsResult, categoriesResult, walletsResult, currenciesResult] = await Promise.all([
+      const [profileResult, groupsResult, categoriesResult, walletsResult, currenciesResult] = await Promise.all([
+        this.supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
         this.supabase
           .from('categories_group')
           .select('*')
@@ -188,6 +225,10 @@ export class SettingsStore {
           .order('name', { ascending: true }),
         this.supabase.from('currencies').select('*').order('symbol', { ascending: true }),
       ]);
+
+      if (profileResult.error) {
+        throw profileResult.error;
+      }
 
       if (groupsResult.error) {
         throw groupsResult.error;
@@ -208,6 +249,7 @@ export class SettingsStore {
       const groups = this.sortGroups(
         (groupsResult.data ?? []).map((group) => this.mapGroupRow(group as CategoryGroupRow)),
       );
+      const profile = profileResult.data ? this.mapProfileRow(profileResult.data as ProfileRow) : null;
       const categories = this.sortCategories(
         (categoriesResult.data ?? []).map((category) => this.mapCategoryRow(category as CategoryRow)),
       );
@@ -224,7 +266,10 @@ export class SettingsStore {
         categoryMutationPending: false,
         groupMutationPending: false,
         walletMutationPending: false,
+        profileMutationPending: false,
         walletError: null,
+        profileError: null,
+        profile,
         categories,
         groups,
         wallets,
@@ -238,7 +283,9 @@ export class SettingsStore {
         loading: false,
         error: message,
         walletMutationPending: false,
+        profileMutationPending: false,
         walletError: message,
+        profileError: message,
       }));
       throw new SettingsStoreError(message);
     }
@@ -250,6 +297,7 @@ export class SettingsStore {
 
     try {
       this.ensureGroupExists(payload.groupId);
+      this.ensureParentCategoryExists(payload.parentId, payload.groupId);
 
       const { data, error } = await this.supabase
         .from('categories')
@@ -259,6 +307,7 @@ export class SettingsStore {
           color: this.normalizeColor(payload.color),
           icon: this.normalizeIcon(payload.icon),
           group_id: payload.groupId,
+          parent_id: payload.parentId,
         })
         .select('*')
         .single();
@@ -297,6 +346,7 @@ export class SettingsStore {
 
     try {
       this.ensureGroupExists(payload.groupId);
+      this.ensureParentCategoryExists(payload.parentId, payload.groupId, categoryId);
 
       const { error, data } = await this.supabase
         .from('categories')
@@ -305,6 +355,7 @@ export class SettingsStore {
           color: this.normalizeColor(payload.color),
           icon: this.normalizeIcon(payload.icon),
           group_id: payload.groupId,
+          parent_id: payload.parentId,
         })
         .eq('id', categoryId)
         .eq('owner_id', userId)
@@ -510,6 +561,65 @@ export class SettingsStore {
     }));
   }
 
+  clearProfileError(): void {
+    this.state.update((state) => ({
+      ...state,
+      profileError: null,
+    }));
+  }
+
+  async uploadAvatar(file: File): Promise<void> {
+    const userId = this.requireUserId();
+    this.setProfilePending(true);
+    this.setProfileError(null);
+
+    try {
+      const extension = this.resolveAvatarExtension(file);
+      const avatarPath = `${userId}/avatar.${extension}`;
+
+      const { error: uploadError } = await this.supabase.storage
+        .from(AVATAR_BUCKET)
+        .upload(avatarPath, file, {
+          cacheControl: '3600',
+          contentType: file.type,
+          upsert: true,
+        });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const publicUrl = this.supabase.storage
+        .from(AVATAR_BUCKET)
+        .getPublicUrl(avatarPath).data.publicUrl;
+      const avatarUrl = `${publicUrl}?v=${Date.now()}`;
+
+      const { data, error } = await this.supabase
+        .from('profiles')
+        .update({ avatar_url: avatarUrl })
+        .eq('id', userId)
+        .select('*')
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      const profile = this.mapProfileRow(this.requireRow(data as ProfileRow | null));
+      this.state.update((state) => ({
+        ...state,
+        profile,
+        profileError: null,
+      }));
+    } catch (error) {
+      const message = this.describeProfileError(error);
+      this.setProfileError(message);
+      throw new SettingsStoreError(message);
+    } finally {
+      this.setProfilePending(false);
+    }
+  }
+
   async createWallet(payload: WalletPayload): Promise<void> {
     const userId = this.requireUserId();
     const name = payload.name.trim();
@@ -629,6 +739,22 @@ export class SettingsStore {
     }
   }
 
+  private ensureParentCategoryExists(
+    parentId: string | null,
+    groupId: string,
+    categoryId?: string,
+  ): void {
+    if (!parentId) {
+      return;
+    }
+
+    const parent = this.state().categories.find((category) => category.id === parentId);
+    if (!parent || parent.groupId !== groupId || parent.id === categoryId) {
+      const message = 'Select a valid parent category before saving.';
+      throw new SettingsStoreError(message);
+    }
+  }
+
   private setWalletPending(pending: boolean): void {
     this.state.update((state) => ({
       ...state,
@@ -643,6 +769,20 @@ export class SettingsStore {
     }));
   }
 
+  private setProfilePending(pending: boolean): void {
+    this.state.update((state) => ({
+      ...state,
+      profileMutationPending: pending,
+    }));
+  }
+
+  private setProfileError(message: string | null): void {
+    this.state.update((state) => ({
+      ...state,
+      profileError: message,
+    }));
+  }
+
   private mapCategoryRow(row: CategoryRow): CategoryEntity {
     return {
       id: row.id,
@@ -651,6 +791,7 @@ export class SettingsStore {
       color: row.color ?? null,
       icon: this.normalizeIcon(row.icon),
       groupId: row.group_id,
+      parentId: row.parent_id ?? null,
     };
   }
 
@@ -676,6 +817,17 @@ export class SettingsStore {
     };
   }
 
+  private mapProfileRow(row: ProfileRow): ProfileEntity {
+    return {
+      id: row.id,
+      fullName: row.full_name,
+      username: row.username,
+      avatarUrl: row.avatar_url ?? null,
+      language: row.language,
+      timezone: row.timezone,
+    };
+  }
+
   private mapCurrencyRow(row: CurrencyRow): CurrencyOption {
     return {
       id: row.id,
@@ -684,7 +836,12 @@ export class SettingsStore {
   }
 
   private sortCategories(categories: readonly CategoryEntity[]): readonly CategoryEntity[] {
-    return [...categories].sort((a, b) => a.name.localeCompare(b.name));
+    return [...categories].sort((a, b) => {
+      if (a.groupId !== b.groupId) {
+        return a.groupId.localeCompare(b.groupId);
+      }
+      return a.name.localeCompare(b.name);
+    });
   }
 
   private sortWallets(wallets: readonly WalletEntity[]): readonly WalletEntity[] {
@@ -734,6 +891,19 @@ export class SettingsStore {
 
     const canonical = canonicalHeroIconName(trimmed);
     return canonical || trimmed;
+  }
+
+  private resolveAvatarExtension(file: File): string {
+    if (file.size > AVATAR_MAX_BYTES) {
+      throw new SettingsStoreError('settings.panels.profile.avatar.errors.tooLarge');
+    }
+
+    const extension = AVATAR_MIME_TO_EXTENSION.get(file.type);
+    if (!extension) {
+      throw new SettingsStoreError('settings.panels.profile.avatar.errors.unsupportedType');
+    }
+
+    return extension;
   }
 
   private requireRow<T>(row: T | null | undefined): T {
@@ -822,6 +992,14 @@ export class SettingsStore {
     }
 
     return 'Unable to update the category group.';
+  }
+
+  private describeProfileError(error: unknown): string {
+    if (error instanceof SettingsStoreError) {
+      return error.message;
+    }
+
+    return 'settings.panels.profile.avatar.errors.generic';
   }
 
   private isPostgrestError(error: unknown): error is PostgrestError {

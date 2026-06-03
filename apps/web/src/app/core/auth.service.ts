@@ -114,19 +114,17 @@ export class AuthService implements OnDestroy {
         return { error: 'User could not be created. Please try again.' };
       }
 
-      const { error: profileError } = await this.supabase.from('profiles').upsert(
+      const { error: profileError } = await this.supabase
+        .from('profiles')
+        .update(
         {
-          id: user.id,
-          username: payload.username,
           full_name: payload.fullName,
           avatar_url: payload.avatarUrl ?? null,
           language: payload.language ?? 'en',
           timezone: payload.timezone,
-        },
-        {
-          onConflict: 'id',
         }
-      );
+        )
+        .eq('id', user.id);
 
       if (profileError) {
         return { error: this.normalizeProfileError(profileError) };

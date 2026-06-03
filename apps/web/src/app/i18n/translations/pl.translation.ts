@@ -84,6 +84,8 @@ const pl = {
       passwordHelper: 'Użyj co najmniej 8 znaków, w tym liter i cyfr.',
       passwordConfirmLabel: 'Potwierdź hasło',
       passwordConfirmError: 'Hasła muszą być takie same.',
+      currencyLabel: 'Waluta pierwszego portfela',
+      currencyHelper: 'Podpowiadamy ją na podstawie języka lub regionu przeglądarki, ale możesz ją zmienić.',
       submitIdle: 'Zarejestruj się',
       submitBusy: 'Tworzenie konta...',
       tosNotice: 'Kontynuując, akceptujesz przyszły regulamin oraz politykę prywatności.',
@@ -108,11 +110,23 @@ const pl = {
           'Aktualizuj swoje dane, aby analizy, powiadomienia i preferencje były zawsze na bieżąco.',
         note:
           'Zaawansowane ustawienia profilu (powiadomienia, integracje) pojawią się tutaj wkrótce.',
-        name: 'Joanna Doe',
+        fallbackName: 'Twój profil',
+        notSet: 'Nie ustawiono',
         language: 'Język',
         timezone: 'Strefa czasowa',
         blurb:
           'Dane profilu zasilają budżety, raporty oraz przyszłą współpracę w zespole.',
+        avatar: {
+          alt: 'Avatar użytkownika',
+          upload: 'Prześlij avatar',
+          uploading: 'Przesyłanie...',
+          help: 'Dodaj avatar profilu. Obsługujemy PNG, JPG, WebP i GIF do 2 MB.',
+          errors: {
+            tooLarge: 'Avatar może mieć maksymalnie 2 MB.',
+            unsupportedType: 'Wybierz obraz PNG, JPG, WebP albo GIF.',
+            generic: 'Nie udało się przesłać avatara. Spróbuj ponownie.',
+          },
+        },
       },
       wallets: {
         label: 'Portfele',
@@ -188,6 +202,9 @@ const pl = {
           groupLabel: 'Grupa kategorii',
           groupPlaceholder: 'Wybierz grupę',
           groupRequired: 'Wybierz grupę dla tej kategorii.',
+          parentLabel: 'Kategoria nadrzędna',
+          parentNone: 'Brak kategorii nadrzędnej',
+          parentHelp: 'Użyj maksymalnie trzech poziomów, np. Jedzenie / Spożywcze / Biedronka.',
           colorLabel: 'Kolor akcentu',
           colorPlaceholder: '#0EA5A5',
           iconLabel: 'Ikona Heroicon',
@@ -196,6 +213,7 @@ const pl = {
           selectedHeading: 'Wybrana kategoria',
           groupedUnder: 'Przypisana do grupy {{group}}',
           group: 'Grupa',
+          parent: 'Nadrzędna',
           icon: 'Ikona',
           accent: 'Kolor akcentu',
           defaultColor: 'Domyślny',
@@ -232,8 +250,29 @@ const pl = {
     },
   },
   notifications: {
+    open: 'Otwórz notyfikacje',
+    title: 'Notyfikacje',
+    loading: 'Ładowanie notyfikacji',
+    unreadCount: 'Nieprzeczytane: {{count}}',
+    actions: {
+      readAll: 'Przeczytaj wszystko',
+    },
+    empty: {
+      title: 'Brak notyfikacji',
+      body: 'Nowe aktywności pojawią się tutaj.',
+    },
+    items: {
+      recurring_transaction_created: {
+        title: 'Utworzono transakcję cykliczną: {{description}} ({{amount}} {{currency}})',
+      },
+      recurring_transaction_ended: {
+        title: 'Płatność cykliczna zakończona: {{description}} (koniec: {{endDate}})',
+      },
+    },
     errors: {
       generic: 'Coś poszło nie tak. Spróbuj ponownie.',
+      load: 'Nie udało się załadować notyfikacji.',
+      markAllRead: 'Nie udało się oznaczyć notyfikacji jako przeczytane.',
     },
   },
   dashboard: {
@@ -284,6 +323,7 @@ const pl = {
   },
   transactions: {
     badge: 'Transakcje',
+    title: 'Transakcje',
     filters: {
       categoriesTitle: 'Kategorie',
       clearCategories: 'Wyczyść',
@@ -315,6 +355,7 @@ const pl = {
       emptyBody: 'Dostosuj filtry lub dodaj nową transakcję, aby zobaczyć listę.',
       noDescription: 'Transakcja bez opisu',
       automatic: 'Automatyczna',
+      recurringSource: 'Cykliczna',
       uncategorized: 'Brak kategorii',
       direction: {
         income: 'Przychód',
@@ -396,12 +437,12 @@ const pl = {
       description: 'Kontroluj automatyczne obciążenia. Monitoruj odnowienia i nadchodzące rachunki w jednym miejscu.',
       stats: {
         monthly: {
-          label: 'Wydatki w tym miesiącu',
-          caption: 'Suma wydatków z transakcji cyklicznych w bieżącym miesiącu.',
+          label: 'Wygenerowane w tym miesiącu',
+          caption: 'Automatyczne transakcje wydatkowe utworzone z płatności cyklicznych w tym miesiącu.',
         },
         yearly: {
-          label: 'Wydatki w tym roku',
-          caption: 'Łączne wydatki z płatności cyklicznych od początku roku.',
+          label: 'Wygenerowane od początku roku',
+          caption: 'Automatyczne transakcje wydatkowe utworzone z płatności cyklicznych od stycznia.',
         },
       },
       actions: {
@@ -435,6 +476,15 @@ const pl = {
             label: 'Kwota',
             error: 'Wpisz kwotę większą od zera.',
           },
+          amountMode: {
+            label: 'Tryb kwoty',
+            fixedHint: 'Każda wygenerowana transakcja użyje tej kwoty.',
+            variableHint: 'Terminy trafią do oczekujących kwot, aż wpiszesz faktyczny rachunek.',
+            options: {
+              fixed: 'Stała kwota',
+              variable: 'Zmienna kwota',
+            },
+          },
           direction: {
             label: 'Typ',
             options: {
@@ -443,10 +493,27 @@ const pl = {
             },
           },
           schedule: {
-            label: 'Harmonogram (cron)',
+            label: 'Harmonogram',
             placeholder: '0 12 1 * *',
-            error: 'Wpisz poprawne wyrażenie cron.',
-            hint: 'Standardowy format cron: minuta godzina dzień-miesiąca miesiąc dzień-tygodnia.',
+            error: 'Wybierz poprawny harmonogram.',
+            hint: 'Zapisane jako cron: {{cron}}',
+            time: 'Godzina uruchomienia',
+            dayOfMonth: 'Dzień',
+            dayOfWeek: 'Dzień tygodnia',
+            frequency: {
+              daily: 'Codziennie',
+              weekly: 'Co tydzień',
+              monthly: 'Co miesiąc',
+            },
+            weekdays: {
+              monday: 'Poniedziałek',
+              tuesday: 'Wtorek',
+              wednesday: 'Środa',
+              thursday: 'Czwartek',
+              friday: 'Piątek',
+              saturday: 'Sobota',
+              sunday: 'Niedziela',
+            },
           },
           startDate: {
             label: 'Start',
@@ -473,8 +540,15 @@ const pl = {
         },
         notifications: {
           error: 'Nie udało się zapisać płatności cyklicznej. Spróbuj ponownie za chwilę.',
+          backfillError: 'Płatność cykliczna została zapisana, ale nie udało się teraz wygenerować historii.',
           duplicateName: 'Płatność cykliczna o tej nazwie już istnieje. Zmień etykietę lub edytuj istniejący wpis.',
         },
+      },
+      pending: {
+        title: 'Oczekujące kwoty',
+        subtitle: 'Płatności cykliczne ze zmienną kwotą czekające na faktyczną wartość.',
+        amount: 'Faktyczna kwota',
+        complete: 'Zaksięguj',
       },
       list: {
         badge: 'Przegląd',
@@ -489,8 +563,21 @@ const pl = {
           startDate: 'Początek',
           endDate: 'Koniec',
           noEndDate: 'Bez końca',
+          nextRun: 'Kolejny transfer',
           wallet: 'Portfel',
           exchangeRate: 'Kurs',
+          variableAmount: 'Kwota uzupełniana per termin',
+        },
+        amountMode: {
+          fixed: 'Stała',
+          variable: 'Zmienna',
+        },
+        nextRun: {
+          dueNow: 'teraz',
+          inDaysHours: 'za {{ days }}d {{ hours }}h',
+          inHoursMinutes: 'za {{ hours }}h {{ minutes }}m',
+          inMinutes: 'za {{ minutes }}m',
+          none: 'Brak kolejnego transferu',
         },
         direction: {
           expense: 'Wydatek',

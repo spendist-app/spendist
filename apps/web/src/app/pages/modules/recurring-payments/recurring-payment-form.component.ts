@@ -19,14 +19,24 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TranslocoPipe, TranslocoService } from '@ngneat/transloco';
 import {
   RecurringPaymentsStore,
+  RecurringAmountMode,
+  RecurringCategorySummary,
   RecurringTransactionDirection,
   WalletEntity,
 } from './recurring-payments.store';
+
+interface CategoryOption {
+  readonly id: string;
+  readonly label: string;
+}
+
+type ScheduleFrequency = 'daily' | 'weekly' | 'monthly';
 
 type RecurringFormGroup = FormGroup<{
   readonly name: FormControl<string>;
   readonly categoryId: FormControl<string>;
   readonly amount: FormControl<number | null>;
+  readonly amountMode: FormControl<RecurringAmountMode>;
   readonly direction: FormControl<RecurringTransactionDirection>;
   readonly startDate: FormControl<string>;
   readonly endDate: FormControl<string | null>;
@@ -63,6 +73,9 @@ export class RecurringPaymentFormComponent {
     amount: new FormControl<number | null>(null, {
       validators: [Validators.required, Validators.min(0.01)],
     }),
+    amountMode: new FormControl<RecurringAmountMode>('fixed', {
+      nonNullable: true,
+    }),
     walletId: new FormControl('', {
       nonNullable: true,
       validators: [Validators.required],
@@ -87,19 +100,27 @@ export class RecurringPaymentFormComponent {
   readonly nameControl = this.form.controls.name;
   readonly categoryControl = this.form.controls.categoryId;
   readonly amountControl = this.form.controls.amount;
+  readonly amountModeControl = this.form.controls.amountMode;
   readonly walletControl = this.form.controls.walletId;
   readonly scheduleControl = this.form.controls.schedule;
   readonly startDateControl = this.form.controls.startDate;
   readonly selectedTags = signal<string[]>([]);
   private readonly selectedWalletCurrency = signal(this.store.defaultCurrency());
+  readonly scheduleFrequency = signal<ScheduleFrequency>('monthly');
+  readonly scheduleTime = signal('12:00');
+  readonly scheduleDayOfWeek = signal('1');
+  readonly scheduleDayOfMonth = signal(1);
   readonly walletCurrency = computed(() => this.selectedWalletCurrency());
   readonly wallets = computed<readonly WalletEntity[]>(() => this.store.wallets());
+  readonly categoryView = computed(() => this.buildCategoryView());
+  readonly schedulePreview = computed(() => this.buildCronSchedule());
 
   constructor() {
     this.nameControl.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
       const errors = this.nameControl.errors;
       if (errors?.['duplicate']) {
-        const { duplicate: _omit, ...rest } = errors;
+        const rest = { ...errors };
+        delete rest['duplicate'];
         const remainingErrors = Object.keys(rest).length > 0 ? rest : null;
         this.nameControl.setErrors(remainingErrors);
       }
@@ -108,6 +129,11 @@ export class RecurringPaymentFormComponent {
       if (this.submissionError() === duplicateMessage) {
         this.submissionError.set(null);
       }
+    });
+
+    this.amountModeControl.valueChanges.pipe(takeUntilDestroyed()).subscribe((mode) => {
+      this.syncAmountValidators(mode);
+      this.submissionError.set(null);
     });
 
     effect(() => {
@@ -135,6 +161,7 @@ export class RecurringPaymentFormComponent {
           name: editing.name,
           categoryId: editing.categoryId,
           amount: editing.amount,
+          amountMode: editing.amountMode,
           walletId: editing.walletId,
           direction: editing.direction,
           startDate: this.formatDate(editing.startDate),
@@ -147,6 +174,8 @@ export class RecurringPaymentFormComponent {
 
       this.selectedTags.set(tagIds);
       this.form.controls.tagIds.setValue(tagIds, { emitEvent: false });
+      this.applyScheduleFromCron(editing.schedule);
+      this.syncAmountValidators(editing.amountMode);
       this.syncWalletCurrency(editing.walletId);
       this.submissionError.set(null);
       this.form.markAsPristine();
@@ -199,9 +228,10 @@ export class RecurringPaymentFormComponent {
 
     this.submissionError.set(null);
 
-    const { name, categoryId, amount, direction, startDate, endDate, schedule, walletId } = this.form.value;
+    const { name, categoryId, amount, amountMode, direction, startDate, endDate, schedule, walletId } = this.form.value;
+    const resolvedAmountMode = amountMode ?? 'fixed';
 
-    if (amount == null) {
+    if (resolvedAmountMode === 'fixed' && amount == null) {
       this.submissionError.set(this.transloco.translate('modules.recurringPayments.form.fields.amount.error'));
       return;
     }
@@ -219,11 +249,12 @@ export class RecurringPaymentFormComponent {
     const payload = {
       name: name?.trim() ?? '',
       categoryId: categoryId ?? '',
-      amount: Number(amount),
+      amount: resolvedAmountMode === 'variable' ? 0 : Number(amount),
+      amountMode: resolvedAmountMode,
       direction: (direction ?? 'expense') as RecurringTransactionDirection,
       startDate: startDate ?? this.formatDate(this.today),
       endDate: endDate && endDate.length > 0 ? endDate : null,
-      schedule: schedule ?? '',
+      schedule: this.buildCronSchedule() || schedule || '',
       tagIds: tags,
       walletId: resolvedWalletId,
     };
@@ -284,6 +315,35 @@ export class RecurringPaymentFormComponent {
     this.dismiss.emit();
   }
 
+  updateScheduleFrequency(event: Event): void {
+    const target = event.target as HTMLSelectElement | null;
+    const value = target?.value;
+    if (value === 'daily' || value === 'weekly' || value === 'monthly') {
+      this.scheduleFrequency.set(value);
+      this.syncScheduleControl();
+    }
+  }
+
+  updateScheduleTime(event: Event): void {
+    const target = event.target as HTMLInputElement | null;
+    this.scheduleTime.set(this.normalizeTime(target?.value ?? '12:00'));
+    this.syncScheduleControl();
+  }
+
+  updateScheduleDayOfWeek(event: Event): void {
+    const target = event.target as HTMLSelectElement | null;
+    this.scheduleDayOfWeek.set(target?.value ?? '1');
+    this.syncScheduleControl();
+  }
+
+  updateScheduleDayOfMonth(event: Event): void {
+    const target = event.target as HTMLInputElement | null;
+    const parsed = Number(target?.value ?? 1);
+    const day = Number.isFinite(parsed) ? Math.min(Math.max(Math.trunc(parsed), 1), 31) : 1;
+    this.scheduleDayOfMonth.set(day);
+    this.syncScheduleControl();
+  }
+
   private resetForm(): void {
     const defaultWalletId = this.store.defaultWalletId();
     this.form.reset(
@@ -291,6 +351,7 @@ export class RecurringPaymentFormComponent {
         name: '',
         categoryId: '',
         amount: null,
+        amountMode: 'fixed',
         walletId: defaultWalletId ?? '',
         direction: 'expense',
         startDate: this.formatDate(this.today),
@@ -303,6 +364,12 @@ export class RecurringPaymentFormComponent {
     this.selectedTags.set([]);
     this.submissionError.set(null);
     this.form.controls.tagIds.setValue([], { emitEvent: false });
+    this.scheduleFrequency.set('monthly');
+    this.scheduleTime.set('12:00');
+    this.scheduleDayOfWeek.set('1');
+    this.scheduleDayOfMonth.set(1);
+    this.syncAmountValidators('fixed');
+    this.syncScheduleControl();
     this.syncWalletCurrency(defaultWalletId);
   }
 
@@ -311,6 +378,138 @@ export class RecurringPaymentFormComponent {
     const wallet = walletId ? wallets.find((item) => item.id === walletId) ?? null : null;
     const currency = wallet?.currency ?? this.store.defaultCurrency();
     this.selectedWalletCurrency.set(currency);
+  }
+
+  private buildCategoryView(): readonly {
+    groupName: string | null;
+    options: readonly CategoryOption[];
+  }[] {
+    const categories = this.store.categories();
+    const categoryNames = new Map(categories.map((category) => [category.id, category.name]));
+
+    const groupedView = this.store.groupedCategories().map((group) => ({
+      groupName: group.name,
+      options: group.categories.map((category) => ({
+        id: category.id,
+        label: this.buildCategoryLabel(category, categories, categoryNames),
+      })),
+    }));
+
+    const ungrouped = this.store.ungroupedCategories();
+    const ungroupedView =
+      ungrouped.length > 0
+        ? [
+            {
+              groupName: null,
+              options: ungrouped.map((category) => ({
+                id: category.id,
+                label: this.buildCategoryLabel(category, categories, categoryNames),
+              })),
+            },
+          ]
+        : [];
+
+    return [...groupedView, ...ungroupedView];
+  }
+
+  private buildCategoryLabel(
+    category: RecurringCategorySummary,
+    categories: readonly RecurringCategorySummary[],
+    categoryNames: ReadonlyMap<string, string>,
+  ): string {
+    const names = [category.name];
+    let currentParentId = category.parentId;
+    const visited = new Set<string>([category.id]);
+
+    while (currentParentId && !visited.has(currentParentId)) {
+      visited.add(currentParentId);
+      const parentName = categoryNames.get(currentParentId);
+      if (!parentName) {
+        break;
+      }
+
+      names.unshift(parentName);
+      const parent = categories.find((item) => item.id === currentParentId);
+      currentParentId = parent?.parentId ?? null;
+    }
+
+    return names.join(' / ');
+  }
+
+  private buildCronSchedule(): string {
+    const [hourPart, minutePart] = this.scheduleTime().split(':');
+    const hour = this.clampCronNumber(hourPart, 0, 23, 12);
+    const minute = this.clampCronNumber(minutePart, 0, 59, 0);
+
+    if (this.scheduleFrequency() === 'daily') {
+      return `${minute} ${hour} * * *`;
+    }
+
+    if (this.scheduleFrequency() === 'weekly') {
+      return `${minute} ${hour} * * ${this.scheduleDayOfWeek()}`;
+    }
+
+    return `${minute} ${hour} ${this.scheduleDayOfMonth()} * *`;
+  }
+
+  private applyScheduleFromCron(schedule: string): void {
+    const parts = schedule.trim().split(/\s+/);
+    if (parts.length !== 5) {
+      this.syncScheduleControl();
+      return;
+    }
+
+    const [minute, hour, dayOfMonth, month, dayOfWeek] = parts;
+    if (month !== '*') {
+      this.syncScheduleControl();
+      return;
+    }
+
+    this.scheduleTime.set(`${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`);
+    if (dayOfMonth === '*' && dayOfWeek === '*') {
+      this.scheduleFrequency.set('daily');
+    } else if (dayOfMonth === '*' && dayOfWeek !== '*') {
+      this.scheduleFrequency.set('weekly');
+      this.scheduleDayOfWeek.set(dayOfWeek);
+    } else {
+      this.scheduleFrequency.set('monthly');
+      this.scheduleDayOfMonth.set(this.clampCronNumber(dayOfMonth, 1, 31, 1));
+    }
+
+    this.syncScheduleControl();
+  }
+
+  private syncScheduleControl(): void {
+    this.scheduleControl.setValue(this.buildCronSchedule(), { emitEvent: false });
+  }
+
+  private syncAmountValidators(mode: RecurringAmountMode): void {
+    if (mode === 'variable') {
+      this.amountControl.clearValidators();
+      this.amountControl.setValue(null, { emitEvent: false });
+      this.amountControl.disable({ emitEvent: false });
+    } else {
+      this.amountControl.enable({ emitEvent: false });
+      this.amountControl.setValidators([Validators.required, Validators.min(0.01)]);
+    }
+
+    this.amountControl.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private normalizeTime(value: string): string {
+    const [hourPart, minutePart] = value.split(':');
+    const hour = `${this.clampCronNumber(hourPart, 0, 23, 12)}`.padStart(2, '0');
+    const minute = `${this.clampCronNumber(minutePart, 0, 59, 0)}`.padStart(2, '0');
+    return `${hour}:${minute}`;
+  }
+
+  private clampCronNumber(value: string | number | undefined, min: number, max: number, fallback: number): number {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+      return fallback;
+    }
+
+    return Math.min(Math.max(Math.trunc(parsed), min), max);
   }
 
   private formatDate(date: Date): string {

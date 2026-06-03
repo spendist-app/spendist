@@ -1,0 +1,79 @@
+<div class="dropdown dropdown-end">
+  <button
+    type="button"
+    tabindex="0"
+    class="btn btn-ghost btn-circle relative"
+    [attr.aria-label]="'notifications.open' | transloco"
+    (click)="refresh()"
+  >
+    <ng-icon [svg]="bellIcon" size="22" aria-hidden="true"></ng-icon>
+    @if (store.hasUnread()) {
+      <span class="badge badge-primary badge-sm absolute -right-1 -top-1 min-w-5 px-1 text-[0.65rem]">
+        {{ unreadLabel() }}
+      </span>
+    }
+  </button>
+
+  <div
+    tabindex="0"
+    class="dropdown-content z-[1] mt-3 w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-base-200 bg-base-100/95 p-3 shadow-xl"
+  >
+    <div class="flex items-center justify-between gap-3 border-b border-base-200 pb-3">
+      <div>
+        <h2 class="text-sm font-semibold text-base-content">{{ 'notifications.title' | transloco }}</h2>
+        <p class="text-xs text-base-content/60">
+          {{ 'notifications.unreadCount' | transloco: { count: store.unreadCount() } }}
+        </p>
+      </div>
+      <button
+        type="button"
+        class="btn btn-ghost btn-xs"
+        [disabled]="!store.hasUnread() || store.markAllPending()"
+        (click)="markAllAsRead()"
+      >
+        @if (store.markAllPending()) {
+          <span class="loading loading-spinner loading-xs" aria-hidden="true"></span>
+        }
+        {{ 'notifications.actions.readAll' | transloco }}
+      </button>
+    </div>
+
+    @if (store.error(); as error) {
+      <div class="alert alert-error mt-3 py-2 text-sm">
+        <span>{{ error | transloco }}</span>
+      </div>
+    }
+
+    @if (store.loading()) {
+      <div class="flex items-center justify-center py-8">
+        <span class="loading loading-spinner loading-md text-primary" [attr.aria-label]="'notifications.loading' | transloco"></span>
+      </div>
+    } @else if (store.notifications().length === 0) {
+      <div class="py-8 text-center">
+        <p class="text-sm font-medium text-base-content">{{ 'notifications.empty.title' | transloco }}</p>
+        <p class="mt-1 text-xs text-base-content/60">{{ 'notifications.empty.body' | transloco }}</p>
+      </div>
+    } @else {
+      <ul class="max-h-96 overflow-y-auto py-2">
+        @for (notification of store.notifications(); track notification.id) {
+          <li class="border-b border-base-200 last:border-b-0">
+            <article class="flex gap-3 py-3">
+              <span
+                class="mt-1 h-2 w-2 flex-none rounded-full"
+                [class.bg-primary]="!notification.read_at"
+                [class.bg-base-300]="notification.read_at"
+                aria-hidden="true"
+              ></span>
+              <div class="min-w-0 flex-1">
+                <p class="text-sm font-medium text-base-content">
+                  {{ notificationTitle(notification) | transloco: notificationParams(notification) }}
+                </p>
+                <p class="mt-1 text-xs text-base-content/60">{{ formatCreatedAt(notification) }}</p>
+              </div>
+            </article>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+</div>

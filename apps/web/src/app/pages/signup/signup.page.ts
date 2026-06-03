@@ -9,8 +9,10 @@ import { TranslocoPipe } from '@ngneat/transloco';
 import { AuthService } from '../../core/auth.service';
 import { LanguageService } from '../../core/language.service';
 import { DEFAULT_LANGUAGE as FALLBACK_LANGUAGE } from '../../i18n/languages';
-
-const DEFAULT_CURRENCY_ID = 1;
+import {
+  SUPPORTED_CURRENCIES,
+  detectPreferredCurrencyId,
+} from '../../core/currencies';
 
 const passwordsMatchValidator = (passwordKey: string, confirmPasswordKey: string) => {
   return (group: { get: (key: string) => { value: string } | null }) => {
@@ -34,6 +36,18 @@ function detectTimezone(): string {
   } catch {
     return 'UTC';
   }
+}
+
+function detectLocales(): readonly string[] {
+  if (typeof navigator === 'undefined') {
+    return [];
+  }
+
+  if (navigator.languages.length > 0) {
+    return navigator.languages;
+  }
+
+  return navigator.language ? [navigator.language] : [];
 }
 
 function createUsernameFromName(name: string): string {
@@ -64,6 +78,12 @@ export class SignupPageComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly languageService = inject(LanguageService);
+  private readonly initialLanguage =
+    this.languageService.currentLanguage() ?? FALLBACK_LANGUAGE;
+  private readonly initialCurrencyId = detectPreferredCurrencyId(
+    this.initialLanguage,
+    detectLocales()
+  );
 
   readonly form = this.formBuilder.group(
     {
@@ -79,10 +99,14 @@ export class SignupPageComponent {
       confirmPassword: this.formBuilder.control('', {
         validators: [Validators.required],
       }),
+      defaultCurrencyId: this.formBuilder.control(this.initialCurrencyId, {
+        validators: [Validators.required],
+      }),
     },
     { validators: [passwordsMatchValidator('password', 'confirmPassword')] }
   );
 
+  readonly currencies = SUPPORTED_CURRENCIES;
   readonly controls = this.form.controls;
   readonly submitting = signal(false);
   readonly errorMessage = signal<string | null>(null);
@@ -107,10 +131,12 @@ export class SignupPageComponent {
     this.errorMessage.set(null);
 
     try {
-      const { name, email, password } = this.form.getRawValue();
+      const { name, email, password, defaultCurrencyId } =
+        this.form.getRawValue();
       const safeName = name.trim();
       const username = createUsernameFromName(safeName);
       const language = this.languageService.currentLanguage() ?? FALLBACK_LANGUAGE;
+      const numericCurrencyId = Number(defaultCurrencyId);
 
       const result = await this.auth.signUp({
         email,
@@ -119,7 +145,9 @@ export class SignupPageComponent {
         fullName: safeName,
         timezone: detectTimezone(),
         language,
-        defaultCurrencyId: DEFAULT_CURRENCY_ID,
+        defaultCurrencyId: Number.isFinite(numericCurrencyId)
+          ? numericCurrencyId
+          : this.initialCurrencyId,
         avatarUrl: buildAvatarUrl(username),
       });
 

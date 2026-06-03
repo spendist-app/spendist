@@ -7,6 +7,7 @@ interface CategoryTemplate {
   readonly icon: string;
   readonly color?: string | null;
   readonly name: Record<LanguageCode, string>;
+  readonly children?: readonly CategoryTemplate[];
 }
 
 interface CategoryGroupTemplate {
@@ -28,12 +29,43 @@ const CATEGORY_TEMPLATES: readonly CategoryGroupTemplate[] = [
     },
     categories: [
       {
-        key: 'groceries',
+        key: 'food',
+        icon: canonicalHeroIconName('heroCake') ?? 'heroCake',
+        color: '#0EA5A5',
+        name: {
+          en: 'Food',
+          pl: 'Jedzenie',
+        },
+        children: [
+          {
+            key: 'groceries',
+            icon: canonicalHeroIconName('heroShoppingCart') ?? 'heroShoppingCart',
+            color: '#0EA5A5',
+            name: {
+              en: 'Groceries',
+              pl: 'Spożywcze',
+            },
+            children: [
+              {
+                key: 'biedronka',
+                icon: canonicalHeroIconName('heroBuildingStorefront') ?? 'heroBuildingStorefront',
+                color: '#0EA5A5',
+                name: {
+                  en: 'Biedronka',
+                  pl: 'Biedronka',
+                },
+              },
+            ],
+          },
+        ],
+      },
+      {
+        key: 'shopping',
         icon: canonicalHeroIconName('heroShoppingCart') ?? 'heroShoppingCart',
         color: '#0EA5A5',
         name: {
-          en: 'Groceries',
-          pl: 'Zakupy spożywcze',
+          en: 'Shopping',
+          pl: 'Zakupy',
         },
       },
       {
@@ -173,33 +205,81 @@ export async function ensureDefaultCategoriesForUser(
       groupId = insertedGroup.id;
     }
 
+    if (!groupId) {
+      continue;
+    }
+
     for (const categoryTemplate of groupTemplate.categories) {
-      const categoryName = resolveTranslation(categoryTemplate.name, effectiveLanguage);
-
-      const { data: existingCategory, error: categoryLookupError } = await client
-        .from('categories')
-        .select('id')
-        .eq('owner_id', ownerId)
-        .eq('name', categoryName)
-        .limit(1);
-
-      if (!categoryLookupError && existingCategory && existingCategory.length > 0) {
-        continue;
-      }
-
-      const { error: categoryInsertError } = await client.from('categories').insert({
-        owner_id: ownerId,
-        name: categoryName,
-        color: categoryTemplate.color ?? groupTemplate.color,
-        icon: categoryTemplate.icon,
-        group_id: groupId,
-      });
-
-      if (categoryInsertError) {
-        console.error('[DefaultCategories] Failed to insert category', categoryName, categoryInsertError);
-      }
+      await ensureDefaultCategory(
+        client,
+        ownerId,
+        groupId,
+        groupTemplate.color,
+        categoryTemplate,
+        effectiveLanguage,
+        null,
+      );
     }
   }
+}
+
+async function ensureDefaultCategory(
+  client: SupabaseClient,
+  ownerId: string,
+  groupId: string,
+  groupColor: string | null,
+  categoryTemplate: CategoryTemplate,
+  language: LanguageCode,
+  parentId: string | null,
+): Promise<string | null> {
+  const categoryName = resolveTranslation(categoryTemplate.name, language);
+
+  const { data: existingCategory, error: categoryLookupError } = await client
+    .from('categories')
+    .select('id')
+    .eq('owner_id', ownerId)
+    .eq('name', categoryName)
+    .limit(1);
+
+  let categoryId = !categoryLookupError && existingCategory && existingCategory.length > 0
+    ? existingCategory[0].id
+    : null;
+
+  if (!categoryId) {
+    const { data: insertedCategory, error: categoryInsertError } = await client
+      .from('categories')
+      .insert({
+        owner_id: ownerId,
+        name: categoryName,
+        color: categoryTemplate.color ?? groupColor,
+        icon: categoryTemplate.icon,
+        group_id: groupId,
+        parent_id: parentId,
+      })
+      .select('id')
+      .single();
+
+    if (categoryInsertError) {
+      console.error('[DefaultCategories] Failed to insert category', categoryName, categoryInsertError);
+      return null;
+    }
+
+    categoryId = insertedCategory.id;
+  }
+
+  for (const childTemplate of categoryTemplate.children ?? []) {
+    await ensureDefaultCategory(
+      client,
+      ownerId,
+      groupId,
+      categoryTemplate.color ?? groupColor,
+      childTemplate,
+      language,
+      categoryId,
+    );
+  }
+
+  return categoryId;
 }
 
 function resolveTranslation(dictionary: Record<LanguageCode, string>, language: LanguageCode): string {
