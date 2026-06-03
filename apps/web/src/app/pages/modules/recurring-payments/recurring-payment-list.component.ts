@@ -63,6 +63,42 @@ export class RecurringPaymentListComponent {
       : 'modules.recurringPayments.list.amountMode.fixed';
   }
 
+  scheduleLabel(transaction: RecurringTransactionEntity): string {
+    const fields = transaction.schedule.trim().split(/\s+/);
+    if (fields.length !== 5) {
+      return transaction.schedule;
+    }
+
+    const [minute, hour, dayOfMonth, month, dayOfWeek] = fields;
+    const time = `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
+
+    if (month !== '*') {
+      return transaction.schedule;
+    }
+
+    if (dayOfMonth === '*' && dayOfWeek === '*') {
+      return this.transloco.translate('modules.recurringPayments.list.schedule.daily', {
+        time,
+      });
+    }
+
+    if (dayOfMonth === '*' && dayOfWeek !== '*') {
+      return this.transloco.translate('modules.recurringPayments.list.schedule.weekly', {
+        day: this.weekdayLabel(dayOfWeek),
+        time,
+      });
+    }
+
+    if (dayOfMonth !== '*' && dayOfWeek === '*') {
+      return this.transloco.translate('modules.recurringPayments.list.schedule.monthly', {
+        day: dayOfMonth,
+        time,
+      });
+    }
+
+    return transaction.schedule;
+  }
+
   nextRunAt(transaction: RecurringTransactionEntity): Date | null {
     const schedule = this.parseCron(transaction.schedule);
     if (!schedule) {
@@ -227,6 +263,25 @@ export class RecurringPaymentListComponent {
     }
 
     return values;
+  }
+
+  private weekdayLabel(dayOfWeek: string): string {
+    const normalized = dayOfWeek === '7' ? '0' : dayOfWeek;
+    const key = {
+      '0': 'sunday',
+      '1': 'monday',
+      '2': 'tuesday',
+      '3': 'wednesday',
+      '4': 'thursday',
+      '5': 'friday',
+      '6': 'saturday',
+    }[normalized];
+
+    if (!key) {
+      return dayOfWeek;
+    }
+
+    return this.transloco.translate(`modules.recurringPayments.list.weekdays.${key}`);
   }
 
   private matchesCron(

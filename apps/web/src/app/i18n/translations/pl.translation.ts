@@ -572,6 +572,20 @@ const pl = {
           fixed: 'Stała',
           variable: 'Zmienna',
         },
+        schedule: {
+          daily: 'Codziennie o {{ time }}',
+          weekly: 'Co {{ day }} o {{ time }}',
+          monthly: 'Co miesiąc {{ day }}. dnia o {{ time }}',
+        },
+        weekdays: {
+          monday: 'poniedziałek',
+          tuesday: 'wtorek',
+          wednesday: 'środę',
+          thursday: 'czwartek',
+          friday: 'piątek',
+          saturday: 'sobotę',
+          sunday: 'niedzielę',
+        },
         nextRun: {
           dueNow: 'teraz',
           inDaysHours: 'za {{ days }}d {{ hours }}h',

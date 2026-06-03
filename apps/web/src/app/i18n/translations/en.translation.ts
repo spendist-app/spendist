@@ -572,6 +572,20 @@ const en = {
           fixed: 'Fixed',
           variable: 'Variable',
         },
+        schedule: {
+          daily: 'Daily at {{ time }}',
+          weekly: 'Every {{ day }} at {{ time }}',
+          monthly: 'Monthly on day {{ day }} at {{ time }}',
+        },
+        weekdays: {
+          monday: 'Monday',
+          tuesday: 'Tuesday',
+          wednesday: 'Wednesday',
+          thursday: 'Thursday',
+          friday: 'Friday',
+          saturday: 'Saturday',
+          sunday: 'Sunday',
+        },
         nextRun: {
           dueNow: 'due now',
           inDaysHours: 'in {{ days }}d {{ hours }}h',

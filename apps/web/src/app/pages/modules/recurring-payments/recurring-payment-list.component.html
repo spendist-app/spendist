@@ -102,7 +102,7 @@
                   </div>
                   <div class="text-sm text-base-content/70">
                     <span>{{ 'modules.recurringPayments.list.fields.schedule' | transloco }}:</span>
-                    <code class="rounded bg-base-200 px-2 py-0.5">{{ transaction.schedule }}</code>
+                    <strong class="text-base-content">{{ scheduleLabel(transaction) }}</strong>
                   </div>
                   @let nextRun = nextRunAt(transaction);
                   <div class="text-sm text-base-content/70">
