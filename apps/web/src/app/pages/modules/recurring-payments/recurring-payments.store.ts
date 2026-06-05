@@ -20,6 +20,7 @@ import type {
 
 export type RecurringTransactionDirection = TransactionDirection;
 export type RecurringAmountMode = 'fixed' | 'variable';
+export type RecurringPaymentsFilter = 'active' | 'stopped' | 'all';
 
 export interface RecurringCategorySummary {
   readonly id: string;
@@ -61,6 +62,8 @@ export interface RecurringTransactionEntity {
   readonly tags: readonly RecurringTagSummary[];
   readonly walletId: string;
   readonly walletName: string | null;
+  readonly isPaused: boolean;
+  readonly pausedAt: Date | null;
 }
 
 export interface RecurringOccurrenceEntity {
@@ -180,6 +183,7 @@ export class RecurringPaymentsStore {
     wallets: [],
   });
   private readonly editingId = signal<string | null>(null);
+  private readonly listFilter = signal<RecurringPaymentsFilter>('active');
 
   readonly loading = computed(() => this.state().loading);
   readonly error = computed(() => this.state().error);
@@ -187,6 +191,23 @@ export class RecurringPaymentsStore {
   readonly mutationError = computed(() => this.state().mutationError);
   readonly stats = computed(() => this.state().stats);
   readonly recurringTransactions = computed(() => this.state().recurringTransactions);
+  readonly recurringPaymentsFilter = computed(() => this.listFilter());
+  readonly filteredRecurringTransactions = computed(() => {
+    const filter = this.listFilter();
+    const now = new Date();
+
+    return this.state().recurringTransactions.filter((transaction) => {
+      if (filter === 'all') {
+        return true;
+      }
+
+      if (filter === 'stopped') {
+        return transaction.isPaused;
+      }
+
+      return !transaction.isPaused && !this.isNaturallyEnded(transaction, now);
+    });
+  });
   readonly pendingOccurrences = computed(() => this.state().pendingOccurrences);
   readonly categories = computed(() => this.state().categories);
   readonly groups = computed(() => this.state().groups);
@@ -211,6 +232,7 @@ export class RecurringPaymentsStore {
     return preferred?.id ?? wallets[0]?.id ?? null;
   });
   readonly empty = computed(() => this.state().recurringTransactions.length === 0);
+  readonly filteredEmpty = computed(() => this.filteredRecurringTransactions().length === 0);
   readonly editingRecurring = computed<RecurringTransactionEntity | null>(() => {
     const id = this.editingId();
     if (!id) {
@@ -460,6 +482,10 @@ export class RecurringPaymentsStore {
     }));
   }
 
+  setRecurringPaymentsFilter(filter: RecurringPaymentsFilter): void {
+    this.listFilter.set(filter);
+  }
+
   async createRecurringTransaction(payload: CreateRecurringTransactionPayload): Promise<void> {
     const userId = this.requireUserId();
     this.state.update((state) => ({
@@ -658,6 +684,89 @@ export class RecurringPaymentsStore {
     }
   }
 
+  async stopRecurringTransaction(recurringId: string): Promise<void> {
+    const userId = this.requireUserId();
+    this.state.update((state) => ({
+      ...state,
+      mutationPending: true,
+      mutationError: null,
+    }));
+
+    if (this.editingId() === recurringId) {
+      this.editingId.set(null);
+    }
+
+    try {
+      const updateResult = await this.supabase
+        .from('recurring_transactions')
+        .update({
+          is_paused: true,
+          paused_at: new Date().toISOString(),
+        })
+        .eq('id', recurringId)
+        .eq('owner_id', userId)
+        .select('id')
+        .single();
+
+      this.ensureNoErrorSingle(updateResult);
+      await this.refresh();
+    } catch (error) {
+      const message = this.describeError(error);
+      console.error('[RecurringPaymentsStore] Failed to stop recurring transaction:', error);
+      this.state.update((state) => ({
+        ...state,
+        mutationPending: false,
+        mutationError: message,
+      }));
+      throw new RecurringPaymentsStoreError(message);
+    } finally {
+      this.state.update((state) => ({
+        ...state,
+        mutationPending: false,
+      }));
+    }
+  }
+
+  async resumeRecurringTransaction(recurringId: string): Promise<void> {
+    const userId = this.requireUserId();
+    this.state.update((state) => ({
+      ...state,
+      mutationPending: true,
+      mutationError: null,
+    }));
+
+    try {
+      const updateResult = await this.supabase
+        .from('recurring_transactions')
+        .update({
+          is_paused: false,
+          paused_at: null,
+          last_run_at: new Date().toISOString(),
+        })
+        .eq('id', recurringId)
+        .eq('owner_id', userId)
+        .select('id')
+        .single();
+
+      this.ensureNoErrorSingle(updateResult);
+      await this.refresh();
+    } catch (error) {
+      const message = this.describeError(error);
+      console.error('[RecurringPaymentsStore] Failed to resume recurring transaction:', error);
+      this.state.update((state) => ({
+        ...state,
+        mutationPending: false,
+        mutationError: message,
+      }));
+      throw new RecurringPaymentsStoreError(message);
+    } finally {
+      this.state.update((state) => ({
+        ...state,
+        mutationPending: false,
+      }));
+    }
+  }
+
   async completePendingOccurrence(occurrenceId: string, amount: number): Promise<void> {
     this.requireUserId();
     this.state.update((state) => ({
@@ -719,7 +828,19 @@ export class RecurringPaymentsStore {
       tags: recurringTags.get(row.id) ?? [],
       walletId: wallet?.id ?? row.wallet_id,
       walletName: wallet?.name ?? null,
+      isPaused: row.is_paused,
+      pausedAt: row.paused_at ? new Date(row.paused_at) : null,
     };
+  }
+
+  private isNaturallyEnded(transaction: RecurringTransactionEntity, now: Date): boolean {
+    if (!transaction.endDate) {
+      return false;
+    }
+
+    const end = new Date(transaction.endDate);
+    end.setHours(23, 59, 59, 999);
+    return now.getTime() > end.getTime();
   }
 
   private mapOccurrenceRow(

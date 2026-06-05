@@ -12,6 +12,7 @@ import {
 import { TranslocoPipe, TranslocoService } from '@ngneat/transloco';
 import {
   RecurringOccurrenceEntity,
+  RecurringPaymentsFilter,
   RecurringPaymentsStore,
   RecurringTransactionEntity,
 } from './recurring-payments.store';
@@ -32,10 +33,11 @@ export class RecurringPaymentListComponent {
   readonly editRequested = output<void>();
   readonly createRequested = output<void>();
   readonly pendingAmounts = signal<Partial<Record<string, string>>>({});
+  readonly filterOptions: readonly RecurringPaymentsFilter[] = ['active', 'stopped', 'all'];
 
   readonly transactions = computed(() =>
     this.store
-      .recurringTransactions()
+      .filteredRecurringTransactions()
       .slice()
       .sort((a, b) => a.name.localeCompare(b.name)),
   );
@@ -61,6 +63,14 @@ export class RecurringPaymentListComponent {
     return transaction.amountMode === 'variable'
       ? 'modules.recurringPayments.list.amountMode.variable'
       : 'modules.recurringPayments.list.amountMode.fixed';
+  }
+
+  filterLabel(filter: RecurringPaymentsFilter): string {
+    return `modules.recurringPayments.list.filters.${filter}`;
+  }
+
+  selectFilter(filter: RecurringPaymentsFilter): void {
+    this.store.setRecurringPaymentsFilter(filter);
   }
 
   scheduleLabel(transaction: RecurringTransactionEntity): string {
@@ -100,6 +110,10 @@ export class RecurringPaymentListComponent {
   }
 
   nextRunAt(transaction: RecurringTransactionEntity): Date | null {
+    if (transaction.isPaused) {
+      return null;
+    }
+
     const schedule = this.parseCron(transaction.schedule);
     if (!schedule) {
       return null;
@@ -171,6 +185,42 @@ export class RecurringPaymentListComponent {
     this.editRequested.emit();
   }
 
+  canStop(transaction: RecurringTransactionEntity): boolean {
+    return !transaction.isPaused && !this.isNaturallyEnded(transaction);
+  }
+
+  async confirmStop(transaction: RecurringTransactionEntity): Promise<void> {
+    const message = this.transloco.translate('modules.recurringPayments.list.confirmStop', {
+      name: transaction.name,
+    });
+    const shouldStop = window.confirm(message);
+    if (!shouldStop) {
+      return;
+    }
+
+    try {
+      await this.store.stopRecurringTransaction(transaction.id);
+    } catch (error) {
+      console.error('[RecurringPaymentList] stop failed', error);
+    }
+  }
+
+  async confirmResume(transaction: RecurringTransactionEntity): Promise<void> {
+    const message = this.transloco.translate('modules.recurringPayments.list.confirmResume', {
+      name: transaction.name,
+    });
+    const shouldResume = window.confirm(message);
+    if (!shouldResume) {
+      return;
+    }
+
+    try {
+      await this.store.resumeRecurringTransaction(transaction.id);
+    } catch (error) {
+      console.error('[RecurringPaymentList] resume failed', error);
+    }
+  }
+
   async confirmDelete(transaction: RecurringTransactionEntity): Promise<void> {
     const message = this.transloco.translate('modules.recurringPayments.list.confirmDelete', {
       name: transaction.name,
@@ -234,6 +284,16 @@ export class RecurringPaymentListComponent {
     ] as const;
 
     return parsed.every((field) => field.size > 0) ? parsed : null;
+  }
+
+  private isNaturallyEnded(transaction: RecurringTransactionEntity): boolean {
+    if (!transaction.endDate) {
+      return false;
+    }
+
+    const end = new Date(transaction.endDate);
+    end.setHours(23, 59, 59, 999);
+    return this.now().getTime() > end.getTime();
   }
 
   private parseCronField(field: string, min: number, max: number): ReadonlySet<number> {

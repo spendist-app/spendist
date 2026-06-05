@@ -315,9 +315,11 @@ export type Database = {
           end_date: string | null
           exchange_rate: number | null
           id: string
+          is_paused: boolean
           last_run_at: string | null
           name: string
           owner_id: string
+          paused_at: string | null
           schedule: string
           start_date: string
           wallet_id: string
@@ -332,9 +334,11 @@ export type Database = {
           end_date?: string | null
           exchange_rate?: number | null
           id?: string
+          is_paused?: boolean
           last_run_at?: string | null
           name: string
           owner_id: string
+          paused_at?: string | null
           schedule: string
           start_date: string
           wallet_id: string
@@ -349,9 +353,11 @@ export type Database = {
           end_date?: string | null
           exchange_rate?: number | null
           id?: string
+          is_paused?: boolean
           last_run_at?: string | null
           name?: string
           owner_id?: string
+          paused_at?: string | null
           schedule?: string
           start_date?: string
           wallet_id?: string
@@ -668,6 +674,15 @@ export type Database = {
           direction: Database["public"]["Enums"]["transaction_direction"]
           month_start: string
           total_amount: number
+          transaction_count: number
+        }[]
+      }
+      monthly_recurring_transaction_summary: {
+        Args: { p_wallet_id?: string }
+        Returns: {
+          expense_total: number
+          income_total: number
+          month_start: string
           transaction_count: number
         }[]
       }

@@ -7,6 +7,8 @@ import { AuthService } from '../../core/auth.service';
 type MonthlyCashflowRow = Database['public']['Functions']['monthly_cashflow_summary']['Returns'][number];
 type AvailableMonthRow = Database['public']['Functions']['available_transaction_months']['Returns'][number];
 type MonthlyCategoryCashflowRow = Database['public']['Functions']['monthly_category_cashflow']['Returns'][number];
+type MonthlyRecurringTransactionRow =
+  Database['public']['Functions']['monthly_recurring_transaction_summary']['Returns'][number];
 type TransactionDirection = Database['public']['Enums']['transaction_direction'];
 type WalletRow = Pick<Database['public']['Tables']['wallets']['Row'], 'id' | 'name' | 'is_default'>;
 
@@ -52,6 +54,21 @@ interface CategoryTotals {
   readonly net: number;
 }
 
+interface RecurringTransactionSummaryEntry {
+  readonly id: string;
+  readonly monthStart: Date;
+  readonly incomeTotal: number;
+  readonly expenseTotal: number;
+  readonly netTotal: number;
+  readonly transactionCount: number;
+}
+
+interface RecurringTransactionSummaryState {
+  readonly loading: boolean;
+  readonly error: string | null;
+  readonly entries: readonly RecurringTransactionSummaryEntry[];
+}
+
 interface WalletOption {
   readonly id: string;
   readonly name: string;
@@ -90,10 +107,17 @@ export class DashboardStore {
     error: null,
     entries: [],
   });
+  private readonly recurringState = signal<RecurringTransactionSummaryState>({
+    loading: true,
+    error: null,
+    entries: [],
+  });
+  private readonly selectedRecurringMonth = signal<string | null>(null);
 
   private structureRequestToken = 0;
   private monthOptionsRequestToken = 0;
   private categoryRequestToken = 0;
+  private recurringRequestToken = 0;
 
   readonly walletsLoading = computed(() => this.walletState().loading);
   readonly walletError = computed(() => this.walletState().error);
@@ -132,6 +156,30 @@ export class DashboardStore {
       expense: expenseTotal,
       net: incomeTotal - expenseTotal,
     };
+  });
+  readonly recurringLoading = computed(() => this.recurringState().loading);
+  readonly recurringError = computed(() => this.recurringState().error);
+  readonly recurringEmpty = computed(
+    () =>
+      !this.recurringState().loading &&
+      !this.recurringState().error &&
+      this.recurringState().entries.length === 0,
+  );
+  readonly recurringMonthOptions = computed<readonly MonthOption[]>(() =>
+    this.recurringState().entries.map((entry) => ({
+      value: entry.id,
+      date: entry.monthStart,
+      label: entry.id,
+    })),
+  );
+  readonly selectedRecurringMonthValue = computed(() => this.selectedRecurringMonth());
+  readonly selectedRecurringSummary = computed<RecurringTransactionSummaryEntry | null>(() => {
+    const selection = this.selectedRecurringMonth();
+    if (!selection) {
+      return null;
+    }
+
+    return this.recurringState().entries.find((entry) => entry.id === selection) ?? null;
   });
 
   constructor() {
@@ -174,6 +222,12 @@ export class DashboardStore {
           error: null,
           entries: [],
         });
+        this.recurringState.set({
+          loading: false,
+          error: null,
+          entries: [],
+        });
+        this.selectedRecurringMonth.set(null);
         return;
       }
 
@@ -184,9 +238,16 @@ export class DashboardStore {
       });
       this.monthOptionsState.set([]);
       this.selectedMonth.set(null);
+      this.recurringState.set({
+        loading: true,
+        error: null,
+        entries: [],
+      });
+      this.selectedRecurringMonth.set(null);
 
       void this.loadMonthlyStructure(true);
       void this.loadAvailableMonths(true);
+      void this.loadRecurringSummary(true);
     });
 
     effect(() => {
@@ -231,6 +292,15 @@ export class DashboardStore {
     void this.loadCategoryStructure(selection);
   }
 
+  refreshRecurringSummary(): void {
+    if (!this.selectedWallet()) {
+      void this.loadWallets();
+      return;
+    }
+
+    void this.loadRecurringSummary(true);
+  }
+
   selectWallet(id: string | null | undefined): void {
     const normalized = id?.trim() ?? '';
     if (!normalized) {
@@ -269,10 +339,30 @@ export class DashboardStore {
     this.selectedMonth.set(normalized);
   }
 
+  selectRecurringMonth(value: string | null | undefined): void {
+    const normalized = value?.trim() ?? '';
+    if (!normalized) {
+      this.selectedRecurringMonth.set(null);
+      return;
+    }
+
+    if (this.selectedRecurringMonth() === normalized) {
+      return;
+    }
+
+    const exists = this.recurringState().entries.some((entry) => entry.id === normalized);
+    if (!exists) {
+      return;
+    }
+
+    this.selectedRecurringMonth.set(normalized);
+  }
+
   private resetAllState(): void {
     this.structureRequestToken = 0;
     this.monthOptionsRequestToken = 0;
     this.categoryRequestToken = 0;
+    this.recurringRequestToken = 0;
     this.walletState.set({
       loading: false,
       error: null,
@@ -291,6 +381,12 @@ export class DashboardStore {
       error: null,
       entries: [],
     });
+    this.recurringState.set({
+      loading: false,
+      error: null,
+      entries: [],
+    });
+    this.selectedRecurringMonth.set(null);
   }
 
   private async loadWallets(): Promise<void> {
@@ -494,6 +590,76 @@ export class DashboardStore {
     }
   }
 
+  private async loadRecurringSummary(force = false): Promise<void> {
+    if (!this.userId()) {
+      return;
+    }
+    const walletId = this.selectedWallet();
+    if (!walletId) {
+      return;
+    }
+
+    if (!force && this.recurringState().loading) {
+      return;
+    }
+
+    const token = ++this.recurringRequestToken;
+    this.recurringState.set({
+      loading: true,
+      error: null,
+      entries: [],
+    });
+
+    try {
+      const { data, error } = await this.supabase.rpc('monthly_recurring_transaction_summary', {
+        p_wallet_id: walletId,
+      });
+
+      if (token !== this.recurringRequestToken) {
+        return;
+      }
+
+      if (error) {
+        throw error;
+      }
+
+      const entries = (data ?? [])
+        .map((row: MonthlyRecurringTransactionRow) => this.mapRecurringSummaryRow(row))
+        .sort(
+          (a: RecurringTransactionSummaryEntry, b: RecurringTransactionSummaryEntry) =>
+            b.monthStart.getTime() - a.monthStart.getTime(),
+        );
+
+      this.recurringState.set({
+        loading: false,
+        error: null,
+        entries,
+      });
+
+      const currentSelection = this.selectedRecurringMonth();
+      const nextSelection =
+        !force &&
+        currentSelection &&
+        entries.some((entry: RecurringTransactionSummaryEntry) => entry.id === currentSelection)
+          ? currentSelection
+          : this.resolveDefaultRecurringMonth(entries);
+
+      this.selectedRecurringMonth.set(nextSelection);
+    } catch (error) {
+      if (token !== this.recurringRequestToken) {
+        return;
+      }
+
+      console.error('[DashboardStore] Failed to load recurring transaction summary', error);
+      this.recurringState.set({
+        loading: false,
+        error: this.describeError(error),
+        entries: [],
+      });
+      this.selectedRecurringMonth.set(null);
+    }
+  }
+
   private mapWalletRow(row: WalletRow): WalletOption {
     return {
       id: row.id,
@@ -537,6 +703,21 @@ export class DashboardStore {
     };
   }
 
+  private mapRecurringSummaryRow(row: MonthlyRecurringTransactionRow): RecurringTransactionSummaryEntry {
+    const monthStart = this.normalizeDate(row.month_start);
+    const incomeTotal = this.parseNumeric(row.income_total);
+    const expenseTotal = this.parseNumeric(row.expense_total);
+
+    return {
+      id: this.buildMonthValue(monthStart),
+      monthStart,
+      incomeTotal,
+      expenseTotal,
+      netTotal: incomeTotal - expenseTotal,
+      transactionCount: this.parseCount(row.transaction_count),
+    };
+  }
+
   private resolveWalletSelection(wallets: readonly WalletOption[]): string | null {
     if (wallets.length === 0) {
       return null;
@@ -559,6 +740,21 @@ export class DashboardStore {
     }
 
     return options[0]?.value ?? null;
+  }
+
+  private resolveDefaultRecurringMonth(entries: readonly RecurringTransactionSummaryEntry[]): string | null {
+    if (entries.length === 0) {
+      return null;
+    }
+
+    const now = new Date();
+    const currentValue = this.buildMonthValue(now);
+    const hasCurrent = entries.some((entry) => entry.id === currentValue);
+    if (hasCurrent) {
+      return currentValue;
+    }
+
+    return entries[0]?.id ?? null;
   }
 
   private buildMonthValue(date: Date): string {

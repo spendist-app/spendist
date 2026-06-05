@@ -109,6 +109,123 @@
   </section>
 
   <section class="rounded-3xl border border-base-300 bg-base-100/80 p-6 shadow-sm sm:p-8">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div class="space-y-2">
+        <p class="badge badge-accent badge-outline text-xs uppercase tracking-wide">
+          {{ 'dashboard.recurringWidget.badge' | transloco }}
+        </p>
+        <div class="space-y-1">
+          <h2 class="text-2xl font-semibold">
+            {{ 'dashboard.recurringWidget.title' | transloco }}
+          </h2>
+          <p class="text-sm text-base-content/70">
+            {{ 'dashboard.recurringWidget.subtitle' | transloco }}
+          </p>
+        </div>
+      </div>
+
+      <div class="w-full sm:max-w-xs">
+        <label class="form-control w-full">
+          <span class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60">
+            {{ 'dashboard.recurringWidget.selectLabel' | transloco }}
+          </span>
+          <select
+            class="select select-bordered"
+            [value]="store.selectedRecurringMonthValue() ?? ''"
+            (change)="onRecurringMonthChange($event)"
+            [disabled]="!store.selectedWalletId() || store.recurringMonthOptions().length === 0"
+          >
+            @if (!store.selectedWalletId()) {
+              <option value="">{{ 'dashboard.recurringWidget.noWalletSelected' | transloco }}</option>
+            } @else if (store.recurringMonthOptions().length === 0) {
+              <option value="">{{ 'dashboard.recurringWidget.noMonths' | transloco }}</option>
+            } @else {
+              @for (option of store.recurringMonthOptions(); track option.value) {
+                <option [value]="option.value">
+                  {{ formatMonth(option.date) }}
+                </option>
+              }
+            }
+          </select>
+        </label>
+      </div>
+    </div>
+
+    <div class="mt-6">
+      @if (!store.selectedWalletId()) {
+        <div class="rounded-2xl border border-dashed border-base-200 bg-base-100/70 p-6 text-center text-sm text-base-content/70">
+          {{ 'dashboard.recurringWidget.noWalletSelected' | transloco }}
+        </div>
+      } @else if (store.recurringLoading()) {
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          @for (placeholder of skeletonPlaceholders; track placeholder) {
+            <div class="skeleton h-28 rounded-2xl"></div>
+          }
+        </div>
+      } @else if (store.recurringError()) {
+        <div class="rounded-2xl border border-error/40 bg-error/5 p-4">
+          <p class="text-sm font-semibold text-error">
+            {{ 'dashboard.recurringWidget.errorTitle' | transloco }}
+          </p>
+          <p class="text-sm text-base-content/70">
+            {{ store.recurringError() }}
+          </p>
+          <button type="button" class="btn btn-error btn-sm mt-3" (click)="store.refreshRecurringSummary()">
+            {{ 'dashboard.recurringWidget.retry' | transloco }}
+          </button>
+        </div>
+      } @else if (store.recurringEmpty() || !store.selectedRecurringSummary()) {
+        <div class="rounded-2xl border border-dashed border-base-200 bg-base-100/70 p-6 text-center text-sm text-base-content/70">
+          {{ 'dashboard.recurringWidget.empty' | transloco }}
+        </div>
+      } @else {
+        <dl class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div class="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
+            <dt class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+              {{ 'dashboard.recurringWidget.transactions' | transloco }}
+            </dt>
+            <dd class="mt-3 text-3xl font-semibold text-base-content">
+              {{ store.selectedRecurringSummary()?.transactionCount }}
+            </dd>
+          </div>
+
+          <div class="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
+            <dt class="text-xs font-semibold uppercase tracking-wide text-success/80">
+              {{ 'dashboard.recurringWidget.income' | transloco }}
+            </dt>
+            <dd class="mt-3 text-lg font-semibold text-success">
+              {{ formatIncome(store.selectedRecurringSummary()?.incomeTotal ?? 0) }}
+            </dd>
+          </div>
+
+          <div class="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
+            <dt class="text-xs font-semibold uppercase tracking-wide text-error/80">
+              {{ 'dashboard.recurringWidget.expense' | transloco }}
+            </dt>
+            <dd class="mt-3 text-lg font-semibold text-error">
+              {{ formatExpense(store.selectedRecurringSummary()?.expenseTotal ?? 0) }}
+            </dd>
+          </div>
+
+          <div class="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
+            <dt class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+              {{ 'dashboard.recurringWidget.net' | transloco }}
+            </dt>
+            <dd
+              class="mt-3 text-lg font-semibold"
+              [class.text-success]="(store.selectedRecurringSummary()?.netTotal ?? 0) > 0"
+              [class.text-error]="(store.selectedRecurringSummary()?.netTotal ?? 0) < 0"
+              [class.text-base-content]="(store.selectedRecurringSummary()?.netTotal ?? 0) === 0"
+            >
+              {{ formatNet(store.selectedRecurringSummary()?.netTotal ?? 0) }}
+            </dd>
+          </div>
+        </dl>
+      }
+    </div>
+  </section>
+
+  <section class="rounded-3xl border border-base-300 bg-base-100/80 p-6 shadow-sm sm:p-8">
     <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
       <div class="space-y-2">
         <p class="badge badge-outline text-xs uppercase tracking-wide">

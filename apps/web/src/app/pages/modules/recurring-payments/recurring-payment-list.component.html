@@ -11,6 +11,19 @@
             {{ 'modules.recurringPayments.list.subtitle' | transloco }}
           </p>
         </div>
+        <div class="join">
+          @for (filter of filterOptions; track filter) {
+            <button
+              type="button"
+              class="btn join-item btn-sm"
+              [class.btn-primary]="store.recurringPaymentsFilter() === filter"
+              [class.btn-outline]="store.recurringPaymentsFilter() !== filter"
+              (click)="selectFilter(filter)"
+            >
+              {{ filterLabel(filter) | transloco }}
+            </button>
+          }
+        </div>
       </header>
 
       @if (store.loading()) {
@@ -33,6 +46,17 @@
             <button type="button" class="btn btn-primary btn-sm" (click)="createRequested.emit()">
               {{ 'modules.recurringPayments.actions.add' | transloco }}
             </button>
+          </div>
+        </div>
+      } @else if (store.filteredEmpty()) {
+        <div class="grid min-h-32 place-items-center rounded-2xl border border-dashed border-base-300 bg-base-100/70 p-8 text-center">
+          <div class="space-y-2">
+            <h3 class="text-lg font-semibold">
+              {{ 'modules.recurringPayments.list.empty.filteredTitle' | transloco }}
+            </h3>
+            <p class="text-sm text-base-content/60">
+              {{ 'modules.recurringPayments.list.empty.filteredBody' | transloco }}
+            </p>
           </div>
         </div>
       } @else {
@@ -99,6 +123,11 @@
                     <span class="badge badge-secondary badge-outline text-xs uppercase">
                       {{ amountModeLabel(transaction) | transloco }}
                     </span>
+                    @if (transaction.isPaused) {
+                      <span class="badge badge-warning badge-outline text-xs uppercase">
+                        {{ 'modules.recurringPayments.list.status.stopped' | transloco }}
+                      </span>
+                    }
                   </div>
                   <div class="text-sm text-base-content/70">
                     <span>{{ 'modules.recurringPayments.list.fields.schedule' | transloco }}:</span>
@@ -130,6 +159,12 @@
                         <strong class="text-base-content/70">
                           {{ 'modules.recurringPayments.list.fields.noEndDate' | transloco }}
                         </strong>
+                      </span>
+                    }
+                    @if (transaction.pausedAt) {
+                      <span>
+                        {{ 'modules.recurringPayments.list.fields.pausedAt' | transloco }}:
+                        <strong class="text-base-content">{{ transaction.pausedAt | date: 'medium' }}</strong>
                       </span>
                     }
                   </div>
@@ -177,6 +212,26 @@
                     >
                       {{ 'modules.recurringPayments.list.actions.edit' | transloco }}
                     </button>
+                    @if (canStop(transaction)) {
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-sm text-warning"
+                        (click)="confirmStop(transaction)"
+                        [disabled]="store.mutationPending()"
+                      >
+                        {{ 'modules.recurringPayments.list.actions.stop' | transloco }}
+                      </button>
+                    }
+                    @if (transaction.isPaused) {
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-sm text-success"
+                        (click)="confirmResume(transaction)"
+                        [disabled]="store.mutationPending()"
+                      >
+                        {{ 'modules.recurringPayments.list.actions.resume' | transloco }}
+                      </button>
+                    }
                     <button
                       type="button"
                       class="btn btn-ghost btn-sm text-error"

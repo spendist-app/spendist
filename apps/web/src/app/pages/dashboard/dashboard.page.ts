@@ -61,6 +61,15 @@ export class DashboardPageComponent {
     this.store.selectMonth(select.value);
   }
 
+  protected onRecurringMonthChange(event: Event): void {
+    const select = event.target as HTMLSelectElement | null;
+    if (!select) {
+      return;
+    }
+
+    this.store.selectRecurringMonth(select.value);
+  }
+
   private formatMagnitude(value: number): string {
     return new Intl.NumberFormat(this.locale(), {
       minimumFractionDigits: 2,

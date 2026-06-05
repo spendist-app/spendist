@@ -6,6 +6,7 @@ type RecurringTransaction = {
   start_date: string;
   end_date: string | null;
   last_run_at: string | null;
+  is_paused: boolean;
 };
 
 type CronField = ReadonlySet<number>;
@@ -81,8 +82,9 @@ Deno.serve(async (request) => {
 
   let query = supabase
     .from('recurring_transactions')
-    .select('id,schedule,start_date,end_date,last_run_at')
-    .lte('start_date', isoDate(now));
+    .select('id,schedule,start_date,end_date,last_run_at,is_paused')
+    .lte('start_date', isoDate(now))
+    .eq('is_paused', false);
 
   if (body.recurringId) {
     query = query.eq('id', body.recurringId);
