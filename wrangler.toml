@@ -2,6 +2,10 @@ name = "spendist-app"
 main = "apps/web/worker.ts"
 compatibility_date = "2026-02-01"
 
+[[routes]]
+pattern = "spendist.app"
+custom_domain = true
+
 [assets]
 directory = "dist/apps/web/browser"
 binding = "ASSETS"
