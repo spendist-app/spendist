@@ -172,7 +172,21 @@ jobs:
       - name: Verify Cloudflare runtime env
         run: |
           production_url="${CLOUDFLARE_PRODUCTION_URL:-https://spendist.app}"
-          runtime_env="$(curl -fsS "${production_url%/}/env.js")"
+          runtime_env=""
+
+          for attempt in 1 2 3 4 5 6; do
+            if runtime_env="$(curl -fsS --max-time 20 "${production_url%/}/env.js")"; then
+              break
+            fi
+
+            if [ "$attempt" -eq 6 ]; then
+              echo "::error::Unable to fetch ${production_url%/}/env.js after deployment."
+              echo "::error::Check that the Cloudflare Worker is attached to this domain or set CLOUDFLARE_PRODUCTION_URL to the deployed Worker URL."
+              exit 1
+            fi
+
+            sleep 10
+          done
 
           if echo "$runtime_env" | grep -q 'globalThis.__env = globalThis.__env || {}'; then
             echo "::error::Cloudflare runtime env is still serving the static placeholder."
