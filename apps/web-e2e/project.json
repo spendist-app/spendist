@@ -1,0 +1,17 @@
+{
+  "name": "web-e2e",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/web-e2e/src",
+  "implicitDependencies": ["web"],
+  "// targets": "to see all targets run: nx show project web-e2e --web",
+  "targets": {
+    "e2e": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/web-e2e",
+        "command": "npx playwright test"
+      }
+    }
+  }
+}

@@ -1,0 +1,43 @@
+name: Recurring Payments
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: recurring-payments
+  cancel-in-progress: false
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    env:
+      NG_APP_SUPABASE_URL: ${{ secrets.NG_APP_SUPABASE_URL }}
+      NG_APP_SUPABASE_FUNCTIONS_URL: ${{ secrets.NG_APP_SUPABASE_FUNCTIONS_URL }}
+      RECURRING_PAYMENTS_SECRET: ${{ secrets.RECURRING_PAYMENTS_SECRET }}
+    steps:
+      - name: Process due recurring payments
+        run: |
+          if [ -z "$RECURRING_PAYMENTS_SECRET" ]; then
+            echo "::error::Missing required GitHub secret: RECURRING_PAYMENTS_SECRET"
+            exit 1
+          fi
+
+          if [ -n "$NG_APP_SUPABASE_FUNCTIONS_URL" ]; then
+            functions_url="$NG_APP_SUPABASE_FUNCTIONS_URL"
+          elif [ -n "$NG_APP_SUPABASE_URL" ]; then
+            functions_url="${NG_APP_SUPABASE_URL%/}/functions/v1"
+          else
+            echo "::error::Missing NG_APP_SUPABASE_FUNCTIONS_URL or NG_APP_SUPABASE_URL"
+            exit 1
+          fi
+
+          curl -fsS \
+            -X POST \
+            -H "Authorization: Bearer $RECURRING_PAYMENTS_SECRET" \
+            -H "Content-Type: application/json" \
+            "${functions_url%/}/process-recurring-payments"

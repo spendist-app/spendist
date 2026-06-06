@@ -1,0 +1,29 @@
+{
+  "name": "data-access-supabase-types",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/data-access/supabase-types/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": [
+          "libs/data-access/supabase-types/**/*.ts",
+          "libs/data-access/supabase-types/**/*.json"
+        ]
+      }
+    },
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/data-access/supabase-types",
+        "main": "libs/data-access/supabase-types/src/index.ts",
+        "tsConfig": "libs/data-access/supabase-types/tsconfig.lib.json",
+        "assets": ["libs/data-access/supabase-types/*.md"]
+      }
+    }
+  }
+}

@@ -1,0 +1,444 @@
+<section class="mx-auto flex min-h-[calc(100vh-6rem)] w-full max-w-5xl flex-col gap-6 px-4 py-12 sm:py-16">
+  <header class="space-y-2 text-center sm:text-left">
+    <p class="badge badge-primary badge-outline text-xs uppercase tracking-wide">
+      {{ 'dashboard.badge' | transloco }}
+    </p>
+    <h1 class="text-3xl font-semibold sm:text-4xl">
+      {{ 'dashboard.title' | transloco }}
+    </h1>
+    <p class="text-base-content/70 sm:max-w-2xl">
+      {{ 'dashboard.description' | transloco }}
+    </p>
+  </header>
+
+  <section class="rounded-3xl border border-base-300 bg-base-100/80 p-6 shadow-sm sm:p-8">
+    <div class="space-y-2">
+      <p class="badge badge-secondary badge-outline text-xs uppercase tracking-wide">
+        {{ 'dashboard.structure.badge' | transloco }}
+      </p>
+      <div class="space-y-2">
+        <h2 class="text-2xl font-semibold">
+          {{ 'dashboard.structure.title' | transloco }}
+        </h2>
+        <p class="text-sm text-base-content/70">
+          {{ 'dashboard.structure.subtitle' | transloco }}
+        </p>
+      </div>
+    </div>
+
+    <div class="mt-6">
+      @if (!store.selectedWalletId()) {
+        <div class="rounded-2xl border border-dashed border-base-200 bg-base-100/70 p-6 text-center text-sm text-base-content/70">
+          {{ 'dashboard.structure.noWallet' | transloco }}
+        </div>
+      } @else if (store.loading()) {
+        <div class="space-y-3">
+          @for (placeholder of skeletonPlaceholders; track placeholder) {
+            <div class="skeleton h-20 rounded-2xl"></div>
+          }
+        </div>
+      } @else if (store.error()) {
+        <div class="rounded-2xl border border-error/40 bg-error/5 p-4">
+          <p class="text-sm font-semibold text-error">
+            {{ 'dashboard.structure.errorTitle' | transloco }}
+          </p>
+          <p class="text-sm text-base-content/70">
+            {{ store.error() }}
+          </p>
+          <button type="button" class="btn btn-error btn-sm mt-3" (click)="store.refreshMonthlyStructure()">
+            {{ 'dashboard.structure.retry' | transloco }}
+          </button>
+        </div>
+      } @else if (store.empty()) {
+        <div class="rounded-2xl border border-dashed border-base-200 bg-base-100/70 p-6 text-center text-sm text-base-content/70">
+          {{ 'dashboard.structure.empty' | transloco }}
+        </div>
+      } @else {
+        <div class="space-y-4">
+          @for (entry of store.monthlyStructure(); track entry.id) {
+            <article class="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
+              <div class="flex flex-wrap items-center gap-4">
+                <div class="flex-1 space-y-1">
+                  <p class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+                    {{ 'dashboard.structure.monthLabel' | transloco }}
+                  </p>
+                  <p class="text-lg font-semibold text-base-content">
+                    {{ formatMonth(entry.monthStart) }}
+                  </p>
+                </div>
+
+                <dl class="grid flex-1 gap-4 sm:grid-cols-3">
+                  <div>
+                    <dt class="text-xs font-semibold uppercase tracking-wide text-success/80">
+                      {{ 'dashboard.structure.income' | transloco }}
+                    </dt>
+                    <dd class="text-base font-semibold text-success">
+                      {{ formatIncome(entry.incomeTotal) }}
+                    </dd>
+                  </div>
+
+                  <div>
+                    <dt class="text-xs font-semibold uppercase tracking-wide text-error/80">
+                      {{ 'dashboard.structure.expense' | transloco }}
+                    </dt>
+                    <dd class="text-base font-semibold text-error">
+                      {{ formatExpense(entry.expenseTotal) }}
+                    </dd>
+                  </div>
+
+                  <div>
+                    <dt class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+                      {{ 'dashboard.structure.net' | transloco }}
+                    </dt>
+                    <dd
+                      class="text-base font-semibold"
+                      [class.text-success]="entry.netTotal > 0"
+                      [class.text-error]="entry.netTotal < 0"
+                      [class.text-base-content]="entry.netTotal === 0"
+                    >
+                      {{ formatNet(entry.netTotal) }}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            </article>
+          }
+        </div>
+      }
+    </div>
+  </section>
+
+  <section class="rounded-3xl border border-base-300 bg-base-100/80 p-6 shadow-sm sm:p-8">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div class="space-y-2">
+        <p class="badge badge-accent badge-outline text-xs uppercase tracking-wide">
+          {{ 'dashboard.recurringWidget.badge' | transloco }}
+        </p>
+        <div class="space-y-1">
+          <h2 class="text-2xl font-semibold">
+            {{ 'dashboard.recurringWidget.title' | transloco }}
+          </h2>
+          <p class="text-sm text-base-content/70">
+            {{ 'dashboard.recurringWidget.subtitle' | transloco }}
+          </p>
+        </div>
+      </div>
+
+      <div class="w-full sm:max-w-xs">
+        <label class="form-control w-full">
+          <span class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60">
+            {{ 'dashboard.recurringWidget.selectLabel' | transloco }}
+          </span>
+          <select
+            class="select select-bordered"
+            [value]="store.selectedRecurringMonthValue() ?? ''"
+            (change)="onRecurringMonthChange($event)"
+            [disabled]="!store.selectedWalletId() || store.recurringMonthOptions().length === 0"
+          >
+            @if (!store.selectedWalletId()) {
+              <option value="">{{ 'dashboard.recurringWidget.noWalletSelected' | transloco }}</option>
+            } @else if (store.recurringMonthOptions().length === 0) {
+              <option value="">{{ 'dashboard.recurringWidget.noMonths' | transloco }}</option>
+            } @else {
+              @for (option of store.recurringMonthOptions(); track option.value) {
+                <option [value]="option.value">
+                  {{ formatMonth(option.date) }}
+                </option>
+              }
+            }
+          </select>
+        </label>
+      </div>
+    </div>
+
+    <div class="mt-6">
+      @if (!store.selectedWalletId()) {
+        <div class="rounded-2xl border border-dashed border-base-200 bg-base-100/70 p-6 text-center text-sm text-base-content/70">
+          {{ 'dashboard.recurringWidget.noWalletSelected' | transloco }}
+        </div>
+      } @else if (store.recurringLoading()) {
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          @for (placeholder of skeletonPlaceholders; track placeholder) {
+            <div class="skeleton h-28 rounded-2xl"></div>
+          }
+        </div>
+      } @else if (store.recurringError()) {
+        <div class="rounded-2xl border border-error/40 bg-error/5 p-4">
+          <p class="text-sm font-semibold text-error">
+            {{ 'dashboard.recurringWidget.errorTitle' | transloco }}
+          </p>
+          <p class="text-sm text-base-content/70">
+            {{ store.recurringError() }}
+          </p>
+          <button type="button" class="btn btn-error btn-sm mt-3" (click)="store.refreshRecurringSummary()">
+            {{ 'dashboard.recurringWidget.retry' | transloco }}
+          </button>
+        </div>
+      } @else if (store.recurringEmpty() || !store.selectedRecurringSummary()) {
+        <div class="rounded-2xl border border-dashed border-base-200 bg-base-100/70 p-6 text-center text-sm text-base-content/70">
+          {{ 'dashboard.recurringWidget.empty' | transloco }}
+        </div>
+      } @else {
+        <dl class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div class="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
+            <dt class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+              {{ 'dashboard.recurringWidget.transactions' | transloco }}
+            </dt>
+            <dd class="mt-3 text-3xl font-semibold text-base-content">
+              {{ store.selectedRecurringSummary()?.transactionCount }}
+            </dd>
+          </div>
+
+          <div class="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
+            <dt class="text-xs font-semibold uppercase tracking-wide text-success/80">
+              {{ 'dashboard.recurringWidget.income' | transloco }}
+            </dt>
+            <dd class="mt-3 text-lg font-semibold text-success">
+              {{ formatIncome(store.selectedRecurringSummary()?.incomeTotal ?? 0) }}
+            </dd>
+          </div>
+
+          <div class="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
+            <dt class="text-xs font-semibold uppercase tracking-wide text-error/80">
+              {{ 'dashboard.recurringWidget.expense' | transloco }}
+            </dt>
+            <dd class="mt-3 text-lg font-semibold text-error">
+              {{ formatExpense(store.selectedRecurringSummary()?.expenseTotal ?? 0) }}
+            </dd>
+          </div>
+
+          <div class="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
+            <dt class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+              {{ 'dashboard.recurringWidget.net' | transloco }}
+            </dt>
+            <dd
+              class="mt-3 text-lg font-semibold"
+              [class.text-success]="(store.selectedRecurringSummary()?.netTotal ?? 0) > 0"
+              [class.text-error]="(store.selectedRecurringSummary()?.netTotal ?? 0) < 0"
+              [class.text-base-content]="(store.selectedRecurringSummary()?.netTotal ?? 0) === 0"
+            >
+              {{ formatNet(store.selectedRecurringSummary()?.netTotal ?? 0) }}
+            </dd>
+          </div>
+        </dl>
+      }
+    </div>
+  </section>
+
+  <section class="rounded-3xl border border-base-300 bg-base-100/80 p-6 shadow-sm sm:p-8">
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div class="space-y-2">
+        <p class="badge badge-outline text-xs uppercase tracking-wide">
+          {{ 'dashboard.categoryWidget.badge' | transloco }}
+        </p>
+        <div class="space-y-1">
+          <h2 class="text-2xl font-semibold">
+            {{ 'dashboard.categoryWidget.title' | transloco }}
+          </h2>
+          <p class="text-sm text-base-content/70">
+            {{ 'dashboard.categoryWidget.subtitle' | transloco }}
+          </p>
+        </div>
+      </div>
+
+      <div class="flex w-full flex-col gap-4 sm:flex-row sm:items-end sm:justify-end">
+        <div class="flex-1 sm:max-w-xs">
+          <label class="form-control w-full">
+            <span class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60">
+              {{ 'dashboard.categoryWidget.walletLabel' | transloco }}
+            </span>
+            <select
+              class="select select-bordered"
+              [value]="store.selectedWalletId() ?? ''"
+              (change)="onWalletChange($event)"
+              [disabled]="store.walletsLoading() || store.walletOptions().length === 0"
+            >
+              @if (store.walletsLoading()) {
+                <option value="">{{ 'dashboard.categoryWidget.walletLoading' | transloco }}</option>
+              } @else if (store.walletOptions().length === 0) {
+                <option value="">{{ 'dashboard.categoryWidget.noWallets' | transloco }}</option>
+              } @else {
+                @for (wallet of store.walletOptions(); track wallet.id) {
+                  <option [value]="wallet.id">
+                    {{ wallet.name }}
+                  </option>
+                }
+              }
+            </select>
+          </label>
+          @if (store.walletError()) {
+            <p class="mt-2 text-xs text-error">
+              {{ store.walletError() }}
+            </p>
+          }
+        </div>
+
+        <div class="flex-1 sm:max-w-xs">
+          <label class="form-control w-full">
+            <span class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60">
+              {{ 'dashboard.categoryWidget.selectLabel' | transloco }}
+            </span>
+            <select
+              class="select select-bordered"
+              [value]="store.selectedMonthValue() ?? ''"
+              (change)="onMonthChange($event)"
+              [disabled]="!store.selectedWalletId() || store.monthOptions().length === 0"
+            >
+              @if (!store.selectedWalletId()) {
+                <option value="">{{ 'dashboard.categoryWidget.noWalletSelected' | transloco }}</option>
+              } @else if (store.monthOptions().length === 0) {
+                <option value="">{{ 'dashboard.categoryWidget.noMonths' | transloco }}</option>
+              } @else {
+                @for (option of store.monthOptions(); track option.value) {
+                  <option [value]="option.value">
+                    {{ formatMonth(option.date) }}
+                  </option>
+                }
+              }
+            </select>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-6">
+      @if (!store.selectedWalletId()) {
+        <div class="rounded-2xl border border-dashed border-base-200 bg-base-100/70 p-6 text-center text-sm text-base-content/70">
+          {{ 'dashboard.categoryWidget.noWalletSelected' | transloco }}
+        </div>
+      } @else if (store.categoryLoading()) {
+        <div class="space-y-3">
+          @for (placeholder of skeletonPlaceholders; track placeholder) {
+            <div class="skeleton h-24 rounded-2xl"></div>
+          }
+        </div>
+      } @else if (store.categoryError()) {
+        <div class="rounded-2xl border border-error/40 bg-error/5 p-4">
+          <p class="text-sm font-semibold text-error">
+            {{ 'dashboard.categoryWidget.errorTitle' | transloco }}
+          </p>
+          <p class="text-sm text-base-content/70">
+            {{ store.categoryError() }}
+          </p>
+          <button type="button" class="btn btn-error btn-sm mt-3" (click)="store.refreshCategoryStructure()">
+            {{ 'dashboard.categoryWidget.retry' | transloco }}
+          </button>
+        </div>
+      } @else if (store.categoryEmpty()) {
+        <div class="rounded-2xl border border-dashed border-base-200 bg-base-100/70 p-6 text-center text-sm text-base-content/70">
+          {{ 'dashboard.categoryWidget.empty' | transloco }}
+        </div>
+      } @else {
+        <div class="grid gap-4 lg:grid-cols-3">
+          <article class="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
+            <h3 class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+              {{ 'dashboard.categoryWidget.totals.title' | transloco }}
+            </h3>
+            <dl class="mt-4 space-y-3 text-sm">
+              <div class="flex items-center justify-between gap-4">
+                <dt class="text-base-content/70">
+                  {{ 'dashboard.categoryWidget.totals.income' | transloco }}
+                </dt>
+                <dd class="text-base font-semibold text-success">
+                  {{ formatIncome(store.categoryTotals().income) }}
+                </dd>
+              </div>
+              <div class="flex items-center justify-between gap-4">
+                <dt class="text-base-content/70">
+                  {{ 'dashboard.categoryWidget.totals.expense' | transloco }}
+                </dt>
+                <dd class="text-base font-semibold text-error">
+                  {{ formatExpense(store.categoryTotals().expense) }}
+                </dd>
+              </div>
+              <div class="flex items-center justify-between gap-4">
+                <dt class="text-base-content/70">
+                  {{ 'dashboard.categoryWidget.totals.net' | transloco }}
+                </dt>
+                <dd
+                  class="text-base font-semibold"
+                  [class.text-success]="store.categoryTotals().net > 0"
+                  [class.text-error]="store.categoryTotals().net < 0"
+                  [class.text-base-content]="store.categoryTotals().net === 0"
+                >
+                  {{ formatNet(store.categoryTotals().net) }}
+                </dd>
+              </div>
+            </dl>
+          </article>
+
+          <article class="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
+            <div class="flex items-center justify-between gap-3">
+              <h3 class="text-sm font-semibold text-base-content">
+                {{ 'dashboard.categoryWidget.incomeList' | transloco }}
+              </h3>
+              <span class="text-xs text-base-content/60">
+                {{ store.incomeCategories().length }}
+              </span>
+            </div>
+
+            <div class="mt-4 space-y-3 text-sm">
+              @if (store.incomeCategories().length === 0) {
+                <p class="text-base-content/60">
+                  {{ 'dashboard.categoryWidget.noIncome' | transloco }}
+                </p>
+              } @else {
+                @for (category of store.incomeCategories(); track category.categoryId) {
+                  <div class="flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                      <span
+                        class="size-2 rounded-full"
+                        [style.backgroundColor]="category.color ?? '#16A34A'"
+                        aria-hidden="true"
+                      ></span>
+                      <span class="font-medium text-base-content">{{ category.categoryName }}</span>
+                    </div>
+                    <span class="text-sm font-semibold text-success">
+                      {{ formatIncome(category.totalAmount) }}
+                    </span>
+                  </div>
+                }
+              }
+            </div>
+          </article>
+
+          <article class="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
+            <div class="flex items-center justify-between gap-3">
+              <h3 class="text-sm font-semibold text-base-content">
+                {{ 'dashboard.categoryWidget.expenseList' | transloco }}
+              </h3>
+              <span class="text-xs text-base-content/60">
+                {{ store.expenseCategories().length }}
+              </span>
+            </div>
+
+            <div class="mt-4 space-y-3 text-sm">
+              @if (store.expenseCategories().length === 0) {
+                <p class="text-base-content/60">
+                  {{ 'dashboard.categoryWidget.noExpense' | transloco }}
+                </p>
+              } @else {
+                @for (category of store.expenseCategories(); track category.categoryId) {
+                  <div class="flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                      <span
+                        class="size-2 rounded-full"
+                        [style.backgroundColor]="category.color ?? '#DC2626'"
+                        aria-hidden="true"
+                      ></span>
+                      <span class="font-medium text-base-content">{{ category.categoryName }}</span>
+                    </div>
+                    <span class="text-sm font-semibold text-error">
+                      {{ formatExpense(category.totalAmount) }}
+                    </span>
+                  </div>
+                }
+              }
+            </div>
+          </article>
+        </div>
+      }
+    </div>
+  </section>
+</section>
+  

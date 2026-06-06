@@ -1,0 +1,9 @@
+name = "spendist-app"
+main = "apps/web/worker.ts"
+compatibility_date = "2026-02-01"
+
+[assets]
+directory = "dist/apps/web/browser"
+binding = "ASSETS"
+html_handling = "auto-trailing-slash"
+not_found_handling = "single-page-application"
