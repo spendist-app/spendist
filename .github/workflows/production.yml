@@ -171,7 +171,7 @@ jobs:
 
       - name: Verify Cloudflare runtime env
         run: |
-          production_url="${CLOUDFLARE_PRODUCTION_URL:-https://spendist.com}"
+          production_url="${CLOUDFLARE_PRODUCTION_URL:-https://spendist.app}"
           runtime_env="$(curl -fsS "${production_url%/}/env.js")"
 
           if echo "$runtime_env" | grep -q 'globalThis.__env = globalThis.__env || {}'; then
@@ -184,7 +184,7 @@ jobs:
             exit 1
           fi
 
-          if ! echo "$runtime_env" | grep -Eq '"SUPABASE_ANON_KEY"[[:space:]]*:[[:space:]]*"[^"]+"'; then
-            echo "::error::Cloudflare runtime env is missing SUPABASE_ANON_KEY."
+          if ! echo "$runtime_env" | grep -Eq '"SUPABASE_PUBLISHABLE_KEY"[[:space:]]*:[[:space:]]*"[^"]+"|"SUPABASE_ANON_KEY"[[:space:]]*:[[:space:]]*"[^"]+"'; then
+            echo "::error::Cloudflare runtime env is missing SUPABASE_PUBLISHABLE_KEY."
             exit 1
           fi
