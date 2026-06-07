@@ -3,8 +3,8 @@ main = "apps/web/worker.ts"
 compatibility_date = "2026-02-01"
 
 [[routes]]
-pattern = "spendist.app"
-custom_domain = true
+pattern = "spendist.app/*"
+zone_name = "spendist.app"
 
 [assets]
 directory = "dist/apps/web/browser"
