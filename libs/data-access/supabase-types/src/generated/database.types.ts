@@ -544,6 +544,10 @@ export type Database = {
           direction: Database["public"]["Enums"]["transaction_direction"]
           exchange_rate: number | null
           id: string
+          import_fingerprint: string | null
+          import_metadata: Json
+          import_source: string | null
+          imported_at: string | null
           is_automatic: boolean
           occurred_at: string
           owner_id: string
@@ -562,6 +566,10 @@ export type Database = {
           direction: Database["public"]["Enums"]["transaction_direction"]
           exchange_rate?: number | null
           id?: string
+          import_fingerprint?: string | null
+          import_metadata?: Json
+          import_source?: string | null
+          imported_at?: string | null
           is_automatic?: boolean
           occurred_at: string
           owner_id: string
@@ -580,6 +588,10 @@ export type Database = {
           direction?: Database["public"]["Enums"]["transaction_direction"]
           exchange_rate?: number | null
           id?: string
+          import_fingerprint?: string | null
+          import_metadata?: Json
+          import_source?: string | null
+          imported_at?: string | null
           is_automatic?: boolean
           occurred_at?: string
           owner_id?: string
@@ -721,6 +733,12 @@ export type Database = {
       enqueue_recurring_transaction: {
         Args: { p_recurring_id: string; p_run_at?: string }
         Returns: string
+      }
+      find_existing_transaction_import_fingerprints: {
+        Args: { p_import_fingerprints: string[]; p_import_source: string }
+        Returns: {
+          import_fingerprint: string
+        }[]
       }
       monthly_cashflow_summary: {
         Args: { p_months?: number; p_wallet_id?: string }

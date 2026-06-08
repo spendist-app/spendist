@@ -63,5 +63,5 @@ export const supabaseConfig: SupabaseConfig = {
       'SUPABASE_PUBLISHABLE_KEY',
       'NG_APP_SUPABASE_ANON_KEY',
       'NG_APP_SUPABASE_PUBLISHABLE_KEY',
-    ]) ?? 'supabase-anon-key-change-me-for-production',
+    ]) ?? 'sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH',
 };

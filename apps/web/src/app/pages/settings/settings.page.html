@@ -310,7 +310,7 @@
                 </div>
               }
             </section>
-          } @else {
+          } @else if (activePanel() === 'categories') {
             <section class="space-y-6">
               <header class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
@@ -847,6 +847,196 @@
                   </div>
                 }
               }
+            </section>
+          } @else {
+            <section class="space-y-6">
+              <header class="space-y-2">
+                <h2 class="text-2xl font-semibold">
+                  {{ 'settings.panels.kontomierzImport.header' | transloco }}
+                </h2>
+                <p class="max-w-2xl text-base-content/70">
+                  {{ 'settings.panels.kontomierzImport.text' | transloco }}
+                </p>
+              </header>
+
+              @if (kontomierzImport.error(); as importError) {
+                <div class="alert alert-error flex-col items-start gap-2 rounded-2xl border border-error/20 bg-error/10 p-4 text-sm text-error">
+                  <div class="font-semibold">
+                    {{ 'settings.panels.kontomierzImport.status.errorTitle' | transloco }}
+                  </div>
+                  <div>
+                    @if (importError.startsWith('settings.')) {
+                      {{ importError | transloco }}
+                    } @else {
+                      {{ importError }}
+                    }
+                  </div>
+                </div>
+              }
+
+              <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)]">
+                <section class="rounded-2xl border border-base-300 bg-base-100/80 p-5 shadow-sm sm:p-6">
+                  <form class="space-y-5" [formGroup]="kontomierzImportForm" (ngSubmit)="analyzeKontomierzFile()">
+                    <label class="form-control">
+                      <span class="label-text text-sm font-semibold text-base-content">
+                        {{ 'settings.panels.kontomierzImport.form.walletLabel' | transloco }}
+                      </span>
+                      <select class="select select-bordered" formControlName="walletId">
+                        <option value="" disabled>
+                          {{ 'settings.panels.kontomierzImport.form.walletPlaceholder' | transloco }}
+                        </option>
+                        @for (wallet of store.wallets(); track wallet.id) {
+                          <option [value]="wallet.id">{{ wallet.name }} · {{ wallet.currency }}</option>
+                        }
+                      </select>
+                      @if (kontomierzImportFormControls.walletId.touched && kontomierzImportFormControls.walletId.invalid) {
+                        <span class="mt-1 text-xs text-error">
+                          {{ 'settings.panels.kontomierzImport.errors.walletRequired' | transloco }}
+                        </span>
+                      }
+                    </label>
+
+                    <div class="rounded-2xl border border-dashed border-base-300 bg-base-100/60 p-5">
+                      <input
+                        id="kontomierz-xlsx-upload"
+                        type="file"
+                        class="sr-only"
+                        accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        (change)="onKontomierzFileSelected($event)"
+                      />
+                      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <p class="text-sm font-semibold">
+                            {{ 'settings.panels.kontomierzImport.form.fileLabel' | transloco }}
+                          </p>
+                          <p class="text-sm text-base-content/70">
+                            @if (kontomierzFileName(); as fileName) {
+                              {{ fileName }}
+                            } @else {
+                              {{ 'settings.panels.kontomierzImport.form.fileEmpty' | transloco }}
+                            }
+                          </p>
+                        </div>
+                        <label
+                          for="kontomierz-xlsx-upload"
+                          class="btn btn-outline btn-sm"
+                          [class.btn-disabled]="kontomierzImport.analyzing() || kontomierzImport.importing()"
+                          [attr.aria-disabled]="kontomierzImport.analyzing() || kontomierzImport.importing()"
+                        >
+                          {{ 'settings.panels.kontomierzImport.form.chooseFile' | transloco }}
+                        </label>
+                      </div>
+                    </div>
+
+                    <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                      <button
+                        type="submit"
+                        class="btn btn-primary w-full sm:w-auto"
+                        [disabled]="!selectedKontomierzFile() || kontomierzImport.analyzing() || kontomierzImport.importing()"
+                      >
+                        @if (kontomierzImport.analyzing()) {
+                          <span class="loading loading-spinner loading-sm"></span>
+                        }
+                        {{ 'settings.panels.kontomierzImport.actions.analyze' | transloco }}
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-outline w-full sm:w-auto"
+                        [disabled]="!kontomierzImport.canImport()"
+                        (click)="importKontomierzFile()"
+                      >
+                        @if (kontomierzImport.importing()) {
+                          <span class="loading loading-spinner loading-sm"></span>
+                        }
+                        {{ 'settings.panels.kontomierzImport.actions.import' | transloco }}
+                      </button>
+                    </div>
+                  </form>
+
+                  @if (kontomierzImport.importing() || kontomierzImport.progress() > 0) {
+                    <div class="mt-6 space-y-2">
+                      <div class="flex justify-between text-sm text-base-content/70">
+                        <span>{{ 'settings.panels.kontomierzImport.status.progress' | transloco }}</span>
+                        <span>{{ kontomierzImport.progress() }}%</span>
+                      </div>
+                      <progress class="progress progress-primary w-full" [value]="kontomierzImport.progress()" max="100"></progress>
+                      <p class="text-sm text-base-content/70">
+                        {{ 'settings.panels.kontomierzImport.status.imported' | transloco: { imported: kontomierzImport.imported(), duplicates: kontomierzImport.duplicatesSkipped() } }}
+                      </p>
+                    </div>
+                  }
+                </section>
+
+                <aside class="rounded-2xl border border-base-300 bg-base-100/80 p-5 shadow-sm sm:p-6 lg:sticky lg:top-24 lg:self-start">
+                  @if (kontomierzImport.summary(); as summary) {
+                    <div class="space-y-4">
+                      <header>
+                        <p class="text-xs uppercase tracking-wide text-base-content/60">
+                          {{ 'settings.panels.kontomierzImport.summary.label' | transloco }}
+                        </p>
+                        <h3 class="text-xl font-semibold">{{ summary.fileName }}</h3>
+                      </header>
+
+                      <dl class="grid gap-3 text-sm">
+                        <div class="flex justify-between gap-4">
+                          <dt class="text-base-content/60">{{ 'settings.panels.kontomierzImport.summary.totalRows' | transloco }}</dt>
+                          <dd class="font-semibold">{{ summary.totalDataRows }}</dd>
+                        </div>
+                        <div class="flex justify-between gap-4">
+                          <dt class="text-base-content/60">{{ 'settings.panels.kontomierzImport.summary.parsed' | transloco }}</dt>
+                          <dd class="font-semibold">{{ summary.parsedTransactions }}</dd>
+                        </div>
+                        <div class="flex justify-between gap-4">
+                          <dt class="text-base-content/60">{{ 'settings.panels.kontomierzImport.summary.splitParents' | transloco }}</dt>
+                          <dd class="font-semibold">{{ summary.skippedSplitParents }}</dd>
+                        </div>
+                        <div class="flex justify-between gap-4">
+                          <dt class="text-base-content/60">{{ 'settings.panels.kontomierzImport.summary.duplicates' | transloco }}</dt>
+                          <dd class="font-semibold">{{ summary.duplicates }}</dd>
+                        </div>
+                        <div class="flex justify-between gap-4">
+                          <dt class="text-base-content/60">{{ 'settings.panels.kontomierzImport.summary.importable' | transloco }}</dt>
+                          <dd class="font-semibold">{{ summary.importableTransactions }}</dd>
+                        </div>
+                      </dl>
+
+                      <div class="grid gap-2 text-sm">
+                        <p>
+                          {{ 'settings.panels.kontomierzImport.summary.newGroups' | transloco: { total: summary.newGroups.length } }}
+                        </p>
+                        <p>
+                          {{ 'settings.panels.kontomierzImport.summary.newCategories' | transloco: { total: summary.newCategories.length } }}
+                        </p>
+                        <p>
+                          {{ 'settings.panels.kontomierzImport.summary.newTags' | transloco: { total: summary.newTags.length } }}
+                        </p>
+                      </div>
+
+                      @if (summary.issues.length > 0) {
+                        <div class="rounded-xl border border-warning/20 bg-warning/10 p-3 text-sm text-warning">
+                          <p class="font-semibold">
+                            {{ 'settings.panels.kontomierzImport.summary.issues' | transloco: { total: summary.issues.length } }}
+                          </p>
+                          <ul class="mt-2 max-h-40 space-y-1 overflow-auto">
+                            @for (issue of summary.issues.slice(0, 8); track issue.rowNumber) {
+                              <li>
+                                {{ 'settings.panels.kontomierzImport.summary.issueRow' | transloco: { row: issue.rowNumber, message: issue.message } }}
+                              </li>
+                            }
+                          </ul>
+                        </div>
+                      }
+                    </div>
+                  } @else {
+                    <div class="space-y-3 text-sm text-base-content/70">
+                      <h3 class="text-base font-semibold text-base-content">
+                        {{ 'settings.panels.kontomierzImport.empty.title' | transloco }}
+                      </h3>
+                      <p>{{ 'settings.panels.kontomierzImport.empty.body' | transloco }}</p>
+                    </div>
+                  }
+                </aside>
+              </div>
             </section>
           }
         </div>

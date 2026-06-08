@@ -15,6 +15,8 @@ import type {
 import type { CategoryEntity, CategoryGroupEntity } from '../settings/settings.store';
 const FALLBACK_CURRENCY = 'PLN';
 const MAX_BULK_QUANTITY = 100;
+const SUPABASE_PAGE_SIZE = 1000;
+const FIRST_TRANSACTION_PAGE = 0;
 type CurrencyRow = Tables<'currencies'>;
 
 interface TransactionEntity {
@@ -42,10 +44,15 @@ interface TransactionsState {
   readonly categories: readonly CategoryEntity[];
   readonly groups: readonly CategoryGroupEntity[];
   readonly transactions: readonly TransactionEntity[];
+  readonly transactionPage: number;
+  readonly totalMatchingTransactions: number;
+  readonly hasMoreTransactions: boolean;
+  readonly loadingMoreTransactions: boolean;
   readonly tags: readonly TagEntity[];
   readonly wallets: readonly WalletEntity[];
   readonly currencies: readonly CurrencyOption[];
   readonly defaultCurrency: string | null;
+  readonly availableYears: readonly number[];
   readonly transactionTags: ReadonlyMap<string, readonly string[]>;
   readonly categorySummaries: ReadonlyMap<string, CategoryExpenseSummary>;
   readonly groupSummaries: ReadonlyMap<string | null, GroupExpenseSummary>;
@@ -105,6 +112,13 @@ interface GroupExpenseSummary {
   readonly transactionCount: number;
 }
 
+interface TransactionPageResult {
+  readonly rows: readonly TransactionRow[];
+  readonly tagRows: readonly TransactionTagRow[];
+  readonly total: number;
+  readonly page: number;
+}
+
 export interface CreateTransactionPayload {
   readonly description: string | null;
   readonly categoryId: string;
@@ -162,10 +176,15 @@ export class TransactionsStore {
     categories: [],
     groups: [],
     transactions: [],
+    transactionPage: FIRST_TRANSACTION_PAGE,
+    totalMatchingTransactions: 0,
+    hasMoreTransactions: false,
+    loadingMoreTransactions: false,
     tags: [],
     wallets: [],
     currencies: [],
     defaultCurrency: null,
+    availableYears: [],
     transactionTags: new Map(),
     categorySummaries: new Map(),
     groupSummaries: new Map(),
@@ -175,6 +194,7 @@ export class TransactionsStore {
 
   private readonly filters = signal<TransactionsFilters>(this.createInitialFilters());
   private categorySummaryRequestToken = 0;
+  private transactionRequestToken = 0;
   private lastSummaryRangeKey: string | null = null;
   private readonly categorySummaryEffect = effect(() => {
     this.scheduleCategorySummaryRefresh();
@@ -187,6 +207,10 @@ export class TransactionsStore {
   readonly categories = computed(() => this.state().categories);
   readonly groups = computed(() => this.state().groups);
   readonly transactions = computed(() => this.state().transactions);
+  readonly loadedTransactionCount = computed(() => this.state().transactions.length);
+  readonly totalMatchingTransactions = computed(() => this.state().totalMatchingTransactions);
+  readonly hasMoreTransactions = computed(() => this.state().hasMoreTransactions);
+  readonly loadingMoreTransactions = computed(() => this.state().loadingMoreTransactions);
   readonly tags = computed(() => this.state().tags);
   readonly wallets = computed(() => this.state().wallets);
   readonly currencies = computed(() => this.state().currencies);
@@ -253,52 +277,12 @@ export class TransactionsStore {
   });
 
   readonly filteredTransactions = computed(() => {
-    const filters = this.filters();
-    const searchTerm = filters.searchTerm.trim().toLowerCase();
-    const categoryFilter = new Set(filters.selectedCategoryIds);
-    const fromTime = filters.from ? this.startOfDay(filters.from).getTime() : Number.NEGATIVE_INFINITY;
-    const toTime = filters.to ? this.endOfDay(filters.to).getTime() : Number.POSITIVE_INFINITY;
-
-    return this.transactionsView()
-      .filter((transaction) => {
-        if (categoryFilter.size > 0 && !categoryFilter.has(transaction.categoryId)) {
-          return false;
-        }
-
-        const occurredAtTime = transaction.occurredAt.getTime();
-        if (occurredAtTime < fromTime || occurredAtTime > toTime) {
-          return false;
-        }
-
-        if (!searchTerm) {
-          return true;
-        }
-
-        const haystack = [
-          transaction.description ?? '',
-          transaction.category?.name ?? '',
-          transaction.group?.name ?? '',
-          transaction.currency ?? '',
-        ]
-          .join(' ')
-          .toLowerCase();
-
-        return haystack.includes(searchTerm);
-      })
-      .sort((a, b) => b.occurredAt.getTime() - a.occurredAt.getTime());
+    return [...this.transactionsView()].sort((a, b) => b.occurredAt.getTime() - a.occurredAt.getTime());
   });
 
   readonly availableYears = computed(() => {
-    const years = new Set<number>();
-    for (const transaction of this.state().transactions) {
-      years.add(transaction.occurredAt.getFullYear());
-    }
-
-    if (years.size === 0) {
-      years.add(new Date().getFullYear());
-    }
-
-    return Array.from(years).sort((a, b) => b - a);
+    const years = this.state().availableYears;
+    return years.length > 0 ? years : [new Date().getFullYear()];
   });
 
   constructor() {
@@ -318,10 +302,15 @@ export class TransactionsStore {
           categories: [],
           groups: [],
           transactions: [],
+          transactionPage: FIRST_TRANSACTION_PAGE,
+          totalMatchingTransactions: 0,
+          hasMoreTransactions: false,
+          loadingMoreTransactions: false,
           tags: [],
           wallets: [],
           currencies: [],
           defaultCurrency: null,
+          availableYears: [],
           transactionTags: new Map(),
           categorySummaries: new Map(),
           groupSummaries: new Map(),
@@ -385,15 +374,14 @@ export class TransactionsStore {
     }));
 
     try {
-      const [groupsResult, categoriesResult, transactionsResult, tagsResult, walletsResult, currenciesResult, transactionTagsResult] =
+      const [groupsResult, categoriesResult, tagsResult, walletsResult, currenciesResult, availableYears] =
         await Promise.all([
           this.supabase.from('categories_group').select('*').eq('owner_id', userId).order('name', { ascending: true }),
           this.supabase.from('categories').select('*').eq('owner_id', userId).order('name', { ascending: true }),
-          this.supabase.from('transactions').select('*').eq('owner_id', userId).order('occurred_at', { ascending: false }),
           this.supabase.from('tags').select('*').eq('owner_id', userId).order('name', { ascending: true }),
           this.supabase.from('wallets').select('*').eq('owner_id', userId).order('name', { ascending: true }),
           this.supabase.from('currencies').select('*').order('symbol', { ascending: true }),
-          this.supabase.from('transaction_tags').select('*').eq('owner_id', userId),
+          this.loadAvailableYears(userId),
         ]);
 
       if (groupsResult.error) {
@@ -402,10 +390,6 @@ export class TransactionsStore {
 
       if (categoriesResult.error) {
         throw categoriesResult.error;
-      }
-
-      if (transactionsResult.error) {
-        throw transactionsResult.error;
       }
 
       if (tagsResult.error) {
@@ -420,18 +404,11 @@ export class TransactionsStore {
         throw currenciesResult.error;
       }
 
-      if (transactionTagsResult.error) {
-        throw transactionTagsResult.error;
-      }
-
       const groups = this.sortGroups(
         (groupsResult.data ?? []).map((group) => this.mapGroupRow(group as CategoryGroupRow)),
       );
       const categories = this.sortCategories(
         (categoriesResult.data ?? []).map((category) => this.mapCategoryRow(category as CategoryRow)),
-      );
-      const transactions = (transactionsResult.data ?? []).map((transaction) =>
-        this.mapTransactionRow(transaction as TransactionRow),
       );
       const tags = this.sortTags((tagsResult.data ?? []).map((tag) => this.mapTagRow(tag as TagRow)));
       const currencyRows = (currenciesResult.data ?? []).map((row) => this.mapCurrencyRow(row as CurrencyRow));
@@ -441,29 +418,31 @@ export class TransactionsStore {
         (walletsResult.data ?? []).map((wallet) => this.mapWalletRow(wallet as WalletRow, currencyLookup)),
       );
       const defaultCurrency = wallets.find((wallet) => wallet.isDefault)?.currency ?? wallets[0]?.currency ?? FALLBACK_CURRENCY;
-      const transactionTags = this.buildTransactionTagsMap(
-        (transactionTagsResult.data ?? []).map((row) => row as TransactionTagRow),
-      );
-
       const previousState = this.state();
       this.state.set({
-        loading: false,
+        loading: true,
         error: null,
         mutationError: this.state().mutationError,
         transactionMutationPending: false,
         categories,
         groups,
-        transactions,
+        transactions: [],
+        transactionPage: FIRST_TRANSACTION_PAGE,
+        totalMatchingTransactions: 0,
+        hasMoreTransactions: false,
+        loadingMoreTransactions: false,
         tags,
         wallets,
         currencies,
         defaultCurrency,
-        transactionTags,
+        availableYears,
+        transactionTags: new Map(),
         categorySummaries: previousState.categorySummaries,
         groupSummaries: previousState.groupSummaries,
         summaryLoading: previousState.summaryLoading,
         summaryError: previousState.summaryError,
       });
+      await this.loadTransactionsPage({ append: false, showInitialLoading: false });
       this.scheduleCategorySummaryRefresh(true);
     } catch (error) {
       const message = this.describeError(error);
@@ -477,6 +456,234 @@ export class TransactionsStore {
     }
   }
 
+  async loadMoreTransactions(): Promise<void> {
+    const state = this.state();
+    if (state.loading || state.loadingMoreTransactions || !state.hasMoreTransactions) {
+      return;
+    }
+
+    await this.loadTransactionsPage({ append: true, showInitialLoading: false });
+  }
+
+  private async reloadTransactionsAfterFilterChange(): Promise<void> {
+    if (!this.userId()) {
+      return;
+    }
+
+    await this.loadTransactionsPage({ append: false, showInitialLoading: true });
+  }
+
+  private async loadTransactionsPage(options: { append: boolean; showInitialLoading: boolean }): Promise<void> {
+    const userId = this.userId();
+    if (!userId) {
+      return;
+    }
+
+    const page = options.append ? this.state().transactionPage + 1 : FIRST_TRANSACTION_PAGE;
+    const requestToken = ++this.transactionRequestToken;
+
+    this.state.update((state) => ({
+      ...state,
+      loading: options.showInitialLoading ? true : state.loading,
+      loadingMoreTransactions: options.append,
+      error: null,
+      ...(options.append
+        ? {}
+        : {
+            transactions: [],
+            transactionTags: new Map<string, readonly string[]>(),
+            transactionPage: FIRST_TRANSACTION_PAGE,
+            totalMatchingTransactions: 0,
+            hasMoreTransactions: false,
+          }),
+    }));
+
+    try {
+      const result = await this.fetchTransactionPage(userId, this.filters(), page);
+      if (requestToken !== this.transactionRequestToken) {
+        return;
+      }
+
+      const transactions = result.rows.map((row) => this.mapTransactionRow(row));
+      const pageTags = this.buildTransactionTagsMap(result.tagRows);
+      const nextTransactionTags = options.append
+        ? new Map(this.state().transactionTags)
+        : new Map<string, readonly string[]>();
+      for (const [transactionId, tagIds] of pageTags.entries()) {
+        nextTransactionTags.set(transactionId, tagIds);
+      }
+
+      const loadedRows = options.append ? this.state().transactions.length + transactions.length : transactions.length;
+      this.state.update((state) => ({
+        ...state,
+        loading: false,
+        loadingMoreTransactions: false,
+        transactions: options.append ? [...state.transactions, ...transactions] : transactions,
+        transactionTags: nextTransactionTags,
+        transactionPage: result.page,
+        totalMatchingTransactions: result.total,
+        hasMoreTransactions: loadedRows < result.total,
+      }));
+    } catch (error) {
+      if (requestToken !== this.transactionRequestToken) {
+        return;
+      }
+
+      const message = this.describeError(error);
+      console.error('[TransactionsStore] Failed to load transaction page', error);
+      this.state.update((state) => ({
+        ...state,
+        loading: false,
+        loadingMoreTransactions: false,
+        error: message,
+      }));
+    }
+  }
+
+  private async fetchTransactionPage(
+    userId: string,
+    filters: TransactionsFilters,
+    page: number,
+  ): Promise<TransactionPageResult> {
+    const from = page * SUPABASE_PAGE_SIZE;
+    const to = from + SUPABASE_PAGE_SIZE - 1;
+    let query = this.supabase
+      .from('transactions')
+      .select('*', { count: 'exact' })
+      .eq('owner_id', userId)
+      .order('occurred_at', { ascending: false })
+      .range(from, to);
+
+    if (filters.from) {
+      query = query.gte('occurred_at', this.startOfDay(filters.from).toISOString());
+    }
+
+    if (filters.to) {
+      query = query.lte('occurred_at', this.endOfDay(filters.to).toISOString());
+    }
+
+    if (filters.selectedCategoryIds.length > 0) {
+      query = query.in('category_id', [...filters.selectedCategoryIds]);
+    }
+
+    const searchFilter = this.buildTransactionSearchFilter(filters.searchTerm);
+    if (searchFilter) {
+      query = query.or(searchFilter);
+    }
+
+    const { data, error, count } = await query;
+    if (error) {
+      throw error;
+    }
+
+    const rows = (data ?? []) as TransactionRow[];
+    const tagRows = await this.loadTransactionTagRows(userId, rows.map((row) => row.id));
+    return {
+      rows,
+      tagRows,
+      total: count ?? rows.length,
+      page,
+    };
+  }
+
+  private async loadTransactionTagRows(
+    userId: string,
+    transactionIds: readonly string[],
+  ): Promise<TransactionTagRow[]> {
+    if (transactionIds.length === 0) {
+      return [];
+    }
+
+    const { data, error } = await this.supabase
+      .from('transaction_tags')
+      .select('*')
+      .eq('owner_id', userId)
+      .in('transaction_id', [...transactionIds]);
+
+    if (error) {
+      throw error;
+    }
+
+    return (data ?? []) as TransactionTagRow[];
+  }
+
+  private async loadAvailableYears(userId: string): Promise<readonly number[]> {
+    const [oldestResult, newestResult] = await Promise.all([
+      this.supabase
+        .from('transactions')
+        .select('occurred_at')
+        .eq('owner_id', userId)
+        .order('occurred_at', { ascending: true })
+        .limit(1),
+      this.supabase
+        .from('transactions')
+        .select('occurred_at')
+        .eq('owner_id', userId)
+        .order('occurred_at', { ascending: false })
+        .limit(1),
+    ]);
+
+    if (oldestResult.error) {
+      throw oldestResult.error;
+    }
+
+    if (newestResult.error) {
+      throw newestResult.error;
+    }
+
+    const oldest = oldestResult.data?.[0]?.occurred_at;
+    const newest = newestResult.data?.[0]?.occurred_at;
+    if (!oldest || !newest) {
+      return [new Date().getFullYear()];
+    }
+
+    const firstYear = new Date(oldest).getUTCFullYear();
+    const lastYear = new Date(newest).getUTCFullYear();
+    const years: number[] = [];
+    for (let year = lastYear; year >= firstYear; year -= 1) {
+      years.push(year);
+    }
+
+    return years;
+  }
+
+  private buildTransactionSearchFilter(searchTerm: string): string | null {
+    const normalized = searchTerm.trim().replace(/[%,()]/g, ' ').replace(/\s+/g, ' ');
+    if (!normalized) {
+      return null;
+    }
+
+    const matchingCategoryIds = this.matchingCategoryIdsForSearch(normalized);
+    const filters = [
+      `description.ilike.%${normalized}%`,
+      `currency.ilike.%${normalized}%`,
+    ];
+    if (matchingCategoryIds.length > 0) {
+      filters.push(`category_id.in.(${matchingCategoryIds.join(',')})`);
+    }
+
+    return filters.join(',');
+  }
+
+  private matchingCategoryIdsForSearch(searchTerm: string): readonly string[] {
+    const normalized = searchTerm.toLowerCase();
+    const groups = this.state().groups;
+    const categories = this.state().categories;
+    const matchingGroupIds = new Set(
+      groups
+        .filter((group) => group.name.toLowerCase().includes(normalized))
+        .map((group) => group.id),
+    );
+
+    return categories
+      .filter(
+        (category) =>
+          category.name.toLowerCase().includes(normalized) ||
+          (category.groupId ? matchingGroupIds.has(category.groupId) : false),
+      )
+      .map((category) => category.id);
+  }
+
   applyPreset(preset: TransactionPresetId): void {
     const current = this.filters();
     if (preset === 'custom') {
@@ -484,6 +691,7 @@ export class TransactionsStore {
         ...current,
         preset,
       });
+      void this.reloadTransactionsAfterFilterChange();
       return;
     }
 
@@ -494,6 +702,7 @@ export class TransactionsStore {
       from,
       to,
     });
+    void this.reloadTransactionsAfterFilterChange();
   }
 
   setCustomDateRange(from: Date | null, to: Date | null): void {
@@ -504,6 +713,7 @@ export class TransactionsStore {
       from: sanitized.from,
       to: sanitized.to,
     });
+    void this.reloadTransactionsAfterFilterChange();
   }
 
   setSearchTerm(term: string): void {
@@ -511,6 +721,7 @@ export class TransactionsStore {
       ...filters,
       searchTerm: term,
     }));
+    void this.reloadTransactionsAfterFilterChange();
   }
 
   toggleCategorySelection(categoryId: string): void {
@@ -527,6 +738,7 @@ export class TransactionsStore {
         selectedCategoryIds: Array.from(set),
       };
     });
+    void this.reloadTransactionsAfterFilterChange();
   }
 
   clearCategorySelection(): void {
@@ -534,6 +746,7 @@ export class TransactionsStore {
       ...filters,
       selectedCategoryIds: [],
     }));
+    void this.reloadTransactionsAfterFilterChange();
   }
 
   setSelectedMonth(year: number, monthIndex: number): void {
@@ -544,6 +757,7 @@ export class TransactionsStore {
       from: range.from,
       to: range.to,
     }));
+    void this.reloadTransactionsAfterFilterChange();
   }
 
   setSelectedYear(year: number): void {
@@ -556,10 +770,12 @@ export class TransactionsStore {
       from,
       to,
     }));
+    void this.reloadTransactionsAfterFilterChange();
   }
 
   resetFilters(): void {
     this.filters.set(this.createInitialFilters());
+    void this.reloadTransactionsAfterFilterChange();
   }
 
   dismissMutationError(): void {

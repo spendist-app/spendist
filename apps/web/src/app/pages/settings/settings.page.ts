@@ -27,8 +27,9 @@ import {
   isHeroIconName as isHeroIconNameFn,
 } from '../../shared/icons/heroicons';
 import { HeroIconPickerComponent } from '../../shared/icons/hero-icon-picker.component';
+import { KontomierzImportStore } from './kontomierz-import.store';
 
-type SettingsPanelId = 'profile' | 'wallets' | 'categories';
+type SettingsPanelId = 'profile' | 'wallets' | 'categories' | 'kontomierzImport';
 type CategoriesTabId = 'list' | 'groups';
 type CategoryEditorMode = 'create' | 'edit';
 type GroupEditorMode = 'create' | 'edit';
@@ -66,12 +67,13 @@ interface ParentCategoryOption {
     HeroIconPickerComponent,
     TranslocoPipe,
   ],
-  providers: [SettingsStore],
+  providers: [SettingsStore, KontomierzImportStore],
   templateUrl: './settings.page.html',
 })
 export class SettingsPageComponent {
   private readonly fb = inject(NonNullableFormBuilder);
   protected readonly store = inject(SettingsStore);
+  protected readonly kontomierzImport = inject(KontomierzImportStore);
   private readonly transloco = inject(TranslocoService);
 
   protected readonly heroIconSvg = heroIconSvgFn;
@@ -94,6 +96,11 @@ export class SettingsPageComponent {
       labelKey: 'settings.panels.categories.label',
       descriptionKey: 'settings.panels.categories.description',
     },
+    {
+      id: 'kontomierzImport',
+      labelKey: 'settings.panels.kontomierzImport.label',
+      descriptionKey: 'settings.panels.kontomierzImport.description',
+    },
   ];
 
   protected readonly activePanel = signal<SettingsPanelId>('profile');
@@ -106,6 +113,7 @@ export class SettingsPageComponent {
   protected readonly selectedCategoryId = signal<string | null>(null);
   protected readonly selectedGroupFilter = signal<string | null>(null);
   protected readonly categoryQuery = signal('');
+  protected readonly selectedKontomierzFile = signal<File | null>(null);
 
   protected readonly hasGroups = computed(() => this.store.groups().length > 0);
 
@@ -236,6 +244,7 @@ export class SettingsPageComponent {
   );
   protected readonly walletError = computed(() => this.store.walletError());
   protected readonly walletCurrencies = computed(() => this.store.currencies());
+  protected readonly kontomierzFileName = computed(() => this.selectedKontomierzFile()?.name ?? null);
   protected readonly profile = computed(() => this.store.profile());
   protected readonly avatarUploadPending = computed(() =>
     this.store.profileMutationPending()
@@ -246,6 +255,10 @@ export class SettingsPageComponent {
   protected readonly avatarInitials = computed(() =>
     this.resolveProfileInitials(this.profile())
   );
+  protected readonly kontomierzImportForm = this.fb.group({
+    walletId: this.fb.control('', { validators: [Validators.required] }),
+  });
+  protected readonly kontomierzImportFormControls = this.kontomierzImportForm.controls;
 
   constructor() {
     effect(() => {
@@ -317,6 +330,22 @@ export class SettingsPageComponent {
     });
 
     effect(() => {
+      const wallets = this.store.wallets();
+      if (wallets.length === 0) {
+        return;
+      }
+
+      const control = this.kontomierzImportFormControls.walletId;
+      if (wallets.some((wallet) => wallet.id === control.value)) {
+        return;
+      }
+
+      control.setValue((wallets.find((wallet) => wallet.isDefault) ?? wallets[0]).id, { emitEvent: false });
+      control.markAsPristine();
+      control.markAsUntouched();
+    });
+
+    effect(() => {
       const currencies = this.walletCurrencies();
       if (currencies.length === 0) {
         return;
@@ -383,7 +412,39 @@ export class SettingsPageComponent {
       } else {
         this.openWalletCreator();
       }
+      return;
     }
+    if (panel === 'kontomierzImport') {
+      this.categoryEditorMode.set(null);
+      this.groupEditorMode.set(null);
+      this.walletEditorMode.set('create');
+      this.editingWalletId.set(null);
+    }
+  }
+
+  protected onKontomierzFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement | null;
+    const file = input?.files?.[0] ?? null;
+    this.selectedKontomierzFile.set(file);
+    this.kontomierzImport.clear();
+  }
+
+  protected async analyzeKontomierzFile(): Promise<void> {
+    const file = this.selectedKontomierzFile();
+    if (!file) {
+      return;
+    }
+
+    if (this.kontomierzImportForm.invalid) {
+      this.kontomierzImportForm.markAllAsTouched();
+      return;
+    }
+
+    await this.kontomierzImport.analyzeFile(file, this.kontomierzImportFormControls.walletId.value);
+  }
+
+  protected async importKontomierzFile(): Promise<void> {
+    await this.kontomierzImport.importPrepared();
   }
 
   protected selectCategoriesTab(tab: CategoriesTabId): void {

@@ -233,7 +233,10 @@
                     {{ 'transactions.filters.summaryLabel' | transloco }}
                   </span>
                   <p class="rounded-xl border border-dashed border-base-200 bg-base-100 px-4 py-3 text-sm text-base-content/70">
-                    {{ 'transactions.filters.summaryText' | transloco: { total: transactionsVm.length } }}
+                    {{
+                      'transactions.filters.summaryText' | transloco:
+                        { loaded: store.loadedTransactionCount(), total: store.totalMatchingTransactions() }
+                    }}
                   </p>
                 </div>
               </div>
@@ -389,6 +392,21 @@
                     </li>
                   }
                 </ul>
+                @if (store.hasMoreTransactions()) {
+                  <div class="flex justify-center pt-2">
+                    <button
+                      type="button"
+                      class="btn btn-outline"
+                      [disabled]="store.loadingMoreTransactions()"
+                      (click)="store.loadMoreTransactions()"
+                    >
+                      @if (store.loadingMoreTransactions()) {
+                        <span class="loading loading-spinner loading-sm"></span>
+                      }
+                      {{ 'transactions.actions.loadMore' | transloco }}
+                    </button>
+                  </div>
+                }
               }
             }
           </section>

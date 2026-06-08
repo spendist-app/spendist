@@ -247,6 +247,54 @@ const pl = {
           confirmGroupDelete: 'Usunąć tę grupę kategorii? Przenieś przypisane kategorie przed usunięciem.',
         },
       },
+      kontomierzImport: {
+        label: 'Import z Kontomierza',
+        description: 'Pliki XLSX, kategorie, tagi',
+        header: 'Import danych z Kontomierza',
+        text:
+          'Wczytaj eksport XLSX z Kontomierza. Plik jest parsowany w przeglądarce, a do bazy trafiają tylko transakcje, kategorie i tagi.',
+        form: {
+          walletLabel: 'Portfel docelowy',
+          walletPlaceholder: 'Wybierz portfel',
+          fileLabel: 'Plik XLSX',
+          fileEmpty: 'Nie wybrano pliku.',
+          chooseFile: 'Wybierz plik',
+        },
+        actions: {
+          analyze: 'Sprawdź plik',
+          import: 'Importuj transakcje',
+        },
+        status: {
+          errorTitle: 'Nie udało się zaimportować danych.',
+          progress: 'Postęp importu',
+          imported: 'Zaimportowano: {{imported}}. Pominięto duplikaty podczas importu: {{duplicates}}.',
+        },
+        summary: {
+          label: 'Podsumowanie importu',
+          totalRows: 'Wiersze danych',
+          parsed: 'Transakcje rozpoznane',
+          splitParents: 'Pominięte rekordy zbiorcze',
+          duplicates: 'Duplikaty',
+          importable: 'Do importu',
+          newGroups: 'Nowe grupy: {{total}}',
+          newCategories: 'Nowe kategorie: {{total}}',
+          newTags: 'Nowe tagi: {{total}}',
+          issues: 'Problemy w pliku: {{total}}',
+          issueRow: 'Wiersz {{row}}: {{message}}',
+        },
+        empty: {
+          title: 'Najpierw sprawdź plik',
+          body:
+            'Po analizie zobaczysz liczbę transakcji, duplikatów, nowych kategorii i tagów przed właściwym importem.',
+        },
+        errors: {
+          authRequired: 'Zaloguj się ponownie, aby importować dane.',
+          walletRequired: 'Wybierz portfel docelowy.',
+          unsupportedFile: 'Wybierz plik w formacie XLSX.',
+          emptyWorkbook: 'Plik XLSX nie zawiera arkuszy.',
+          generic: 'Import nie powiódł się. Spróbuj ponownie.',
+        },
+      },
     },
   },
   notifications: {
@@ -361,7 +409,7 @@ const pl = {
       yearLabel: 'Przejdź do roku',
       yearPlaceholder: 'Wybierz rok',
       summaryLabel: 'Podsumowanie',
-      summaryText: 'Widocznych wyników: {{ total }}',
+      summaryText: 'Widocznych wyników: {{ loaded }} z {{ total }}',
     },
     list: {
       errorTitle: 'Nie udało się załadować transakcji',
@@ -386,6 +434,7 @@ const pl = {
     },
     actions: {
       add: 'Dodaj transakcję',
+      loadMore: 'Załaduj więcej',
     },
     form: {
       badge: {

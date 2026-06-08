@@ -247,6 +247,54 @@ const en = {
           confirmGroupDelete: 'Delete this category group? Categories assigned to it must be moved first.',
         },
       },
+      kontomierzImport: {
+        label: 'Kontomierz import',
+        description: 'XLSX files, categories, tags',
+        header: 'Import data from Kontomierz',
+        text:
+          'Load a Kontomierz XLSX export. The file is parsed in your browser, and only transactions, categories, and tags are saved to the database.',
+        form: {
+          walletLabel: 'Target wallet',
+          walletPlaceholder: 'Select a wallet',
+          fileLabel: 'XLSX file',
+          fileEmpty: 'No file selected.',
+          chooseFile: 'Choose file',
+        },
+        actions: {
+          analyze: 'Check file',
+          import: 'Import transactions',
+        },
+        status: {
+          errorTitle: 'The import could not be completed.',
+          progress: 'Import progress',
+          imported: 'Imported: {{imported}}. Duplicates skipped during import: {{duplicates}}.',
+        },
+        summary: {
+          label: 'Import summary',
+          totalRows: 'Data rows',
+          parsed: 'Parsed transactions',
+          splitParents: 'Skipped parent split records',
+          duplicates: 'Duplicates',
+          importable: 'Ready to import',
+          newGroups: 'New groups: {{total}}',
+          newCategories: 'New categories: {{total}}',
+          newTags: 'New tags: {{total}}',
+          issues: 'File issues: {{total}}',
+          issueRow: 'Row {{row}}: {{message}}',
+        },
+        empty: {
+          title: 'Check a file first',
+          body:
+            'After analysis you will see transaction, duplicate, new category, and tag counts before the import writes anything.',
+        },
+        errors: {
+          authRequired: 'Sign in again to import data.',
+          walletRequired: 'Select a target wallet.',
+          unsupportedFile: 'Choose an XLSX file.',
+          emptyWorkbook: 'The XLSX file does not contain worksheets.',
+          generic: 'The import failed. Please try again.',
+        },
+      },
     },
   },
   notifications: {
@@ -361,7 +409,7 @@ const en = {
       yearLabel: 'Jump to year',
       yearPlaceholder: 'Select year',
       summaryLabel: 'Summary',
-      summaryText: 'Showing {{ total }} results',
+      summaryText: 'Showing {{ loaded }} of {{ total }} results',
     },
     list: {
       errorTitle: 'Transactions could not be loaded',
@@ -386,6 +434,7 @@ const en = {
     },
     actions: {
       add: 'Add transaction',
+      loadMore: 'Load more',
     },
     form: {
       badge: {
