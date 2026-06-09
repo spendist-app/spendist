@@ -93,7 +93,6 @@ export class TransactionsPageComponent implements OnDestroy {
       style: 'currency',
       currency: transaction.currency,
       signDisplay: 'always',
-      currencyDisplay: 'narrowSymbol',
       maximumFractionDigits: 2,
       minimumFractionDigits: 2,
     }).format(value);

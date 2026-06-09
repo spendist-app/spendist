@@ -26,6 +26,7 @@
     "db:pull:remote": "dotenv -e .env -- sh -c 'npx supabase db pull --db-url \"$SUPABASE_REMOTE_DB_URL\"'",
     "db:types:remote": "dotenv -e .env -- sh -c 'SUPABASE_DB_URL=\"$SUPABASE_REMOTE_DB_URL\" node tools/scripts/generate-supabase-types.mjs'",
     "db:reset:remote": "dotenv -e .env -- sh -c 'npx supabase db reset --db-url \"$SUPABASE_REMOTE_DB_URL\"'",
+    "fx:generate-nbp-migration": "node tools/scripts/generate-nbp-exchange-rate-migration.mjs",
     "supabase:init": "npx supabase init",
     "supabase:ensure": "node tools/scripts/ensure-local-supabase.mjs",
     "supabase:start": "npx supabase start",

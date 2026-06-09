@@ -1,0 +1,43 @@
+name: Exchange Rates
+
+on:
+  schedule:
+    - cron: '30 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: exchange-rates
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      NG_APP_SUPABASE_URL: ${{ secrets.NG_APP_SUPABASE_URL }}
+      NG_APP_SUPABASE_FUNCTIONS_URL: ${{ secrets.NG_APP_SUPABASE_FUNCTIONS_URL }}
+      EXCHANGE_RATES_SYNC_SECRET: ${{ secrets.EXCHANGE_RATES_SYNC_SECRET }}
+    steps:
+      - name: Sync exchange rates
+        run: |
+          if [ -z "$EXCHANGE_RATES_SYNC_SECRET" ]; then
+            echo "::error::Missing required GitHub secret: EXCHANGE_RATES_SYNC_SECRET"
+            exit 1
+          fi
+
+          if [ -n "$NG_APP_SUPABASE_FUNCTIONS_URL" ]; then
+            functions_url="$NG_APP_SUPABASE_FUNCTIONS_URL"
+          elif [ -n "$NG_APP_SUPABASE_URL" ]; then
+            functions_url="${NG_APP_SUPABASE_URL%/}/functions/v1"
+          else
+            echo "::error::Missing NG_APP_SUPABASE_FUNCTIONS_URL or NG_APP_SUPABASE_URL"
+            exit 1
+          fi
+
+          curl -fsS \
+            -X POST \
+            -H "Authorization: Bearer $EXCHANGE_RATES_SYNC_SECRET" \
+            -H "Content-Type: application/json" \
+            "${functions_url%/}/sync-exchange-rates"

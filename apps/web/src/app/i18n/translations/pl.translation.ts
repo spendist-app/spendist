@@ -399,6 +399,9 @@ const pl = {
       recurring_transaction_ended: {
         title: 'Płatność cykliczna zakończona: {{description}} (koniec: {{endDate}})',
       },
+      exchange_rates_sync_failed: {
+        title: 'Synchronizacja kursów walut nie powiodła się: {{error}}',
+      },
     },
     errors: {
       generic: 'Coś poszło nie tak. Spróbuj ponownie.',
@@ -563,6 +566,7 @@ const pl = {
       },
       validation: {
         amount: 'Podaj kwotę większą od zera.',
+        exchangeRateUnavailable: 'Brak kursu dla tej daty i pary walut.',
       },
       actions: {
         clearTags: 'Wyczyść wybór',

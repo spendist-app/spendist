@@ -144,6 +144,80 @@ export type Database = {
         }
         Relationships: []
       }
+      exchange_rate_sync_runs: {
+        Row: {
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          inserted_count: number
+          payload: Json
+          range_end: string
+          range_start: string
+          started_at: string
+          status: string
+          updated_count: number
+        }
+        Insert: {
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          inserted_count?: number
+          payload?: Json
+          range_end: string
+          range_start: string
+          started_at?: string
+          status: string
+          updated_count?: number
+        }
+        Update: {
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          inserted_count?: number
+          payload?: Json
+          range_end?: string
+          range_start?: string
+          started_at?: string
+          status?: string
+          updated_count?: number
+        }
+        Relationships: []
+      }
+      exchange_rates: {
+        Row: {
+          currency: string
+          fetched_at: string
+          rate: number
+          rate_date: string
+          source: string
+          source_no: string | null
+        }
+        Insert: {
+          currency: string
+          fetched_at?: string
+          rate: number
+          rate_date: string
+          source?: string
+          source_no?: string | null
+        }
+        Update: {
+          currency?: string
+          fetched_at?: string
+          rate?: number
+          rate_date?: string
+          source?: string
+          source_no?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exchange_rates_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["symbol"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
@@ -184,6 +258,7 @@ export type Database = {
           creation_date: string
           full_name: string
           id: string
+          is_admin: boolean
           language: string
           timezone: string
           updated_at: string
@@ -195,6 +270,7 @@ export type Database = {
           creation_date?: string
           full_name: string
           id: string
+          is_admin?: boolean
           language?: string
           timezone?: string
           updated_at?: string
@@ -206,6 +282,7 @@ export type Database = {
           creation_date?: string
           full_name?: string
           id?: string
+          is_admin?: boolean
           language?: string
           timezone?: string
           updated_at?: string
@@ -740,6 +817,14 @@ export type Database = {
           import_fingerprint: string
         }[]
       }
+      get_exchange_rate: {
+        Args: {
+          p_rate_date?: string
+          p_source_currency: string
+          p_target_currency: string
+        }
+        Returns: number
+      }
       monthly_cashflow_summary: {
         Args: { p_months?: number; p_wallet_id?: string }
         Returns: {
@@ -769,6 +854,10 @@ export type Database = {
           month_start: string
           transaction_count: number
         }[]
+      }
+      notify_admins_exchange_rates_sync_failed: {
+        Args: { p_payload: Json }
+        Returns: number
       }
       resolve_preferred_currency_id: {
         Args: { user_meta: Json }

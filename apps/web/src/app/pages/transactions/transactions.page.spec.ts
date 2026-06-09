@@ -85,7 +85,7 @@ describe('TransactionsPageComponent', () => {
       .compileComponents();
   });
 
-  it('formats transaction amounts with the locale currency placement from Intl', () => {
+  it('formats transaction amounts with the standard locale currency placement from Intl', () => {
     const fixture = TestBed.createComponent(TransactionsPageComponent);
     const component = fixture.componentInstance as unknown as {
       formatAmount(transaction: TransactionViewModel): string;
@@ -93,19 +93,18 @@ describe('TransactionsPageComponent', () => {
     const transaction = {
       amount: 1234.56,
       amountInDefault: 1234.56,
-      currency: 'USD',
-      direction: 'income',
+      currency: 'PLN',
+      direction: 'expense',
     } as TransactionViewModel;
 
     expect(component.formatAmount(transaction)).toBe(
       new Intl.NumberFormat('en-US', {
         style: 'currency',
-        currency: 'USD',
+        currency: 'PLN',
         signDisplay: 'always',
-        currencyDisplay: 'narrowSymbol',
         maximumFractionDigits: 2,
         minimumFractionDigits: 2,
-      }).format(1234.56),
+      }).format(-1234.56),
     );
   });
 

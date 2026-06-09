@@ -16,6 +16,7 @@ import type { CategoryEntity, CategoryGroupEntity } from '../settings/settings.s
 const FALLBACK_CURRENCY = 'PLN';
 const MAX_BULK_QUANTITY = 100;
 const SUPABASE_PAGE_SIZE = 1000;
+const TRANSACTION_TAG_QUERY_BATCH_SIZE = 100;
 const FIRST_TRANSACTION_PAGE = 0;
 type CurrencyRow = Tables<'currencies'>;
 
@@ -594,17 +595,23 @@ export class TransactionsStore {
       return [];
     }
 
-    const { data, error } = await this.supabase
-      .from('transaction_tags')
-      .select('*')
-      .eq('owner_id', userId)
-      .in('transaction_id', [...transactionIds]);
+    const rows: TransactionTagRow[] = [];
+    for (let index = 0; index < transactionIds.length; index += TRANSACTION_TAG_QUERY_BATCH_SIZE) {
+      const batch = transactionIds.slice(index, index + TRANSACTION_TAG_QUERY_BATCH_SIZE);
+      const { data, error } = await this.supabase
+        .from('transaction_tags')
+        .select('*')
+        .eq('owner_id', userId)
+        .in('transaction_id', [...batch]);
 
-    if (error) {
-      throw error;
+      if (error) {
+        throw error;
+      }
+
+      rows.push(...((data ?? []) as TransactionTagRow[]));
     }
 
-    return (data ?? []) as TransactionTagRow[];
+    return rows;
   }
 
   private async loadAvailableYears(userId: string): Promise<readonly number[]> {
@@ -845,6 +852,38 @@ export class TransactionsStore {
     return sanitized
       .map((name) => lookup.get(name.toLowerCase()))
       .filter((tag): tag is TagEntity => !!tag);
+  }
+
+  async getExchangeRate(
+    sourceCurrency: string,
+    targetCurrency: string,
+    rateDate: Date,
+  ): Promise<number | null> {
+    const source = this.normalizeCurrency(sourceCurrency);
+    const target = this.normalizeCurrency(targetCurrency);
+    if (!source || !target || Number.isNaN(rateDate.getTime())) {
+      return null;
+    }
+
+    if (source === target) {
+      return 1;
+    }
+
+    const { data, error } = await this.supabase.rpc('get_exchange_rate', {
+      p_source_currency: source,
+      p_target_currency: target,
+      p_rate_date: this.toDateOnly(rateDate),
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    const rate =
+      typeof data === 'number' ? data : data != null ? Number(data) : null;
+    return Number.isFinite(rate ?? NaN) && (rate as number) > 0
+      ? (rate as number)
+      : null;
   }
 
   async createTransactions(payload: CreateTransactionPayload): Promise<{ success: boolean; error?: string }> {
@@ -1228,6 +1267,13 @@ export class TransactionsStore {
 
   private startOfDay(value: Date): Date {
     return new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate(), 0, 0, 0, 0));
+  }
+
+  private toDateOnly(value: Date): string {
+    const year = value.getUTCFullYear();
+    const month = (value.getUTCMonth() + 1).toString().padStart(2, '0');
+    const day = value.getUTCDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   private endOfDay(value: Date): Date {

@@ -399,6 +399,9 @@ const en = {
       recurring_transaction_ended: {
         title: 'Recurring payment ended: {{description}} (ended on {{endDate}})',
       },
+      exchange_rates_sync_failed: {
+        title: 'Exchange rates sync failed: {{error}}',
+      },
     },
     errors: {
       generic: 'Something went wrong. Please try again.',
@@ -563,6 +566,7 @@ const en = {
       },
       validation: {
         amount: 'Enter an amount greater than zero.',
+        exchangeRateUnavailable: 'Exchange rate is unavailable for this date and currency pair.',
       },
       actions: {
         clearTags: 'Clear selection',
