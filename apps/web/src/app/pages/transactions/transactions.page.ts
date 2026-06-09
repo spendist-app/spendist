@@ -183,6 +183,16 @@ export class TransactionsPageComponent implements OnDestroy {
     }
   }
 
+  protected toggleCategorySelectionAndScroll(categoryId: string): void {
+    this.store.toggleCategorySelection(categoryId);
+    this.scrollToTransactionsResults();
+  }
+
+  protected clearCategorySelectionAndScroll(): void {
+    this.store.clearCategorySelection();
+    this.scrollToTransactionsResults();
+  }
+
   protected trackTransaction(_index: number, transaction: TransactionViewModel): string {
     return transaction.id;
   }
@@ -347,6 +357,16 @@ export class TransactionsPageComponent implements OnDestroy {
     }
 
     return new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+  }
+
+  private scrollToTransactionsResults(): void {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
+    this.document
+      ?.getElementById('transactions-results')
+      ?.scrollIntoView({ block: 'start', behavior: 'smooth' });
   }
 
   private isStartOfMonth(date: Date): boolean {

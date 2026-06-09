@@ -9,7 +9,7 @@
       </header>
 
       <div
-        class="mt-10 grid gap-6 lg:grid-cols-[minmax(0,260px)_minmax(0,1fr)] xl:grid-cols-[minmax(0,280px)_minmax(0,1fr)]"
+        class="mt-10 grid gap-6 lg:grid-cols-[minmax(300px,340px)_minmax(0,1fr)] xl:grid-cols-[minmax(340px,380px)_minmax(0,1fr)]"
       >
         @let filtersVm = filters();
         @let transactionsVm = store.filteredTransactions();
@@ -23,7 +23,7 @@
                 type="button"
                 class="btn btn-ghost btn-xs"
                 [disabled]="!store.hasActiveCategoryFilter()"
-                (click)="store.clearCategorySelection()"
+                (click)="clearCategorySelectionAndScroll()"
               >
                 {{ 'transactions.filters.clearCategories' | transloco }}
               </button>
@@ -31,13 +31,13 @@
 
             <button
               type="button"
-              class="btn btn-outline btn-sm w-full justify-start gap-3"
+              class="btn btn-outline min-h-11 w-full grid-cols-[auto_minmax(0,1fr)_auto] justify-start gap-3 px-3"
               [class.btn-active]="!store.hasActiveCategoryFilter()"
-              (click)="store.clearCategorySelection()"
+              (click)="clearCategorySelectionAndScroll()"
             >
               <span class="size-2 rounded-full bg-base-content/20" aria-hidden="true"></span>
               <span class="truncate text-sm">{{ 'transactions.filters.allCategories' | transloco }}</span>
-              <span class="ml-auto text-sm font-semibold text-base-content/70">
+              <span class="whitespace-nowrap text-sm font-semibold text-base-content/70">
                 {{ formatExpenseTotal(store.overallExpenseTotal()) }}
               </span>
             </button>
@@ -45,39 +45,40 @@
             <nav class="space-y-5">
               @for (group of store.groupedCategories(); track group.id) {
                 <section>
-                  <header class="flex items-center justify-between gap-3">
-                    <div class="flex items-center gap-2">
+                  <header class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+                    <div class="flex min-w-0 items-start gap-2">
                       <span
-                        class="size-2 rounded-full"
+                        class="mt-1.5 size-2 shrink-0 rounded-full"
                         [style.backgroundColor]="group.color ?? '#CBD5F5'"
                         aria-hidden="true"
                       ></span>
-                      <h3 class="text-sm font-semibold text-base-content">{{ group.name }}</h3>
+                      <div class="min-w-0">
+                        <h3 class="truncate text-sm font-semibold text-base-content">{{ group.name }}</h3>
+                        <p class="text-xs text-base-content/50">
+                          {{ 'transactions.filters.categoryCount' | transloco: { total: group.categories.length } }}
+                        </p>
+                      </div>
                     </div>
-                    <div class="flex flex-col items-end text-right">
-                      <span class="text-sm font-semibold text-base-content">
-                        {{ formatExpenseTotal(store.groupExpenseTotal(group.id)) }}
-                      </span>
-                      <span class="text-xs text-base-content/50">
-                        {{ group.categories.length }}
-                      </span>
-                    </div>
+                    <span class="whitespace-nowrap text-right text-sm font-semibold text-base-content">
+                      {{ formatExpenseTotal(store.groupExpenseTotal(group.id)) }}
+                    </span>
                   </header>
                   <div class="mt-3 space-y-2">
                     @for (category of group.categories; track category.id) {
                       <button
                         type="button"
-                        class="btn btn-ghost btn-sm w-full justify-start gap-3 text-left"
-                        [class.btn-active]="filtersVm.selectedCategoryIds.includes(category.id)"
-                        (click)="store.toggleCategorySelection(category.id)"
+                        class="grid min-h-11 w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition hover:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                        [class.bg-base-200]="filtersVm.selectedCategoryIds.includes(category.id)"
+                        [class.text-primary]="filtersVm.selectedCategoryIds.includes(category.id)"
+                        (click)="toggleCategorySelectionAndScroll(category.id)"
                       >
                         <span
-                          class="size-2 rounded-full"
+                          class="size-2 shrink-0 rounded-full"
                           [style.backgroundColor]="category.color ?? group.color ?? '#CBD5F5'"
                           aria-hidden="true"
                         ></span>
-                        <span class="flex-1 truncate text-sm">{{ category.name }}</span>
-                        <span class="text-sm font-medium text-base-content/70">
+                        <span class="min-w-0 truncate font-medium text-base-content">{{ category.name }}</span>
+                        <span class="whitespace-nowrap text-right font-semibold text-base-content/70">
                           {{ formatExpenseTotal(store.categoryExpenseTotal(category.id)) }}
                         </span>
                       </button>
@@ -89,27 +90,25 @@
 
             @if (store.ungroupedCategories().length > 0) {
               <section class="rounded-xl border border-dashed border-base-200 p-3">
-                <div class="flex items-center justify-between gap-3">
-                  <h3 class="text-xs font-semibold uppercase tracking-wide text-base-content/50">
-                  {{ 'transactions.filters.ungroupedTitle' | transloco }}
+                <div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+                  <h3 class="truncate text-xs font-semibold uppercase tracking-wide text-base-content/50">
+                    {{ 'transactions.filters.ungroupedTitle' | transloco }}
                   </h3>
-                  <span class="text-xs font-semibold text-base-content/70">
+                  <span class="whitespace-nowrap text-xs font-semibold text-base-content/70">
                     {{ formatExpenseTotal(store.groupExpenseTotal(null)) }}
                   </span>
                 </div>
-                <div class="mt-2 flex flex-wrap gap-2">
+                <div class="mt-2 space-y-2">
                   @for (category of store.ungroupedCategories(); track category.id) {
                     <button
                       type="button"
-                      class="badge badge-outline gap-2"
-                      [class.badge-primary]="filtersVm.selectedCategoryIds.includes(category.id)"
-                      (click)="store.toggleCategorySelection(category.id)"
+                      class="grid min-h-10 w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition hover:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                      [class.bg-base-200]="filtersVm.selectedCategoryIds.includes(category.id)"
+                      (click)="toggleCategorySelectionAndScroll(category.id)"
                     >
-                      <span class="size-2 rounded-full bg-primary" aria-hidden="true"></span>
-                      <span class="truncate">
-                        {{ category.name }}
-                      </span>
-                      <span class="text-xs font-semibold text-base-content/70">
+                      <span class="size-2 shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
+                      <span class="min-w-0 truncate font-medium">{{ category.name }}</span>
+                      <span class="whitespace-nowrap text-xs font-semibold text-base-content/70">
                         {{ formatExpenseTotal(store.categoryExpenseTotal(category.id)) }}
                       </span>
                     </button>
@@ -243,7 +242,7 @@
             </div>
           </section>
 
-          <section class="space-y-4">
+          <section id="transactions-results" class="space-y-4">
             @if (store.error(); as error) {
               <div
                 class="alert alert-error flex-col items-start gap-2 rounded-2xl border border-error/20 bg-error/10 p-4 text-sm text-error"

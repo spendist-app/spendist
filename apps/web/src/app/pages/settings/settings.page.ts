@@ -28,11 +28,14 @@ import {
 } from '../../shared/icons/heroicons';
 import { HeroIconPickerComponent } from '../../shared/icons/hero-icon-picker.component';
 import { KontomierzImportStore } from './kontomierz-import.store';
+import { SpendistCsvTransferStore } from './spendist-csv-transfer.store';
+import { SPENDIST_CSV_HEADERS } from './spendist-csv-transfer.parser';
 
-type SettingsPanelId = 'profile' | 'wallets' | 'categories' | 'kontomierzImport';
+type SettingsPanelId = 'profile' | 'wallets' | 'categories' | 'spendistCsv' | 'kontomierzImport';
 type CategoriesTabId = 'list' | 'groups';
 type CategoryEditorMode = 'create' | 'edit';
 type GroupEditorMode = 'create' | 'edit';
+type SpendistCsvRangeMode = 'month' | 'all';
 
 interface SettingsPanel {
   readonly id: SettingsPanelId;
@@ -67,13 +70,14 @@ interface ParentCategoryOption {
     HeroIconPickerComponent,
     TranslocoPipe,
   ],
-  providers: [SettingsStore, KontomierzImportStore],
+  providers: [SettingsStore, KontomierzImportStore, SpendistCsvTransferStore],
   templateUrl: './settings.page.html',
 })
 export class SettingsPageComponent {
   private readonly fb = inject(NonNullableFormBuilder);
   protected readonly store = inject(SettingsStore);
   protected readonly kontomierzImport = inject(KontomierzImportStore);
+  protected readonly spendistCsv = inject(SpendistCsvTransferStore);
   private readonly transloco = inject(TranslocoService);
 
   protected readonly heroIconSvg = heroIconSvgFn;
@@ -97,6 +101,11 @@ export class SettingsPageComponent {
       descriptionKey: 'settings.panels.categories.description',
     },
     {
+      id: 'spendistCsv',
+      labelKey: 'settings.panels.spendistCsv.label',
+      descriptionKey: 'settings.panels.spendistCsv.description',
+    },
+    {
       id: 'kontomierzImport',
       labelKey: 'settings.panels.kontomierzImport.label',
       descriptionKey: 'settings.panels.kontomierzImport.description',
@@ -114,6 +123,9 @@ export class SettingsPageComponent {
   protected readonly selectedGroupFilter = signal<string | null>(null);
   protected readonly categoryQuery = signal('');
   protected readonly selectedKontomierzFile = signal<File | null>(null);
+  protected readonly selectedSpendistCsvFile = signal<File | null>(null);
+  protected readonly selectedSpendistCsvCategoryIds = signal<readonly string[]>([]);
+  protected readonly spendistCsvHeaders = SPENDIST_CSV_HEADERS;
 
   protected readonly hasGroups = computed(() => this.store.groups().length > 0);
 
@@ -259,6 +271,14 @@ export class SettingsPageComponent {
     walletId: this.fb.control('', { validators: [Validators.required] }),
   });
   protected readonly kontomierzImportFormControls = this.kontomierzImportForm.controls;
+  protected readonly spendistCsvExportForm = this.fb.group({
+    rangeMode: this.fb.control<SpendistCsvRangeMode>('month'),
+    month: this.fb.control(this.currentMonthValue(), {
+      validators: [Validators.pattern(/^\d{4}-\d{2}$/)],
+    }),
+  });
+  protected readonly spendistCsvExportFormControls = this.spendistCsvExportForm.controls;
+  protected readonly spendistCsvFileName = computed(() => this.selectedSpendistCsvFile()?.name ?? null);
 
   constructor() {
     effect(() => {
@@ -414,12 +434,66 @@ export class SettingsPageComponent {
       }
       return;
     }
-    if (panel === 'kontomierzImport') {
+    if (panel === 'kontomierzImport' || panel === 'spendistCsv') {
       this.categoryEditorMode.set(null);
       this.groupEditorMode.set(null);
       this.walletEditorMode.set('create');
       this.editingWalletId.set(null);
     }
+  }
+
+  protected toggleSpendistCsvCategory(categoryId: string): void {
+    this.selectedSpendistCsvCategoryIds.update((ids) => {
+      const next = new Set(ids);
+      if (next.has(categoryId)) {
+        next.delete(categoryId);
+      } else {
+        next.add(categoryId);
+      }
+      return Array.from(next);
+    });
+  }
+
+  protected clearSpendistCsvCategories(): void {
+    this.selectedSpendistCsvCategoryIds.set([]);
+  }
+
+  protected isSpendistCsvCategorySelected(categoryId: string): boolean {
+    return this.selectedSpendistCsvCategoryIds().includes(categoryId);
+  }
+
+  protected onSpendistCsvFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement | null;
+    const file = input?.files?.[0] ?? null;
+    this.selectedSpendistCsvFile.set(file);
+    this.spendistCsv.clear();
+  }
+
+  protected async exportSpendistCsv(): Promise<void> {
+    if (this.spendistCsvExportForm.invalid) {
+      this.spendistCsvExportForm.markAllAsTouched();
+      return;
+    }
+
+    const { rangeMode, month } = this.spendistCsvExportForm.getRawValue();
+    const result = await this.spendistCsv.exportCsv({
+      month: rangeMode === 'month' ? month : null,
+      categoryIds: this.selectedSpendistCsvCategoryIds(),
+    });
+    this.downloadCsv(result.fileName, result.csv);
+  }
+
+  protected async analyzeSpendistCsvFile(): Promise<void> {
+    const file = this.selectedSpendistCsvFile();
+    if (!file) {
+      return;
+    }
+
+    await this.spendistCsv.analyzeFile(file);
+  }
+
+  protected async importSpendistCsvFile(): Promise<void> {
+    await this.spendistCsv.importPrepared();
   }
 
   protected onKontomierzFileSelected(event: Event): void {
@@ -877,6 +951,23 @@ export class SettingsPageComponent {
     }
 
     return descendants;
+  }
+
+  private currentMonthValue(): string {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}`;
+  }
+
+  private downloadCsv(fileName: string, csv: string): void {
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = fileName;
+    anchor.click();
+    URL.revokeObjectURL(url);
   }
 
   private resetWalletForm(overrides?: {
