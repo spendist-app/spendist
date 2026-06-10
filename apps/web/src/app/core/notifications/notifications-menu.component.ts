@@ -10,6 +10,7 @@ interface RecurringTransactionNotificationPayload {
   readonly amount?: unknown;
   readonly currency?: unknown;
   readonly end_date?: unknown;
+  readonly error?: unknown;
 }
 
 @Component({
@@ -45,6 +46,7 @@ export class NotificationsMenuComponent {
       amount: this.stringify(payload?.amount, ''),
       currency: this.stringify(payload?.currency, ''),
       endDate: this.stringify(payload?.end_date, ''),
+      error: this.stringify(payload?.error, ''),
     };
   }
 

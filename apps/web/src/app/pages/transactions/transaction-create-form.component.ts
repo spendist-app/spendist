@@ -24,6 +24,7 @@ import {
 import type { TransactionDirection } from '@spendist/data-access/supabase-types';
 import { parseAmountInput } from './transaction-amount.parser';
 import { heroIconSvg } from '../../shared/icons/heroicons';
+import { logError } from '../../core/logger';
 
 interface CategoryOption {
   readonly id: string;
@@ -56,6 +57,7 @@ export class TransactionCreateFormComponent {
   protected readonly store = inject(TransactionsStore);
   private readonly host = inject(ElementRef<HTMLElement>);
   private suggestionBlurTimer: ReturnType<typeof setTimeout> | null = null;
+  private exchangeRateRequestToken = 0;
 
   readonly mode = input<'create' | 'edit'>('create');
   readonly transaction = input<TransactionViewModel | null>(null);
@@ -105,7 +107,7 @@ export class TransactionCreateFormComponent {
       nonNullable: true,
     }),
     amount: this.formBuilder.control<string>('', {
-      validators: [Validators.required],
+      validators: [Validators.required, Validators.pattern(/[0-9]/)],
       nonNullable: true,
     }),
     currency: this.formBuilder.control<string>(this.store.defaultCurrency(), {
@@ -263,6 +265,12 @@ export class TransactionCreateFormComponent {
       });
 
     this.form.controls.currency.valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => {
+        this.syncAmountInDefault();
+      });
+
+    this.form.controls.occurredOn.valueChanges
       .pipe(takeUntilDestroyed())
       .subscribe(() => {
         this.syncAmountInDefault();
@@ -581,6 +589,27 @@ export class TransactionCreateFormComponent {
     const amountInDefault = raw.foreignAmount
       ? parseAmountInput(raw.foreignAmount)
       : null;
+    if (raw.foreignAmount && amountInDefault === null) {
+      this.form.controls.foreignAmount.setErrors({ invalid: true });
+      return;
+    }
+
+    const resolvedAmountInDefault =
+      amountInDefault ??
+      (currency === defaultCurrency
+        ? null
+        : await this.calculateAmountInDefault(
+            amount,
+            currency,
+            defaultCurrency,
+            occurredAt,
+          ));
+
+    if (currency !== defaultCurrency && resolvedAmountInDefault === null) {
+      this.setExchangeRateUnavailableError();
+      return;
+    }
+
     const basePayload: UpdateTransactionPayload = {
       description: raw.description?.trim() ? raw.description.trim() : null,
       categoryId: raw.categoryId,
@@ -589,8 +618,8 @@ export class TransactionCreateFormComponent {
       currency,
       direction: raw.direction,
       tagIds: Array.from(new Set(finalTagIds)),
-      foreignAmount: amountInDefault,
-      foreignCurrency: amountInDefault ? defaultCurrency : null,
+      foreignAmount: resolvedAmountInDefault,
+      foreignCurrency: resolvedAmountInDefault ? defaultCurrency : null,
       walletId,
     };
 
@@ -770,23 +799,14 @@ export class TransactionCreateFormComponent {
     }
   }
 
-  private calculateExchangeRate(
-    sourceCurrency: string,
-    targetCurrency: string
-  ): number | null {
-    if (!sourceCurrency || !targetCurrency) {
-      return null;
-    }
-
-    if (sourceCurrency === targetCurrency) {
-      return 1;
-    }
-
-    // TODO: Replace stub implementation with a real FX lookup.
-    return 1;
+  private syncAmountInDefault(): void {
+    const requestToken = ++this.exchangeRateRequestToken;
+    void this.syncAmountInDefaultFromExchangeRate(requestToken);
   }
 
-  private syncAmountInDefault(): void {
+  private async syncAmountInDefaultFromExchangeRate(
+    requestToken: number
+  ): Promise<void> {
     const amountControl = this.form.controls.amount;
     const currencyControl = this.form.controls.currency;
     const defaultAmountControl = this.form.controls.foreignAmount;
@@ -794,24 +814,87 @@ export class TransactionCreateFormComponent {
     const amount = parseAmountInput(amountControl.value);
     if (amount === null) {
       defaultAmountControl.setValue('', { emitEvent: false });
+      this.clearExchangeRateUnavailableError();
       return;
     }
 
     const currency = (currencyControl.value ?? '').toUpperCase();
     const defaultCurrency = this.walletCurrency().toUpperCase();
-    const rate = this.calculateExchangeRate(
-      currency || defaultCurrency,
-      defaultCurrency
-    );
-
-    if (rate === null) {
+    const occurredAt = this.parseDate(this.form.controls.occurredOn.value);
+    if (!occurredAt) {
       return;
     }
 
-    const defaultAmount = amount * rate;
-    defaultAmountControl.setValue(defaultAmount.toFixed(2), {
+    const amountInDefault = await this.calculateAmountInDefault(
+      amount,
+      currency || defaultCurrency,
+      defaultCurrency,
+      occurredAt,
+    );
+
+    if (requestToken !== this.exchangeRateRequestToken) {
+      return;
+    }
+
+    if (amountInDefault === null) {
+      defaultAmountControl.setValue('', { emitEvent: false });
+      if ((currency || defaultCurrency) !== defaultCurrency) {
+        this.setExchangeRateUnavailableError();
+      }
+      return;
+    }
+
+    defaultAmountControl.setValue(amountInDefault.toFixed(2), {
       emitEvent: false,
     });
+    this.clearExchangeRateUnavailableError();
+  }
+
+  private async calculateAmountInDefault(
+    amount: number,
+    sourceCurrency: string,
+    targetCurrency: string,
+    occurredAt: Date
+  ): Promise<number | null> {
+    if (!sourceCurrency || !targetCurrency) {
+      return null;
+    }
+
+    if (sourceCurrency === targetCurrency) {
+      return amount;
+    }
+
+    try {
+      const rate = await this.store.getExchangeRate(
+        sourceCurrency,
+        targetCurrency,
+        occurredAt,
+      );
+      return rate === null ? null : amount * rate;
+    } catch (error) {
+      logError('TransactionCreateForm', 'Failed to load exchange rate', error);
+      return null;
+    }
+  }
+
+  private setExchangeRateUnavailableError(): void {
+    const control = this.form.controls.foreignAmount;
+    control.setErrors({
+      ...(control.errors ?? {}),
+      exchangeRateUnavailable: true,
+    });
+    control.markAsTouched();
+  }
+
+  private clearExchangeRateUnavailableError(): void {
+    const control = this.form.controls.foreignAmount;
+    const errors = control.errors;
+    if (!errors?.['exchangeRateUnavailable']) {
+      return;
+    }
+
+    const { exchangeRateUnavailable: _exchangeRateUnavailable, ...remaining } = errors;
+    control.setErrors(Object.keys(remaining).length > 0 ? remaining : null);
   }
 
   private parseDate(value: string | null | undefined): Date | null {

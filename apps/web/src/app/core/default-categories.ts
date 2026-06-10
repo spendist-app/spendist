@@ -1,6 +1,7 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { DEFAULT_LANGUAGE, LanguageCode } from '../i18n/languages';
 import { canonicalHeroIconName } from '../shared/icons/heroicons';
+import { logError } from './logger';
 
 interface CategoryTemplate {
   readonly key: string;
@@ -161,7 +162,7 @@ export async function ensureDefaultCategoriesForUser(
     .eq('owner_id', ownerId);
 
   if (countError) {
-    console.error('[DefaultCategories] Failed to count existing categories', countError);
+    logError('DefaultCategories', 'Failed to count existing categories', countError);
     return;
   }
 
@@ -198,7 +199,7 @@ export async function ensureDefaultCategoriesForUser(
         .single();
 
       if (groupInsertError) {
-        console.error('[DefaultCategories] Failed to insert group', groupName, groupInsertError);
+        logError('DefaultCategories', 'Failed to insert group', groupName, groupInsertError);
         continue;
       }
 
@@ -260,7 +261,7 @@ async function ensureDefaultCategory(
       .single();
 
     if (categoryInsertError) {
-      console.error('[DefaultCategories] Failed to insert category', categoryName, categoryInsertError);
+      logError('DefaultCategories', 'Failed to insert category', categoryName, categoryInsertError);
       return null;
     }
 

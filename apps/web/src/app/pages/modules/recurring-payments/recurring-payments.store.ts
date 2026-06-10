@@ -6,6 +6,7 @@ import {
   SupabaseClient,
 } from '@supabase/supabase-js';
 import { AuthService } from '../../../core/auth.service';
+import { logError } from '../../../core/logger';
 import { SUPABASE_CLIENT } from '../../../core/supabase';
 import type {
   CategoryGroupRow,
@@ -76,7 +77,7 @@ export interface RecurringOccurrenceEntity {
   readonly transactionId: string | null;
 }
 
-interface CurrencyOption {
+export interface CurrencyOption {
   readonly id: number;
   readonly symbol: string;
 }
@@ -130,6 +131,7 @@ export interface CreateRecurringTransactionPayload {
   readonly endDate: string | null;
   readonly schedule: string;
   readonly amount: number;
+  readonly currency: string;
   readonly amountMode: RecurringAmountMode;
   readonly direction: RecurringTransactionDirection;
   readonly tagIds: readonly string[];
@@ -447,7 +449,7 @@ export class RecurringPaymentsStore {
       });
     } catch (error) {
       const message = this.describeError(error);
-      console.error('[RecurringPaymentsStore] Failed to refresh data:', error);
+      logError('RecurringPaymentsStore', 'Failed to refresh data:', error);
       this.state.update((state) => ({
         ...state,
         loading: false,
@@ -500,7 +502,7 @@ export class RecurringPaymentsStore {
     if (!wallet) {
       throw new RecurringPaymentsStoreError('modules.recurringPayments.form.fields.wallet.error');
     }
-    const currency = wallet.currency;
+    const currency = this.normalizeCurrency(payload.currency) ?? wallet.currency;
 
     try {
       const insertResult = await this.supabase
@@ -543,7 +545,7 @@ export class RecurringPaymentsStore {
       await this.refresh();
     } catch (error) {
       const message = this.describeError(error);
-      console.error('[RecurringPaymentsStore] Failed to create recurring transaction:', error);
+      logError('RecurringPaymentsStore', 'Failed to create recurring transaction:', error);
       this.state.update((state) => ({
         ...state,
         mutationPending: false,
@@ -575,7 +577,7 @@ export class RecurringPaymentsStore {
     if (!wallet) {
       throw new RecurringPaymentsStoreError('modules.recurringPayments.form.fields.wallet.error');
     }
-    const currency = wallet.currency;
+    const currency = this.normalizeCurrency(payload.currency) ?? wallet.currency;
 
     try {
       const updateResult = await this.supabase
@@ -630,7 +632,7 @@ export class RecurringPaymentsStore {
       await this.refresh();
     } catch (error) {
       const message = this.describeError(error);
-      console.error('[RecurringPaymentsStore] Failed to update recurring transaction:', error);
+      logError('RecurringPaymentsStore', 'Failed to update recurring transaction:', error);
       this.state.update((state) => ({
         ...state,
         mutationPending: false,
@@ -669,7 +671,7 @@ export class RecurringPaymentsStore {
       await this.refresh();
     } catch (error) {
       const message = this.describeError(error);
-      console.error('[RecurringPaymentsStore] Failed to delete recurring transaction:', error);
+      logError('RecurringPaymentsStore', 'Failed to delete recurring transaction:', error);
       this.state.update((state) => ({
         ...state,
         mutationPending: false,
@@ -712,7 +714,7 @@ export class RecurringPaymentsStore {
       await this.refresh();
     } catch (error) {
       const message = this.describeError(error);
-      console.error('[RecurringPaymentsStore] Failed to stop recurring transaction:', error);
+      logError('RecurringPaymentsStore', 'Failed to stop recurring transaction:', error);
       this.state.update((state) => ({
         ...state,
         mutationPending: false,
@@ -752,7 +754,7 @@ export class RecurringPaymentsStore {
       await this.refresh();
     } catch (error) {
       const message = this.describeError(error);
-      console.error('[RecurringPaymentsStore] Failed to resume recurring transaction:', error);
+      logError('RecurringPaymentsStore', 'Failed to resume recurring transaction:', error);
       this.state.update((state) => ({
         ...state,
         mutationPending: false,
@@ -788,7 +790,7 @@ export class RecurringPaymentsStore {
       await this.refresh();
     } catch (error) {
       const message = this.describeError(error);
-      console.error('[RecurringPaymentsStore] Failed to complete recurring occurrence:', error);
+      logError('RecurringPaymentsStore', 'Failed to complete recurring occurrence:', error);
       this.state.update((state) => ({
         ...state,
         mutationPending: false,
@@ -982,6 +984,20 @@ export class RecurringPaymentsStore {
 
   private sortCurrencies(currencies: readonly CurrencyOption[]): CurrencyOption[] {
     return [...currencies].sort((a, b) => a.symbol.localeCompare(b.symbol));
+  }
+
+  private normalizeCurrency(candidate: string | null | undefined): string | null {
+    const normalized = candidate?.trim().toUpperCase() ?? '';
+    if (!/^[A-Z]{3}$/.test(normalized)) {
+      return null;
+    }
+
+    const currencies = this.state().currencies;
+    if (currencies.length === 0) {
+      return normalized;
+    }
+
+    return currencies.some((currency) => currency.symbol === normalized) ? normalized : null;
   }
 
   private mapCurrencyRow(row: CurrencyRow): CurrencyOption {

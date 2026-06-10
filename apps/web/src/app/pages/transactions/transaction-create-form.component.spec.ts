@@ -46,6 +46,10 @@ class TransactionsStoreStub {
     return [];
   }
 
+  async getExchangeRate(): Promise<number> {
+    return 1;
+  }
+
   async createTransactions(): Promise<{ success: true }> {
     return { success: true };
   }

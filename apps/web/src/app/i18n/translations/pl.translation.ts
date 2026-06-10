@@ -247,6 +247,137 @@ const pl = {
           confirmGroupDelete: 'Usunąć tę grupę kategorii? Przenieś przypisane kategorie przed usunięciem.',
         },
       },
+      spendistCsv: {
+        label: 'Export/import Spendist',
+        description: 'CSV, filtry, przenoszenie danych',
+        header: 'Export/import from Spendist',
+        text:
+          'Eksportuj transakcje do CSV albo zaimportuj plik wygenerowany przez Spendist. Ten import jest niezależny od Kontomierza.',
+        export: {
+          title: 'Eksport transakcji',
+          description: 'Pobierz wszystkie transakcje pasujące do filtrów. Kategorie nadrzędne obejmują także podkategorie.',
+          monthRange: 'Konkretny miesiąc',
+          allRange: 'Cały okres',
+          monthLabel: 'Miesiąc eksportu',
+          categoriesLabel: 'Kategorie',
+          clearCategories: 'Wyczyść',
+          noCategories: 'Brak kategorii do filtrowania.',
+          categoryHelp: 'Bez zaznaczenia kategorii eksport obejmie wszystkie transakcje.',
+          action: 'Eksportuj CSV',
+          exported: 'Wyeksportowano {{total}} transakcji.',
+        },
+        import: {
+          title: 'Import transakcji',
+          description: 'Wybierz CSV wyeksportowany ze Spendist. Analiza pokaże duplikaty, nowe słowniki i problemy przed zapisem.',
+          fileLabel: 'Plik CSV',
+          fileEmpty: 'Nie wybrano pliku.',
+          chooseFile: 'Wybierz plik',
+          analyze: 'Sprawdź plik',
+          import: 'Importuj transakcje',
+        },
+        schema: {
+          title: 'Accepted CSV schema',
+          description: 'Eksportowany plik jest wzorcem importu. Kolumny wymagane są opisane poniżej.',
+          columns: {
+            id: 'Opcjonalne przy imporcie; tylko referencja do źródłowej transakcji.',
+            occurred_at: 'Wymagane; data ISO, np. 2026-02-01T00:00:00.000Z.',
+            description: 'Opcjonalny opis transakcji.',
+            direction: 'Wymagane; expense albo income.',
+            amount: 'Wymagane; kwota transakcji.',
+            currency: 'Wymagane; kod waluty ISO, np. PLN.',
+            amount_in_default: 'Opcjonalne; kwota w walucie domyślnej, gdy puste użyjemy amount.',
+            category_group: 'Wymagane; brakująca grupa zostanie utworzona.',
+            category_path: 'Wymagane; ścieżka z ukośnikami, maksymalnie 3 poziomy.',
+            category: 'Opcjonalne; nazwa końcowej kategorii, ignorowana gdy jest category_path.',
+            wallet: 'Wymagane; brakujący portfel zostanie utworzony.',
+            wallet_currency: 'Wymagane, gdy portfel nie istnieje; kod waluty ISO.',
+            tags: 'Opcjonalne; tagi rozdzielone średnikiem.',
+            is_automatic: 'Opcjonalne; true/false, domyślnie false.',
+            recurring_scheduled_for: 'Opcjonalne; używane tylko przy is_automatic=true.',
+            import_source: 'Opcjonalne; zachowane w metadanych importu.',
+            imported_at: 'Opcjonalne; tylko referencja do poprzedniego importu.',
+          },
+        },
+        status: {
+          errorTitle: 'Nie udało się obsłużyć pliku Spendist CSV.',
+          progress: 'Postęp importu',
+          imported: 'Zaimportowano: {{imported}}. Pominięto duplikaty podczas importu: {{duplicates}}.',
+        },
+        summary: {
+          label: 'Podsumowanie importu',
+          totalRows: 'Wiersze danych',
+          parsed: 'Poprawne transakcje',
+          duplicates: 'Duplikaty',
+          importable: 'Do importu',
+          newGroups: 'Nowe grupy: {{total}}',
+          newCategories: 'Nowe kategorie: {{total}}',
+          newWallets: 'Nowe portfele: {{total}}',
+          newTags: 'Nowe tagi: {{total}}',
+          issues: 'Problemy w pliku: {{total}}',
+          issueRow: 'Wiersz {{row}}: {{message}}',
+        },
+        empty: {
+          title: 'Najpierw sprawdź plik',
+          body:
+            'Po analizie zobaczysz liczbę poprawnych transakcji, duplikatów i brakujących słowników przed importem.',
+        },
+        errors: {
+          authRequired: 'Zaloguj się ponownie, aby eksportować lub importować dane.',
+          unsupportedFile: 'Wybierz plik w formacie CSV.',
+          invalidMonth: 'Wybierz poprawny miesiąc.',
+          exportFailed: 'Eksport CSV nie powiódł się.',
+          analyzeFailed: 'Nie udało się przeanalizować CSV.',
+          importFailed: 'Import CSV nie powiódł się.',
+        },
+      },
+      kontomierzImport: {
+        label: 'Import z Kontomierza',
+        description: 'Pliki XLSX, kategorie, tagi',
+        header: 'Import danych z Kontomierza',
+        text:
+          'Wczytaj eksport XLSX z Kontomierza. Plik jest parsowany w przeglądarce, a do bazy trafiają tylko transakcje, kategorie i tagi.',
+        form: {
+          walletLabel: 'Portfel docelowy',
+          walletPlaceholder: 'Wybierz portfel',
+          fileLabel: 'Plik XLSX',
+          fileEmpty: 'Nie wybrano pliku.',
+          chooseFile: 'Wybierz plik',
+        },
+        actions: {
+          analyze: 'Sprawdź plik',
+          import: 'Importuj transakcje',
+        },
+        status: {
+          errorTitle: 'Nie udało się zaimportować danych.',
+          progress: 'Postęp importu',
+          imported: 'Zaimportowano: {{imported}}. Pominięto duplikaty podczas importu: {{duplicates}}.',
+        },
+        summary: {
+          label: 'Podsumowanie importu',
+          totalRows: 'Wiersze danych',
+          parsed: 'Transakcje rozpoznane',
+          splitParents: 'Pominięte rekordy zbiorcze',
+          duplicates: 'Duplikaty',
+          importable: 'Do importu',
+          newGroups: 'Nowe grupy: {{total}}',
+          newCategories: 'Nowe kategorie: {{total}}',
+          newTags: 'Nowe tagi: {{total}}',
+          issues: 'Problemy w pliku: {{total}}',
+          issueRow: 'Wiersz {{row}}: {{message}}',
+        },
+        empty: {
+          title: 'Najpierw sprawdź plik',
+          body:
+            'Po analizie zobaczysz liczbę transakcji, duplikatów, nowych kategorii i tagów przed właściwym importem.',
+        },
+        errors: {
+          authRequired: 'Zaloguj się ponownie, aby importować dane.',
+          walletRequired: 'Wybierz portfel docelowy.',
+          unsupportedFile: 'Wybierz plik w formacie XLSX.',
+          emptyWorkbook: 'Plik XLSX nie zawiera arkuszy.',
+          generic: 'Import nie powiódł się. Spróbuj ponownie.',
+        },
+      },
     },
   },
   notifications: {
@@ -267,6 +398,9 @@ const pl = {
       },
       recurring_transaction_ended: {
         title: 'Płatność cykliczna zakończona: {{description}} (koniec: {{endDate}})',
+      },
+      exchange_rates_sync_failed: {
+        title: 'Synchronizacja kursów walut nie powiodła się: {{error}}',
       },
     },
     errors: {
@@ -343,6 +477,7 @@ const pl = {
       categoriesTitle: 'Kategorie',
       clearCategories: 'Wyczyść',
       allCategories: 'Wszystkie kategorie',
+      categoryCount: '{{ total }} kategorii',
       ungroupedTitle: 'Bez grupy',
       presets: {
         currentMonth: 'Bieżący miesiąc',
@@ -361,7 +496,7 @@ const pl = {
       yearLabel: 'Przejdź do roku',
       yearPlaceholder: 'Wybierz rok',
       summaryLabel: 'Podsumowanie',
-      summaryText: 'Widocznych wyników: {{ total }}',
+      summaryText: 'Widocznych wyników: {{ loaded }} z {{ total }}',
     },
     list: {
       errorTitle: 'Nie udało się załadować transakcji',
@@ -386,6 +521,7 @@ const pl = {
     },
     actions: {
       add: 'Dodaj transakcję',
+      loadMore: 'Załaduj więcej',
     },
     form: {
       badge: {
@@ -430,6 +566,7 @@ const pl = {
       },
       validation: {
         amount: 'Podaj kwotę większą od zera.',
+        exchangeRateUnavailable: 'Brak kursu dla tej daty i pary walut.',
       },
       actions: {
         clearTags: 'Wyczyść wybór',
@@ -490,6 +627,9 @@ const pl = {
           amount: {
             label: 'Kwota',
             error: 'Wpisz kwotę większą od zera.',
+          },
+          currency: {
+            label: 'Waluta',
           },
           amountMode: {
             label: 'Tryb kwoty',
@@ -555,6 +695,7 @@ const pl = {
         },
         notifications: {
           error: 'Nie udało się zapisać płatności cyklicznej. Spróbuj ponownie za chwilę.',
+          invalid: 'Sprawdź oznaczone pola przed zapisaniem.',
           backfillError: 'Płatność cykliczna została zapisana, ale nie udało się teraz wygenerować historii.',
           duplicateName: 'Płatność cykliczna o tej nazwie już istnieje. Zmień etykietę lub edytuj istniejący wpis.',
         },

@@ -44,3 +44,6 @@ vitest.config.*.timestamp*
 .nx/polygraph
 .claude/worktrees
 .claude/settings.local.json
+
+export_kontomierz/*
+export_kontomierz

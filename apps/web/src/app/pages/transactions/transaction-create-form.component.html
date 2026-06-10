@@ -325,6 +325,11 @@
               class="input input-bordered"
               placeholder="0.00"
             />
+            @if (form.controls.foreignAmount.hasError('exchangeRateUnavailable')) {
+            <span class="mt-1 text-xs text-error">
+              {{ 'transactions.form.validation.exchangeRateUnavailable' | transloco }}
+            </span>
+            }
           </label>
 
           <label class="form-control">

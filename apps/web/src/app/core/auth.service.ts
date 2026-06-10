@@ -3,6 +3,7 @@ import { PostgrestError, Session, User } from '@supabase/supabase-js';
 import { SUPABASE_CLIENT } from './supabase';
 import { ensureDefaultCategoriesForUser } from './default-categories';
 import { DEFAULT_LANGUAGE, LanguageCode } from '../i18n/languages';
+import { logError } from './logger';
 
 const DEFAULT_CURRENCY_ID = 1;
 
@@ -135,7 +136,7 @@ export class AuthService implements OnDestroy {
       try {
         await ensureDefaultCategoriesForUser(this.supabase, user.id, userLanguage);
       } catch (seedError) {
-        console.error('[AuthService] Failed to seed default categories', seedError);
+        logError('AuthService', 'Failed to seed default categories', seedError);
       }
 
       return { user };
@@ -148,10 +149,10 @@ export class AuthService implements OnDestroy {
     try {
       const { error } = await this.supabase.auth.signOut();
       if (error) {
-        console.error('Failed to sign out', error);
+        logError('AuthService', 'Failed to sign out', error);
       }
     } catch (error) {
-      console.error('Failed to sign out', error);
+      logError('AuthService', 'Failed to sign out', error);
     }
   }
 
@@ -171,7 +172,7 @@ export class AuthService implements OnDestroy {
           loading: false,
         });
       });
-      console.error('Failed to load Supabase session', error);
+      logError('AuthService', 'Failed to load Supabase session', error);
     }
   }
 

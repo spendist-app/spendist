@@ -16,30 +16,36 @@ export type Database = {
       categories: {
         Row: {
           color: string | null
+          creation_date: string
           group_id: string
           icon: string | null
           id: string
           name: string
           owner_id: string
           parent_id: string | null
+          updated_at: string
         }
         Insert: {
           color?: string | null
+          creation_date?: string
           group_id: string
           icon?: string | null
           id?: string
           name: string
           owner_id: string
           parent_id?: string | null
+          updated_at?: string
         }
         Update: {
           color?: string | null
+          creation_date?: string
           group_id?: string
           icon?: string | null
           id?: string
           name?: string
           owner_id?: string
           parent_id?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -75,24 +81,30 @@ export type Database = {
       categories_group: {
         Row: {
           color: string | null
+          creation_date: string
           icon: string | null
           id: string
           name: string
           owner_id: string
+          updated_at: string
         }
         Insert: {
           color?: string | null
+          creation_date?: string
           icon?: string | null
           id?: string
           name: string
           owner_id: string
+          updated_at?: string
         }
         Update: {
           color?: string | null
+          creation_date?: string
           icon?: string | null
           id?: string
           name?: string
           owner_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -113,43 +125,129 @@ export type Database = {
       }
       currencies: {
         Row: {
+          creation_date: string
           id: number
           symbol: string
+          updated_at: string
         }
         Insert: {
+          creation_date?: string
           id: number
           symbol: string
+          updated_at?: string
         }
         Update: {
+          creation_date?: string
           id?: number
           symbol?: string
+          updated_at?: string
         }
         Relationships: []
+      }
+      exchange_rate_sync_runs: {
+        Row: {
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          inserted_count: number
+          payload: Json
+          range_end: string
+          range_start: string
+          started_at: string
+          status: string
+          updated_count: number
+        }
+        Insert: {
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          inserted_count?: number
+          payload?: Json
+          range_end: string
+          range_start: string
+          started_at?: string
+          status: string
+          updated_count?: number
+        }
+        Update: {
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          inserted_count?: number
+          payload?: Json
+          range_end?: string
+          range_start?: string
+          started_at?: string
+          status?: string
+          updated_count?: number
+        }
+        Relationships: []
+      }
+      exchange_rates: {
+        Row: {
+          currency: string
+          fetched_at: string
+          rate: number
+          rate_date: string
+          source: string
+          source_no: string | null
+        }
+        Insert: {
+          currency: string
+          fetched_at?: string
+          rate: number
+          rate_date: string
+          source?: string
+          source_no?: string | null
+        }
+        Update: {
+          currency?: string
+          fetched_at?: string
+          rate?: number
+          rate_date?: string
+          source?: string
+          source_no?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exchange_rates_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["symbol"]
+          },
+        ]
       }
       notifications: {
         Row: {
           created_at: string
+          creation_date: string
           id: string
           owner_id: string
           payload: Json
           read_at: string | null
           type: string
+          updated_at: string
         }
         Insert: {
           created_at?: string
+          creation_date?: string
           id?: string
           owner_id: string
           payload?: Json
           read_at?: string | null
           type: string
+          updated_at?: string
         }
         Update: {
           created_at?: string
+          creation_date?: string
           id?: string
           owner_id?: string
           payload?: Json
           read_at?: string | null
           type?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -157,8 +255,10 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          creation_date: string
           full_name: string
           id: string
+          is_admin: boolean
           language: string
           timezone: string
           updated_at: string
@@ -167,8 +267,10 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          creation_date?: string
           full_name: string
           id: string
+          is_admin?: boolean
           language?: string
           timezone?: string
           updated_at?: string
@@ -177,8 +279,10 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string
+          creation_date?: string
           full_name?: string
           id?: string
+          is_admin?: boolean
           language?: string
           timezone?: string
           updated_at?: string
@@ -191,6 +295,7 @@ export type Database = {
           amount: number | null
           amount_in_default: number | null
           created_at: string
+          creation_date: string
           currency: string
           exchange_rate: number | null
           id: string
@@ -204,6 +309,7 @@ export type Database = {
           amount?: number | null
           amount_in_default?: number | null
           created_at?: string
+          creation_date?: string
           currency: string
           exchange_rate?: number | null
           id?: string
@@ -217,6 +323,7 @@ export type Database = {
           amount?: number | null
           amount_in_default?: number | null
           created_at?: string
+          creation_date?: string
           currency?: string
           exchange_rate?: number | null
           id?: string
@@ -259,19 +366,25 @@ export type Database = {
       }
       recurring_transaction_tags: {
         Row: {
+          creation_date: string
           owner_id: string
           recurring_transaction_id: string
           tag_id: string
+          updated_at: string
         }
         Insert: {
+          creation_date?: string
           owner_id: string
           recurring_transaction_id: string
           tag_id: string
+          updated_at?: string
         }
         Update: {
+          creation_date?: string
           owner_id?: string
           recurring_transaction_id?: string
           tag_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -309,6 +422,7 @@ export type Database = {
           amount: number
           amount_mode: string
           category_id: string
+          creation_date: string
           cron_job_id: number | null
           currency: string
           direction: Database["public"]["Enums"]["transaction_direction"]
@@ -322,12 +436,14 @@ export type Database = {
           paused_at: string | null
           schedule: string
           start_date: string
+          updated_at: string
           wallet_id: string
         }
         Insert: {
           amount: number
           amount_mode?: string
           category_id: string
+          creation_date?: string
           cron_job_id?: number | null
           currency: string
           direction?: Database["public"]["Enums"]["transaction_direction"]
@@ -341,12 +457,14 @@ export type Database = {
           paused_at?: string | null
           schedule: string
           start_date: string
+          updated_at?: string
           wallet_id: string
         }
         Update: {
           amount?: number
           amount_mode?: string
           category_id?: string
+          creation_date?: string
           cron_job_id?: number | null
           currency?: string
           direction?: Database["public"]["Enums"]["transaction_direction"]
@@ -360,6 +478,7 @@ export type Database = {
           paused_at?: string | null
           schedule?: string
           start_date?: string
+          updated_at?: string
           wallet_id?: string
         }
         Relationships: [
@@ -396,24 +515,30 @@ export type Database = {
       tags: {
         Row: {
           color: string | null
+          creation_date: string
           icon: string | null
           id: string
           name: string
           owner_id: string
+          updated_at: string
         }
         Insert: {
           color?: string | null
+          creation_date?: string
           icon?: string | null
           id?: string
           name: string
           owner_id: string
+          updated_at?: string
         }
         Update: {
           color?: string | null
+          creation_date?: string
           icon?: string | null
           id?: string
           name?: string
           owner_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -434,19 +559,25 @@ export type Database = {
       }
       transaction_tags: {
         Row: {
+          creation_date: string
           owner_id: string
           tag_id: string
           transaction_id: string
+          updated_at: string
         }
         Insert: {
+          creation_date?: string
           owner_id: string
           tag_id: string
           transaction_id: string
+          updated_at?: string
         }
         Update: {
+          creation_date?: string
           owner_id?: string
           tag_id?: string
           transaction_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -484,48 +615,66 @@ export type Database = {
           amount: number
           amount_in_default: number
           category_id: string
+          creation_date: string
           currency: string
           description: string | null
           direction: Database["public"]["Enums"]["transaction_direction"]
           exchange_rate: number | null
           id: string
+          import_fingerprint: string | null
+          import_metadata: Json
+          import_source: string | null
+          imported_at: string | null
           is_automatic: boolean
           occurred_at: string
           owner_id: string
           recurring_scheduled_for: string | null
           recurring_transaction_id: string | null
+          updated_at: string
           wallet_id: string
         }
         Insert: {
           amount: number
           amount_in_default?: number
           category_id: string
+          creation_date?: string
           currency: string
           description?: string | null
           direction: Database["public"]["Enums"]["transaction_direction"]
           exchange_rate?: number | null
           id?: string
+          import_fingerprint?: string | null
+          import_metadata?: Json
+          import_source?: string | null
+          imported_at?: string | null
           is_automatic?: boolean
           occurred_at: string
           owner_id: string
           recurring_scheduled_for?: string | null
           recurring_transaction_id?: string | null
+          updated_at?: string
           wallet_id: string
         }
         Update: {
           amount?: number
           amount_in_default?: number
           category_id?: string
+          creation_date?: string
           currency?: string
           description?: string | null
           direction?: Database["public"]["Enums"]["transaction_direction"]
           exchange_rate?: number | null
           id?: string
+          import_fingerprint?: string | null
+          import_metadata?: Json
+          import_source?: string | null
+          imported_at?: string | null
           is_automatic?: boolean
           occurred_at?: string
           owner_id?: string
           recurring_scheduled_for?: string | null
           recurring_transaction_id?: string | null
+          updated_at?: string
           wallet_id?: string
         }
         Relationships: [
@@ -568,25 +717,31 @@ export type Database = {
       }
       wallets: {
         Row: {
+          creation_date: string
           currency_id: number
           id: string
           is_default: boolean
           name: string
           owner_id: string
+          updated_at: string
         }
         Insert: {
+          creation_date?: string
           currency_id?: number
           id?: string
           is_default?: boolean
           name: string
           owner_id: string
+          updated_at?: string
         }
         Update: {
+          creation_date?: string
           currency_id?: number
           id?: string
           is_default?: boolean
           name?: string
           owner_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -656,6 +811,24 @@ export type Database = {
         Args: { p_recurring_id: string; p_run_at?: string }
         Returns: string
       }
+      find_existing_transaction_import_fingerprints: {
+        Args: { p_import_fingerprints: string[]; p_import_source: string }
+        Returns: {
+          import_fingerprint: string
+        }[]
+      }
+      get_exchange_rate: {
+        Args: {
+          p_rate_date?: string
+          p_source_currency: string
+          p_target_currency: string
+        }
+        Returns: number
+      }
+      invoke_scheduled_edge_function: {
+        Args: { p_body?: Json; p_function_name: string; p_secret_name: string }
+        Returns: number
+      }
       monthly_cashflow_summary: {
         Args: { p_months?: number; p_wallet_id?: string }
         Returns: {
@@ -685,6 +858,10 @@ export type Database = {
           month_start: string
           transaction_count: number
         }[]
+      }
+      notify_admins_exchange_rates_sync_failed: {
+        Args: { p_payload: Json }
+        Returns: number
       }
       resolve_preferred_currency_id: {
         Args: { user_meta: Json }

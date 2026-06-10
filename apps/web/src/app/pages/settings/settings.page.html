@@ -310,7 +310,7 @@
                 </div>
               }
             </section>
-          } @else {
+          } @else if (activePanel() === 'categories') {
             <section class="space-y-6">
               <header class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
@@ -847,6 +847,483 @@
                   </div>
                 }
               }
+            </section>
+          } @else if (activePanel() === 'spendistCsv') {
+            <section class="space-y-6">
+              <header class="space-y-2">
+                <h2 class="text-2xl font-semibold">
+                  {{ 'settings.panels.spendistCsv.header' | transloco }}
+                </h2>
+                <p class="max-w-2xl text-base-content/70">
+                  {{ 'settings.panels.spendistCsv.text' | transloco }}
+                </p>
+              </header>
+
+              @if (spendistCsv.error(); as csvError) {
+                <div class="alert alert-error flex-col items-start gap-2 rounded-2xl border border-error/20 bg-error/10 p-4 text-sm text-error">
+                  <div class="font-semibold">
+                    {{ 'settings.panels.spendistCsv.status.errorTitle' | transloco }}
+                  </div>
+                  <div>
+                    @if (csvError.startsWith('settings.')) {
+                      {{ csvError | transloco }}
+                    } @else {
+                      {{ csvError }}
+                    }
+                  </div>
+                </div>
+              }
+
+              <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(320px,380px)]">
+                <div class="space-y-6">
+                  <section class="rounded-2xl border border-base-300 bg-base-100/80 p-5 shadow-sm sm:p-6">
+                    <form class="space-y-5" [formGroup]="spendistCsvExportForm" (ngSubmit)="exportSpendistCsv()">
+                      <header class="space-y-1">
+                        <h3 class="text-xl font-semibold text-base-content">
+                          {{ 'settings.panels.spendistCsv.export.title' | transloco }}
+                        </h3>
+                        <p class="text-sm text-base-content/70">
+                          {{ 'settings.panels.spendistCsv.export.description' | transloco }}
+                        </p>
+                      </header>
+
+                      <div class="grid gap-3 sm:grid-cols-2">
+                        <label class="flex items-center gap-3 rounded-xl border border-base-300 bg-base-100/70 px-4 py-3 text-sm">
+                          <input type="radio" class="radio radio-primary" formControlName="rangeMode" value="month" />
+                          <span>{{ 'settings.panels.spendistCsv.export.monthRange' | transloco }}</span>
+                        </label>
+                        <label class="flex items-center gap-3 rounded-xl border border-base-300 bg-base-100/70 px-4 py-3 text-sm">
+                          <input type="radio" class="radio radio-primary" formControlName="rangeMode" value="all" />
+                          <span>{{ 'settings.panels.spendistCsv.export.allRange' | transloco }}</span>
+                        </label>
+                      </div>
+
+                      @if (spendistCsvExportFormControls.rangeMode.value === 'month') {
+                        <label class="form-control">
+                          <span class="label-text text-sm font-semibold text-base-content">
+                            {{ 'settings.panels.spendistCsv.export.monthLabel' | transloco }}
+                          </span>
+                          <input type="month" class="input input-bordered" formControlName="month" />
+                          @if (spendistCsvExportFormControls.month.touched && spendistCsvExportFormControls.month.invalid) {
+                            <span class="mt-1 text-xs text-error">
+                              {{ 'settings.panels.spendistCsv.errors.invalidMonth' | transloco }}
+                            </span>
+                          }
+                        </label>
+                      }
+
+                      <div class="space-y-3">
+                        <div class="flex items-center justify-between gap-3">
+                          <h4 class="text-sm font-semibold text-base-content">
+                            {{ 'settings.panels.spendistCsv.export.categoriesLabel' | transloco }}
+                          </h4>
+                          <button
+                            type="button"
+                            class="btn btn-ghost btn-xs"
+                            [disabled]="selectedSpendistCsvCategoryIds().length === 0"
+                            (click)="clearSpendistCsvCategories()"
+                          >
+                            {{ 'settings.panels.spendistCsv.export.clearCategories' | transloco }}
+                          </button>
+                        </div>
+                        <div class="max-h-64 space-y-2 overflow-auto rounded-2xl border border-base-300 bg-base-100/60 p-3">
+                          @if (categoriesView().length === 0) {
+                            <p class="text-sm text-base-content/70">
+                              {{ 'settings.panels.spendistCsv.export.noCategories' | transloco }}
+                            </p>
+                          } @else {
+                            @for (category of categoriesView(); track category.id) {
+                              <label class="flex items-start gap-3 rounded-xl px-3 py-2 text-sm hover:bg-base-200">
+                                <input
+                                  type="checkbox"
+                                  class="checkbox checkbox-sm mt-0.5"
+                                  [checked]="isSpendistCsvCategorySelected(category.id)"
+                                  (change)="toggleSpendistCsvCategory(category.id)"
+                                />
+                                <span class="min-w-0">
+                                  <span class="block font-medium text-base-content">{{ category.name }}</span>
+                                  <span class="block truncate text-xs text-base-content/60">{{ category.path }}</span>
+                                </span>
+                              </label>
+                            }
+                          }
+                        </div>
+                        <p class="text-xs text-base-content/60">
+                          {{ 'settings.panels.spendistCsv.export.categoryHelp' | transloco }}
+                        </p>
+                      </div>
+
+                      <button type="submit" class="btn btn-primary w-full sm:w-auto" [disabled]="spendistCsv.exporting()">
+                        @if (spendistCsv.exporting()) {
+                          <span class="loading loading-spinner loading-sm"></span>
+                        }
+                        {{ 'settings.panels.spendistCsv.export.action' | transloco }}
+                      </button>
+
+                      @if (spendistCsv.exported() > 0) {
+                        <p class="text-sm text-base-content/70">
+                          {{ 'settings.panels.spendistCsv.export.exported' | transloco: { total: spendistCsv.exported() } }}
+                        </p>
+                      }
+                    </form>
+                  </section>
+
+                  <section class="rounded-2xl border border-base-300 bg-base-100/80 p-5 shadow-sm sm:p-6">
+                    <div class="space-y-5">
+                      <header class="space-y-1">
+                        <h3 class="text-xl font-semibold text-base-content">
+                          {{ 'settings.panels.spendistCsv.import.title' | transloco }}
+                        </h3>
+                        <p class="text-sm text-base-content/70">
+                          {{ 'settings.panels.spendistCsv.import.description' | transloco }}
+                        </p>
+                      </header>
+
+                      <div class="rounded-2xl border border-dashed border-base-300 bg-base-100/60 p-5">
+                        <input
+                          id="spendist-csv-upload"
+                          type="file"
+                          class="sr-only"
+                          accept=".csv,text/csv"
+                          (change)="onSpendistCsvFileSelected($event)"
+                        />
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p class="text-sm font-semibold">
+                              {{ 'settings.panels.spendistCsv.import.fileLabel' | transloco }}
+                            </p>
+                            <p class="text-sm text-base-content/70">
+                              @if (spendistCsvFileName(); as fileName) {
+                                {{ fileName }}
+                              } @else {
+                                {{ 'settings.panels.spendistCsv.import.fileEmpty' | transloco }}
+                              }
+                            </p>
+                          </div>
+                          <label
+                            for="spendist-csv-upload"
+                            class="btn btn-outline btn-sm"
+                            [class.btn-disabled]="spendistCsv.analyzing() || spendistCsv.importing()"
+                            [attr.aria-disabled]="spendistCsv.analyzing() || spendistCsv.importing()"
+                          >
+                            {{ 'settings.panels.spendistCsv.import.chooseFile' | transloco }}
+                          </label>
+                        </div>
+                      </div>
+
+                      <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                        <button
+                          type="button"
+                          class="btn btn-primary w-full sm:w-auto"
+                          [disabled]="!selectedSpendistCsvFile() || spendistCsv.analyzing() || spendistCsv.importing()"
+                          (click)="analyzeSpendistCsvFile()"
+                        >
+                          @if (spendistCsv.analyzing()) {
+                            <span class="loading loading-spinner loading-sm"></span>
+                          }
+                          {{ 'settings.panels.spendistCsv.import.analyze' | transloco }}
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-outline w-full sm:w-auto"
+                          [disabled]="!spendistCsv.canImport()"
+                          (click)="importSpendistCsvFile()"
+                        >
+                          @if (spendistCsv.importing()) {
+                            <span class="loading loading-spinner loading-sm"></span>
+                          }
+                          {{ 'settings.panels.spendistCsv.import.import' | transloco }}
+                        </button>
+                      </div>
+
+                      @if (spendistCsv.importing() || spendistCsv.progress() > 0) {
+                        <div class="space-y-2">
+                          <div class="flex justify-between text-sm text-base-content/70">
+                            <span>{{ 'settings.panels.spendistCsv.status.progress' | transloco }}</span>
+                            <span>{{ spendistCsv.progress() }}%</span>
+                          </div>
+                          <progress class="progress progress-primary w-full" [value]="spendistCsv.progress()" max="100"></progress>
+                          <p class="text-sm text-base-content/70">
+                            {{ 'settings.panels.spendistCsv.status.imported' | transloco: { imported: spendistCsv.imported(), duplicates: spendistCsv.duplicatesSkipped() } }}
+                          </p>
+                        </div>
+                      }
+                    </div>
+                  </section>
+                </div>
+
+                <aside class="space-y-6">
+                  <section class="rounded-2xl border border-base-300 bg-base-100/80 p-5 shadow-sm sm:p-6">
+                    <h3 class="text-lg font-semibold text-base-content">
+                      {{ 'settings.panels.spendistCsv.schema.title' | transloco }}
+                    </h3>
+                    <p class="mt-2 text-sm text-base-content/70">
+                      {{ 'settings.panels.spendistCsv.schema.description' | transloco }}
+                    </p>
+                    <dl class="mt-4 max-h-72 space-y-3 overflow-auto text-sm">
+                      @for (header of spendistCsvHeaders; track header) {
+                        <div>
+                          <dt class="font-mono text-xs font-semibold text-primary">{{ header }}</dt>
+                          <dd class="text-xs text-base-content/60">
+                            {{ 'settings.panels.spendistCsv.schema.columns.' + header | transloco }}
+                          </dd>
+                        </div>
+                      }
+                    </dl>
+                  </section>
+
+                  <section class="rounded-2xl border border-base-300 bg-base-100/80 p-5 shadow-sm sm:p-6">
+                    @if (spendistCsv.summary(); as summary) {
+                      <div class="space-y-4">
+                        <header>
+                          <p class="text-xs uppercase tracking-wide text-base-content/60">
+                            {{ 'settings.panels.spendistCsv.summary.label' | transloco }}
+                          </p>
+                          <h3 class="text-xl font-semibold">{{ summary.fileName }}</h3>
+                        </header>
+
+                        <dl class="grid gap-3 text-sm">
+                          <div class="flex justify-between gap-4">
+                            <dt class="text-base-content/60">{{ 'settings.panels.spendistCsv.summary.totalRows' | transloco }}</dt>
+                            <dd class="font-semibold">{{ summary.totalDataRows }}</dd>
+                          </div>
+                          <div class="flex justify-between gap-4">
+                            <dt class="text-base-content/60">{{ 'settings.panels.spendistCsv.summary.parsed' | transloco }}</dt>
+                            <dd class="font-semibold">{{ summary.parsedTransactions }}</dd>
+                          </div>
+                          <div class="flex justify-between gap-4">
+                            <dt class="text-base-content/60">{{ 'settings.panels.spendistCsv.summary.duplicates' | transloco }}</dt>
+                            <dd class="font-semibold">{{ summary.duplicates }}</dd>
+                          </div>
+                          <div class="flex justify-between gap-4">
+                            <dt class="text-base-content/60">{{ 'settings.panels.spendistCsv.summary.importable' | transloco }}</dt>
+                            <dd class="font-semibold">{{ summary.importableTransactions }}</dd>
+                          </div>
+                        </dl>
+
+                        <div class="grid gap-2 text-sm">
+                          <p>{{ 'settings.panels.spendistCsv.summary.newGroups' | transloco: { total: summary.newGroups.length } }}</p>
+                          <p>{{ 'settings.panels.spendistCsv.summary.newCategories' | transloco: { total: summary.newCategories.length } }}</p>
+                          <p>{{ 'settings.panels.spendistCsv.summary.newWallets' | transloco: { total: summary.newWallets.length } }}</p>
+                          <p>{{ 'settings.panels.spendistCsv.summary.newTags' | transloco: { total: summary.newTags.length } }}</p>
+                        </div>
+
+                        @if (summary.issues.length > 0) {
+                          <div class="rounded-xl border border-warning/20 bg-warning/10 p-3 text-sm text-warning">
+                            <p class="font-semibold">
+                              {{ 'settings.panels.spendistCsv.summary.issues' | transloco: { total: summary.issues.length } }}
+                            </p>
+                            <ul class="mt-2 max-h-40 space-y-1 overflow-auto">
+                              @for (issue of summary.issues.slice(0, 8); track issue.rowNumber) {
+                                <li>
+                                  {{ 'settings.panels.spendistCsv.summary.issueRow' | transloco: { row: issue.rowNumber, message: issue.message } }}
+                                </li>
+                              }
+                            </ul>
+                          </div>
+                        }
+                      </div>
+                    } @else {
+                      <div class="space-y-3 text-sm text-base-content/70">
+                        <h3 class="text-base font-semibold text-base-content">
+                          {{ 'settings.panels.spendistCsv.empty.title' | transloco }}
+                        </h3>
+                        <p>{{ 'settings.panels.spendistCsv.empty.body' | transloco }}</p>
+                      </div>
+                    }
+                  </section>
+                </aside>
+              </div>
+            </section>
+          } @else {
+            <section class="space-y-6">
+              <header class="space-y-2">
+                <h2 class="text-2xl font-semibold">
+                  {{ 'settings.panels.kontomierzImport.header' | transloco }}
+                </h2>
+                <p class="max-w-2xl text-base-content/70">
+                  {{ 'settings.panels.kontomierzImport.text' | transloco }}
+                </p>
+              </header>
+
+              @if (kontomierzImport.error(); as importError) {
+                <div class="alert alert-error flex-col items-start gap-2 rounded-2xl border border-error/20 bg-error/10 p-4 text-sm text-error">
+                  <div class="font-semibold">
+                    {{ 'settings.panels.kontomierzImport.status.errorTitle' | transloco }}
+                  </div>
+                  <div>
+                    @if (importError.startsWith('settings.')) {
+                      {{ importError | transloco }}
+                    } @else {
+                      {{ importError }}
+                    }
+                  </div>
+                </div>
+              }
+
+              <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)]">
+                <section class="rounded-2xl border border-base-300 bg-base-100/80 p-5 shadow-sm sm:p-6">
+                  <form class="space-y-5" [formGroup]="kontomierzImportForm" (ngSubmit)="analyzeKontomierzFile()">
+                    <label class="form-control">
+                      <span class="label-text text-sm font-semibold text-base-content">
+                        {{ 'settings.panels.kontomierzImport.form.walletLabel' | transloco }}
+                      </span>
+                      <select class="select select-bordered" formControlName="walletId">
+                        <option value="" disabled>
+                          {{ 'settings.panels.kontomierzImport.form.walletPlaceholder' | transloco }}
+                        </option>
+                        @for (wallet of store.wallets(); track wallet.id) {
+                          <option [value]="wallet.id">{{ wallet.name }} · {{ wallet.currency }}</option>
+                        }
+                      </select>
+                      @if (kontomierzImportFormControls.walletId.touched && kontomierzImportFormControls.walletId.invalid) {
+                        <span class="mt-1 text-xs text-error">
+                          {{ 'settings.panels.kontomierzImport.errors.walletRequired' | transloco }}
+                        </span>
+                      }
+                    </label>
+
+                    <div class="rounded-2xl border border-dashed border-base-300 bg-base-100/60 p-5">
+                      <input
+                        id="kontomierz-xlsx-upload"
+                        type="file"
+                        class="sr-only"
+                        accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        (change)="onKontomierzFileSelected($event)"
+                      />
+                      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <p class="text-sm font-semibold">
+                            {{ 'settings.panels.kontomierzImport.form.fileLabel' | transloco }}
+                          </p>
+                          <p class="text-sm text-base-content/70">
+                            @if (kontomierzFileName(); as fileName) {
+                              {{ fileName }}
+                            } @else {
+                              {{ 'settings.panels.kontomierzImport.form.fileEmpty' | transloco }}
+                            }
+                          </p>
+                        </div>
+                        <label
+                          for="kontomierz-xlsx-upload"
+                          class="btn btn-outline btn-sm"
+                          [class.btn-disabled]="kontomierzImport.analyzing() || kontomierzImport.importing()"
+                          [attr.aria-disabled]="kontomierzImport.analyzing() || kontomierzImport.importing()"
+                        >
+                          {{ 'settings.panels.kontomierzImport.form.chooseFile' | transloco }}
+                        </label>
+                      </div>
+                    </div>
+
+                    <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                      <button
+                        type="submit"
+                        class="btn btn-primary w-full sm:w-auto"
+                        [disabled]="!selectedKontomierzFile() || kontomierzImport.analyzing() || kontomierzImport.importing()"
+                      >
+                        @if (kontomierzImport.analyzing()) {
+                          <span class="loading loading-spinner loading-sm"></span>
+                        }
+                        {{ 'settings.panels.kontomierzImport.actions.analyze' | transloco }}
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-outline w-full sm:w-auto"
+                        [disabled]="!kontomierzImport.canImport()"
+                        (click)="importKontomierzFile()"
+                      >
+                        @if (kontomierzImport.importing()) {
+                          <span class="loading loading-spinner loading-sm"></span>
+                        }
+                        {{ 'settings.panels.kontomierzImport.actions.import' | transloco }}
+                      </button>
+                    </div>
+                  </form>
+
+                  @if (kontomierzImport.importing() || kontomierzImport.progress() > 0) {
+                    <div class="mt-6 space-y-2">
+                      <div class="flex justify-between text-sm text-base-content/70">
+                        <span>{{ 'settings.panels.kontomierzImport.status.progress' | transloco }}</span>
+                        <span>{{ kontomierzImport.progress() }}%</span>
+                      </div>
+                      <progress class="progress progress-primary w-full" [value]="kontomierzImport.progress()" max="100"></progress>
+                      <p class="text-sm text-base-content/70">
+                        {{ 'settings.panels.kontomierzImport.status.imported' | transloco: { imported: kontomierzImport.imported(), duplicates: kontomierzImport.duplicatesSkipped() } }}
+                      </p>
+                    </div>
+                  }
+                </section>
+
+                <aside class="rounded-2xl border border-base-300 bg-base-100/80 p-5 shadow-sm sm:p-6 lg:sticky lg:top-24 lg:self-start">
+                  @if (kontomierzImport.summary(); as summary) {
+                    <div class="space-y-4">
+                      <header>
+                        <p class="text-xs uppercase tracking-wide text-base-content/60">
+                          {{ 'settings.panels.kontomierzImport.summary.label' | transloco }}
+                        </p>
+                        <h3 class="text-xl font-semibold">{{ summary.fileName }}</h3>
+                      </header>
+
+                      <dl class="grid gap-3 text-sm">
+                        <div class="flex justify-between gap-4">
+                          <dt class="text-base-content/60">{{ 'settings.panels.kontomierzImport.summary.totalRows' | transloco }}</dt>
+                          <dd class="font-semibold">{{ summary.totalDataRows }}</dd>
+                        </div>
+                        <div class="flex justify-between gap-4">
+                          <dt class="text-base-content/60">{{ 'settings.panels.kontomierzImport.summary.parsed' | transloco }}</dt>
+                          <dd class="font-semibold">{{ summary.parsedTransactions }}</dd>
+                        </div>
+                        <div class="flex justify-between gap-4">
+                          <dt class="text-base-content/60">{{ 'settings.panels.kontomierzImport.summary.splitParents' | transloco }}</dt>
+                          <dd class="font-semibold">{{ summary.skippedSplitParents }}</dd>
+                        </div>
+                        <div class="flex justify-between gap-4">
+                          <dt class="text-base-content/60">{{ 'settings.panels.kontomierzImport.summary.duplicates' | transloco }}</dt>
+                          <dd class="font-semibold">{{ summary.duplicates }}</dd>
+                        </div>
+                        <div class="flex justify-between gap-4">
+                          <dt class="text-base-content/60">{{ 'settings.panels.kontomierzImport.summary.importable' | transloco }}</dt>
+                          <dd class="font-semibold">{{ summary.importableTransactions }}</dd>
+                        </div>
+                      </dl>
+
+                      <div class="grid gap-2 text-sm">
+                        <p>
+                          {{ 'settings.panels.kontomierzImport.summary.newGroups' | transloco: { total: summary.newGroups.length } }}
+                        </p>
+                        <p>
+                          {{ 'settings.panels.kontomierzImport.summary.newCategories' | transloco: { total: summary.newCategories.length } }}
+                        </p>
+                        <p>
+                          {{ 'settings.panels.kontomierzImport.summary.newTags' | transloco: { total: summary.newTags.length } }}
+                        </p>
+                      </div>
+
+                      @if (summary.issues.length > 0) {
+                        <div class="rounded-xl border border-warning/20 bg-warning/10 p-3 text-sm text-warning">
+                          <p class="font-semibold">
+                            {{ 'settings.panels.kontomierzImport.summary.issues' | transloco: { total: summary.issues.length } }}
+                          </p>
+                          <ul class="mt-2 max-h-40 space-y-1 overflow-auto">
+                            @for (issue of summary.issues.slice(0, 8); track issue.rowNumber) {
+                              <li>
+                                {{ 'settings.panels.kontomierzImport.summary.issueRow' | transloco: { row: issue.rowNumber, message: issue.message } }}
+                              </li>
+                            }
+                          </ul>
+                        </div>
+                      }
+                    </div>
+                  } @else {
+                    <div class="space-y-3 text-sm text-base-content/70">
+                      <h3 class="text-base font-semibold text-base-content">
+                        {{ 'settings.panels.kontomierzImport.empty.title' | transloco }}
+                      </h3>
+                      <p>{{ 'settings.panels.kontomierzImport.empty.body' | transloco }}</p>
+                    </div>
+                  }
+                </aside>
+              </div>
             </section>
           }
         </div>

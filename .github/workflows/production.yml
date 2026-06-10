@@ -29,6 +29,7 @@ jobs:
       NG_APP_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NG_APP_SUPABASE_PUBLISHABLE_KEY }}
       NG_APP_SUPABASE_FUNCTIONS_URL: ${{ secrets.NG_APP_SUPABASE_FUNCTIONS_URL }}
       RECURRING_PAYMENTS_SECRET: ${{ secrets.RECURRING_PAYMENTS_SECRET }}
+      EXCHANGE_RATES_SYNC_SECRET: ${{ secrets.EXCHANGE_RATES_SYNC_SECRET }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -66,6 +67,10 @@ jobs:
             --project-ref "$SUPABASE_PROJECT_REF" \
             --no-verify-jwt
 
+          supabase functions deploy sync-exchange-rates \
+            --project-ref "$SUPABASE_PROJECT_REF" \
+            --no-verify-jwt
+
       - name: Sync Supabase Edge Function Secrets
         run: |
           if [ -z "$SUPABASE_PROJECT_REF" ]; then
@@ -78,9 +83,18 @@ jobs:
             exit 1
           fi
 
+          if [ -z "$EXCHANGE_RATES_SYNC_SECRET" ]; then
+            echo "::error::Missing required GitHub secret: EXCHANGE_RATES_SYNC_SECRET"
+            exit 1
+          fi
+
           supabase secrets set \
             --project-ref "$SUPABASE_PROJECT_REF" \
-            RECURRING_PAYMENTS_SECRET="$RECURRING_PAYMENTS_SECRET"
+            RECURRING_PAYMENTS_SECRET="$RECURRING_PAYMENTS_SECRET" \
+            EXCHANGE_RATES_SYNC_SECRET="$EXCHANGE_RATES_SYNC_SECRET"
+
+      - name: Sync Supabase Vault Secrets
+        run: node tools/scripts/sync-supabase-vault-secrets.mjs
 
       - name: Write production runtime env
         run: |
