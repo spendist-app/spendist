@@ -77,7 +77,7 @@ export interface RecurringOccurrenceEntity {
   readonly transactionId: string | null;
 }
 
-interface CurrencyOption {
+export interface CurrencyOption {
   readonly id: number;
   readonly symbol: string;
 }
@@ -131,6 +131,7 @@ export interface CreateRecurringTransactionPayload {
   readonly endDate: string | null;
   readonly schedule: string;
   readonly amount: number;
+  readonly currency: string;
   readonly amountMode: RecurringAmountMode;
   readonly direction: RecurringTransactionDirection;
   readonly tagIds: readonly string[];
@@ -501,7 +502,7 @@ export class RecurringPaymentsStore {
     if (!wallet) {
       throw new RecurringPaymentsStoreError('modules.recurringPayments.form.fields.wallet.error');
     }
-    const currency = wallet.currency;
+    const currency = this.normalizeCurrency(payload.currency) ?? wallet.currency;
 
     try {
       const insertResult = await this.supabase
@@ -576,7 +577,7 @@ export class RecurringPaymentsStore {
     if (!wallet) {
       throw new RecurringPaymentsStoreError('modules.recurringPayments.form.fields.wallet.error');
     }
-    const currency = wallet.currency;
+    const currency = this.normalizeCurrency(payload.currency) ?? wallet.currency;
 
     try {
       const updateResult = await this.supabase
@@ -983,6 +984,20 @@ export class RecurringPaymentsStore {
 
   private sortCurrencies(currencies: readonly CurrencyOption[]): CurrencyOption[] {
     return [...currencies].sort((a, b) => a.symbol.localeCompare(b.symbol));
+  }
+
+  private normalizeCurrency(candidate: string | null | undefined): string | null {
+    const normalized = candidate?.trim().toUpperCase() ?? '';
+    if (!/^[A-Z]{3}$/.test(normalized)) {
+      return null;
+    }
+
+    const currencies = this.state().currencies;
+    if (currencies.length === 0) {
+      return normalized;
+    }
+
+    return currencies.some((currency) => currency.symbol === normalized) ? normalized : null;
   }
 
   private mapCurrencyRow(row: CurrencyRow): CurrencyOption {

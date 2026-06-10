@@ -23,7 +23,7 @@ const CONTENT_SECURITY_POLICY = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data: https:",
-  "connect-src 'self' https: http://127.0.0.1:55321 http://localhost:55321",
+  "connect-src 'self' https: http://127.0.0.1:55321 http://localhost:55321 ws://127.0.0.1:55321 ws://localhost:55321",
   "frame-src 'none'",
   "form-action 'self'",
   'upgrade-insecure-requests',

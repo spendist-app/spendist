@@ -162,9 +162,15 @@
                     formControlName="amount"
                     autocomplete="off"
                   />
-                  <div class="join-item flex items-center bg-base-200 px-3 text-sm font-semibold uppercase text-base-content">
-                    {{ walletCurrency() }}
-                  </div>
+                  <select
+                    class="select join-item select-bordered w-28 font-semibold uppercase"
+                    formControlName="currency"
+                    [attr.aria-label]="'modules.recurringPayments.form.fields.currency.label' | transloco"
+                  >
+                    @for (currency of currencyOptions(); track currency.symbol) {
+                      <option [value]="currency.symbol">{{ currency.symbol }}</option>
+                    }
+                  </select>
                 </div>
                 @if (amountControl.invalid && (amountControl.dirty || amountControl.touched)) {
                   <p class="text-xs text-error">
@@ -196,7 +202,7 @@
                     <select
                       id="recurring-schedule-frequency"
                       class="select select-bordered w-full"
-                      [value]="scheduleFrequency()"
+                      formControlName="scheduleFrequency"
                       (change)="updateScheduleFrequency($event)"
                     >
                       <option value="daily">
@@ -212,15 +218,15 @@
                     <input
                       class="input input-bordered w-full"
                       type="time"
-                      [value]="scheduleTime()"
+                      formControlName="scheduleTime"
                       (change)="updateScheduleTime($event)"
                       [attr.aria-label]="'modules.recurringPayments.form.fields.schedule.time' | transloco"
                     />
                   </div>
-                  @if (scheduleFrequency() === 'weekly') {
+                  @if (isWeeklySchedule()) {
                     <select
                       class="select select-bordered w-full"
-                      [value]="scheduleDayOfWeek()"
+                      formControlName="scheduleDayOfWeek"
                       (change)="updateScheduleDayOfWeek($event)"
                       [attr.aria-label]="'modules.recurringPayments.form.fields.schedule.dayOfWeek' | transloco"
                     >
@@ -233,7 +239,7 @@
                       <option value="0">{{ 'modules.recurringPayments.form.fields.schedule.weekdays.sunday' | transloco }}</option>
                     </select>
                   }
-                  @if (scheduleFrequency() === 'monthly') {
+                  @if (isMonthlySchedule()) {
                     <label class="input input-bordered flex items-center gap-2">
                       <span class="text-sm text-base-content/70">
                         {{ 'modules.recurringPayments.form.fields.schedule.dayOfMonth' | transloco }}
@@ -243,7 +249,7 @@
                         type="number"
                         min="1"
                         max="31"
-                        [value]="scheduleDayOfMonth()"
+                        formControlName="scheduleDayOfMonth"
                         (input)="updateScheduleDayOfMonth($event)"
                       />
                     </label>
@@ -320,7 +326,8 @@
               <button
                 type="submit"
                 class="btn btn-primary"
-                [disabled]="form.invalid || store.mutationPending()"
+                [disabled]="store.mutationPending()"
+                [attr.aria-disabled]="form.invalid || store.mutationPending()"
                 data-testid="recurring-submit"
               >
                 @if (store.mutationPending()) {

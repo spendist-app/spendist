@@ -129,13 +129,19 @@
             @if (auth.isAuthenticated()) {
               <div class="flex items-center gap-1">
                 <app-notifications-menu></app-notifications-menu>
-                <div class="dropdown dropdown-end md:dropdown-hover">
+                <div
+                  class="dropdown dropdown-end"
+                  [class.dropdown-open]="accountMenuOpen()"
+                  (focusout)="handleAccountFocusOut($event)"
+                >
                   <button
                     tabindex="0"
                     type="button"
                     aria-haspopup="menu"
+                    [attr.aria-expanded]="accountMenuOpen()"
                     class="btn btn-ghost btn-circle avatar placeholder"
                     [attr.aria-label]="'navbar.settings' | transloco"
+                    (click)="toggleAccountMenu()"
                   >
                     <div class="bg-neutral text-neutral-content w-10 rounded-full">
                       <span class="text-lg font-semibold uppercase">{{ initials() }}</span>
@@ -157,7 +163,7 @@
                       </button>
                     </li>
                     <li>
-                      <a routerLink="/settings" role="menuitem">
+                      <a routerLink="/settings" role="menuitem" (click)="closeAccountMenu()">
                         {{ 'navbar.settings' | transloco }}
                       </a>
                     </li>

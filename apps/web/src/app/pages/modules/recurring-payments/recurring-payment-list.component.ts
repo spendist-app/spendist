@@ -81,29 +81,33 @@ export class RecurringPaymentListComponent {
     }
 
     const [minute, hour, dayOfMonth, month, dayOfWeek] = fields;
-    const time = `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
+    const hourNumber = this.clampCronNumber(hour, 0, 23, 12);
+    const minuteNumber = this.clampCronNumber(minute, 0, 59, 0);
 
     if (month !== '*') {
       return transaction.schedule;
     }
 
     if (dayOfMonth === '*' && dayOfWeek === '*') {
+      const local = this.utcDailyScheduleToLocal(hourNumber, minuteNumber);
       return this.transloco.translate('modules.recurringPayments.list.schedule.daily', {
-        time,
+        time: local.time,
       });
     }
 
     if (dayOfMonth === '*' && dayOfWeek !== '*') {
+      const local = this.utcWeeklyScheduleToLocal(hourNumber, minuteNumber, dayOfWeek);
       return this.transloco.translate('modules.recurringPayments.list.schedule.weekly', {
-        day: this.weekdayLabel(dayOfWeek),
-        time,
+        day: this.weekdayLabel(local.dayOfWeek),
+        time: local.time,
       });
     }
 
     if (dayOfMonth !== '*' && dayOfWeek === '*') {
+      const local = this.utcMonthlyScheduleToLocal(hourNumber, minuteNumber, dayOfMonth);
       return this.transloco.translate('modules.recurringPayments.list.schedule.monthly', {
-        day: dayOfMonth,
-        time,
+        day: local.dayOfMonth,
+        time: local.time,
       });
     }
 
@@ -324,6 +328,74 @@ export class RecurringPaymentListComponent {
     }
 
     return values;
+  }
+
+  private utcDailyScheduleToLocal(hour: number, minute: number): { readonly time: string } {
+    const now = new Date();
+    const localDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), hour, minute, 0, 0));
+    return { time: this.formatTime(localDate) };
+  }
+
+  private utcWeeklyScheduleToLocal(
+    hour: number,
+    minute: number,
+    dayOfWeek: string,
+  ): { readonly time: string; readonly dayOfWeek: string } {
+    const now = new Date();
+    const targetDay = this.clampCronNumber(dayOfWeek, 0, 7, 1) % 7;
+    const daysUntilTarget = (targetDay - now.getUTCDay() + 7) % 7;
+    const localDate = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate() + daysUntilTarget,
+      hour,
+      minute,
+      0,
+      0,
+    ));
+    return {
+      time: this.formatTime(localDate),
+      dayOfWeek: `${localDate.getDay()}`,
+    };
+  }
+
+  private utcMonthlyScheduleToLocal(
+    hour: number,
+    minute: number,
+    dayOfMonth: string,
+  ): { readonly time: string; readonly dayOfMonth: number } {
+    const now = new Date();
+    const targetDay = this.clampCronNumber(dayOfMonth, 1, 31, 1);
+    for (let offset = 0; offset < 12; offset += 1) {
+      const candidate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + offset, targetDay, hour, minute, 0, 0));
+      if (candidate.getUTCDate() === targetDay) {
+        return {
+          time: this.formatTime(candidate),
+          dayOfMonth: candidate.getDate(),
+        };
+      }
+    }
+
+    const fallback = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, hour, minute, 0, 0));
+    return {
+      time: this.formatTime(fallback),
+      dayOfMonth: fallback.getDate(),
+    };
+  }
+
+  private clampCronNumber(value: string | number | undefined, min: number, max: number, fallback: number): number {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+      return fallback;
+    }
+
+    return Math.min(Math.max(Math.trunc(parsed), min), max);
+  }
+
+  private formatTime(value: Date): string {
+    const hour = `${value.getHours()}`.padStart(2, '0');
+    const minute = `${value.getMinutes()}`.padStart(2, '0');
+    return `${hour}:${minute}`;
   }
 
   private weekdayLabel(dayOfWeek: string): string {

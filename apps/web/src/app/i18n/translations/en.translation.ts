@@ -628,6 +628,9 @@ const en = {
             label: 'Amount',
             error: 'Enter an amount greater than zero.',
           },
+          currency: {
+            label: 'Currency',
+          },
           amountMode: {
             label: 'Amount mode',
             fixedHint: 'Every generated transaction will use this amount.',
@@ -692,6 +695,7 @@ const en = {
         },
         notifications: {
           error: 'We could not save the recurring payment. Please try again in a moment.',
+          invalid: 'Check the highlighted fields before saving.',
           backfillError: 'The recurring payment was saved, but historical transactions could not be generated right now.',
           duplicateName: 'A recurring payment with this name already exists. Pick a different label or edit the existing one.',
         },

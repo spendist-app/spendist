@@ -628,6 +628,9 @@ const pl = {
             label: 'Kwota',
             error: 'Wpisz kwotę większą od zera.',
           },
+          currency: {
+            label: 'Waluta',
+          },
           amountMode: {
             label: 'Tryb kwoty',
             fixedHint: 'Każda wygenerowana transakcja użyje tej kwoty.',
@@ -692,6 +695,7 @@ const pl = {
         },
         notifications: {
           error: 'Nie udało się zapisać płatności cyklicznej. Spróbuj ponownie za chwilę.',
+          invalid: 'Sprawdź oznaczone pola przed zapisaniem.',
           backfillError: 'Płatność cykliczna została zapisana, ale nie udało się teraz wygenerować historii.',
           duplicateName: 'Płatność cykliczna o tej nazwie już istnieje. Zmień etykietę lub edytuj istniejący wpis.',
         },

@@ -19,9 +19,11 @@ export class NavbarComponent {
   private readonly languageService = inject(LanguageService);
 
   readonly modulesMenuOpen = signal(false);
+  readonly accountMenuOpen = signal(false);
   readonly languages = this.languageService.availableLanguages;
   readonly activeLanguage = computed(() => this.languageService.currentLanguage());
   private modulesCloseTimer: ReturnType<typeof setTimeout> | null = null;
+  private accountCloseTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly initials = computed(() => {
     const session = this.auth.session();
@@ -71,6 +73,24 @@ export class NavbarComponent {
     this.modulesMenuOpen.update((open) => !open);
   }
 
+  closeAccountMenu(): void {
+    this.cancelAccountClose();
+    this.accountMenuOpen.set(false);
+  }
+
+  scheduleCloseAccountMenu(): void {
+    this.cancelAccountClose();
+    this.accountCloseTimer = setTimeout(() => {
+      this.accountMenuOpen.set(false);
+      this.accountCloseTimer = null;
+    }, 180);
+  }
+
+  toggleAccountMenu(): void {
+    this.cancelAccountClose();
+    this.accountMenuOpen.update((open) => !open);
+  }
+
   handleModulesFocusOut(event: FocusEvent): void {
     const nextElement = event.relatedTarget as HTMLElement | null;
     const currentTarget = event.currentTarget as HTMLElement | null;
@@ -84,6 +104,19 @@ export class NavbarComponent {
     }
   }
 
+  handleAccountFocusOut(event: FocusEvent): void {
+    const nextElement = event.relatedTarget as HTMLElement | null;
+    const currentTarget = event.currentTarget as HTMLElement | null;
+    if (!currentTarget) {
+      this.closeAccountMenu();
+      return;
+    }
+
+    if (!nextElement || !currentTarget.contains(nextElement)) {
+      this.scheduleCloseAccountMenu();
+    }
+  }
+
   private cancelModulesClose(): void {
     if (!this.modulesCloseTimer) {
       return;
@@ -93,11 +126,22 @@ export class NavbarComponent {
     this.modulesCloseTimer = null;
   }
 
+  private cancelAccountClose(): void {
+    if (!this.accountCloseTimer) {
+      return;
+    }
+
+    clearTimeout(this.accountCloseTimer);
+    this.accountCloseTimer = null;
+  }
+
   toggleTheme(): void {
     this.themeService.toggleTheme();
+    this.closeAccountMenu();
   }
 
   async signOut(): Promise<void> {
+    this.closeAccountMenu();
     await this.auth.signOut();
     await this.router.navigateByUrl('/');
   }
