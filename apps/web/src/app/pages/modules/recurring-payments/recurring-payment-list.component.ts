@@ -16,6 +16,7 @@ import {
   RecurringPaymentsStore,
   RecurringTransactionEntity,
 } from './recurring-payments.store';
+import { logError } from '../../../core/logger';
 
 @Component({
   standalone: true,
@@ -201,7 +202,7 @@ export class RecurringPaymentListComponent {
     try {
       await this.store.stopRecurringTransaction(transaction.id);
     } catch (error) {
-      console.error('[RecurringPaymentList] stop failed', error);
+      logError('RecurringPaymentList', 'stop failed', error);
     }
   }
 
@@ -217,7 +218,7 @@ export class RecurringPaymentListComponent {
     try {
       await this.store.resumeRecurringTransaction(transaction.id);
     } catch (error) {
-      console.error('[RecurringPaymentList] resume failed', error);
+      logError('RecurringPaymentList', 'resume failed', error);
     }
   }
 
@@ -233,7 +234,7 @@ export class RecurringPaymentListComponent {
     try {
       await this.store.deleteRecurringTransaction(transaction.id);
     } catch (error) {
-      console.error('[RecurringPaymentList] delete failed', error);
+      logError('RecurringPaymentList', 'delete failed', error);
     }
   }
 
@@ -259,7 +260,7 @@ export class RecurringPaymentListComponent {
         return next;
       });
     } catch (error) {
-      console.error('[RecurringPaymentList] complete occurrence failed', error);
+      logError('RecurringPaymentList', 'complete occurrence failed', error);
     }
   }
 

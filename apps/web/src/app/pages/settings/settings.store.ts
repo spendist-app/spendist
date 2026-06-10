@@ -3,6 +3,7 @@ import { PostgrestError, SupabaseClient } from '@supabase/supabase-js';
 import { AuthService } from '../../core/auth.service';
 import { SUPABASE_CLIENT } from '../../core/supabase';
 import { canonicalHeroIconName } from '../../shared/icons/heroicons';
+import { logError } from '../../core/logger';
 import type { CategoryGroupRow, CategoryRow, WalletRow, Tables } from '@spendist/data-access/supabase-types';
 
 export interface CategoryEntity {
@@ -277,7 +278,7 @@ export class SettingsStore {
       });
     } catch (error) {
       const message = this.describeError(error);
-      console.error('[SettingsStore] Failed to refresh data:', error);
+      logError('SettingsStore', 'Failed to refresh data', error);
       this.state.update((state) => ({
         ...state,
         loading: false,

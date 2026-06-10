@@ -3,6 +3,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@spendist/data-access/supabase-types';
 import { SUPABASE_CLIENT } from '../../core/supabase';
 import { AuthService } from '../../core/auth.service';
+import { logError } from '../../core/logger';
 
 type MonthlyCashflowRow = Database['public']['Functions']['monthly_cashflow_summary']['Returns'][number];
 type AvailableMonthRow = Database['public']['Functions']['available_transaction_months']['Returns'][number];
@@ -421,7 +422,7 @@ export class DashboardStore {
       const preferred = this.resolveWalletSelection(wallets);
       this.selectedWallet.set(preferred);
     } catch (error) {
-      console.error('[DashboardStore] Failed to load wallets', error);
+      logError('DashboardStore', 'Failed to load wallets', error);
       this.walletState.set({
         loading: false,
         error: this.describeError(error),
@@ -476,7 +477,7 @@ export class DashboardStore {
         return;
       }
 
-      console.error('[DashboardStore] Failed to load monthly structure', error);
+      logError('DashboardStore', 'Failed to load monthly structure', error);
       this.structureState.update((state) => ({
         ...state,
         loading: false,
@@ -529,7 +530,7 @@ export class DashboardStore {
         return;
       }
 
-      console.error('[DashboardStore] Failed to load available months', error);
+      logError('DashboardStore', 'Failed to load available months', error);
       this.monthOptionsState.set([]);
       this.selectedMonth.set(null);
       this.categoryState.set({
@@ -581,7 +582,7 @@ export class DashboardStore {
         return;
       }
 
-      console.error('[DashboardStore] Failed to load category structure', error);
+      logError('DashboardStore', 'Failed to load category structure', error);
       this.categoryState.set({
         loading: false,
         error: this.describeError(error),
@@ -650,7 +651,7 @@ export class DashboardStore {
         return;
       }
 
-      console.error('[DashboardStore] Failed to load recurring transaction summary', error);
+      logError('DashboardStore', 'Failed to load recurring transaction summary', error);
       this.recurringState.set({
         loading: false,
         error: this.describeError(error),

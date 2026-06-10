@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import {
   NonNullableFormBuilder,
   ReactiveFormsModule,
+  type ValidatorFn,
   Validators,
 } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -24,6 +25,17 @@ const passwordsMatchValidator = (passwordKey: string, confirmPasswordKey: string
     return password !== confirmPassword ? { passwordsMismatch: true } : null;
   };
 };
+
+const isDev = typeof ngDevMode !== 'undefined' && !!ngDevMode;
+
+function buildPasswordValidators(): ValidatorFn[] {
+  const base: ValidatorFn[] = [Validators.required, Validators.minLength(8)];
+  if (!isDev) {
+    // Production: require at least one lowercase, one uppercase and one digit.
+    base.push(Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/));
+  }
+  return base;
+}
 
 function buildAvatarUrl(username: string): string {
   const seed = encodeURIComponent(username.trim().toLowerCase());
@@ -94,7 +106,7 @@ export class SignupPageComponent {
         validators: [Validators.required, Validators.email],
       }),
       password: this.formBuilder.control('', {
-        validators: [Validators.required, Validators.minLength(8)],
+        validators: buildPasswordValidators(),
       }),
       confirmPassword: this.formBuilder.control('', {
         validators: [Validators.required],

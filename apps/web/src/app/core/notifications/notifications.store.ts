@@ -3,6 +3,7 @@ import type { NotificationRow } from '@spendist/data-access/supabase-types';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { AuthService } from '../auth.service';
 import { SUPABASE_CLIENT } from '../supabase';
+import { logError } from '../logger';
 
 const NOTIFICATIONS_LIMIT = 20;
 
@@ -109,7 +110,7 @@ export class NotificationsStore implements OnDestroy {
         ),
       }));
     } catch (error) {
-      console.error('[NotificationsStore] Failed to mark notifications as read', error);
+      logError('NotificationsStore', 'Failed to mark notifications as read', error);
       this.state.update((state) => ({
         ...state,
         markAllPending: false,
@@ -143,7 +144,7 @@ export class NotificationsStore implements OnDestroy {
         notifications: (data ?? []) as NotificationRow[],
       }));
     } catch (error) {
-      console.error('[NotificationsStore] Failed to load notifications', error);
+      logError('NotificationsStore', 'Failed to load notifications', error);
       this.state.update((state) => ({
         ...state,
         loading: false,

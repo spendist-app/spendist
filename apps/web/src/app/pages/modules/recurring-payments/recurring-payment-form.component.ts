@@ -17,6 +17,7 @@ import {
 } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TranslocoPipe, TranslocoService } from '@ngneat/transloco';
+import { logError } from '../../../core/logger';
 import {
   RecurringPaymentsStore,
   RecurringAmountMode,
@@ -269,7 +270,7 @@ export class RecurringPaymentFormComponent {
       this.resetForm();
       this.dismiss.emit();
     } catch (error) {
-      console.error('[RecurringPaymentForm] submission failed', error);
+      logError('RecurringPaymentForm', 'submission failed', error);
       const storeError = this.store.mutationError();
       if (storeError === 'modules.recurringPayments.form.notifications.duplicateName') {
         const duplicateMessage = this.transloco.translate(storeError);

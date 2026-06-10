@@ -1,4 +1,5 @@
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
+import { logError } from '../../core/logger';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { AuthService } from '../../core/auth.service';
 import { SUPABASE_CLIENT } from '../../core/supabase';
@@ -447,7 +448,7 @@ export class TransactionsStore {
       this.scheduleCategorySummaryRefresh(true);
     } catch (error) {
       const message = this.describeError(error);
-      console.error('[TransactionsStore] Failed to load transactions', error);
+      logError('TransactionsStore', 'Failed to load transactions', error);
       this.state.update((state) => ({
         ...state,
         loading: false,
@@ -531,7 +532,7 @@ export class TransactionsStore {
       }
 
       const message = this.describeError(error);
-      console.error('[TransactionsStore] Failed to load transaction page', error);
+      logError('TransactionsStore', 'Failed to load transaction page', error);
       this.state.update((state) => ({
         ...state,
         loading: false,
@@ -955,7 +956,7 @@ export class TransactionsStore {
       return { success: true };
     } catch (error) {
       const message = this.describeError(error);
-      console.error('[TransactionsStore] Failed to create transaction', error);
+      logError('TransactionsStore', 'Failed to create transaction', error);
       this.state.update((state) => ({
         ...state,
         transactionMutationPending: false,
@@ -1040,7 +1041,7 @@ export class TransactionsStore {
       return { success: true };
     } catch (error) {
       const message = this.describeError(error);
-      console.error('[TransactionsStore] Failed to update transaction', error);
+      logError('TransactionsStore', 'Failed to update transaction', error);
       this.state.update((state) => ({
         ...state,
         transactionMutationPending: false,
@@ -1084,7 +1085,7 @@ export class TransactionsStore {
       return { success: true };
     } catch (error) {
       const message = this.describeError(error);
-      console.error('[TransactionsStore] Failed to delete transaction', error);
+      logError('TransactionsStore', 'Failed to delete transaction', error);
       this.state.update((state) => ({
         ...state,
         transactionMutationPending: false,
@@ -1256,7 +1257,7 @@ export class TransactionsStore {
       }
 
       const message = this.describeError(error);
-      console.error('[TransactionsStore] Failed to load category expense summary', error);
+      logError('TransactionsStore', 'Failed to load category expense summary', error);
       this.state.update((state) => ({
         ...state,
         summaryLoading: false,

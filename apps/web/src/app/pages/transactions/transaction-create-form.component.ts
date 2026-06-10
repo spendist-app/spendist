@@ -24,6 +24,7 @@ import {
 import type { TransactionDirection } from '@spendist/data-access/supabase-types';
 import { parseAmountInput } from './transaction-amount.parser';
 import { heroIconSvg } from '../../shared/icons/heroicons';
+import { logError } from '../../core/logger';
 
 interface CategoryOption {
   readonly id: string;
@@ -106,7 +107,7 @@ export class TransactionCreateFormComponent {
       nonNullable: true,
     }),
     amount: this.formBuilder.control<string>('', {
-      validators: [Validators.required],
+      validators: [Validators.required, Validators.pattern(/[0-9]/)],
       nonNullable: true,
     }),
     currency: this.formBuilder.control<string>(this.store.defaultCurrency(), {
@@ -871,7 +872,7 @@ export class TransactionCreateFormComponent {
       );
       return rate === null ? null : amount * rate;
     } catch (error) {
-      console.error('[TransactionCreateForm] Failed to load exchange rate', error);
+      logError('TransactionCreateForm', 'Failed to load exchange rate', error);
       return null;
     }
   }
