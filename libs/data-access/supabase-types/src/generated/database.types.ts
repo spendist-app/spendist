@@ -825,6 +825,10 @@ export type Database = {
         }
         Returns: number
       }
+      invoke_scheduled_edge_function: {
+        Args: { p_body?: Json; p_function_name: string; p_secret_name: string }
+        Returns: number
+      }
       monthly_cashflow_summary: {
         Args: { p_months?: number; p_wallet_id?: string }
         Returns: {

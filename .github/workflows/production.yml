@@ -93,6 +93,9 @@ jobs:
             RECURRING_PAYMENTS_SECRET="$RECURRING_PAYMENTS_SECRET" \
             EXCHANGE_RATES_SYNC_SECRET="$EXCHANGE_RATES_SYNC_SECRET"
 
+      - name: Sync Supabase Vault Secrets
+        run: node tools/scripts/sync-supabase-vault-secrets.mjs
+
       - name: Write production runtime env
         run: |
           supabase_url="$NG_APP_SUPABASE_URL"
