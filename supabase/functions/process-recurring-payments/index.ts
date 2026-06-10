@@ -26,7 +26,7 @@ Deno.serve(async (request) => {
   const authorization = request.headers.get('Authorization') ?? '';
   const token = authorization.replace(/^Bearer\s+/i, '').trim();
   const body = await parseRequestBody(request);
-  const configuredSecret = Deno.env.get('RECURRING_PAYMENTS_SECRET')?.trim();
+  const configuredSecret = firstEnv('INTERNAL_FUNCTION_SECRET', 'ROUTINE_RUNNER_SECRET', 'RECURRING_PAYMENTS_SECRET');
   const isSecretAuthorized = !!configuredSecret && token === configuredSecret;
   const isSingleRecurringBackfill = !!body.recurringId;
 
@@ -307,6 +307,17 @@ function requiredEnv(name: string): string {
     throw new Error(`Missing ${name}`);
   }
   return value;
+}
+
+function firstEnv(...names: string[]): string {
+  for (const name of names) {
+    const value = Deno.env.get(name)?.trim();
+    if (value) {
+      return value;
+    }
+  }
+
+  return '';
 }
 
 function positiveIntegerEnv(name: string, fallback: number): number {

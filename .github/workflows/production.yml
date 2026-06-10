@@ -28,8 +28,9 @@ jobs:
       NG_APP_SUPABASE_URL: ${{ secrets.NG_APP_SUPABASE_URL }}
       NG_APP_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NG_APP_SUPABASE_PUBLISHABLE_KEY }}
       NG_APP_SUPABASE_FUNCTIONS_URL: ${{ secrets.NG_APP_SUPABASE_FUNCTIONS_URL }}
+      INTERNAL_FUNCTION_SECRET: ${{ secrets.INTERNAL_FUNCTION_SECRET }}
+      ROUTINE_RUNNER_SECRET: ${{ secrets.ROUTINE_RUNNER_SECRET }}
       RECURRING_PAYMENTS_SECRET: ${{ secrets.RECURRING_PAYMENTS_SECRET }}
-      EXCHANGE_RATES_SYNC_SECRET: ${{ secrets.EXCHANGE_RATES_SYNC_SECRET }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -78,20 +79,21 @@ jobs:
             exit 1
           fi
 
-          if [ -z "$RECURRING_PAYMENTS_SECRET" ]; then
-            echo "::error::Missing required GitHub secret: RECURRING_PAYMENTS_SECRET"
+          internal_function_secret="${INTERNAL_FUNCTION_SECRET:-${ROUTINE_RUNNER_SECRET:-${RECURRING_PAYMENTS_SECRET:-}}}"
+
+          if [ -z "$internal_function_secret" ]; then
+            echo "::error::Missing required GitHub secret: INTERNAL_FUNCTION_SECRET"
+            echo "::notice::Temporary fallback is ROUTINE_RUNNER_SECRET or RECURRING_PAYMENTS_SECRET."
             exit 1
           fi
 
-          if [ -z "$EXCHANGE_RATES_SYNC_SECRET" ]; then
-            echo "::error::Missing required GitHub secret: EXCHANGE_RATES_SYNC_SECRET"
-            exit 1
-          fi
+          secret_args=(
+            INTERNAL_FUNCTION_SECRET="$internal_function_secret"
+          )
 
           supabase secrets set \
             --project-ref "$SUPABASE_PROJECT_REF" \
-            RECURRING_PAYMENTS_SECRET="$RECURRING_PAYMENTS_SECRET" \
-            EXCHANGE_RATES_SYNC_SECRET="$EXCHANGE_RATES_SYNC_SECRET"
+            "${secret_args[@]}"
 
       - name: Sync Supabase Vault Secrets
         run: node tools/scripts/sync-supabase-vault-secrets.mjs

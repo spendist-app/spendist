@@ -1,7 +1,6 @@
 import { spawnSync } from 'node:child_process';
 
-const LOCAL_RECURRING_SECRET = 'local-recurring-payments-secret';
-const LOCAL_EXCHANGE_RATES_SECRET = 'local-exchange-rates-sync-secret';
+const LOCAL_INTERNAL_FUNCTION_SECRET = 'local-internal-function-secret';
 const LOCAL_FUNCTIONS_BASE_URL = 'http://kong:8000/functions/v1';
 
 function isLocalDatabaseUrl(value) {
@@ -41,17 +40,15 @@ function resolveFunctionsBaseUrl(isLocal) {
   return `${supabaseUrl.replace(/\/$/, '')}/functions/v1`;
 }
 
-function resolveSecret(name, fallback, isLocal) {
-  const value = process.env[name]?.trim();
-  if (value) {
-    return value;
+function firstEnv(...names) {
+  for (const name of names) {
+    const value = process.env[name]?.trim();
+    if (value) {
+      return value;
+    }
   }
 
-  if (isLocal) {
-    return fallback;
-  }
-
-  throw new Error(`Missing ${name}`);
+  return '';
 }
 
 function sqlString(value) {
@@ -102,8 +99,18 @@ function main() {
 
   const isLocal = isLocalDatabaseUrl(dbUrl);
   const functionsBaseUrl = resolveFunctionsBaseUrl(isLocal);
-  const recurringSecret = resolveSecret('RECURRING_PAYMENTS_SECRET', LOCAL_RECURRING_SECRET, isLocal);
-  const exchangeRatesSecret = resolveSecret('EXCHANGE_RATES_SYNC_SECRET', LOCAL_EXCHANGE_RATES_SECRET, isLocal);
+  const internalFunctionSecret = firstEnv(
+    'INTERNAL_FUNCTION_SECRET',
+    'ROUTINE_RUNNER_SECRET',
+    'RECURRING_PAYMENTS_SECRET',
+    'EXCHANGE_RATES_SYNC_SECRET',
+  );
+
+  if (!internalFunctionSecret && !isLocal) {
+    throw new Error('Missing INTERNAL_FUNCTION_SECRET');
+  }
+
+  const scheduledFunctionSecret = internalFunctionSecret || LOCAL_INTERNAL_FUNCTION_SECRET;
 
   runSql(dbUrl, 'create extension if not exists supabase_vault with schema vault');
   runSql(
@@ -117,17 +124,9 @@ function main() {
   runSql(
     dbUrl,
     renderSecretBlock(
-      'spendist_recurring_payments_secret',
-      recurringSecret,
-      'Bearer token for scheduled recurring payment Edge Function invocations.',
-    ),
-  );
-  runSql(
-    dbUrl,
-    renderSecretBlock(
-      'spendist_exchange_rates_sync_secret',
-      exchangeRatesSecret,
-      'Bearer token for scheduled exchange rate Edge Function invocations.',
+      'spendist_internal_function_secret',
+      scheduledFunctionSecret,
+      'Bearer token for Spendist scheduled Edge Function invocations.',
     ),
   );
 

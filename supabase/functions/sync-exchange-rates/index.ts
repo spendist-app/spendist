@@ -50,7 +50,12 @@ Deno.serve(async (request) => {
     return json({ error: 'Method not allowed' }, 405);
   }
 
-  const configuredSecret = Deno.env.get('EXCHANGE_RATES_SYNC_SECRET')?.trim();
+  const configuredSecret = firstEnv(
+    'INTERNAL_FUNCTION_SECRET',
+    'ROUTINE_RUNNER_SECRET',
+    'RECURRING_PAYMENTS_SECRET',
+    'EXCHANGE_RATES_SYNC_SECRET',
+  );
   const token = (request.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '').trim();
   if (!configuredSecret || token !== configuredSecret) {
     return json({ error: 'Unauthorized' }, 401);
@@ -391,6 +396,17 @@ function requiredEnv(name: string): string {
     throw new Error(`Missing ${name}`);
   }
   return value;
+}
+
+function firstEnv(...names: string[]): string {
+  for (const name of names) {
+    const value = Deno.env.get(name)?.trim();
+    if (value) {
+      return value;
+    }
+  }
+
+  return '';
 }
 
 function describeError(error: unknown): string {
