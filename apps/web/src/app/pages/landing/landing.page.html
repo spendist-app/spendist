@@ -1,0 +1,224 @@
+<!-- ═══════════════════════════ HERO ═══════════════════════════ -->
+<section id="hero" class="landing-hero">
+  @if (auth.loading()) {
+    <span
+      class="loading loading-spinner loading-lg text-primary"
+      [attr.aria-label]="'common.status.checkingSession' | transloco"
+    ></span>
+  } @else {
+    <!-- Animated background blobs -->
+    <div class="hero-blob hero-blob--1" aria-hidden="true"></div>
+    <div class="hero-blob hero-blob--2" aria-hidden="true"></div>
+    <div class="hero-blob hero-blob--3" aria-hidden="true"></div>
+
+    <div class="hero-content animate-fade-up">
+      <span class="hero-badge">
+        <span class="hero-badge__dot" aria-hidden="true"></span>
+        {{ 'landing.hero.badge' | transloco }}
+      </span>
+
+      <h1 class="hero-title">
+        {{ 'landing.hero.title' | transloco }}
+        <span class="hero-title__highlight">{{ 'landing.hero.titleHighlight' | transloco }}</span>
+      </h1>
+
+      <p class="hero-subtitle">
+        {{ 'landing.hero.subtitle' | transloco }}
+      </p>
+
+      <div class="hero-actions">
+        <a class="btn btn-primary btn-lg hero-cta" routerLink="/signup">
+          {{ 'landing.hero.cta' | transloco }}
+          <span class="hero-cta__arrow" aria-hidden="true">→</span>
+        </a>
+        <a class="btn btn-ghost btn-lg" href="#features">
+          {{ 'landing.hero.ctaSecondary' | transloco }}
+        </a>
+      </div>
+    </div>
+
+    <!-- Floating dashboard preview card -->
+    <div class="hero-preview animate-fade-up-delayed">
+      <div class="preview-card">
+        <div class="preview-card__header">
+          <div class="preview-dots" aria-hidden="true">
+            <span class="dot dot--red"></span>
+            <span class="dot dot--yellow"></span>
+            <span class="dot dot--green"></span>
+          </div>
+          <span class="preview-card__title">Spendist Dashboard</span>
+        </div>
+        <div class="preview-card__body">
+          <div class="preview-row">
+            <div class="preview-stat preview-stat--income">
+              <span class="preview-stat__label">Income</span>
+              <span class="preview-stat__value preview-stat__value--positive">+12,450.00</span>
+            </div>
+            <div class="preview-stat preview-stat--expense">
+              <span class="preview-stat__label">Expenses</span>
+              <span class="preview-stat__value preview-stat__value--negative">-8,320.50</span>
+            </div>
+            <div class="preview-stat preview-stat--net">
+              <span class="preview-stat__label">Net</span>
+              <span class="preview-stat__value preview-stat__value--positive">+4,129.50</span>
+            </div>
+          </div>
+          <div class="preview-chart" aria-hidden="true">
+            <div class="chart-bar" style="--bar-height: 65%"></div>
+            <div class="chart-bar chart-bar--accent" style="--bar-height: 45%"></div>
+            <div class="chart-bar" style="--bar-height: 80%"></div>
+            <div class="chart-bar chart-bar--accent" style="--bar-height: 55%"></div>
+            <div class="chart-bar" style="--bar-height: 70%"></div>
+            <div class="chart-bar chart-bar--accent" style="--bar-height: 40%"></div>
+            <div class="chart-bar" style="--bar-height: 90%"></div>
+            <div class="chart-bar chart-bar--accent" style="--bar-height: 60%"></div>
+            <div class="chart-bar" style="--bar-height: 75%"></div>
+            <div class="chart-bar chart-bar--accent" style="--bar-height: 50%"></div>
+            <div class="chart-bar" style="--bar-height: 85%"></div>
+            <div class="chart-bar chart-bar--accent" style="--bar-height: 35%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</section>
+
+<!-- ═══════════════════════ STATS STRIP ═══════════════════════ -->
+@if (!auth.loading()) {
+<section id="stats" class="landing-stats">
+  <div class="stats-grid">
+    <div class="stat-item">
+      <span class="stat-item__number">50K+</span>
+      <span class="stat-item__label">{{ 'landing.stats.transactions' | transloco }}</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-item__number">200+</span>
+      <span class="stat-item__label">{{ 'landing.stats.categories' | transloco }}</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-item__number">∞</span>
+      <span class="stat-item__label">{{ 'landing.stats.wallets' | transloco }}</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-item__number">99.9%</span>
+      <span class="stat-item__label">{{ 'landing.stats.uptime' | transloco }}</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════ FEATURES ═══════════════════════ -->
+<section id="features" class="landing-features">
+  <div class="section-header">
+    <span class="section-badge">{{ 'landing.features.badge' | transloco }}</span>
+    <h2 class="section-title">{{ 'landing.features.title' | transloco }}</h2>
+    <p class="section-subtitle">{{ 'landing.features.subtitle' | transloco }}</p>
+  </div>
+
+  <div class="features-grid">
+    <div class="feature-card feature-card--primary">
+      <div class="feature-card__icon" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" /></svg>
+      </div>
+      <h3 class="feature-card__title">{{ 'landing.features.dashboard.title' | transloco }}</h3>
+      <p class="feature-card__desc">{{ 'landing.features.dashboard.description' | transloco }}</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-card__icon" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z" /></svg>
+      </div>
+      <h3 class="feature-card__title">{{ 'landing.features.transactions.title' | transloco }}</h3>
+      <p class="feature-card__desc">{{ 'landing.features.transactions.description' | transloco }}</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-card__icon" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 0 0-3.7-3.7 48.678 48.678 0 0 0-7.324 0 4.006 4.006 0 0 0-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 0 0 3.7 3.7 48.656 48.656 0 0 0 7.324 0 4.006 4.006 0 0 0 3.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3-3 3" /></svg>
+      </div>
+      <h3 class="feature-card__title">{{ 'landing.features.recurring.title' | transloco }}</h3>
+      <p class="feature-card__desc">{{ 'landing.features.recurring.description' | transloco }}</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-card__icon" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6Z" /></svg>
+      </div>
+      <h3 class="feature-card__title">{{ 'landing.features.categories.title' | transloco }}</h3>
+      <p class="feature-card__desc">{{ 'landing.features.categories.description' | transloco }}</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-card__icon" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a2.25 2.25 0 0 0-2.25-2.25H15a3 3 0 1 1-6 0H5.25A2.25 2.25 0 0 0 3 12m18 0v6a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 9m18 0V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v3" /></svg>
+      </div>
+      <h3 class="feature-card__title">{{ 'landing.features.wallets.title' | transloco }}</h3>
+      <p class="feature-card__desc">{{ 'landing.features.wallets.description' | transloco }}</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-card__icon" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" /></svg>
+      </div>
+      <h3 class="feature-card__title">{{ 'landing.features.import.title' | transloco }}</h3>
+      <p class="feature-card__desc">{{ 'landing.features.import.description' | transloco }}</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════ BENEFITS ═══════════════════════ -->
+<section id="benefits" class="landing-benefits">
+  <div class="section-header">
+    <span class="section-badge section-badge--alt">{{ 'landing.benefits.badge' | transloco }}</span>
+    <h2 class="section-title">{{ 'landing.benefits.title' | transloco }}</h2>
+    <p class="section-subtitle">{{ 'landing.benefits.subtitle' | transloco }}</p>
+  </div>
+
+  <div class="benefits-grid">
+    <div class="benefit-card">
+      <div class="benefit-card__icon" aria-hidden="true">🔒</div>
+      <h3 class="benefit-card__title">{{ 'landing.benefits.privacy.title' | transloco }}</h3>
+      <p class="benefit-card__desc">{{ 'landing.benefits.privacy.description' | transloco }}</p>
+    </div>
+
+    <div class="benefit-card">
+      <div class="benefit-card__icon" aria-hidden="true">⚡</div>
+      <h3 class="benefit-card__title">{{ 'landing.benefits.speed.title' | transloco }}</h3>
+      <p class="benefit-card__desc">{{ 'landing.benefits.speed.description' | transloco }}</p>
+    </div>
+
+    <div class="benefit-card">
+      <div class="benefit-card__icon" aria-hidden="true">🌍</div>
+      <h3 class="benefit-card__title">{{ 'landing.benefits.i18n.title' | transloco }}</h3>
+      <p class="benefit-card__desc">{{ 'landing.benefits.i18n.description' | transloco }}</p>
+    </div>
+
+    <div class="benefit-card">
+      <div class="benefit-card__icon" aria-hidden="true">🎨</div>
+      <h3 class="benefit-card__title">{{ 'landing.benefits.themes.title' | transloco }}</h3>
+      <p class="benefit-card__desc">{{ 'landing.benefits.themes.description' | transloco }}</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════ FINAL CTA ═══════════════════════ -->
+<section id="cta" class="landing-cta">
+  <div class="cta-glow" aria-hidden="true"></div>
+  <div class="cta-content">
+    <h2 class="cta-title">{{ 'landing.cta.title' | transloco }}</h2>
+    <p class="cta-subtitle">{{ 'landing.cta.subtitle' | transloco }}</p>
+    <a class="btn btn-primary btn-lg cta-button" routerLink="/signup">
+      {{ 'landing.cta.button' | transloco }}
+      <span aria-hidden="true">→</span>
+    </a>
+  </div>
+</section>
+
+<!-- ═══════════════════════ FOOTER ═══════════════════════ -->
+<footer class="landing-footer">
+  <p>
+    {{ 'landing.footer.madeWith' | transloco }}
+    <span class="footer-heart" aria-hidden="true">♥</span>
+    {{ 'landing.footer.tagline' | transloco }}
+  </p>
+</footer>
+}

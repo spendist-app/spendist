@@ -49,12 +49,102 @@ const pl = {
     modules: 'Moduły',
     modulesRecurring: 'Płatności cykliczne',
     menuToggle: 'Otwórz menu nawigacji',
+    about: {
+      menuItem: 'O aplikacji',
+      title: 'O aplikacji',
+      close: 'Zamknij okno informacji o aplikacji',
+      buildCommit: 'Commit buildu',
+      fullCommit: 'Pełny commit',
+    },
   },
   landing: {
     title: 'Witamy w Spendist',
     subtitle: 'Zaloguj się, aby śledzić wydatki, albo utwórz konto i zacznij od razu.',
     loginCta: 'Zaloguj się',
     signupCta: 'Zarejestruj się',
+    hero: {
+      badge: 'Inteligentne finanse osobiste',
+      title: 'Przejmij kontrolę nad swoimi',
+      titleHighlight: 'finansami',
+      subtitle:
+        'Śledź każdy wydatek, automatyzuj płatności cykliczne i zyskaj prawdziwy wgląd w swoje nawyki — wszystko w jednej, pięknej aplikacji.',
+      cta: 'Zacznij za darmo',
+      ctaSecondary: 'Zobacz jak to działa',
+    },
+    features: {
+      badge: 'Funkcje',
+      title: 'Wszystko czego potrzebujesz, by zarządzać pieniędzmi',
+      subtitle:
+        'Od codziennego śledzenia po automatyczne płatności — Spendist daje ci narzędzia, by trzymać finanse w ryzach.',
+      dashboard: {
+        title: 'Interaktywny pulpit',
+        description:
+          'Przychody vs. wydatki jednym rzutem oka, miesięczny przepływ gotówki i natychmiastowe wychwytywanie trendów.',
+      },
+      transactions: {
+        title: 'Inteligentne transakcje',
+        description:
+          'Zapisuj wydatki i przychody w sekundy. Filtruj po kategorii, portfelu, dacie lub tagach — znajdź wszystko błyskawicznie.',
+      },
+      recurring: {
+        title: 'Płatności cykliczne',
+        description:
+          'Automatyzuj subskrypcje, czynsz i rachunki. Ustaw harmonogram raz, a Spendist zajmie się resztą.',
+      },
+      categories: {
+        title: 'Własne kategorie',
+        description:
+          'Organizuj wydatki po swojemu — zagnieżdżone kategorie, grupy, kolory i ikony.',
+      },
+      wallets: {
+        title: 'Wiele portfeli',
+        description:
+          'Zarządzaj wieloma kontami i walutami obok siebie. Ustaw domyślny i śledź salda niezależnie.',
+      },
+      import: {
+        title: 'Import i eksport',
+        description:
+          'Importuj dane z Kontomierza lub plików CSV. Eksportuj kiedy chcesz — Twoje dane zawsze należą do Ciebie.',
+      },
+    },
+    stats: {
+      transactions: 'Śledzonych transakcji',
+      categories: 'Własnych kategorii',
+      wallets: 'Obsługiwanych portfeli',
+      uptime: 'SLA dostępności',
+    },
+    benefits: {
+      badge: 'Dlaczego Spendist?',
+      title: 'Stworzony dla ludzi, którym zależy na pieniądzach',
+      subtitle:
+        'Bez reklam, bez upsellingu, bez sprzedawania danych. Czyste, potężne narzędzie zaprojektowane wokół Twoich potrzeb.',
+      privacy: {
+        title: 'Prywatność przede wszystkim',
+        description: 'Twoje dane finansowe są Twoje. Szyfrowanie end-to-end, brak analityki firm trzecich.',
+      },
+      speed: {
+        title: 'Błyskawiczna szybkość',
+        description: 'Zbudowany na nowoczesnych technologiach z SSR dla natychmiastowego ładowania.',
+      },
+      i18n: {
+        title: 'Wielojęzyczność',
+        description: 'Pełne wsparcie dla angielskiego i polskiego, kolejne języki w drodze.',
+      },
+      themes: {
+        title: 'Ciemny i jasny motyw',
+        description: 'Łagodny dla oczu, dniem i nocą. Przełączaj motyw natychmiast z dowolnej strony.',
+      },
+    },
+    cta: {
+      title: 'Gotowy, by przejąć kontrolę?',
+      subtitle:
+        'Dołącz do Spendist już dziś i zacznij budować jaśniejszy obraz swoich finansów.',
+      button: 'Utwórz darmowe konto',
+    },
+    footer: {
+      madeWith: 'Stworzone z',
+      tagline: 'dla świadomych finansowo',
+    },
   },
   home: {
     title: 'Twój pulpit wkrótce się tu pojawi.',

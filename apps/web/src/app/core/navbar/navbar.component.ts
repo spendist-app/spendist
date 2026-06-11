@@ -5,6 +5,7 @@ import { AuthService } from '../auth.service';
 import { LanguageService } from '../language.service';
 import { NotificationsMenuComponent } from '../notifications/notifications-menu.component';
 import { ThemeService } from '../theme.service';
+import { appInfoConfig } from '../../config/app-info.config';
 
 @Component({
   standalone: true,
@@ -20,8 +21,11 @@ export class NavbarComponent {
 
   readonly modulesMenuOpen = signal(false);
   readonly accountMenuOpen = signal(false);
+  readonly aboutModalOpen = signal(false);
   readonly languages = this.languageService.availableLanguages;
   readonly activeLanguage = computed(() => this.languageService.currentLanguage());
+  readonly buildCommit = appInfoConfig.buildCommit;
+  readonly buildCommitShort = shortCommit(appInfoConfig.buildCommit);
   private modulesCloseTimer: ReturnType<typeof setTimeout> | null = null;
   private accountCloseTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -76,6 +80,16 @@ export class NavbarComponent {
   closeAccountMenu(): void {
     this.cancelAccountClose();
     this.accountMenuOpen.set(false);
+  }
+
+  openAboutModal(): void {
+    this.closeAccountMenu();
+    this.closeModulesMenu();
+    this.aboutModalOpen.set(true);
+  }
+
+  closeAboutModal(): void {
+    this.aboutModalOpen.set(false);
   }
 
   scheduleCloseAccountMenu(): void {
@@ -153,4 +167,13 @@ export class NavbarComponent {
       this.languageService.setLanguage(next);
     }
   }
+}
+
+function shortCommit(commit: string): string {
+  const normalized = commit.trim();
+  if (!normalized || normalized === 'unknown') {
+    return 'unknown';
+  }
+
+  return normalized.slice(0, 12);
 }

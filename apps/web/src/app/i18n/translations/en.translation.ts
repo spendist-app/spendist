@@ -49,12 +49,102 @@ const en = {
     modules: 'Modules',
     modulesRecurring: 'Recurring payments',
     menuToggle: 'Open navigation menu',
+    about: {
+      menuItem: 'About',
+      title: 'About',
+      close: 'Close about dialog',
+      buildCommit: 'Build commit',
+      fullCommit: 'Full commit',
+    },
   },
   landing: {
     title: 'Welcome to Spendist',
     subtitle: 'Sign in to start tracking your spending, or create an account to get started.',
     loginCta: 'Log in',
     signupCta: 'Sign up',
+    hero: {
+      badge: 'Smart personal finance',
+      title: 'Take control of your',
+      titleHighlight: 'finances',
+      subtitle:
+        'Track every expense, automate recurring payments, and gain real insights into your spending habits — all in one beautiful app.',
+      cta: "Get started — it's free",
+      ctaSecondary: 'See how it works',
+    },
+    features: {
+      badge: 'Features',
+      title: 'Everything you need to manage your money',
+      subtitle:
+        'From daily tracking to automated payments, Spendist gives you the tools to stay on top of your finances.',
+      dashboard: {
+        title: 'Interactive dashboard',
+        description:
+          'See your income vs. expenses at a glance, track cash flow month by month, and spot trends instantly.',
+      },
+      transactions: {
+        title: 'Smart transactions',
+        description:
+          'Log expenses and income in seconds. Filter by category, wallet, date range, or tags — find anything fast.',
+      },
+      recurring: {
+        title: 'Recurring payments',
+        description:
+          'Automate subscriptions, rent, and bills. Set the schedule once and let Spendist handle the rest.',
+      },
+      categories: {
+        title: 'Custom categories',
+        description:
+          'Organize spending your way with nested categories, groups, custom colors, and icons.',
+      },
+      wallets: {
+        title: 'Multi-wallet support',
+        description:
+          'Manage multiple accounts and currencies side by side. Set defaults and track balances independently.',
+      },
+      import: {
+        title: 'Import & export',
+        description:
+          'Bring data from Kontomierz or CSV files. Export any time — your data is always yours.',
+      },
+    },
+    stats: {
+      transactions: 'Transactions tracked',
+      categories: 'Custom categories',
+      wallets: 'Wallets supported',
+      uptime: 'Uptime SLA',
+    },
+    benefits: {
+      badge: 'Why Spendist?',
+      title: 'Built for people who care about their money',
+      subtitle:
+        'No ads, no upsells, no data selling. Just a clean, powerful tool designed around your needs.',
+      privacy: {
+        title: 'Privacy first',
+        description: 'Your financial data stays yours. End-to-end encryption, no third-party analytics.',
+      },
+      speed: {
+        title: 'Lightning fast',
+        description: 'Built on modern web technologies with server-side rendering for instant page loads.',
+      },
+      i18n: {
+        title: 'Multilingual',
+        description: 'Full support for English and Polish, with more languages on the way.',
+      },
+      themes: {
+        title: 'Dark & light themes',
+        description: 'Easy on the eyes, day or night. Switch themes instantly from any page.',
+      },
+    },
+    cta: {
+      title: 'Ready to take control?',
+      subtitle:
+        'Join Spendist today and start building a clearer picture of your financial life.',
+      button: 'Create free account',
+    },
+    footer: {
+      madeWith: 'Made with',
+      tagline: 'for mindful spenders',
+    },
   },
   home: {
     title: 'Your dashboard will live here soon.',
