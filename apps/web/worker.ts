@@ -39,6 +39,13 @@ const SECURITY_HEADERS: Record<string, string> = {
     'camera=(), microphone=(), geolocation=(), payment=(), usb=()',
 };
 
+const SERVICE_WORKER_ASSET_PATHS = new Set([
+  '/ngsw.json',
+  '/ngsw-worker.js',
+  '/safety-worker.js',
+  '/worker-basic.min.js',
+]);
+
 const buildEnvPayload = (env: Env): Record<string, string> => {
   const supabaseUrl = env.SUPABASE_URL ?? env.NG_APP_SUPABASE_URL ?? '';
   const publishableKey =
@@ -61,10 +68,19 @@ const buildEnvPayload = (env: Env): Record<string, string> => {
   };
 };
 
-const withSecurityHeaders = (response: Response): Response => {
+const withSecurityHeaders = (
+  response: Response,
+  request?: Request
+): Response => {
   const headers = new Headers(response.headers);
   for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
     headers.set(name, value);
+  }
+  if (request) {
+    const { pathname } = new URL(request.url);
+    if (SERVICE_WORKER_ASSET_PATHS.has(pathname)) {
+      headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
   }
   return new Response(response.body, {
     status: response.status,
@@ -117,9 +133,9 @@ export default {
     const assetResponse = await env.ASSETS.fetch(request);
     if (assetResponse.status === 404 && shouldServeHtmlFallback(request)) {
       const fallbackResponse = await fallbackToIndex(request, env);
-      return withSecurityHeaders(fallbackResponse);
+      return withSecurityHeaders(fallbackResponse, request);
     }
 
-    return withSecurityHeaders(assetResponse);
+    return withSecurityHeaders(assetResponse, request);
   },
 };

@@ -49,6 +49,13 @@ const en = {
     modules: 'Modules',
     modulesRecurring: 'Recurring payments',
     menuToggle: 'Open navigation menu',
+    about: {
+      menuItem: 'About',
+      title: 'About',
+      close: 'Close about dialog',
+      buildCommit: 'Build commit',
+      fullCommit: 'Full commit',
+    },
   },
   landing: {
     title: 'Welcome to Spendist',
@@ -61,7 +68,7 @@ const en = {
       titleHighlight: 'finances',
       subtitle:
         'Track every expense, automate recurring payments, and gain real insights into your spending habits — all in one beautiful app.',
-      cta: 'Get started — it's free',
+      cta: "Get started — it's free",
       ctaSecondary: 'See how it works',
     },
     features: {

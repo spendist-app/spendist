@@ -49,6 +49,13 @@ const pl = {
     modules: 'Moduły',
     modulesRecurring: 'Płatności cykliczne',
     menuToggle: 'Otwórz menu nawigacji',
+    about: {
+      menuItem: 'O aplikacji',
+      title: 'O aplikacji',
+      close: 'Zamknij okno informacji o aplikacji',
+      buildCommit: 'Commit buildu',
+      fullCommit: 'Pełny commit',
+    },
   },
   landing: {
     title: 'Witamy w Spendist',

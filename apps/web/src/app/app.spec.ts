@@ -1,8 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { signal, computed } from '@angular/core';
+import { By } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
 import { App } from './app';
 import { AuthService } from './core/auth.service';
+import { NavbarComponent } from './core/navbar/navbar.component';
 import { NotificationsStore } from './core/notifications/notifications.store';
 import { provideAppTransloco } from './i18n/transloco.providers';
 
@@ -136,6 +138,22 @@ describe('App', () => {
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('app-notifications-menu .text-center')).toBeTruthy();
+  });
+
+  it('should show build commit in about dialog', () => {
+    const fixture = TestBed.createComponent(App);
+    authStub.setAuthenticated(true);
+    fixture.detectChanges();
+
+    const navbar = fixture.debugElement.query(By.directive(NavbarComponent))
+      .componentInstance as NavbarComponent;
+    navbar.openAboutModal();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const dialog = compiled.querySelector('[role="dialog"]');
+    expect(dialog).toBeTruthy();
+    expect(dialog?.textContent).toContain(navbar.buildCommitShort);
   });
 
   it('should mark all notifications as read from the popup', () => {
