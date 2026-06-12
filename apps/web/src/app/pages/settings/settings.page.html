@@ -1,1332 +1,1747 @@
-    <section class="mx-auto w-full max-w-6xl px-4 py-10 sm:py-12 lg:py-16">
-      <header class="mb-8 space-y-2">
-        <p class="text-sm font-semibold uppercase tracking-wide text-primary">
-          {{ 'settings.hero.badge' | transloco }}
-        </p>
-        <h1 class="text-3xl font-semibold sm:text-4xl">
-          {{ 'settings.hero.title' | transloco }}
-        </h1>
-        <p class="max-w-2xl text-base-content/70">
-          {{ 'settings.hero.description' | transloco }}
-        </p>
-      </header>
+<section class="mx-auto w-full max-w-6xl px-4 py-10 sm:py-12 lg:py-16">
+  <header class="mb-8 space-y-2">
+    <p class="text-sm font-semibold uppercase tracking-wide text-primary">
+      {{ 'settings.hero.badge' | transloco }}
+    </p>
+    <h1 class="text-3xl font-semibold sm:text-4xl">
+      {{ 'settings.hero.title' | transloco }}
+    </h1>
+    <p class="max-w-2xl text-base-content/70">
+      {{ 'settings.hero.description' | transloco }}
+    </p>
+  </header>
 
-      <div class="grid gap-6 lg:grid-cols-[minmax(0,260px)_minmax(0,1fr)] xl:grid-cols-[minmax(0,280px)_minmax(0,1fr)]">
-        <aside class="rounded-2xl border border-base-300 bg-base-100/80 shadow-sm backdrop-blur-sm">
-          <div class="flex flex-col gap-4 p-4 sm:p-6">
-            <h2 class="text-sm font-semibold uppercase tracking-wide text-base-content/60">
-              {{ 'settings.workspace.label' | transloco }}
+  <div
+    class="grid gap-6 lg:grid-cols-[minmax(0,260px)_minmax(0,1fr)] xl:grid-cols-[minmax(0,280px)_minmax(0,1fr)]"
+  >
+    <aside
+      class="rounded-2xl border border-base-300 bg-base-100/80 shadow-sm backdrop-blur-sm"
+    >
+      <div class="flex flex-col gap-4 p-4 sm:p-6">
+        <h2
+          class="text-sm font-semibold uppercase tracking-wide text-base-content/60"
+        >
+          {{ 'settings.workspace.label' | transloco }}
+        </h2>
+        <nav class="flex flex-col gap-2" aria-label="Settings sections">
+          @for (panel of panels; track panel.id) {
+          <button
+            type="button"
+            class="btn btn-ghost w-full justify-start gap-3 px-4 py-3 text-left transition"
+            [class.btn-active]="panel.id === activePanel()"
+            [class.bg-base-200]="panel.id === activePanel()"
+            [class.shadow-sm]="panel.id === activePanel()"
+            [attr.aria-current]="panel.id === activePanel() ? 'page' : null"
+            (click)="selectPanel(panel.id)"
+          >
+            <span class="text-left">
+              <span class="block text-sm font-semibold">
+                {{ panel.labelKey | transloco }}
+              </span>
+              <span class="block text-xs text-base-content/60">
+                {{ panel.descriptionKey | transloco }}
+              </span>
+            </span>
+          </button>
+          }
+        </nav>
+      </div>
+    </aside>
+
+    <div class="flex flex-col gap-6">
+      @if (activePanel() === 'profile') {
+      <section class="space-y-6">
+        <header class="space-y-2">
+          <h2 class="text-2xl font-semibold">
+            {{ 'settings.panels.profile.header' | transloco }}
+          </h2>
+          <p class="text-base-content/70">
+            {{ 'settings.panels.profile.text' | transloco }}
+          </p>
+        </header>
+
+        <div
+          class="grid gap-4 rounded-2xl border border-base-300 bg-base-100/80 p-6 shadow-sm sm:grid-cols-2"
+        >
+          <article class="flex items-start gap-4">
+            @if (profile()?.avatarUrl; as avatarUrl) {
+            <div class="avatar">
+              <div
+                class="size-16 rounded-full ring-2 ring-primary/20 ring-offset-2 ring-offset-base-100"
+              >
+                <img
+                  [src]="avatarUrl"
+                  [alt]="'settings.panels.profile.avatar.alt' | transloco"
+                  class="object-cover"
+                />
+              </div>
+            </div>
+            } @else {
+            <div class="avatar placeholder">
+              <div class="bg-primary/20 text-primary size-16 rounded-full">
+                <span class="font-semibold">{{ avatarInitials() }}</span>
+              </div>
+            </div>
+            }
+            <div class="flex-1 space-y-2">
+              <h3 class="text-lg font-semibold">
+                {{ profile()?.fullName ||
+                ('settings.panels.profile.fallbackName' | transloco) }}
+              </h3>
+              <p class="text-sm text-base-content/70">
+                {{ 'settings.panels.profile.language' | transloco }}: {{
+                profile()?.language || ('settings.panels.profile.notSet' |
+                transloco) }} · {{ 'settings.panels.profile.timezone' |
+                transloco }}: {{ profile()?.timezone ||
+                ('settings.panels.profile.notSet' | transloco) }}
+              </p>
+            </div>
+          </article>
+
+          <div class="flex flex-col justify-between gap-4">
+            <p class="text-sm text-base-content/70">
+              {{ 'settings.panels.profile.avatar.help' | transloco }}
+            </p>
+            @if (avatarUploadError(); as avatarError) {
+            <div
+              class="alert alert-error flex-col items-start gap-2 rounded-xl border border-error/20 bg-error/10 p-3 text-sm text-error"
+            >
+              <span>{{ avatarError | transloco }}</span>
+              <button
+                type="button"
+                class="btn btn-ghost btn-xs text-error"
+                (click)="clearProfileError()"
+              >
+                {{ 'common.actions.dismiss' | transloco }}
+              </button>
+            </div>
+            }
+            <div class="flex flex-wrap gap-2">
+              <input
+                id="avatar-upload"
+                type="file"
+                class="sr-only"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                (change)="onAvatarSelected($event)"
+              />
+              <label
+                for="avatar-upload"
+                class="btn btn-primary btn-sm"
+                [class.btn-disabled]="avatarUploadPending()"
+                [attr.aria-disabled]="avatarUploadPending()"
+              >
+                @if (avatarUploadPending()) {
+                <span class="loading loading-xs" aria-hidden="true"></span>
+                {{ 'settings.panels.profile.avatar.uploading' | transloco }} }
+                @else { {{ 'settings.panels.profile.avatar.upload' | transloco
+                }} }
+              </label>
+              <button
+                type="button"
+                class="btn btn-primary btn-sm"
+                (click)="openProfileEditor()"
+              >
+                {{ 'common.actions.openProfileEditor' | transloco }}
+              </button>
+              <button
+                type="button"
+                class="btn btn-ghost btn-sm"
+                (click)="manageSecurity()"
+              >
+                {{ 'common.actions.manageSecurity' | transloco }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="rounded-2xl border border-dashed border-base-300 bg-base-100/50 p-6 text-sm text-base-content/70"
+        >
+          {{ 'settings.panels.profile.note' | transloco }}
+        </div>
+      </section>
+      } @else if (activePanel() === 'wallets') {
+      <section class="space-y-6">
+        <header
+          class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div>
+            <h2 class="text-2xl font-semibold">
+              {{ 'settings.panels.wallets.header' | transloco }}
             </h2>
-            <nav class="flex flex-col gap-2" aria-label="Settings sections">
-              @for (panel of panels; track panel.id) {
+            <p class="max-w-2xl text-base-content/70">
+              {{ 'settings.panels.wallets.text' | transloco }}
+            </p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button
+              type="button"
+              class="btn btn-primary btn-sm"
+              (click)="openWalletCreator()"
+              [disabled]="walletMutationPending()"
+            >
+              {{ 'settings.panels.wallets.addWallet' | transloco }}
+            </button>
+          </div>
+        </header>
+
+        @if (walletError(); as walletError) {
+        <div
+          class="alert alert-error flex-col items-start gap-2 rounded-2xl border border-error/20 bg-error/10 p-4 text-sm text-error"
+        >
+          <div class="font-semibold">
+            {{ 'settings.panels.wallets.status.errorTitle' | transloco }}
+          </div>
+          <div>{{ walletError | transloco }}</div>
+          <button
+            type="button"
+            class="btn btn-sm btn-ghost text-error"
+            (click)="store.clearWalletError()"
+          >
+            {{ 'common.actions.dismiss' | transloco }}
+          </button>
+        </div>
+        } @if (store.loading()) {
+        <div class="flex justify-center py-16">
+          <span
+            class="loading loading-lg text-primary"
+            aria-hidden="true"
+          ></span>
+        </div>
+        } @else {
+        <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,360px)]">
+          <section
+            class="space-y-3"
+            aria-label="{{ 'settings.panels.wallets.list.title' | transloco }}"
+          >
+            @if (store.wallets().length === 0) {
+            <div
+              class="rounded-2xl border border-dashed border-base-300 bg-base-100/60 p-6 text-sm text-base-content/70"
+            >
+              <p class="text-base font-semibold text-base-content">
+                {{ 'settings.panels.wallets.list.emptyTitle' | transloco }}
+              </p>
+              <p>{{ 'settings.panels.wallets.list.emptyBody' | transloco }}</p>
+            </div>
+            } @else { @for (wallet of store.wallets(); track wallet.id) {
+            <article
+              class="rounded-2xl border border-base-300 bg-base-100/80 p-4 shadow-sm transition"
+              [class.border-primary]="walletEditorMode() === 'edit' && editingWalletId() === wallet.id"
+              [class.shadow-md]="walletEditorMode() === 'edit' && editingWalletId() === wallet.id"
+            >
+              <div
+                class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+              >
                 <button
                   type="button"
-                  class="btn btn-ghost w-full justify-start gap-3 px-4 py-3 text-left transition"
-                  [class.btn-active]="panel.id === activePanel()"
-                  [class.bg-base-200]="panel.id === activePanel()"
-                  [class.shadow-sm]="panel.id === activePanel()"
-                  [attr.aria-current]="panel.id === activePanel() ? 'page' : null"
-                  (click)="selectPanel(panel.id)"
+                  class="btn btn-ghost btn-sm w-full justify-start sm:w-auto"
+                  [class.btn-active]="walletEditorMode() === 'edit' && editingWalletId() === wallet.id"
+                  (click)="openWalletEditor(wallet.id)"
                 >
-                  <span class="text-left">
-                    <span class="block text-sm font-semibold">
-                      {{ panel.labelKey | transloco }}
-                    </span>
-                    <span class="block text-xs text-base-content/60">
-                      {{ panel.descriptionKey | transloco }}
-                    </span>
+                  <span class="flex flex-col items-start">
+                    <span class="text-sm font-semibold text-base-content"
+                      >{{ wallet.name }}</span
+                    >
+                    <span class="text-xs text-base-content/60"
+                      >{{ wallet.currency }}</span
+                    >
                   </span>
                 </button>
-              }
-            </nav>
-          </div>
-        </aside>
-
-        <div class="flex flex-col gap-6">
-          @if (activePanel() === 'profile') {
-            <section class="space-y-6">
-              <header class="space-y-2">
-                <h2 class="text-2xl font-semibold">
-                  {{ 'settings.panels.profile.header' | transloco }}
-                </h2>
-                <p class="text-base-content/70">
-                  {{ 'settings.panels.profile.text' | transloco }}
-                </p>
-              </header>
-
-              <div class="grid gap-4 rounded-2xl border border-base-300 bg-base-100/80 p-6 shadow-sm sm:grid-cols-2">
-                <article class="flex items-start gap-4">
-                  @if (profile()?.avatarUrl; as avatarUrl) {
-                    <div class="avatar">
-                      <div class="size-16 rounded-full ring-2 ring-primary/20 ring-offset-2 ring-offset-base-100">
-                        <img
-                          [src]="avatarUrl"
-                          [alt]="'settings.panels.profile.avatar.alt' | transloco"
-                          class="object-cover"
-                        />
-                      </div>
-                    </div>
+                <div class="flex flex-wrap items-center gap-2">
+                  @if (wallet.isDefault) {
+                  <span class="badge badge-primary badge-sm">
+                    {{ 'settings.panels.wallets.list.defaultBadge' | transloco
+                    }}
+                  </span>
                   } @else {
-                    <div class="avatar placeholder">
-                      <div class="bg-primary/20 text-primary size-16 rounded-full">
-                        <span class="font-semibold">{{ avatarInitials() }}</span>
-                      </div>
-                    </div>
-                  }
-                  <div class="flex-1 space-y-2">
-                    <h3 class="text-lg font-semibold">
-                      {{ profile()?.fullName || ('settings.panels.profile.fallbackName' | transloco) }}
-                    </h3>
-                    <p class="text-sm text-base-content/70">
-                      {{ 'settings.panels.profile.language' | transloco }}:
-                      {{ profile()?.language || ('settings.panels.profile.notSet' | transloco) }} ·
-                      {{ 'settings.panels.profile.timezone' | transloco }}:
-                      {{ profile()?.timezone || ('settings.panels.profile.notSet' | transloco) }}
-                    </p>
-                  </div>
-                </article>
-
-                <div class="flex flex-col justify-between gap-4">
-                  <p class="text-sm text-base-content/70">
-                    {{ 'settings.panels.profile.avatar.help' | transloco }}
-                  </p>
-                  @if (avatarUploadError(); as avatarError) {
-                    <div class="alert alert-error flex-col items-start gap-2 rounded-xl border border-error/20 bg-error/10 p-3 text-sm text-error">
-                      <span>{{ avatarError | transloco }}</span>
-                      <button type="button" class="btn btn-ghost btn-xs text-error" (click)="clearProfileError()">
-                        {{ 'common.actions.dismiss' | transloco }}
-                      </button>
-                    </div>
-                  }
-                  <div class="flex flex-wrap gap-2">
-                    <input
-                      id="avatar-upload"
-                      type="file"
-                      class="sr-only"
-                      accept="image/png,image/jpeg,image/webp,image/gif"
-                      (change)="onAvatarSelected($event)"
-                    />
-                    <label
-                      for="avatar-upload"
-                      class="btn btn-primary btn-sm"
-                      [class.btn-disabled]="avatarUploadPending()"
-                      [attr.aria-disabled]="avatarUploadPending()"
-                    >
-                      @if (avatarUploadPending()) {
-                        <span class="loading loading-xs" aria-hidden="true"></span>
-                        {{ 'settings.panels.profile.avatar.uploading' | transloco }}
-                      } @else {
-                        {{ 'settings.panels.profile.avatar.upload' | transloco }}
-                      }
-                    </label>
-                    <button type="button" class="btn btn-primary btn-sm" (click)="openProfileEditor()">
-                      {{ 'common.actions.openProfileEditor' | transloco }}
-                    </button>
-                    <button type="button" class="btn btn-ghost btn-sm" (click)="manageSecurity()">
-                      {{ 'common.actions.manageSecurity' | transloco }}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div class="rounded-2xl border border-dashed border-base-300 bg-base-100/50 p-6 text-sm text-base-content/70">
-                {{ 'settings.panels.profile.note' | transloco }}
-              </div>
-            </section>
-          } @else if (activePanel() === 'wallets') {
-            <section class="space-y-6">
-              <header class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h2 class="text-2xl font-semibold">
-                    {{ 'settings.panels.wallets.header' | transloco }}
-                  </h2>
-                  <p class="max-w-2xl text-base-content/70">
-                    {{ 'settings.panels.wallets.text' | transloco }}
-                  </p>
-                </div>
-                <div class="flex flex-wrap gap-2">
                   <button
                     type="button"
-                    class="btn btn-primary btn-sm"
-                    (click)="openWalletCreator()"
+                    class="btn btn-outline btn-xs"
+                    (click)="makeWalletDefault(wallet)"
                     [disabled]="walletMutationPending()"
                   >
-                    {{ 'settings.panels.wallets.addWallet' | transloco }}
+                    {{ 'settings.panels.wallets.list.makeDefault' | transloco }}
                   </button>
+                  }
                 </div>
-              </header>
-
-              @if (walletError(); as walletError) {
-                <div class="alert alert-error flex-col items-start gap-2 rounded-2xl border border-error/20 bg-error/10 p-4 text-sm text-error">
-                  <div class="font-semibold">
-                    {{ 'settings.panels.wallets.status.errorTitle' | transloco }}
-                  </div>
-                  <div>{{ walletError | transloco }}</div>
-                  <button type="button" class="btn btn-sm btn-ghost text-error" (click)="store.clearWalletError()">
-                    {{ 'common.actions.dismiss' | transloco }}
-                  </button>
-                </div>
-              }
-
-              @if (store.loading()) {
-                <div class="flex justify-center py-16">
-                  <span class="loading loading-lg text-primary" aria-hidden="true"></span>
-                </div>
-              } @else {
-                <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,360px)]">
-                  <section class="space-y-3" aria-label="{{ 'settings.panels.wallets.list.title' | transloco }}">
-                    @if (store.wallets().length === 0) {
-                      <div class="rounded-2xl border border-dashed border-base-300 bg-base-100/60 p-6 text-sm text-base-content/70">
-                        <p class="text-base font-semibold text-base-content">
-                          {{ 'settings.panels.wallets.list.emptyTitle' | transloco }}
-                        </p>
-                        <p>
-                          {{ 'settings.panels.wallets.list.emptyBody' | transloco }}
-                        </p>
-                      </div>
-                    } @else {
-                      @for (wallet of store.wallets(); track wallet.id) {
-                        <article
-                          class="rounded-2xl border border-base-300 bg-base-100/80 p-4 shadow-sm transition"
-                          [class.border-primary]="walletEditorMode() === 'edit' && editingWalletId() === wallet.id"
-                          [class.shadow-md]="walletEditorMode() === 'edit' && editingWalletId() === wallet.id"
-                        >
-                          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <button
-                              type="button"
-                              class="btn btn-ghost btn-sm w-full justify-start sm:w-auto"
-                              [class.btn-active]="walletEditorMode() === 'edit' && editingWalletId() === wallet.id"
-                              (click)="openWalletEditor(wallet.id)"
-                            >
-                              <span class="flex flex-col items-start">
-                                <span class="text-sm font-semibold text-base-content">{{ wallet.name }}</span>
-                                <span class="text-xs text-base-content/60">{{ wallet.currency }}</span>
-                              </span>
-                            </button>
-                            <div class="flex flex-wrap items-center gap-2">
-                              @if (wallet.isDefault) {
-                                <span class="badge badge-primary badge-sm">
-                                  {{ 'settings.panels.wallets.list.defaultBadge' | transloco }}
-                                </span>
-                              } @else {
-                                <button
-                                  type="button"
-                                  class="btn btn-outline btn-xs"
-                                  (click)="makeWalletDefault(wallet)"
-                                  [disabled]="walletMutationPending()"
-                                >
-                                  {{ 'settings.panels.wallets.list.makeDefault' | transloco }}
-                                </button>
-                              }
-                            </div>
-                          </div>
-                        </article>
-                      }
-                    }
-                  </section>
-
-                  <section class="rounded-2xl border border-base-300 bg-base-100/80 p-6 shadow-sm">
-                    <form class="space-y-4" [formGroup]="walletForm" (ngSubmit)="submitWalletForm()">
-                      <header class="space-y-1">
-                        <h3 class="text-xl font-semibold text-base-content">
-                          {{ (walletEditorMode() === 'edit' ? 'settings.panels.wallets.form.editTitle' : 'settings.panels.wallets.form.createTitle') | transloco }}
-                        </h3>
-                        <p class="text-sm text-base-content/70">
-                          {{ 'settings.panels.wallets.form.description' | transloco }}
-                        </p>
-                      </header>
-
-                      <label class="form-control">
-                        <span class="label-text text-sm font-semibold text-base-content">
-                          {{ 'settings.panels.wallets.form.nameLabel' | transloco }}
-                        </span>
-                        <input
-                          type="text"
-                          class="input input-bordered"
-                          formControlName="name"
-                          maxlength="60"
-                          [attr.placeholder]="'settings.panels.wallets.form.namePlaceholder' | transloco"
-                        />
-                        @if (walletFormControls.name.touched && walletFormControls.name.invalid) {
-                          <span class="mt-1 text-xs text-error">
-                            {{ 'settings.panels.wallets.errors.nameRequired' | transloco }}
-                          </span>
-                        }
-                      </label>
-
-                      <label class="form-control">
-                        <span class="label-text text-sm font-semibold text-base-content">
-                          {{ 'settings.panels.wallets.form.currencyLabel' | transloco }}
-                        </span>
-                        <select class="select select-bordered uppercase" formControlName="currencyId">
-                          @for (option of walletCurrencies(); track option.id) {
-                            <option [ngValue]="option.id">{{ option.symbol }}</option>
-                          }
-                        </select>
-                      </label>
-
-                      <label class="flex items-center gap-3 rounded-xl border border-base-300 bg-base-100/70 px-4 py-3 text-sm">
-                        <input type="checkbox" class="checkbox" formControlName="isDefault" />
-                        <span class="flex-1">
-                          <span class="block font-semibold text-base-content">
-                            {{ 'settings.panels.wallets.form.defaultLabel' | transloco }}
-                          </span>
-                          <span class="block text-xs text-base-content/60">
-                            {{ 'settings.panels.wallets.form.defaultHelp' | transloco }}
-                          </span>
-                        </span>
-                      </label>
-
-                      <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                        <button
-                          type="submit"
-                          class="btn btn-primary w-full sm:w-auto"
-                          [disabled]="walletMutationPending()"
-                        >
-                          @if (walletMutationPending()) {
-                            <span class="loading loading-spinner loading-sm"></span>
-                          }
-                          <span>
-                            {{
-                              (walletEditorMode() === 'edit'
-                                ? 'settings.panels.wallets.form.submitUpdate'
-                                : 'settings.panels.wallets.form.submitCreate') | transloco
-                            }}
-                          </span>
-                        </button>
-                        @if (walletEditorMode() === 'edit') {
-                          <button
-                            type="button"
-                            class="btn btn-ghost w-full sm:w-auto"
-                            (click)="cancelWalletEdit()"
-                            [disabled]="walletMutationPending()"
-                          >
-                            {{ 'settings.panels.wallets.form.cancelEdit' | transloco }}
-                          </button>
-                        }
-                      </div>
-                    </form>
-                  </section>
-                </div>
-              }
-            </section>
-          } @else if (activePanel() === 'categories') {
-            <section class="space-y-6">
-              <header class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h2 class="text-2xl font-semibold">
-                    {{ 'settings.panels.categories.header' | transloco }}
-                  </h2>
-                  <p class="max-w-2xl text-base-content/70">
-                    {{ 'settings.panels.categories.text' | transloco }}
-                  </p>
-                </div>
-                <div class="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    class="btn btn-primary btn-sm"
-                    [disabled]="!hasGroups() || store.loading() || store.categoryMutationPending()"
-                    (click)="openCategoryCreator()"
-                  >
-                    {{ 'settings.panels.categories.addCategory' | transloco }}
-                  </button>
-                  <button
-                    type="button"
-                    class="btn btn-outline btn-sm"
-                    [disabled]="store.loading() || store.groupMutationPending()"
-                    (click)="openGroupCreator()"
-                  >
-                    {{ 'settings.panels.categories.addGroup' | transloco }}
-                  </button>
-                </div>
-              </header>
-
-              @if (store.error(); as error) {
-                <div class="alert alert-error flex-col items-start gap-2 rounded-2xl border border-error/20 bg-error/10 p-4 text-sm text-error">
-                  <div class="font-semibold">
-                    {{ 'settings.panels.categories.status.errorTitle' | transloco }}
-                  </div>
-                  <div>{{ error }}</div>
-                  <button type="button" class="btn btn-sm btn-ghost text-error" (click)="dismissError()">
-                    {{ 'common.actions.dismiss' | transloco }}
-                  </button>
-                </div>
-              }
-
-              <div class="tabs tabs-boxed bg-base-200/60 p-1" role="tablist" aria-label="Category workspace">
-                <button
-                  id="settings-categories-tab-list"
-                  type="button"
-                  role="tab"
-                  class="tab flex-1 text-sm font-semibold"
-                  [class.tab-active]="activeCategoriesTab() === 'list'"
-                  [attr.aria-selected]="activeCategoriesTab() === 'list'"
-                  [attr.aria-controls]="'settings-categories-panel-list'"
-                  [attr.tabindex]="activeCategoriesTab() === 'list' ? 0 : -1"
-                  (click)="selectCategoriesTab('list')"
-                >
-                  {{ 'settings.panels.categories.tabs.manage' | transloco }}
-                </button>
-                <button
-                  id="settings-categories-tab-groups"
-                  type="button"
-                  role="tab"
-                  class="tab flex-1 text-sm font-semibold"
-                  [class.tab-active]="activeCategoriesTab() === 'groups'"
-                  [attr.aria-selected]="activeCategoriesTab() === 'groups'"
-                  [attr.aria-controls]="'settings-categories-panel-groups'"
-                  [attr.tabindex]="activeCategoriesTab() === 'groups' ? 0 : -1"
-                  (click)="selectCategoriesTab('groups')"
-                >
-                  {{ 'settings.panels.categories.tabs.groups' | transloco }}
-                </button>
               </div>
+            </article>
+            } }
+          </section>
 
-              @if (store.loading()) {
-                <div class="flex justify-center py-16">
-                  <span
-                    class="loading loading-lg text-primary"
-                    [attr.aria-label]="'settings.panels.categories.status.loading' | transloco"
-                  ></span>
-                </div>
-              } @else {
-                @if (activeCategoriesTab() === 'list') {
-                  <div
-                    id="settings-categories-panel-list"
-                    role="tabpanel"
-                    aria-labelledby="settings-categories-tab-list"
-                    class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]"
-                  >
-                    <div class="rounded-2xl border border-base-300 bg-base-100/80 p-4 shadow-sm sm:p-6">
-                      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <label class="flex w-full flex-col gap-1 text-xs font-medium text-base-content/70 sm:max-w-xs">
-                          <span>{{ 'settings.panels.categories.searchLabel' | transloco }}</span>
-                          <input
-                            id="settings-category-search"
-                            type="search"
-                            class="input input-bordered w-full"
-                            [attr.placeholder]="'settings.panels.categories.searchPlaceholder' | transloco"
-                            [value]="categoryQuery()"
-                            (input)="onCategoryQueryChange($event)"
-                          />
-                        </label>
+          <section
+            class="rounded-2xl border border-base-300 bg-base-100/80 p-6 shadow-sm"
+          >
+            <form
+              class="space-y-4"
+              [formGroup]="walletForm"
+              (ngSubmit)="submitWalletForm()"
+            >
+              <header class="space-y-1">
+                <h3 class="text-xl font-semibold text-base-content">
+                  {{ (walletEditorMode() === 'edit' ?
+                  'settings.panels.wallets.form.editTitle' :
+                  'settings.panels.wallets.form.createTitle') | transloco }}
+                </h3>
+                <p class="text-sm text-base-content/70">
+                  {{ 'settings.panels.wallets.form.description' | transloco }}
+                </p>
+              </header>
 
-                        <div class="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            class="badge badge-outline"
-                            [class.badge-neutral]="selectedGroupFilter() === null"
-                            (click)="selectGroupFilter(null)"
-                          >
-                            {{ 'settings.panels.categories.filters.all' | transloco }}
-                          </button>
-                          @for (group of categoryGroupsWithStats(); track group.id) {
-                            <button
-                              type="button"
-                              class="badge badge-outline"
-                              [class.badge-neutral]="selectedGroupFilter() === group.id"
-                              (click)="selectGroupFilter(group.id)"
-                            >
-                              {{ group.name }}
-                              <span class="ml-1 text-xs text-base-content/70">
-                                {{ 'settings.panels.categories.filters.count' | transloco: { total: group.categoriesTotal } }}
-                              </span>
-                            </button>
-                          }
-                        </div>
-                      </div>
-
-                      @if (!hasGroups()) {
-                        <div class="mt-6 rounded-xl border border-dashed border-base-300 p-6 text-sm text-base-content/70">
-                          {{ 'settings.panels.categories.emptyGroups' | transloco }}
-                        </div>
-                      }
-
-                      <div class="mt-4 space-y-2">
-                        @for (category of filteredCategories(); track category.id) {
-                          <button
-                            type="button"
-                            class="w-full rounded-xl border border-transparent px-4 py-3 text-left transition hover:border-primary/30 hover:bg-base-200/70 focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-                            [class.bg-base-200]="category.id === selectedCategoryId()"
-                            [class.border-primary]="category.id === selectedCategoryId()"
-                            (click)="selectCategory(category.id)"
-                          >
-                            <div class="flex items-start justify-between gap-4">
-                              <div class="flex items-start gap-3">
-                                <span
-                                  class="mt-1 size-3 rounded-full"
-                                  [style.backgroundColor]="category.color ?? '#CBD5F5'"
-                                  aria-hidden="true"
-                                ></span>
-                                <div>
-                                  <p class="text-sm font-semibold text-base-content" [style.padding-left.rem]="category.depth - 1">
-                                    {{ category.name }}
-                                    @if (category.icon; as iconKeyword) {
-                                      @if (heroIconSvg(iconKeyword); as iconSvg) {
-                                        <span class="badge badge-ghost badge-sm ml-2 p-0.5">
-                                          <ng-icon [svg]="iconSvg" size="16" aria-hidden="true"></ng-icon>
-                                          <span class="sr-only">
-                                            {{ 'settings.panels.categories.list.iconSrLabel' | transloco: { label: isHeroIconName(iconKeyword) ? formatHeroIconLabel(iconKeyword) : iconKeyword } }}
-                                          </span>
-                                        </span>
-                                      } @else {
-                                        <span class="badge badge-ghost badge-sm ml-2">{{ iconKeyword }}</span>
-                                      }
-                                    }
-                                  </p>
-                                  <p class="text-xs text-base-content/60">
-                                    {{ category.path }}
-                                  </p>
-                                </div>
-                              </div>
-                              <span class="text-lg font-semibold text-base-content/50" aria-hidden="true">></span>
-                            </div>
-                          </button>
-                        }
-
-                        @if (filteredCategories().length === 0 && hasGroups()) {
-                          <div class="rounded-xl border border-dashed border-base-300 p-6 text-center text-sm text-base-content/70">
-                            {{ 'settings.panels.categories.noMatches' | transloco }}
-                          </div>
-                        }
-                      </div>
-                    </div>
-
-                    <aside class="rounded-2xl border border-base-300 bg-base-100/80 p-4 shadow-sm sm:p-6 lg:sticky lg:top-24 lg:self-start">
-                      @if (categoryEditorMode(); as mode) {
-                        <form class="space-y-4" [formGroup]="categoryForm" (ngSubmit)="submitCategoryForm(mode)">
-                          <div>
-                            <h3 class="text-xl font-semibold text-base-content">
-                              {{ (mode === 'edit' ? 'settings.panels.categories.editor.editTitle' : 'settings.panels.categories.editor.createTitle') | transloco }}
-                            </h3>
-                            <p class="text-sm text-base-content/70">
-                              {{ 'settings.panels.categories.editor.description' | transloco }}
-                            </p>
-                          </div>
-
-                          <label class="form-control w-full">
-                            <span class="label-text text-sm font-semibold text-base-content">
-                              {{ 'settings.panels.categories.editor.nameLabel' | transloco }}
-                            </span>
-                            <input
-                              type="text"
-                              formControlName="name"
-                              class="input input-bordered w-full"
-                              maxlength="60"
-                              [attr.placeholder]="'settings.panels.categories.editor.namePlaceholder' | transloco"
-                            />
-                            @if (categoryFormControls.name.touched && categoryFormControls.name.hasError('required')) {
-                              <span class="mt-1 text-xs text-error">
-                                {{ 'settings.panels.categories.editor.nameRequired' | transloco }}
-                              </span>
-                            }
-                          </label>
-
-                          <label class="form-control w-full">
-                            <span class="label-text text-sm font-semibold text-base-content">
-                              {{ 'settings.panels.categories.editor.parentLabel' | transloco }}
-                            </span>
-                            <select formControlName="parentId" class="select select-bordered w-full">
-                              <option [ngValue]="null">
-                                {{ 'settings.panels.categories.editor.parentNone' | transloco }}
-                              </option>
-                              @for (category of parentCategoryOptions(); track category.id) {
-                                <option [ngValue]="category.id">{{ category.label }}</option>
-                              }
-                            </select>
-                            <span class="mt-1 text-xs text-base-content/60">
-                              {{ 'settings.panels.categories.editor.parentHelp' | transloco }}
-                            </span>
-                          </label>
-
-                          <label class="form-control w-full">
-                            <span class="label-text text-sm font-semibold text-base-content">
-                              {{ 'settings.panels.categories.editor.groupLabel' | transloco }}
-                            </span>
-                            <select formControlName="groupId" class="select select-bordered w-full" (change)="onCategoryGroupChange()">
-                              <option value="" disabled>
-                                {{ 'settings.panels.categories.editor.groupPlaceholder' | transloco }}
-                              </option>
-                              @for (group of store.groups(); track group.id) {
-                                <option [value]="group.id">{{ group.name }}</option>
-                              }
-                            </select>
-                            @if (categoryFormControls.groupId.touched && categoryFormControls.groupId.hasError('required')) {
-                              <span class="mt-1 text-xs text-error">
-                                {{ 'settings.panels.categories.editor.groupRequired' | transloco }}
-                              </span>
-                            }
-                          </label>
-
-                          <div class="form-control w-full">
-                            <span class="label-text text-sm font-semibold text-base-content">
-                              {{ 'settings.panels.categories.editor.colorLabel' | transloco }}
-                            </span>
-                            <div class="flex items-center gap-3">
-                              <input type="color" formControlName="color" class="h-10 w-16 rounded-lg border border-base-300 bg-base-200" />
-                              <input
-                                type="text"
-                                formControlName="color"
-                                class="input input-bordered w-full"
-                                [attr.placeholder]="'settings.panels.categories.editor.colorPlaceholder' | transloco"
-                                maxlength="7"
-                              />
-                            </div>
-                          </div>
-
-                          <app-hero-icon-picker
-                            formControlName="icon"
-                            [label]="'settings.panels.categories.editor.iconLabel' | transloco"
-                            [allowNone]="true"
-                            [searchPlaceholder]="'settings.panels.categories.searchPlaceholder' | transloco"
-                          ></app-hero-icon-picker>
-
-                          <div class="flex flex-wrap gap-2">
-                            <button type="submit" class="btn btn-primary btn-sm" [disabled]="store.categoryMutationPending()">
-                              {{ (mode === 'edit' ? 'common.actions.saveChanges' : 'common.actions.createCategory') | transloco }}
-                            </button>
-                            <button type="button" class="btn btn-ghost btn-sm" (click)="cancelCategoryEdit()" [disabled]="store.categoryMutationPending()">
-                              {{ 'common.actions.cancel' | transloco }}
-                            </button>
-                          </div>
-                        </form>
-                      } @else if (selectedCategory(); as category) {
-                        <div class="space-y-4">
-                          <header>
-                            <p class="text-xs uppercase tracking-wide text-base-content/60">
-                              {{ 'settings.panels.categories.details.selectedHeading' | transloco }}
-                            </p>
-                            <h3 class="text-xl font-semibold text-base-content">{{ category.name }}</h3>
-                            <p class="text-sm text-base-content/70">
-                              {{ category.path }}
-                            </p>
-                          </header>
-
-                          <dl class="grid gap-3 text-sm">
-                            <div class="grid gap-1">
-                              <dt class="text-xs uppercase tracking-wide text-base-content/50">
-                                {{ 'settings.panels.categories.details.group' | transloco }}
-                              </dt>
-                              <dd>{{ category.groupName }}</dd>
-                            </div>
-                            <div class="grid gap-1">
-                              <dt class="text-xs uppercase tracking-wide text-base-content/50">
-                                {{ 'settings.panels.categories.details.parent' | transloco }}
-                              </dt>
-                              <dd>
-                                @if (category.parentName) {
-                                  {{ category.parentName }}
-                                } @else {
-                                  <span class="text-base-content/60">
-                                    {{ 'settings.panels.categories.editor.parentNone' | transloco }}
-                                  </span>
-                                }
-                              </dd>
-                            </div>
-                            <div class="grid gap-1">
-                              <dt class="text-xs uppercase tracking-wide text-base-content/50">
-                                {{ 'settings.panels.categories.details.icon' | transloco }}
-                              </dt>
-                              <dd>
-                                @if (category.icon; as iconKeyword) {
-                                  @if (heroIconSvg(iconKeyword); as iconSvg) {
-                                    <span class="inline-flex items-center gap-2">
-                                      <ng-icon [svg]="iconSvg" size="20" aria-hidden="true"></ng-icon>
-                                      <span class="text-xs text-base-content/60">
-                                        {{ isHeroIconName(iconKeyword) ? formatHeroIconLabel(iconKeyword) : iconKeyword }}
-                                      </span>
-                                    </span>
-                                  } @else {
-                                    {{ iconKeyword }}
-                                  }
-                                } @else {
-                                  <span class="text-base-content/60">
-                                    {{ 'settings.panels.categories.list.notSet' | transloco }}
-                                  </span>
-                                }
-                              </dd>
-                            </div>
-                            <div class="grid gap-1">
-                              <dt class="text-xs uppercase tracking-wide text-base-content/50">
-                                {{ 'settings.panels.categories.details.accent' | transloco }}
-                              </dt>
-                              <dd>
-                                @if (category.color) {
-                                  <span class="inline-flex items-center gap-2">
-                                    <span class="size-3 rounded-full" [style.backgroundColor]="category.color" aria-hidden="true"></span>
-                                    {{ category.color }}
-                                  </span>
-                                } @else {
-                                  <span class="text-base-content/60">
-                                    {{ 'settings.panels.categories.details.defaultColor' | transloco }}
-                                  </span>
-                                }
-                              </dd>
-                            </div>
-                          </dl>
-
-                          <div class="flex flex-wrap gap-2">
-                            <button type="button" class="btn btn-primary btn-sm" (click)="openCategoryEditor(category.id)" [disabled]="store.categoryMutationPending()">
-                              {{ 'settings.panels.categories.details.edit' | transloco }}
-                            </button>
-                            <button type="button" class="btn btn-ghost btn-sm text-error" (click)="deleteCategory(category.id)" [disabled]="store.categoryMutationPending()">
-                              {{ 'common.actions.delete' | transloco }}
-                            </button>
-                          </div>
-                        </div>
-                      } @else {
-                        <div class="flex flex-col items-start gap-3 text-sm">
-                          <h3 class="text-base font-semibold">
-                            {{ 'settings.panels.categories.details.promptTitle' | transloco }}
-                          </h3>
-                          <p class="text-base-content/70">
-                            {{ 'settings.panels.categories.details.promptDescription' | transloco }}
-                          </p>
-                          <button
-                            type="button"
-                            class="btn btn-primary btn-sm"
-                            [disabled]="!hasGroups() || store.categoryMutationPending()"
-                            (click)="openCategoryCreator()"
-                          >
-                            {{ 'common.actions.addFirstCategory' | transloco }}
-                          </button>
-                        </div>
-                      }
-                    </aside>
-                  </div>
-                } @else {
-                  <div
-                    id="settings-categories-panel-groups"
-                    role="tabpanel"
-                    aria-labelledby="settings-categories-tab-groups"
-                    class="space-y-4"
-                  >
-                    @if (groupEditorMode(); as mode) {
-                      <form
-                        class="rounded-2xl border border-base-300 bg-base-100/80 p-5 shadow-sm sm:p-6"
-                        [formGroup]="categoryGroupForm"
-                        (ngSubmit)="submitGroupForm(mode)"
-                      >
-                        <div class="mb-4">
-                          <h3 class="text-xl font-semibold text-base-content">
-                            {{ (mode === 'edit' ? 'settings.panels.categories.groups.formTitleEdit' : 'settings.panels.categories.groups.formTitleCreate') | transloco }}
-                          </h3>
-                          <p class="text-sm text-base-content/70">
-                            {{ 'settings.panels.categories.groups.description' | transloco }}
-                          </p>
-                        </div>
-
-                        <div class="grid gap-4 sm:grid-cols-2">
-                          <label class="form-control w-full">
-                            <span class="label-text text-sm font-semibold text-base-content">
-                              {{ 'settings.panels.categories.groups.nameLabel' | transloco }}
-                            </span>
-                            <input
-                              type="text"
-                              formControlName="name"
-                              class="input input-bordered w-full"
-                              maxlength="60"
-                              [attr.placeholder]="'settings.panels.categories.groups.namePlaceholder' | transloco"
-                            />
-                            @if (categoryGroupFormControls.name.touched && categoryGroupFormControls.name.hasError('required')) {
-                              <span class="mt-1 text-xs text-error">
-                                {{ 'settings.panels.categories.groups.nameError' | transloco }}
-                              </span>
-                            }
-                          </label>
-
-                          <div class="form-control w-full">
-                            <span class="label-text text-sm font-semibold text-base-content">
-                              {{ 'settings.panels.categories.groups.colorLabel' | transloco }}
-                            </span>
-                            <div class="flex items-center gap-3">
-                              <input type="color" formControlName="color" class="h-10 w-16 rounded-lg border border-base-300 bg-base-200" />
-                              <input
-                                type="text"
-                                formControlName="color"
-                                class="input input-bordered w-full"
-                                placeholder="#0EA5A5"
-                                maxlength="7"
-                              />
-                            </div>
-                          </div>
-                        </div>
-
-                        <app-hero-icon-picker
-                          class="sm:w-1/2"
-                          formControlName="icon"
-                          [label]="'settings.panels.categories.editor.iconLabel' | transloco"
-                          [allowNone]="true"
-                          [searchPlaceholder]="'settings.panels.categories.searchPlaceholder' | transloco"
-                        ></app-hero-icon-picker>
-
-                        <div class="mt-4 flex flex-wrap gap-2">
-                          <button type="submit" class="btn btn-primary btn-sm" [disabled]="store.groupMutationPending()">
-                            {{ (mode === 'edit' ? 'common.actions.saveChanges' : 'common.actions.createGroup') | transloco }}
-                          </button>
-                          <button type="button" class="btn btn-ghost btn-sm" (click)="cancelGroupEdit()" [disabled]="store.groupMutationPending()">
-                            {{ 'common.actions.cancel' | transloco }}
-                          </button>
-                        </div>
-                      </form>
-                    }
-
-                    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                      @for (group of categoryGroupsWithStats(); track group.id) {
-                        <article class="flex flex-col gap-4 rounded-2xl border border-base-300 bg-base-100/80 p-5 shadow-sm">
-                          <header class="flex items-start justify-between gap-4">
-                            <div class="flex items-start gap-3">
-                              <span
-                                class="flex size-10 items-center justify-center rounded-full text-base font-semibold text-base-100"
-                                [style.backgroundColor]="group.color ?? '#CBD5F5'"
-                                aria-hidden="true"
-                              >
-                                @if (heroIconSvg(group.icon); as iconSvg) {
-                                  <ng-icon [svg]="iconSvg" size="24px" aria-hidden="true"></ng-icon>
-                                } @else {
-                                  {{ group.icon ?? group.name.slice(0, 2).toUpperCase() }}
-                                }
-                              </span>
-                              <div>
-                                <h3 class="text-lg font-semibold text-base-content">{{ group.name }}</h3>
-                                <p class="text-xs text-base-content/60">
-                                  {{ 'settings.panels.categories.list.groupLabel' | transloco: { total: group.categoriesTotal } }}
-                                </p>
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              class="btn btn-ghost btn-circle btn-sm"
-                              [attr.aria-label]="('settings.panels.categories.groups.formTitleEdit' | transloco) + ' ' + group.name"
-                              (click)="openGroupEditor(group.id)"
-                              [disabled]="store.groupMutationPending()"
-                            >
-                              <span aria-hidden="true" class="text-lg font-semibold text-base-content/70">...</span>
-                            </button>
-                          </header>
-
-                          <div class="flex flex-wrap gap-1.5 text-xs text-base-content/70">
-                            {{ 'settings.panels.categories.groups.pill.description' | transloco }}
-                          </div>
-
-                          <div class="mt-auto flex flex-wrap gap-2">
-                            <button
-                              type="button"
-                              class="btn btn-outline btn-xs"
-                              (click)="openGroupCategories(group.id)"
-                              [disabled]="store.groupMutationPending()"
-                            >
-                              {{ 'common.actions.viewCategories' | transloco }}
-                            </button>
-                            <button
-                              type="button"
-                              class="btn btn-ghost btn-xs text-error"
-                              (click)="deleteCategoryGroup(group.id)"
-                              [disabled]="store.groupMutationPending()"
-                            >
-                              {{ 'common.actions.deleteGroup' | transloco }}
-                            </button>
-                          </div>
-                        </article>
-                      }
-
-                      <article
-                        class="flex min-h-[220px] flex-col items-start justify-center gap-4 rounded-2xl border border-dashed border-base-300 bg-base-100/50 p-5 text-base-content/70"
-                      >
-                        <h3 class="text-lg font-semibold text-base-content">
-                          {{ 'settings.panels.categories.groups.emptyCtaTitle' | transloco }}
-                        </h3>
-                        <p class="text-sm">
-                          {{ 'settings.panels.categories.groups.emptyCtaBody' | transloco }}
-                        </p>
-                        <button type="button" class="btn btn-primary btn-sm" (click)="openGroupCreator()" [disabled]="store.groupMutationPending()">
-                          {{ 'common.actions.addGroup' | transloco }}
-                        </button>
-                      </article>
-                    </div>
-                  </div>
+              <label class="form-control">
+                <span
+                  class="label-text text-sm font-semibold text-base-content"
+                >
+                  {{ 'settings.panels.wallets.form.nameLabel' | transloco }}
+                </span>
+                <input
+                  type="text"
+                  class="input input-bordered"
+                  formControlName="name"
+                  maxlength="60"
+                  [attr.placeholder]="'settings.panels.wallets.form.namePlaceholder' | transloco"
+                />
+                @if (walletFormControls.name.touched &&
+                walletFormControls.name.invalid) {
+                <span class="mt-1 text-xs text-error">
+                  {{ 'settings.panels.wallets.errors.nameRequired' | transloco
+                  }}
+                </span>
                 }
-              }
-            </section>
-          } @else if (activePanel() === 'spendistCsv') {
-            <section class="space-y-6">
-              <header class="space-y-2">
-                <h2 class="text-2xl font-semibold">
-                  {{ 'settings.panels.spendistCsv.header' | transloco }}
-                </h2>
-                <p class="max-w-2xl text-base-content/70">
-                  {{ 'settings.panels.spendistCsv.text' | transloco }}
-                </p>
-              </header>
+              </label>
 
-              @if (spendistCsv.error(); as csvError) {
-                <div class="alert alert-error flex-col items-start gap-2 rounded-2xl border border-error/20 bg-error/10 p-4 text-sm text-error">
-                  <div class="font-semibold">
-                    {{ 'settings.panels.spendistCsv.status.errorTitle' | transloco }}
-                  </div>
-                  <div>
-                    @if (csvError.startsWith('settings.')) {
-                      {{ csvError | transloco }}
-                    } @else {
-                      {{ csvError }}
-                    }
-                  </div>
-                </div>
-              }
+              <label class="form-control">
+                <span
+                  class="label-text text-sm font-semibold text-base-content"
+                >
+                  {{ 'settings.panels.wallets.form.currencyLabel' | transloco }}
+                </span>
+                <select
+                  class="select select-bordered uppercase"
+                  formControlName="currencyId"
+                >
+                  @for (option of walletCurrencies(); track option.id) {
+                  <option [ngValue]="option.id">{{ option.symbol }}</option>
+                  }
+                </select>
+              </label>
 
-              <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(320px,380px)]">
-                <div class="space-y-6">
-                  <section class="rounded-2xl border border-base-300 bg-base-100/80 p-5 shadow-sm sm:p-6">
-                    <form class="space-y-5" [formGroup]="spendistCsvExportForm" (ngSubmit)="exportSpendistCsv()">
-                      <header class="space-y-1">
-                        <h3 class="text-xl font-semibold text-base-content">
-                          {{ 'settings.panels.spendistCsv.export.title' | transloco }}
-                        </h3>
-                        <p class="text-sm text-base-content/70">
-                          {{ 'settings.panels.spendistCsv.export.description' | transloco }}
-                        </p>
-                      </header>
+              <label
+                class="flex items-center gap-3 rounded-xl border border-base-300 bg-base-100/70 px-4 py-3 text-sm"
+              >
+                <input
+                  type="checkbox"
+                  class="checkbox"
+                  formControlName="isDefault"
+                />
+                <span class="flex-1">
+                  <span class="block font-semibold text-base-content">
+                    {{ 'settings.panels.wallets.form.defaultLabel' | transloco
+                    }}
+                  </span>
+                  <span class="block text-xs text-base-content/60">
+                    {{ 'settings.panels.wallets.form.defaultHelp' | transloco }}
+                  </span>
+                </span>
+              </label>
 
-                      <div class="grid gap-3 sm:grid-cols-2">
-                        <label class="flex items-center gap-3 rounded-xl border border-base-300 bg-base-100/70 px-4 py-3 text-sm">
-                          <input type="radio" class="radio radio-primary" formControlName="rangeMode" value="month" />
-                          <span>{{ 'settings.panels.spendistCsv.export.monthRange' | transloco }}</span>
-                        </label>
-                        <label class="flex items-center gap-3 rounded-xl border border-base-300 bg-base-100/70 px-4 py-3 text-sm">
-                          <input type="radio" class="radio radio-primary" formControlName="rangeMode" value="all" />
-                          <span>{{ 'settings.panels.spendistCsv.export.allRange' | transloco }}</span>
-                        </label>
-                      </div>
-
-                      @if (spendistCsvExportFormControls.rangeMode.value === 'month') {
-                        <label class="form-control">
-                          <span class="label-text text-sm font-semibold text-base-content">
-                            {{ 'settings.panels.spendistCsv.export.monthLabel' | transloco }}
-                          </span>
-                          <input type="month" class="input input-bordered" formControlName="month" />
-                          @if (spendistCsvExportFormControls.month.touched && spendistCsvExportFormControls.month.invalid) {
-                            <span class="mt-1 text-xs text-error">
-                              {{ 'settings.panels.spendistCsv.errors.invalidMonth' | transloco }}
-                            </span>
-                          }
-                        </label>
-                      }
-
-                      <div class="space-y-3">
-                        <div class="flex items-center justify-between gap-3">
-                          <h4 class="text-sm font-semibold text-base-content">
-                            {{ 'settings.panels.spendistCsv.export.categoriesLabel' | transloco }}
-                          </h4>
-                          <button
-                            type="button"
-                            class="btn btn-ghost btn-xs"
-                            [disabled]="selectedSpendistCsvCategoryIds().length === 0"
-                            (click)="clearSpendistCsvCategories()"
-                          >
-                            {{ 'settings.panels.spendistCsv.export.clearCategories' | transloco }}
-                          </button>
-                        </div>
-                        <div class="max-h-64 space-y-2 overflow-auto rounded-2xl border border-base-300 bg-base-100/60 p-3">
-                          @if (categoriesView().length === 0) {
-                            <p class="text-sm text-base-content/70">
-                              {{ 'settings.panels.spendistCsv.export.noCategories' | transloco }}
-                            </p>
-                          } @else {
-                            @for (category of categoriesView(); track category.id) {
-                              <label class="flex items-start gap-3 rounded-xl px-3 py-2 text-sm hover:bg-base-200">
-                                <input
-                                  type="checkbox"
-                                  class="checkbox checkbox-sm mt-0.5"
-                                  [checked]="isSpendistCsvCategorySelected(category.id)"
-                                  (change)="toggleSpendistCsvCategory(category.id)"
-                                />
-                                <span class="min-w-0">
-                                  <span class="block font-medium text-base-content">{{ category.name }}</span>
-                                  <span class="block truncate text-xs text-base-content/60">{{ category.path }}</span>
-                                </span>
-                              </label>
-                            }
-                          }
-                        </div>
-                        <p class="text-xs text-base-content/60">
-                          {{ 'settings.panels.spendistCsv.export.categoryHelp' | transloco }}
-                        </p>
-                      </div>
-
-                      <button type="submit" class="btn btn-primary w-full sm:w-auto" [disabled]="spendistCsv.exporting()">
-                        @if (spendistCsv.exporting()) {
-                          <span class="loading loading-spinner loading-sm"></span>
-                        }
-                        {{ 'settings.panels.spendistCsv.export.action' | transloco }}
-                      </button>
-
-                      @if (spendistCsv.exported() > 0) {
-                        <p class="text-sm text-base-content/70">
-                          {{ 'settings.panels.spendistCsv.export.exported' | transloco: { total: spendistCsv.exported() } }}
-                        </p>
-                      }
-                    </form>
-                  </section>
-
-                  <section class="rounded-2xl border border-base-300 bg-base-100/80 p-5 shadow-sm sm:p-6">
-                    <div class="space-y-5">
-                      <header class="space-y-1">
-                        <h3 class="text-xl font-semibold text-base-content">
-                          {{ 'settings.panels.spendistCsv.import.title' | transloco }}
-                        </h3>
-                        <p class="text-sm text-base-content/70">
-                          {{ 'settings.panels.spendistCsv.import.description' | transloco }}
-                        </p>
-                      </header>
-
-                      <div class="rounded-2xl border border-dashed border-base-300 bg-base-100/60 p-5">
-                        <input
-                          id="spendist-csv-upload"
-                          type="file"
-                          class="sr-only"
-                          accept=".csv,text/csv"
-                          (change)="onSpendistCsvFileSelected($event)"
-                        />
-                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                          <div>
-                            <p class="text-sm font-semibold">
-                              {{ 'settings.panels.spendistCsv.import.fileLabel' | transloco }}
-                            </p>
-                            <p class="text-sm text-base-content/70">
-                              @if (spendistCsvFileName(); as fileName) {
-                                {{ fileName }}
-                              } @else {
-                                {{ 'settings.panels.spendistCsv.import.fileEmpty' | transloco }}
-                              }
-                            </p>
-                          </div>
-                          <label
-                            for="spendist-csv-upload"
-                            class="btn btn-outline btn-sm"
-                            [class.btn-disabled]="spendistCsv.analyzing() || spendistCsv.importing()"
-                            [attr.aria-disabled]="spendistCsv.analyzing() || spendistCsv.importing()"
-                          >
-                            {{ 'settings.panels.spendistCsv.import.chooseFile' | transloco }}
-                          </label>
-                        </div>
-                      </div>
-
-                      <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                        <button
-                          type="button"
-                          class="btn btn-primary w-full sm:w-auto"
-                          [disabled]="!selectedSpendistCsvFile() || spendistCsv.analyzing() || spendistCsv.importing()"
-                          (click)="analyzeSpendistCsvFile()"
-                        >
-                          @if (spendistCsv.analyzing()) {
-                            <span class="loading loading-spinner loading-sm"></span>
-                          }
-                          {{ 'settings.panels.spendistCsv.import.analyze' | transloco }}
-                        </button>
-                        <button
-                          type="button"
-                          class="btn btn-outline w-full sm:w-auto"
-                          [disabled]="!spendistCsv.canImport()"
-                          (click)="importSpendistCsvFile()"
-                        >
-                          @if (spendistCsv.importing()) {
-                            <span class="loading loading-spinner loading-sm"></span>
-                          }
-                          {{ 'settings.panels.spendistCsv.import.import' | transloco }}
-                        </button>
-                      </div>
-
-                      @if (spendistCsv.importing() || spendistCsv.progress() > 0) {
-                        <div class="space-y-2">
-                          <div class="flex justify-between text-sm text-base-content/70">
-                            <span>{{ 'settings.panels.spendistCsv.status.progress' | transloco }}</span>
-                            <span>{{ spendistCsv.progress() }}%</span>
-                          </div>
-                          <progress class="progress progress-primary w-full" [value]="spendistCsv.progress()" max="100"></progress>
-                          <p class="text-sm text-base-content/70">
-                            {{ 'settings.panels.spendistCsv.status.imported' | transloco: { imported: spendistCsv.imported(), duplicates: spendistCsv.duplicatesSkipped() } }}
-                          </p>
-                        </div>
-                      }
-                    </div>
-                  </section>
-                </div>
-
-                <aside class="space-y-6">
-                  <section class="rounded-2xl border border-base-300 bg-base-100/80 p-5 shadow-sm sm:p-6">
-                    <h3 class="text-lg font-semibold text-base-content">
-                      {{ 'settings.panels.spendistCsv.schema.title' | transloco }}
-                    </h3>
-                    <p class="mt-2 text-sm text-base-content/70">
-                      {{ 'settings.panels.spendistCsv.schema.description' | transloco }}
-                    </p>
-                    <dl class="mt-4 max-h-72 space-y-3 overflow-auto text-sm">
-                      @for (header of spendistCsvHeaders; track header) {
-                        <div>
-                          <dt class="font-mono text-xs font-semibold text-primary">{{ header }}</dt>
-                          <dd class="text-xs text-base-content/60">
-                            {{ 'settings.panels.spendistCsv.schema.columns.' + header | transloco }}
-                          </dd>
-                        </div>
-                      }
-                    </dl>
-                  </section>
-
-                  <section class="rounded-2xl border border-base-300 bg-base-100/80 p-5 shadow-sm sm:p-6">
-                    @if (spendistCsv.summary(); as summary) {
-                      <div class="space-y-4">
-                        <header>
-                          <p class="text-xs uppercase tracking-wide text-base-content/60">
-                            {{ 'settings.panels.spendistCsv.summary.label' | transloco }}
-                          </p>
-                          <h3 class="text-xl font-semibold">{{ summary.fileName }}</h3>
-                        </header>
-
-                        <dl class="grid gap-3 text-sm">
-                          <div class="flex justify-between gap-4">
-                            <dt class="text-base-content/60">{{ 'settings.panels.spendistCsv.summary.totalRows' | transloco }}</dt>
-                            <dd class="font-semibold">{{ summary.totalDataRows }}</dd>
-                          </div>
-                          <div class="flex justify-between gap-4">
-                            <dt class="text-base-content/60">{{ 'settings.panels.spendistCsv.summary.parsed' | transloco }}</dt>
-                            <dd class="font-semibold">{{ summary.parsedTransactions }}</dd>
-                          </div>
-                          <div class="flex justify-between gap-4">
-                            <dt class="text-base-content/60">{{ 'settings.panels.spendistCsv.summary.duplicates' | transloco }}</dt>
-                            <dd class="font-semibold">{{ summary.duplicates }}</dd>
-                          </div>
-                          <div class="flex justify-between gap-4">
-                            <dt class="text-base-content/60">{{ 'settings.panels.spendistCsv.summary.importable' | transloco }}</dt>
-                            <dd class="font-semibold">{{ summary.importableTransactions }}</dd>
-                          </div>
-                        </dl>
-
-                        <div class="grid gap-2 text-sm">
-                          <p>{{ 'settings.panels.spendistCsv.summary.newGroups' | transloco: { total: summary.newGroups.length } }}</p>
-                          <p>{{ 'settings.panels.spendistCsv.summary.newCategories' | transloco: { total: summary.newCategories.length } }}</p>
-                          <p>{{ 'settings.panels.spendistCsv.summary.newWallets' | transloco: { total: summary.newWallets.length } }}</p>
-                          <p>{{ 'settings.panels.spendistCsv.summary.newTags' | transloco: { total: summary.newTags.length } }}</p>
-                        </div>
-
-                        @if (summary.issues.length > 0) {
-                          <div class="rounded-xl border border-warning/20 bg-warning/10 p-3 text-sm text-warning">
-                            <p class="font-semibold">
-                              {{ 'settings.panels.spendistCsv.summary.issues' | transloco: { total: summary.issues.length } }}
-                            </p>
-                            <ul class="mt-2 max-h-40 space-y-1 overflow-auto">
-                              @for (issue of summary.issues.slice(0, 8); track issue.rowNumber) {
-                                <li>
-                                  {{ 'settings.panels.spendistCsv.summary.issueRow' | transloco: { row: issue.rowNumber, message: issue.message } }}
-                                </li>
-                              }
-                            </ul>
-                          </div>
-                        }
-                      </div>
-                    } @else {
-                      <div class="space-y-3 text-sm text-base-content/70">
-                        <h3 class="text-base font-semibold text-base-content">
-                          {{ 'settings.panels.spendistCsv.empty.title' | transloco }}
-                        </h3>
-                        <p>{{ 'settings.panels.spendistCsv.empty.body' | transloco }}</p>
-                      </div>
-                    }
-                  </section>
-                </aside>
+              <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                <button
+                  type="submit"
+                  class="btn btn-primary w-full sm:w-auto"
+                  [disabled]="walletMutationPending()"
+                >
+                  @if (walletMutationPending()) {
+                  <span class="loading loading-spinner loading-sm"></span>
+                  }
+                  <span>
+                    {{ (walletEditorMode() === 'edit' ?
+                    'settings.panels.wallets.form.submitUpdate' :
+                    'settings.panels.wallets.form.submitCreate') | transloco }}
+                  </span>
+                </button>
+                @if (walletEditorMode() === 'edit') {
+                <button
+                  type="button"
+                  class="btn btn-ghost w-full sm:w-auto"
+                  (click)="cancelWalletEdit()"
+                  [disabled]="walletMutationPending()"
+                >
+                  {{ 'settings.panels.wallets.form.cancelEdit' | transloco }}
+                </button>
+                }
               </div>
-            </section>
-          } @else {
-            <section class="space-y-6">
-              <header class="space-y-2">
-                <h2 class="text-2xl font-semibold">
-                  {{ 'settings.panels.kontomierzImport.header' | transloco }}
-                </h2>
-                <p class="max-w-2xl text-base-content/70">
-                  {{ 'settings.panels.kontomierzImport.text' | transloco }}
-                </p>
-              </header>
+            </form>
+          </section>
+        </div>
+        }
+      </section>
+      } @else if (activePanel() === 'categories') {
+      <section class="space-y-6">
+        <header
+          class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div>
+            <h2 class="text-2xl font-semibold">
+              {{ 'settings.panels.categories.header' | transloco }}
+            </h2>
+            <p class="max-w-2xl text-base-content/70">
+              {{ 'settings.panels.categories.text' | transloco }}
+            </p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button
+              type="button"
+              class="btn btn-primary btn-sm"
+              [disabled]="store.loading() || store.categoryMutationPending() || store.groupMutationPending()"
+              (click)="openCategoryCreator()"
+            >
+              {{ 'settings.panels.categories.addCategory' | transloco }}
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline btn-sm"
+              [disabled]="store.loading() || store.groupMutationPending()"
+              (click)="openGroupCreator()"
+            >
+              {{ 'settings.panels.categories.addGroup' | transloco }}
+            </button>
+          </div>
+        </header>
 
-              @if (kontomierzImport.error(); as importError) {
-                <div class="alert alert-error flex-col items-start gap-2 rounded-2xl border border-error/20 bg-error/10 p-4 text-sm text-error">
-                  <div class="font-semibold">
-                    {{ 'settings.panels.kontomierzImport.status.errorTitle' | transloco }}
-                  </div>
-                  <div>
-                    @if (importError.startsWith('settings.')) {
-                      {{ importError | transloco }}
-                    } @else {
-                      {{ importError }}
-                    }
-                  </div>
-                </div>
-              }
+        @if (store.error(); as error) {
+        <div
+          class="alert alert-error flex-col items-start gap-2 rounded-2xl border border-error/20 bg-error/10 p-4 text-sm text-error"
+        >
+          <div class="font-semibold">
+            {{ 'settings.panels.categories.status.errorTitle' | transloco }}
+          </div>
+          <div>{{ error }}</div>
+          <button
+            type="button"
+            class="btn btn-sm btn-ghost text-error"
+            (click)="dismissError()"
+          >
+            {{ 'common.actions.dismiss' | transloco }}
+          </button>
+        </div>
+        }
 
-              <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)]">
-                <section class="rounded-2xl border border-base-300 bg-base-100/80 p-5 shadow-sm sm:p-6">
-                  <form class="space-y-5" [formGroup]="kontomierzImportForm" (ngSubmit)="analyzeKontomierzFile()">
-                    <label class="form-control">
-                      <span class="label-text text-sm font-semibold text-base-content">
-                        {{ 'settings.panels.kontomierzImport.form.walletLabel' | transloco }}
-                      </span>
-                      <select class="select select-bordered" formControlName="walletId">
-                        <option value="" disabled>
-                          {{ 'settings.panels.kontomierzImport.form.walletPlaceholder' | transloco }}
-                        </option>
-                        @for (wallet of store.wallets(); track wallet.id) {
-                          <option [value]="wallet.id">{{ wallet.name }} · {{ wallet.currency }}</option>
-                        }
-                      </select>
-                      @if (kontomierzImportFormControls.walletId.touched && kontomierzImportFormControls.walletId.invalid) {
-                        <span class="mt-1 text-xs text-error">
-                          {{ 'settings.panels.kontomierzImport.errors.walletRequired' | transloco }}
+        <div
+          class="tabs tabs-boxed bg-base-200/60 p-1"
+          role="tablist"
+          aria-label="Category workspace"
+        >
+          <button
+            id="settings-categories-tab-list"
+            type="button"
+            role="tab"
+            class="tab flex-1 text-sm font-semibold"
+            [class.tab-active]="activeCategoriesTab() === 'list'"
+            [attr.aria-selected]="activeCategoriesTab() === 'list'"
+            [attr.aria-controls]="'settings-categories-panel-list'"
+            [attr.tabindex]="activeCategoriesTab() === 'list' ? 0 : -1"
+            (click)="selectCategoriesTab('list')"
+          >
+            {{ 'settings.panels.categories.tabs.manage' | transloco }}
+          </button>
+          <button
+            id="settings-categories-tab-groups"
+            type="button"
+            role="tab"
+            class="tab flex-1 text-sm font-semibold"
+            [class.tab-active]="activeCategoriesTab() === 'groups'"
+            [attr.aria-selected]="activeCategoriesTab() === 'groups'"
+            [attr.aria-controls]="'settings-categories-panel-groups'"
+            [attr.tabindex]="activeCategoriesTab() === 'groups' ? 0 : -1"
+            (click)="selectCategoriesTab('groups')"
+          >
+            {{ 'settings.panels.categories.tabs.groups' | transloco }}
+          </button>
+        </div>
+
+        @if (store.loading()) {
+        <div class="flex justify-center py-16">
+          <span
+            class="loading loading-lg text-primary"
+            [attr.aria-label]="'settings.panels.categories.status.loading' | transloco"
+          ></span>
+        </div>
+        } @else { @if (activeCategoriesTab() === 'list') {
+        <div
+          id="settings-categories-panel-list"
+          role="tabpanel"
+          aria-labelledby="settings-categories-tab-list"
+          class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]"
+        >
+          <div
+            class="rounded-2xl border border-base-300 bg-base-100/80 p-4 shadow-sm sm:p-6"
+          >
+            <div
+              class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <label
+                class="flex w-full flex-col gap-1 text-xs font-medium text-base-content/70 sm:max-w-xs"
+              >
+                <span
+                  >{{ 'settings.panels.categories.searchLabel' | transloco
+                  }}</span
+                >
+                <input
+                  id="settings-category-search"
+                  type="search"
+                  class="input input-bordered w-full"
+                  [attr.placeholder]="'settings.panels.categories.searchPlaceholder' | transloco"
+                  [value]="categoryQuery()"
+                  (input)="onCategoryQueryChange($event)"
+                />
+              </label>
+
+              <div class="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  class="badge badge-outline"
+                  [class.badge-neutral]="selectedGroupFilter() === null"
+                  (click)="selectGroupFilter(null)"
+                >
+                  {{ 'settings.panels.categories.filters.all' | transloco }}
+                </button>
+                @for (group of categoryGroupsWithStats(); track group.id) {
+                <button
+                  type="button"
+                  class="badge badge-outline"
+                  [class.badge-neutral]="selectedGroupFilter() === group.id"
+                  (click)="selectGroupFilter(group.id)"
+                >
+                  {{ group.name }}
+                  <span class="ml-1 text-xs text-base-content/70">
+                    {{ 'settings.panels.categories.filters.count' | transloco: {
+                    total: group.categoriesTotal } }}
+                  </span>
+                </button>
+                }
+              </div>
+            </div>
+
+            @if (!hasGroups()) {
+            <div
+              class="mt-6 rounded-xl border border-dashed border-base-300 p-6 text-sm text-base-content/70"
+            >
+              {{ 'settings.panels.categories.emptyGroups' | transloco }}
+            </div>
+            }
+
+            <div class="mt-4 space-y-2">
+              @for (category of filteredCategories(); track category.id) {
+              <button
+                type="button"
+                class="w-full rounded-xl border border-transparent px-4 py-3 text-left transition hover:border-primary/30 hover:bg-base-200/70 focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                [class.bg-base-200]="category.id === selectedCategoryId()"
+                [class.border-primary]="category.id === selectedCategoryId()"
+                (click)="selectCategory(category.id)"
+              >
+                <div class="flex items-start justify-between gap-4">
+                  <div class="flex items-start gap-3">
+                    <span
+                      class="mt-1 size-3 rounded-full"
+                      [style.backgroundColor]="category.color ?? '#CBD5F5'"
+                      aria-hidden="true"
+                    ></span>
+                    <div>
+                      <p
+                        class="text-sm font-semibold text-base-content"
+                        [style.padding-left.rem]="category.depth - 1"
+                      >
+                        {{ category.name }} @if (category.icon; as iconKeyword)
+                        { @if (heroIconSvg(iconKeyword); as iconSvg) {
+                        <span class="badge badge-ghost badge-sm ml-2 p-0.5">
+                          <ng-icon
+                            [svg]="iconSvg"
+                            size="16"
+                            aria-hidden="true"
+                          ></ng-icon>
+                          <span class="sr-only">
+                            {{ 'settings.panels.categories.list.iconSrLabel' |
+                            transloco: { label: isHeroIconName(iconKeyword) ?
+                            formatHeroIconLabel(iconKeyword) : iconKeyword } }}
+                          </span>
                         </span>
-                      }
-                    </label>
-
-                    <div class="rounded-2xl border border-dashed border-base-300 bg-base-100/60 p-5">
-                      <input
-                        id="kontomierz-xlsx-upload"
-                        type="file"
-                        class="sr-only"
-                        accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                        (change)="onKontomierzFileSelected($event)"
-                      />
-                      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                          <p class="text-sm font-semibold">
-                            {{ 'settings.panels.kontomierzImport.form.fileLabel' | transloco }}
-                          </p>
-                          <p class="text-sm text-base-content/70">
-                            @if (kontomierzFileName(); as fileName) {
-                              {{ fileName }}
-                            } @else {
-                              {{ 'settings.panels.kontomierzImport.form.fileEmpty' | transloco }}
-                            }
-                          </p>
-                        </div>
-                        <label
-                          for="kontomierz-xlsx-upload"
-                          class="btn btn-outline btn-sm"
-                          [class.btn-disabled]="kontomierzImport.analyzing() || kontomierzImport.importing()"
-                          [attr.aria-disabled]="kontomierzImport.analyzing() || kontomierzImport.importing()"
+                        } @else {
+                        <span class="badge badge-ghost badge-sm ml-2"
+                          >{{ iconKeyword }}</span
                         >
-                          {{ 'settings.panels.kontomierzImport.form.chooseFile' | transloco }}
-                        </label>
-                      </div>
-                    </div>
-
-                    <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                      <button
-                        type="submit"
-                        class="btn btn-primary w-full sm:w-auto"
-                        [disabled]="!selectedKontomierzFile() || kontomierzImport.analyzing() || kontomierzImport.importing()"
-                      >
-                        @if (kontomierzImport.analyzing()) {
-                          <span class="loading loading-spinner loading-sm"></span>
-                        }
-                        {{ 'settings.panels.kontomierzImport.actions.analyze' | transloco }}
-                      </button>
-                      <button
-                        type="button"
-                        class="btn btn-outline w-full sm:w-auto"
-                        [disabled]="!kontomierzImport.canImport()"
-                        (click)="importKontomierzFile()"
-                      >
-                        @if (kontomierzImport.importing()) {
-                          <span class="loading loading-spinner loading-sm"></span>
-                        }
-                        {{ 'settings.panels.kontomierzImport.actions.import' | transloco }}
-                      </button>
-                    </div>
-                  </form>
-
-                  @if (kontomierzImport.importing() || kontomierzImport.progress() > 0) {
-                    <div class="mt-6 space-y-2">
-                      <div class="flex justify-between text-sm text-base-content/70">
-                        <span>{{ 'settings.panels.kontomierzImport.status.progress' | transloco }}</span>
-                        <span>{{ kontomierzImport.progress() }}%</span>
-                      </div>
-                      <progress class="progress progress-primary w-full" [value]="kontomierzImport.progress()" max="100"></progress>
-                      <p class="text-sm text-base-content/70">
-                        {{ 'settings.panels.kontomierzImport.status.imported' | transloco: { imported: kontomierzImport.imported(), duplicates: kontomierzImport.duplicatesSkipped() } }}
+                        } }
+                      </p>
+                      <p class="text-xs text-base-content/60">
+                        {{ category.path }}
                       </p>
                     </div>
+                  </div>
+                  <span
+                    class="text-lg font-semibold text-base-content/50"
+                    aria-hidden="true"
+                    >></span
+                  >
+                </div>
+              </button>
+              } @if (filteredCategories().length === 0 && hasGroups()) {
+              <div
+                class="rounded-xl border border-dashed border-base-300 p-6 text-center text-sm text-base-content/70"
+              >
+                {{ 'settings.panels.categories.noMatches' | transloco }}
+              </div>
+              }
+            </div>
+          </div>
+
+          <aside
+            class="rounded-2xl border border-base-300 bg-base-100/80 p-4 shadow-sm sm:p-6 lg:sticky lg:top-24 lg:self-start"
+          >
+            @if (categoryEditorMode(); as mode) {
+            <form
+              class="space-y-4"
+              [formGroup]="categoryForm"
+              (ngSubmit)="submitCategoryForm(mode)"
+            >
+              <div>
+                <h3 class="text-xl font-semibold text-base-content">
+                  {{ (mode === 'edit' ?
+                  'settings.panels.categories.editor.editTitle' :
+                  'settings.panels.categories.editor.createTitle') | transloco
+                  }}
+                </h3>
+                <p class="text-sm text-base-content/70">
+                  {{ 'settings.panels.categories.editor.description' | transloco
+                  }}
+                </p>
+              </div>
+
+              <label class="form-control w-full">
+                <span
+                  class="label-text text-sm font-semibold text-base-content"
+                >
+                  {{ 'settings.panels.categories.editor.nameLabel' | transloco
+                  }}
+                </span>
+                <input
+                  type="text"
+                  formControlName="name"
+                  class="input input-bordered w-full"
+                  maxlength="60"
+                  [attr.placeholder]="'settings.panels.categories.editor.namePlaceholder' | transloco"
+                />
+                @if (categoryFormControls.name.touched &&
+                categoryFormControls.name.hasError('required')) {
+                <span class="mt-1 text-xs text-error">
+                  {{ 'settings.panels.categories.editor.nameRequired' |
+                  transloco }}
+                </span>
+                }
+              </label>
+
+              <label class="form-control w-full">
+                <span
+                  class="label-text text-sm font-semibold text-base-content"
+                >
+                  {{ 'settings.panels.categories.editor.parentLabel' | transloco
+                  }}
+                </span>
+                <select
+                  formControlName="parentId"
+                  class="select select-bordered w-full"
+                >
+                  <option [ngValue]="null">
+                    {{ 'settings.panels.categories.editor.parentNone' |
+                    transloco }}
+                  </option>
+                  @for (category of parentCategoryOptions(); track category.id)
+                  {
+                  <option [ngValue]="category.id">{{ category.label }}</option>
                   }
-                </section>
+                </select>
+                <span class="mt-1 text-xs text-base-content/60">
+                  {{ 'settings.panels.categories.editor.parentHelp' | transloco
+                  }}
+                </span>
+              </label>
 
-                <aside class="rounded-2xl border border-base-300 bg-base-100/80 p-5 shadow-sm sm:p-6 lg:sticky lg:top-24 lg:self-start">
-                  @if (kontomierzImport.summary(); as summary) {
-                    <div class="space-y-4">
-                      <header>
-                        <p class="text-xs uppercase tracking-wide text-base-content/60">
-                          {{ 'settings.panels.kontomierzImport.summary.label' | transloco }}
-                        </p>
-                        <h3 class="text-xl font-semibold">{{ summary.fileName }}</h3>
-                      </header>
-
-                      <dl class="grid gap-3 text-sm">
-                        <div class="flex justify-between gap-4">
-                          <dt class="text-base-content/60">{{ 'settings.panels.kontomierzImport.summary.totalRows' | transloco }}</dt>
-                          <dd class="font-semibold">{{ summary.totalDataRows }}</dd>
-                        </div>
-                        <div class="flex justify-between gap-4">
-                          <dt class="text-base-content/60">{{ 'settings.panels.kontomierzImport.summary.parsed' | transloco }}</dt>
-                          <dd class="font-semibold">{{ summary.parsedTransactions }}</dd>
-                        </div>
-                        <div class="flex justify-between gap-4">
-                          <dt class="text-base-content/60">{{ 'settings.panels.kontomierzImport.summary.splitParents' | transloco }}</dt>
-                          <dd class="font-semibold">{{ summary.skippedSplitParents }}</dd>
-                        </div>
-                        <div class="flex justify-between gap-4">
-                          <dt class="text-base-content/60">{{ 'settings.panels.kontomierzImport.summary.duplicates' | transloco }}</dt>
-                          <dd class="font-semibold">{{ summary.duplicates }}</dd>
-                        </div>
-                        <div class="flex justify-between gap-4">
-                          <dt class="text-base-content/60">{{ 'settings.panels.kontomierzImport.summary.importable' | transloco }}</dt>
-                          <dd class="font-semibold">{{ summary.importableTransactions }}</dd>
-                        </div>
-                      </dl>
-
-                      <div class="grid gap-2 text-sm">
-                        <p>
-                          {{ 'settings.panels.kontomierzImport.summary.newGroups' | transloco: { total: summary.newGroups.length } }}
-                        </p>
-                        <p>
-                          {{ 'settings.panels.kontomierzImport.summary.newCategories' | transloco: { total: summary.newCategories.length } }}
-                        </p>
-                        <p>
-                          {{ 'settings.panels.kontomierzImport.summary.newTags' | transloco: { total: summary.newTags.length } }}
-                        </p>
-                      </div>
-
-                      @if (summary.issues.length > 0) {
-                        <div class="rounded-xl border border-warning/20 bg-warning/10 p-3 text-sm text-warning">
-                          <p class="font-semibold">
-                            {{ 'settings.panels.kontomierzImport.summary.issues' | transloco: { total: summary.issues.length } }}
-                          </p>
-                          <ul class="mt-2 max-h-40 space-y-1 overflow-auto">
-                            @for (issue of summary.issues.slice(0, 8); track issue.rowNumber) {
-                              <li>
-                                {{ 'settings.panels.kontomierzImport.summary.issueRow' | transloco: { row: issue.rowNumber, message: issue.message } }}
-                              </li>
-                            }
-                          </ul>
-                        </div>
-                      }
-                    </div>
-                  } @else {
-                    <div class="space-y-3 text-sm text-base-content/70">
-                      <h3 class="text-base font-semibold text-base-content">
-                        {{ 'settings.panels.kontomierzImport.empty.title' | transloco }}
-                      </h3>
-                      <p>{{ 'settings.panels.kontomierzImport.empty.body' | transloco }}</p>
-                    </div>
+              <label class="form-control w-full">
+                <span
+                  class="label-text text-sm font-semibold text-base-content"
+                >
+                  {{ 'settings.panels.categories.editor.groupLabel' | transloco
+                  }}
+                </span>
+                <select
+                  formControlName="groupId"
+                  class="select select-bordered w-full"
+                  (change)="onCategoryGroupChange()"
+                >
+                  <option value="" disabled>
+                    {{ 'settings.panels.categories.editor.groupPlaceholder' |
+                    transloco }}
+                  </option>
+                  @for (group of store.groups(); track group.id) {
+                  <option [value]="group.id">{{ group.name }}</option>
                   }
-                </aside>
+                </select>
+                @if (categoryFormControls.groupId.touched &&
+                categoryFormControls.groupId.hasError('required')) {
+                <span class="mt-1 text-xs text-error">
+                  {{ 'settings.panels.categories.editor.groupRequired' |
+                  transloco }}
+                </span>
+                }
+              </label>
+
+              <div class="form-control w-full">
+                <span
+                  class="label-text text-sm font-semibold text-base-content"
+                >
+                  {{ 'settings.panels.categories.editor.colorLabel' | transloco
+                  }}
+                </span>
+                <div class="flex items-center gap-3">
+                  <input
+                    type="color"
+                    formControlName="color"
+                    class="h-10 w-16 rounded-lg border border-base-300 bg-base-200"
+                  />
+                  <input
+                    type="text"
+                    formControlName="color"
+                    class="input input-bordered w-full"
+                    [attr.placeholder]="'settings.panels.categories.editor.colorPlaceholder' | transloco"
+                    maxlength="7"
+                  />
+                </div>
+              </div>
+
+              <app-hero-icon-picker
+                formControlName="icon"
+                [label]="'settings.panels.categories.editor.iconLabel' | transloco"
+                [allowNone]="true"
+                [searchPlaceholder]="'settings.panels.categories.searchPlaceholder' | transloco"
+              ></app-hero-icon-picker>
+
+              <div class="flex flex-wrap gap-2">
+                <button
+                  type="submit"
+                  class="btn btn-primary btn-sm"
+                  [disabled]="store.categoryMutationPending()"
+                >
+                  {{ (mode === 'edit' ? 'common.actions.saveChanges' :
+                  'common.actions.createCategory') | transloco }}
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-sm"
+                  (click)="cancelCategoryEdit()"
+                  [disabled]="store.categoryMutationPending()"
+                >
+                  {{ 'common.actions.cancel' | transloco }}
+                </button>
+              </div>
+            </form>
+            } @else if (selectedCategory(); as category) {
+            <div class="space-y-4">
+              <header>
+                <p class="text-xs uppercase tracking-wide text-base-content/60">
+                  {{ 'settings.panels.categories.details.selectedHeading' |
+                  transloco }}
+                </p>
+                <h3 class="text-xl font-semibold text-base-content">
+                  {{ category.name }}
+                </h3>
+                <p class="text-sm text-base-content/70">{{ category.path }}</p>
+              </header>
+
+              <dl class="grid gap-3 text-sm">
+                <div class="grid gap-1">
+                  <dt
+                    class="text-xs uppercase tracking-wide text-base-content/50"
+                  >
+                    {{ 'settings.panels.categories.details.group' | transloco }}
+                  </dt>
+                  <dd>{{ category.groupName }}</dd>
+                </div>
+                <div class="grid gap-1">
+                  <dt
+                    class="text-xs uppercase tracking-wide text-base-content/50"
+                  >
+                    {{ 'settings.panels.categories.details.parent' | transloco
+                    }}
+                  </dt>
+                  <dd>
+                    @if (category.parentName) { {{ category.parentName }} }
+                    @else {
+                    <span class="text-base-content/60">
+                      {{ 'settings.panels.categories.editor.parentNone' |
+                      transloco }}
+                    </span>
+                    }
+                  </dd>
+                </div>
+                <div class="grid gap-1">
+                  <dt
+                    class="text-xs uppercase tracking-wide text-base-content/50"
+                  >
+                    {{ 'settings.panels.categories.details.icon' | transloco }}
+                  </dt>
+                  <dd>
+                    @if (category.icon; as iconKeyword) { @if
+                    (heroIconSvg(iconKeyword); as iconSvg) {
+                    <span class="inline-flex items-center gap-2">
+                      <ng-icon
+                        [svg]="iconSvg"
+                        size="20"
+                        aria-hidden="true"
+                      ></ng-icon>
+                      <span class="text-xs text-base-content/60">
+                        {{ isHeroIconName(iconKeyword) ?
+                        formatHeroIconLabel(iconKeyword) : iconKeyword }}
+                      </span>
+                    </span>
+                    } @else { {{ iconKeyword }} } } @else {
+                    <span class="text-base-content/60">
+                      {{ 'settings.panels.categories.list.notSet' | transloco }}
+                    </span>
+                    }
+                  </dd>
+                </div>
+                <div class="grid gap-1">
+                  <dt
+                    class="text-xs uppercase tracking-wide text-base-content/50"
+                  >
+                    {{ 'settings.panels.categories.details.accent' | transloco
+                    }}
+                  </dt>
+                  <dd>
+                    @if (category.color) {
+                    <span class="inline-flex items-center gap-2">
+                      <span
+                        class="size-3 rounded-full"
+                        [style.backgroundColor]="category.color"
+                        aria-hidden="true"
+                      ></span>
+                      {{ category.color }}
+                    </span>
+                    } @else {
+                    <span class="text-base-content/60">
+                      {{ 'settings.panels.categories.details.defaultColor' |
+                      transloco }}
+                    </span>
+                    }
+                  </dd>
+                </div>
+              </dl>
+
+              <div class="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  class="btn btn-primary btn-sm"
+                  (click)="openCategoryEditor(category.id)"
+                  [disabled]="store.categoryMutationPending()"
+                >
+                  {{ 'settings.panels.categories.details.edit' | transloco }}
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-sm text-error"
+                  (click)="deleteCategory(category.id)"
+                  [disabled]="store.categoryMutationPending()"
+                >
+                  {{ 'common.actions.delete' | transloco }}
+                </button>
+              </div>
+            </div>
+            } @else {
+            <div class="flex flex-col items-start gap-3 text-sm">
+              <h3 class="text-base font-semibold">
+                {{ 'settings.panels.categories.details.promptTitle' | transloco
+                }}
+              </h3>
+              <p class="text-base-content/70">
+                {{ 'settings.panels.categories.details.promptDescription' |
+                transloco }}
+              </p>
+              <button
+                type="button"
+                class="btn btn-primary btn-sm"
+                [disabled]="store.categoryMutationPending() || store.groupMutationPending()"
+                (click)="openCategoryCreator()"
+              >
+                {{ 'common.actions.addFirstCategory' | transloco }}
+              </button>
+            </div>
+            }
+          </aside>
+        </div>
+        } @else {
+        <div
+          id="settings-categories-panel-groups"
+          role="tabpanel"
+          aria-labelledby="settings-categories-tab-groups"
+          class="space-y-4"
+        >
+          @if (groupEditorMode(); as mode) {
+          <form
+            class="rounded-2xl border border-base-300 bg-base-100/80 p-5 shadow-sm sm:p-6"
+            [formGroup]="categoryGroupForm"
+            (ngSubmit)="submitGroupForm(mode)"
+          >
+            <div class="mb-4">
+              <h3 class="text-xl font-semibold text-base-content">
+                {{ (mode === 'edit' ?
+                'settings.panels.categories.groups.formTitleEdit' :
+                'settings.panels.categories.groups.formTitleCreate') | transloco
+                }}
+              </h3>
+              <p class="text-sm text-base-content/70">
+                {{ 'settings.panels.categories.groups.description' | transloco
+                }}
+              </p>
+            </div>
+
+            <div class="grid gap-4 sm:grid-cols-2">
+              <label class="form-control w-full">
+                <span
+                  class="label-text text-sm font-semibold text-base-content"
+                >
+                  {{ 'settings.panels.categories.groups.nameLabel' | transloco
+                  }}
+                </span>
+                <input
+                  type="text"
+                  formControlName="name"
+                  class="input input-bordered w-full"
+                  maxlength="60"
+                  [attr.placeholder]="'settings.panels.categories.groups.namePlaceholder' | transloco"
+                />
+                @if (categoryGroupFormControls.name.touched &&
+                categoryGroupFormControls.name.hasError('required')) {
+                <span class="mt-1 text-xs text-error">
+                  {{ 'settings.panels.categories.groups.nameError' | transloco
+                  }}
+                </span>
+                }
+              </label>
+
+              <div class="form-control w-full">
+                <span
+                  class="label-text text-sm font-semibold text-base-content"
+                >
+                  {{ 'settings.panels.categories.groups.colorLabel' | transloco
+                  }}
+                </span>
+                <div class="flex items-center gap-3">
+                  <input
+                    type="color"
+                    formControlName="color"
+                    class="h-10 w-16 rounded-lg border border-base-300 bg-base-200"
+                  />
+                  <input
+                    type="text"
+                    formControlName="color"
+                    class="input input-bordered w-full"
+                    placeholder="#0EA5A5"
+                    maxlength="7"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <app-hero-icon-picker
+              class="sm:w-1/2"
+              formControlName="icon"
+              [label]="'settings.panels.categories.editor.iconLabel' | transloco"
+              [allowNone]="true"
+              [searchPlaceholder]="'settings.panels.categories.searchPlaceholder' | transloco"
+            ></app-hero-icon-picker>
+
+            <div class="mt-4 flex flex-wrap gap-2">
+              <button
+                type="submit"
+                class="btn btn-primary btn-sm"
+                [disabled]="store.groupMutationPending()"
+              >
+                {{ (mode === 'edit' ? 'common.actions.saveChanges' :
+                'common.actions.createGroup') | transloco }}
+              </button>
+              <button
+                type="button"
+                class="btn btn-ghost btn-sm"
+                (click)="cancelGroupEdit()"
+                [disabled]="store.groupMutationPending()"
+              >
+                {{ 'common.actions.cancel' | transloco }}
+              </button>
+            </div>
+          </form>
+          }
+
+          <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            @for (group of categoryGroupsWithStats(); track group.id) {
+            <article
+              class="flex flex-col gap-4 rounded-2xl border border-base-300 bg-base-100/80 p-5 shadow-sm"
+            >
+              <header class="flex items-start justify-between gap-4">
+                <div class="flex items-start gap-3">
+                  <span
+                    class="flex size-10 items-center justify-center rounded-full text-base font-semibold text-base-100"
+                    [style.backgroundColor]="group.color ?? '#CBD5F5'"
+                    aria-hidden="true"
+                  >
+                    @if (heroIconSvg(group.icon); as iconSvg) {
+                    <ng-icon
+                      [svg]="iconSvg"
+                      size="24px"
+                      aria-hidden="true"
+                    ></ng-icon>
+                    } @else { {{ group.icon ?? group.name.slice(0,
+                    2).toUpperCase() }} }
+                  </span>
+                  <div>
+                    <h3 class="text-lg font-semibold text-base-content">
+                      {{ group.name }}
+                    </h3>
+                    <p class="text-xs text-base-content/60">
+                      {{ 'settings.panels.categories.list.groupLabel' |
+                      transloco: { total: group.categoriesTotal } }}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-circle btn-sm"
+                  [attr.aria-label]="('settings.panels.categories.groups.formTitleEdit' | transloco) + ' ' + group.name"
+                  (click)="openGroupEditor(group.id)"
+                  [disabled]="store.groupMutationPending()"
+                >
+                  <span
+                    aria-hidden="true"
+                    class="text-lg font-semibold text-base-content/70"
+                    >...</span
+                  >
+                </button>
+              </header>
+
+              <div class="flex flex-wrap gap-1.5 text-xs text-base-content/70">
+                {{ 'settings.panels.categories.groups.pill.description' |
+                transloco }}
+              </div>
+
+              <div class="mt-auto flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  class="btn btn-outline btn-xs"
+                  (click)="openGroupCategories(group.id)"
+                  [disabled]="store.groupMutationPending()"
+                >
+                  {{ 'common.actions.viewCategories' | transloco }}
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-xs text-error"
+                  (click)="deleteCategoryGroup(group.id)"
+                  [disabled]="store.groupMutationPending()"
+                >
+                  {{ 'common.actions.deleteGroup' | transloco }}
+                </button>
+              </div>
+            </article>
+            }
+
+            <article
+              class="flex min-h-[220px] flex-col items-start justify-center gap-4 rounded-2xl border border-dashed border-base-300 bg-base-100/50 p-5 text-base-content/70"
+            >
+              <h3 class="text-lg font-semibold text-base-content">
+                {{ 'settings.panels.categories.groups.emptyCtaTitle' | transloco
+                }}
+              </h3>
+              <p class="text-sm">
+                {{ 'settings.panels.categories.groups.emptyCtaBody' | transloco
+                }}
+              </p>
+              <button
+                type="button"
+                class="btn btn-primary btn-sm"
+                (click)="openGroupCreator()"
+                [disabled]="store.groupMutationPending()"
+              >
+                {{ 'common.actions.addGroup' | transloco }}
+              </button>
+            </article>
+          </div>
+        </div>
+        } }
+      </section>
+      } @else if (activePanel() === 'spendistCsv') {
+      <section class="space-y-6">
+        <header class="space-y-2">
+          <h2 class="text-2xl font-semibold">
+            {{ 'settings.panels.spendistCsv.header' | transloco }}
+          </h2>
+          <p class="max-w-2xl text-base-content/70">
+            {{ 'settings.panels.spendistCsv.text' | transloco }}
+          </p>
+        </header>
+
+        @if (spendistCsv.error(); as csvError) {
+        <div
+          class="alert alert-error flex-col items-start gap-2 rounded-2xl border border-error/20 bg-error/10 p-4 text-sm text-error"
+        >
+          <div class="font-semibold">
+            {{ 'settings.panels.spendistCsv.status.errorTitle' | transloco }}
+          </div>
+          <div>
+            @if (csvError.startsWith('settings.')) { {{ csvError | transloco }}
+            } @else { {{ csvError }} }
+          </div>
+        </div>
+        }
+
+        <div
+          class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(320px,380px)]"
+        >
+          <div class="space-y-6">
+            <section
+              class="rounded-2xl border border-base-300 bg-base-100/80 p-5 shadow-sm sm:p-6"
+            >
+              <form
+                class="space-y-5"
+                [formGroup]="spendistCsvExportForm"
+                (ngSubmit)="exportSpendistCsv()"
+              >
+                <header class="space-y-1">
+                  <h3 class="text-xl font-semibold text-base-content">
+                    {{ 'settings.panels.spendistCsv.export.title' | transloco }}
+                  </h3>
+                  <p class="text-sm text-base-content/70">
+                    {{ 'settings.panels.spendistCsv.export.description' |
+                    transloco }}
+                  </p>
+                </header>
+
+                <div class="grid gap-3 sm:grid-cols-2">
+                  <label
+                    class="flex items-center gap-3 rounded-xl border border-base-300 bg-base-100/70 px-4 py-3 text-sm"
+                  >
+                    <input
+                      type="radio"
+                      class="radio radio-primary"
+                      formControlName="rangeMode"
+                      value="month"
+                    />
+                    <span
+                      >{{ 'settings.panels.spendistCsv.export.monthRange' |
+                      transloco }}</span
+                    >
+                  </label>
+                  <label
+                    class="flex items-center gap-3 rounded-xl border border-base-300 bg-base-100/70 px-4 py-3 text-sm"
+                  >
+                    <input
+                      type="radio"
+                      class="radio radio-primary"
+                      formControlName="rangeMode"
+                      value="all"
+                    />
+                    <span
+                      >{{ 'settings.panels.spendistCsv.export.allRange' |
+                      transloco }}</span
+                    >
+                  </label>
+                </div>
+
+                @if (spendistCsvExportFormControls.rangeMode.value === 'month')
+                {
+                <label class="form-control">
+                  <span
+                    class="label-text text-sm font-semibold text-base-content"
+                  >
+                    {{ 'settings.panels.spendistCsv.export.monthLabel' |
+                    transloco }}
+                  </span>
+                  <input
+                    type="month"
+                    class="input input-bordered"
+                    formControlName="month"
+                  />
+                  @if (spendistCsvExportFormControls.month.touched &&
+                  spendistCsvExportFormControls.month.invalid) {
+                  <span class="mt-1 text-xs text-error">
+                    {{ 'settings.panels.spendistCsv.errors.invalidMonth' |
+                    transloco }}
+                  </span>
+                  }
+                </label>
+                }
+
+                <div class="space-y-3">
+                  <div class="flex items-center justify-between gap-3">
+                    <h4 class="text-sm font-semibold text-base-content">
+                      {{ 'settings.panels.spendistCsv.export.categoriesLabel' |
+                      transloco }}
+                    </h4>
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-xs"
+                      [disabled]="selectedSpendistCsvCategoryIds().length === 0"
+                      (click)="clearSpendistCsvCategories()"
+                    >
+                      {{ 'settings.panels.spendistCsv.export.clearCategories' |
+                      transloco }}
+                    </button>
+                  </div>
+                  <div
+                    class="max-h-64 space-y-2 overflow-auto rounded-2xl border border-base-300 bg-base-100/60 p-3"
+                  >
+                    @if (categoriesView().length === 0) {
+                    <p class="text-sm text-base-content/70">
+                      {{ 'settings.panels.spendistCsv.export.noCategories' |
+                      transloco }}
+                    </p>
+                    } @else { @for (category of categoriesView(); track
+                    category.id) {
+                    <label
+                      class="flex items-start gap-3 rounded-xl px-3 py-2 text-sm hover:bg-base-200"
+                    >
+                      <input
+                        type="checkbox"
+                        class="checkbox checkbox-sm mt-0.5"
+                        [checked]="isSpendistCsvCategorySelected(category.id)"
+                        (change)="toggleSpendistCsvCategory(category.id)"
+                      />
+                      <span class="min-w-0">
+                        <span class="block font-medium text-base-content"
+                          >{{ category.name }}</span
+                        >
+                        <span
+                          class="block truncate text-xs text-base-content/60"
+                          >{{ category.path }}</span
+                        >
+                      </span>
+                    </label>
+                    } }
+                  </div>
+                  <p class="text-xs text-base-content/60">
+                    {{ 'settings.panels.spendistCsv.export.categoryHelp' |
+                    transloco }}
+                  </p>
+                </div>
+
+                <button
+                  type="submit"
+                  class="btn btn-primary w-full sm:w-auto"
+                  [disabled]="spendistCsv.exporting()"
+                >
+                  @if (spendistCsv.exporting()) {
+                  <span class="loading loading-spinner loading-sm"></span>
+                  } {{ 'settings.panels.spendistCsv.export.action' | transloco
+                  }}
+                </button>
+
+                @if (spendistCsv.exported() > 0) {
+                <p class="text-sm text-base-content/70">
+                  {{ 'settings.panels.spendistCsv.export.exported' | transloco:
+                  { total: spendistCsv.exported() } }}
+                </p>
+                }
+              </form>
+            </section>
+
+            <section
+              class="rounded-2xl border border-base-300 bg-base-100/80 p-5 shadow-sm sm:p-6"
+            >
+              <div class="space-y-5">
+                <header class="space-y-1">
+                  <h3 class="text-xl font-semibold text-base-content">
+                    {{ 'settings.panels.spendistCsv.import.title' | transloco }}
+                  </h3>
+                  <p class="text-sm text-base-content/70">
+                    {{ 'settings.panels.spendistCsv.import.description' |
+                    transloco }}
+                  </p>
+                </header>
+
+                <div
+                  class="rounded-2xl border border-dashed border-base-300 bg-base-100/60 p-5"
+                >
+                  <input
+                    id="spendist-csv-upload"
+                    type="file"
+                    class="sr-only"
+                    accept=".csv,text/csv"
+                    (change)="onSpendistCsvFileSelected($event)"
+                  />
+                  <div
+                    class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div>
+                      <p class="text-sm font-semibold">
+                        {{ 'settings.panels.spendistCsv.import.fileLabel' |
+                        transloco }}
+                      </p>
+                      <p class="text-sm text-base-content/70">
+                        @if (spendistCsvFileName(); as fileName) { {{ fileName
+                        }} } @else { {{
+                        'settings.panels.spendistCsv.import.fileEmpty' |
+                        transloco }} }
+                      </p>
+                    </div>
+                    <label
+                      for="spendist-csv-upload"
+                      class="btn btn-outline btn-sm"
+                      [class.btn-disabled]="spendistCsv.analyzing() || spendistCsv.importing()"
+                      [attr.aria-disabled]="spendistCsv.analyzing() || spendistCsv.importing()"
+                    >
+                      {{ 'settings.panels.spendistCsv.import.chooseFile' |
+                      transloco }}
+                    </label>
+                  </div>
+                </div>
+
+                <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                  <button
+                    type="button"
+                    class="btn btn-primary w-full sm:w-auto"
+                    [disabled]="!selectedSpendistCsvFile() || spendistCsv.analyzing() || spendistCsv.importing()"
+                    (click)="analyzeSpendistCsvFile()"
+                  >
+                    @if (spendistCsv.analyzing()) {
+                    <span class="loading loading-spinner loading-sm"></span>
+                    } {{ 'settings.panels.spendistCsv.import.analyze' |
+                    transloco }}
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-outline w-full sm:w-auto"
+                    [disabled]="!spendistCsv.canImport()"
+                    (click)="importSpendistCsvFile()"
+                  >
+                    @if (spendistCsv.importing()) {
+                    <span class="loading loading-spinner loading-sm"></span>
+                    } {{ 'settings.panels.spendistCsv.import.import' | transloco
+                    }}
+                  </button>
+                </div>
+
+                @if (spendistCsv.importing() || spendistCsv.progress() > 0) {
+                <div class="space-y-2">
+                  <div
+                    class="flex justify-between text-sm text-base-content/70"
+                  >
+                    <span
+                      >{{ 'settings.panels.spendistCsv.status.progress' |
+                      transloco }}</span
+                    >
+                    <span>{{ spendistCsv.progress() }}%</span>
+                  </div>
+                  <progress
+                    class="progress progress-primary w-full"
+                    [value]="spendistCsv.progress()"
+                    max="100"
+                  ></progress>
+                  <p class="text-sm text-base-content/70">
+                    {{ 'settings.panels.spendistCsv.status.imported' |
+                    transloco: { imported: spendistCsv.imported(), duplicates:
+                    spendistCsv.duplicatesSkipped() } }}
+                  </p>
+                </div>
+                }
               </div>
             </section>
-          }
+          </div>
+
+          <aside class="space-y-6">
+            <section
+              class="rounded-2xl border border-base-300 bg-base-100/80 p-5 shadow-sm sm:p-6"
+            >
+              <h3 class="text-lg font-semibold text-base-content">
+                {{ 'settings.panels.spendistCsv.schema.title' | transloco }}
+              </h3>
+              <p class="mt-2 text-sm text-base-content/70">
+                {{ 'settings.panels.spendistCsv.schema.description' | transloco
+                }}
+              </p>
+              <dl class="mt-4 max-h-72 space-y-3 overflow-auto text-sm">
+                @for (header of spendistCsvHeaders; track header) {
+                <div>
+                  <dt class="font-mono text-xs font-semibold text-primary">
+                    {{ header }}
+                  </dt>
+                  <dd class="text-xs text-base-content/60">
+                    {{ 'settings.panels.spendistCsv.schema.columns.' + header |
+                    transloco }}
+                  </dd>
+                </div>
+                }
+              </dl>
+            </section>
+
+            <section
+              class="rounded-2xl border border-base-300 bg-base-100/80 p-5 shadow-sm sm:p-6"
+            >
+              @if (spendistCsv.summary(); as summary) {
+              <div class="space-y-4">
+                <header>
+                  <p
+                    class="text-xs uppercase tracking-wide text-base-content/60"
+                  >
+                    {{ 'settings.panels.spendistCsv.summary.label' | transloco
+                    }}
+                  </p>
+                  <h3 class="text-xl font-semibold">{{ summary.fileName }}</h3>
+                </header>
+
+                <dl class="grid gap-3 text-sm">
+                  <div class="flex justify-between gap-4">
+                    <dt class="text-base-content/60">
+                      {{ 'settings.panels.spendistCsv.summary.totalRows' |
+                      transloco }}
+                    </dt>
+                    <dd class="font-semibold">{{ summary.totalDataRows }}</dd>
+                  </div>
+                  <div class="flex justify-between gap-4">
+                    <dt class="text-base-content/60">
+                      {{ 'settings.panels.spendistCsv.summary.parsed' |
+                      transloco }}
+                    </dt>
+                    <dd class="font-semibold">
+                      {{ summary.parsedTransactions }}
+                    </dd>
+                  </div>
+                  <div class="flex justify-between gap-4">
+                    <dt class="text-base-content/60">
+                      {{ 'settings.panels.spendistCsv.summary.duplicates' |
+                      transloco }}
+                    </dt>
+                    <dd class="font-semibold">{{ summary.duplicates }}</dd>
+                  </div>
+                  <div class="flex justify-between gap-4">
+                    <dt class="text-base-content/60">
+                      {{ 'settings.panels.spendistCsv.summary.importable' |
+                      transloco }}
+                    </dt>
+                    <dd class="font-semibold">
+                      {{ summary.importableTransactions }}
+                    </dd>
+                  </div>
+                </dl>
+
+                <div class="grid gap-2 text-sm">
+                  <p>
+                    {{ 'settings.panels.spendistCsv.summary.newGroups' |
+                    transloco: { total: summary.newGroups.length } }}
+                  </p>
+                  <p>
+                    {{ 'settings.panels.spendistCsv.summary.newCategories' |
+                    transloco: { total: summary.newCategories.length } }}
+                  </p>
+                  <p>
+                    {{ 'settings.panels.spendistCsv.summary.newWallets' |
+                    transloco: { total: summary.newWallets.length } }}
+                  </p>
+                  <p>
+                    {{ 'settings.panels.spendistCsv.summary.newTags' |
+                    transloco: { total: summary.newTags.length } }}
+                  </p>
+                </div>
+
+                @if (summary.issues.length > 0) {
+                <div
+                  class="rounded-xl border border-warning/20 bg-warning/10 p-3 text-sm text-warning"
+                >
+                  <p class="font-semibold">
+                    {{ 'settings.panels.spendistCsv.summary.issues' | transloco:
+                    { total: summary.issues.length } }}
+                  </p>
+                  <ul class="mt-2 max-h-40 space-y-1 overflow-auto">
+                    @for (issue of summary.issues.slice(0, 8); track
+                    issue.rowNumber) {
+                    <li>
+                      {{ 'settings.panels.spendistCsv.summary.issueRow' |
+                      transloco: { row: issue.rowNumber, message: issue.message
+                      } }}
+                    </li>
+                    }
+                  </ul>
+                </div>
+                }
+              </div>
+              } @else {
+              <div class="space-y-3 text-sm text-base-content/70">
+                <h3 class="text-base font-semibold text-base-content">
+                  {{ 'settings.panels.spendistCsv.empty.title' | transloco }}
+                </h3>
+                <p>
+                  {{ 'settings.panels.spendistCsv.empty.body' | transloco }}
+                </p>
+              </div>
+              }
+            </section>
+          </aside>
         </div>
-      </div>
-    </section>
-  
+      </section>
+      } @else {
+      <section class="space-y-6">
+        <header class="space-y-2">
+          <h2 class="text-2xl font-semibold">
+            {{ 'settings.panels.kontomierzImport.header' | transloco }}
+          </h2>
+          <p class="max-w-2xl text-base-content/70">
+            {{ 'settings.panels.kontomierzImport.text' | transloco }}
+          </p>
+        </header>
+
+        @if (kontomierzImport.error(); as importError) {
+        <div
+          class="alert alert-error flex-col items-start gap-2 rounded-2xl border border-error/20 bg-error/10 p-4 text-sm text-error"
+        >
+          <div class="font-semibold">
+            {{ 'settings.panels.kontomierzImport.status.errorTitle' | transloco
+            }}
+          </div>
+          <div>
+            @if (importError.startsWith('settings.')) { {{ importError |
+            transloco }} } @else { {{ importError }} }
+          </div>
+        </div>
+        }
+
+        <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)]">
+          <section
+            class="rounded-2xl border border-base-300 bg-base-100/80 p-5 shadow-sm sm:p-6"
+          >
+            <form
+              class="space-y-5"
+              [formGroup]="kontomierzImportForm"
+              (ngSubmit)="analyzeKontomierzFile()"
+            >
+              <label class="form-control">
+                <span
+                  class="label-text text-sm font-semibold text-base-content"
+                >
+                  {{ 'settings.panels.kontomierzImport.form.walletLabel' |
+                  transloco }}
+                </span>
+                <select
+                  class="select select-bordered"
+                  formControlName="walletId"
+                >
+                  <option value="" disabled>
+                    {{ 'settings.panels.kontomierzImport.form.walletPlaceholder'
+                    | transloco }}
+                  </option>
+                  @for (wallet of store.wallets(); track wallet.id) {
+                  <option [value]="wallet.id">
+                    {{ wallet.name }} · {{ wallet.currency }}
+                  </option>
+                  }
+                </select>
+                @if (kontomierzImportFormControls.walletId.touched &&
+                kontomierzImportFormControls.walletId.invalid) {
+                <span class="mt-1 text-xs text-error">
+                  {{ 'settings.panels.kontomierzImport.errors.walletRequired' |
+                  transloco }}
+                </span>
+                }
+              </label>
+
+              <div
+                class="rounded-2xl border border-dashed border-base-300 bg-base-100/60 p-5"
+              >
+                <input
+                  id="kontomierz-xlsx-upload"
+                  type="file"
+                  class="sr-only"
+                  accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                  (change)="onKontomierzFileSelected($event)"
+                />
+                <div
+                  class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div>
+                    <p class="text-sm font-semibold">
+                      {{ 'settings.panels.kontomierzImport.form.fileLabel' |
+                      transloco }}
+                    </p>
+                    <p class="text-sm text-base-content/70">
+                      @if (kontomierzFileName(); as fileName) { {{ fileName }} }
+                      @else { {{
+                      'settings.panels.kontomierzImport.form.fileEmpty' |
+                      transloco }} }
+                    </p>
+                  </div>
+                  <label
+                    for="kontomierz-xlsx-upload"
+                    class="btn btn-outline btn-sm"
+                    [class.btn-disabled]="kontomierzImport.analyzing() || kontomierzImport.importing()"
+                    [attr.aria-disabled]="kontomierzImport.analyzing() || kontomierzImport.importing()"
+                  >
+                    {{ 'settings.panels.kontomierzImport.form.chooseFile' |
+                    transloco }}
+                  </label>
+                </div>
+              </div>
+
+              <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                <button
+                  type="submit"
+                  class="btn btn-primary w-full sm:w-auto"
+                  [disabled]="!selectedKontomierzFile() || kontomierzImport.analyzing() || kontomierzImport.importing()"
+                >
+                  @if (kontomierzImport.analyzing()) {
+                  <span class="loading loading-spinner loading-sm"></span>
+                  } {{ 'settings.panels.kontomierzImport.actions.analyze' |
+                  transloco }}
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-outline w-full sm:w-auto"
+                  [disabled]="!kontomierzImport.canImport()"
+                  (click)="importKontomierzFile()"
+                >
+                  @if (kontomierzImport.importing()) {
+                  <span class="loading loading-spinner loading-sm"></span>
+                  } {{ 'settings.panels.kontomierzImport.actions.import' |
+                  transloco }}
+                </button>
+              </div>
+            </form>
+
+            @if (kontomierzImport.importing() || kontomierzImport.progress() >
+            0) {
+            <div class="mt-6 space-y-2">
+              <div class="flex justify-between text-sm text-base-content/70">
+                <span
+                  >{{ 'settings.panels.kontomierzImport.status.progress' |
+                  transloco }}</span
+                >
+                <span>{{ kontomierzImport.progress() }}%</span>
+              </div>
+              <progress
+                class="progress progress-primary w-full"
+                [value]="kontomierzImport.progress()"
+                max="100"
+              ></progress>
+              <p class="text-sm text-base-content/70">
+                {{ 'settings.panels.kontomierzImport.status.imported' |
+                transloco: { imported: kontomierzImport.imported(), duplicates:
+                kontomierzImport.duplicatesSkipped() } }}
+              </p>
+            </div>
+            }
+          </section>
+
+          <aside
+            class="rounded-2xl border border-base-300 bg-base-100/80 p-5 shadow-sm sm:p-6 lg:sticky lg:top-24 lg:self-start"
+          >
+            @if (kontomierzImport.summary(); as summary) {
+            <div class="space-y-4">
+              <header>
+                <p class="text-xs uppercase tracking-wide text-base-content/60">
+                  {{ 'settings.panels.kontomierzImport.summary.label' |
+                  transloco }}
+                </p>
+                <h3 class="text-xl font-semibold">{{ summary.fileName }}</h3>
+              </header>
+
+              <dl class="grid gap-3 text-sm">
+                <div class="flex justify-between gap-4">
+                  <dt class="text-base-content/60">
+                    {{ 'settings.panels.kontomierzImport.summary.totalRows' |
+                    transloco }}
+                  </dt>
+                  <dd class="font-semibold">{{ summary.totalDataRows }}</dd>
+                </div>
+                <div class="flex justify-between gap-4">
+                  <dt class="text-base-content/60">
+                    {{ 'settings.panels.kontomierzImport.summary.parsed' |
+                    transloco }}
+                  </dt>
+                  <dd class="font-semibold">
+                    {{ summary.parsedTransactions }}
+                  </dd>
+                </div>
+                <div class="flex justify-between gap-4">
+                  <dt class="text-base-content/60">
+                    {{ 'settings.panels.kontomierzImport.summary.splitParents' |
+                    transloco }}
+                  </dt>
+                  <dd class="font-semibold">
+                    {{ summary.skippedSplitParents }}
+                  </dd>
+                </div>
+                <div class="flex justify-between gap-4">
+                  <dt class="text-base-content/60">
+                    {{ 'settings.panels.kontomierzImport.summary.duplicates' |
+                    transloco }}
+                  </dt>
+                  <dd class="font-semibold">{{ summary.duplicates }}</dd>
+                </div>
+                <div class="flex justify-between gap-4">
+                  <dt class="text-base-content/60">
+                    {{ 'settings.panels.kontomierzImport.summary.importable' |
+                    transloco }}
+                  </dt>
+                  <dd class="font-semibold">
+                    {{ summary.importableTransactions }}
+                  </dd>
+                </div>
+              </dl>
+
+              <div class="grid gap-2 text-sm">
+                <p>
+                  {{ 'settings.panels.kontomierzImport.summary.newGroups' |
+                  transloco: { total: summary.newGroups.length } }}
+                </p>
+                <p>
+                  {{ 'settings.panels.kontomierzImport.summary.newCategories' |
+                  transloco: { total: summary.newCategories.length } }}
+                </p>
+                <p>
+                  {{ 'settings.panels.kontomierzImport.summary.newTags' |
+                  transloco: { total: summary.newTags.length } }}
+                </p>
+              </div>
+
+              @if (summary.issues.length > 0) {
+              <div
+                class="rounded-xl border border-warning/20 bg-warning/10 p-3 text-sm text-warning"
+              >
+                <p class="font-semibold">
+                  {{ 'settings.panels.kontomierzImport.summary.issues' |
+                  transloco: { total: summary.issues.length } }}
+                </p>
+                <ul class="mt-2 max-h-40 space-y-1 overflow-auto">
+                  @for (issue of summary.issues.slice(0, 8); track
+                  issue.rowNumber) {
+                  <li>
+                    {{ 'settings.panels.kontomierzImport.summary.issueRow' |
+                    transloco: { row: issue.rowNumber, message: issue.message }
+                    }}
+                  </li>
+                  }
+                </ul>
+              </div>
+              }
+            </div>
+            } @else {
+            <div class="space-y-3 text-sm text-base-content/70">
+              <h3 class="text-base font-semibold text-base-content">
+                {{ 'settings.panels.kontomierzImport.empty.title' | transloco }}
+              </h3>
+              <p>
+                {{ 'settings.panels.kontomierzImport.empty.body' | transloco }}
+              </p>
+            </div>
+            }
+          </aside>
+        </div>
+      </section>
+      }
+    </div>
+  </div>
+</section>

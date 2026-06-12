@@ -125,6 +125,7 @@ jobs:
             --arg supabaseUrl "$supabase_url" \
             --arg publishableKey "$publishable_key" \
             --arg functionsUrl "$functions_url" \
+            --arg buildCommit "$GITHUB_SHA" \
             '{
               SUPABASE_URL: $supabaseUrl,
               SUPABASE_ANON_KEY: $publishableKey,
@@ -132,7 +133,8 @@ jobs:
               NG_APP_SUPABASE_URL: $supabaseUrl,
               NG_APP_SUPABASE_PUBLISHABLE_KEY: $publishableKey,
               NG_APP_SUPABASE_ANON_KEY: $publishableKey,
-              NG_APP_SUPABASE_FUNCTIONS_URL: $functionsUrl
+              NG_APP_SUPABASE_FUNCTIONS_URL: $functionsUrl,
+              NG_APP_BUILD_COMMIT: $buildCommit
             }')"
 
           {
@@ -172,6 +174,7 @@ jobs:
             --arg supabaseUrl "$NG_APP_SUPABASE_URL" \
             --arg publishableKey "$publishable_key" \
             --arg functionsUrl "$functions_url" \
+            --arg buildCommit "$GITHUB_SHA" \
             '{
               SUPABASE_URL: $supabaseUrl,
               SUPABASE_ANON_KEY: $publishableKey,
@@ -179,7 +182,8 @@ jobs:
               NG_APP_SUPABASE_URL: $supabaseUrl,
               NG_APP_SUPABASE_PUBLISHABLE_KEY: $publishableKey,
               NG_APP_SUPABASE_ANON_KEY: $publishableKey,
-              NG_APP_SUPABASE_FUNCTIONS_URL: $functionsUrl
+              NG_APP_SUPABASE_FUNCTIONS_URL: $functionsUrl,
+              NG_APP_BUILD_COMMIT: $buildCommit
             }' > "$secrets_file"
 
           npx --yes wrangler@4 secret bulk "$secrets_file" --config wrangler.toml

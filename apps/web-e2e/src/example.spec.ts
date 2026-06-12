@@ -48,6 +48,11 @@ test('opens unauthenticated login and signup forms', async ({ page }) => {
     page.getByRole('heading', { name: 'Create your account' })
   ).toBeVisible();
   await expect(page.getByLabel('Name')).toBeVisible();
+  await expect(
+    page.getByText(
+      'Use at least 8 characters, including an uppercase letter, a lowercase letter, and a number.'
+    )
+  ).toBeVisible();
   await expect(page.getByLabel('First wallet currency')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Sign up' })).toBeVisible();
 });
