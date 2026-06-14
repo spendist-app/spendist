@@ -1,147 +1,152 @@
-    <section class="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
-      <div class="w-full max-w-md space-y-8 rounded-2xl bg-base-100/70 p-8 shadow-xl backdrop-blur">
-        <header class="space-y-2 text-center">
-          <h1 class="text-3xl font-semibold leading-tight">
-            {{ 'auth.signup.title' | transloco }}
-          </h1>
-          <p class="text-base-content/70">
-            {{ 'auth.signup.subtitle' | transloco }}
-            <a class="link link-primary" routerLink="/login">
-              {{ 'auth.signup.loginLink' | transloco }}
-            </a>
-          </p>
-        </header>
+<section
+  class="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12"
+>
+  <div
+    class="w-full max-w-md space-y-8 rounded-2xl bg-base-100/70 p-8 shadow-xl backdrop-blur"
+  >
+    <header class="space-y-2 text-center">
+      <h1 class="text-3xl font-semibold leading-tight">
+        {{ 'auth.signup.title' | transloco }}
+      </h1>
+      <p class="text-base-content/70">
+        {{ 'auth.signup.subtitle' | transloco }}
+        <a class="link link-primary" routerLink="/login">
+          {{ 'auth.signup.loginLink' | transloco }}
+        </a>
+      </p>
+    </header>
 
-        @if (errorMessage()) {
-          <p class="alert alert-error text-sm" role="alert" aria-live="assertive">
-            {{ errorMessage() }}
-          </p>
-        }
+    @if (errorMessage()) {
+    <p class="alert alert-error text-sm" role="alert" aria-live="assertive">
+      {{ errorMessage() }}
+    </p>
+    }
 
-        <form class="space-y-6" [formGroup]="form" (ngSubmit)="register()">
-          <fieldset class="grid gap-4">
-            <div class="form-control">
-              <label class="label" for="name">
-                <span class="label-text text-sm font-medium">
-                  {{ 'auth.signup.nameLabel' | transloco }}
-                </span>
-              </label>
-              <input
-                id="name"
-                type="text"
-                formControlName="name"
-                class="input input-bordered w-full"
-                autocomplete="name"
-                required
-              />
-              @if (controls.name.touched && controls.name.invalid) {
-                <span class="label-text-alt text-error">
-                  {{ 'auth.signup.nameError' | transloco }}
-                </span>
-              }
-            </div>
+    <form class="space-y-6" [formGroup]="form" (ngSubmit)="register()">
+      <fieldset class="grid gap-4">
+        <div class="form-control">
+          <label class="label" for="name">
+            <span class="label-text text-sm font-medium">
+              {{ 'auth.signup.nameLabel' | transloco }}
+            </span>
+          </label>
+          <input
+            id="name"
+            type="text"
+            formControlName="name"
+            class="input input-bordered w-full"
+            autocomplete="name"
+            required
+          />
+          @if (controls.name.touched && controls.name.invalid) {
+          <span class="label-text-alt text-error">
+            {{ 'auth.signup.nameError' | transloco }}
+          </span>
+          }
+        </div>
 
-            <div class="form-control">
-              <label class="label" for="email">
-                <span class="label-text text-sm font-medium">
-                  {{ 'auth.signup.emailLabel' | transloco }}
-                </span>
-              </label>
-              <input
-                id="email"
-                type="email"
-                formControlName="email"
-                class="input input-bordered w-full"
-                autocomplete="email"
-                required
-              />
-              @if (controls.email.touched && controls.email.invalid) {
-                <span class="label-text-alt text-error">
-                  {{ 'auth.signup.emailError' | transloco }}
-                </span>
-              }
-            </div>
+        <div class="form-control">
+          <label class="label" for="email">
+            <span class="label-text text-sm font-medium">
+              {{ 'auth.signup.emailLabel' | transloco }}
+            </span>
+          </label>
+          <input
+            id="email"
+            type="email"
+            formControlName="email"
+            class="input input-bordered w-full"
+            autocomplete="email"
+            required
+          />
+          @if (controls.email.touched && controls.email.invalid) {
+          <span class="label-text-alt text-error">
+            {{ 'auth.signup.emailError' | transloco }}
+          </span>
+          }
+        </div>
 
-            <div class="form-control">
-              <label class="label" for="password">
-                <span class="label-text text-sm font-medium">
-                  {{ 'auth.signup.passwordLabel' | transloco }}
-                </span>
-              </label>
-              <input
-                id="password"
-                type="password"
-                formControlName="password"
-                class="input input-bordered w-full"
-                autocomplete="new-password"
-                required
-              />
-              @if (controls.password.touched && controls.password.invalid) {
-                <span class="label-text-alt text-error">
-                  {{ 'auth.signup.passwordHelper' | transloco }}
-                </span>
-              }
-            </div>
-
-            <div class="form-control">
-              <label class="label" for="confirmPassword">
-                <span class="label-text text-sm font-medium">
-                  {{ 'auth.signup.passwordConfirmLabel' | transloco }}
-                </span>
-              </label>
-              <input
-                id="confirmPassword"
-                type="password"
-                formControlName="confirmPassword"
-                class="input input-bordered w-full"
-                autocomplete="new-password"
-                required
-              />
-              @if (passwordsDoNotMatch()) {
-                <span class="label-text-alt text-error">
-                  {{ 'auth.signup.passwordConfirmError' | transloco }}
-                </span>
-              }
-            </div>
-
-            <div class="form-control">
-              <label class="label" for="defaultCurrencyId">
-                <span class="label-text text-sm font-medium">
-                  {{ 'auth.signup.currencyLabel' | transloco }}
-                </span>
-              </label>
-              <select
-                id="defaultCurrencyId"
-                formControlName="defaultCurrencyId"
-                class="select select-bordered w-full"
-                required
-              >
-                @for (currency of currencies; track currency.id) {
-                  <option [ngValue]="currency.id">{{ currency.symbol }}</option>
-                }
-              </select>
-              <span class="label-text-alt text-base-content/60">
-                {{ 'auth.signup.currencyHelper' | transloco }}
-              </span>
-            </div>
-          </fieldset>
-
-          <button
-            class="btn btn-primary w-full"
-            type="submit"
-            [disabled]="submitting()"
+        <div class="form-control">
+          <label class="label" for="password">
+            <span class="label-text text-sm font-medium">
+              {{ 'auth.signup.passwordLabel' | transloco }}
+            </span>
+          </label>
+          <input
+            id="password"
+            type="password"
+            formControlName="password"
+            class="input input-bordered w-full"
+            autocomplete="new-password"
+            aria-describedby="signup-password-help"
+            required
+          />
+          <span
+            id="signup-password-help"
+            class="label-text-alt"
+            [class.text-error]="controls.password.touched && controls.password.invalid"
           >
-            @if (submitting()) {
-              <span class="loading loading-spinner loading-sm"></span>
-              {{ 'auth.signup.submitBusy' | transloco }}
-            } @else {
-              {{ 'auth.signup.submitIdle' | transloco }}
-            }
-          </button>
-        </form>
+            {{ 'auth.signup.passwordHelper' | transloco }}
+          </span>
+        </div>
 
-        <p class="text-xs text-base-content/60 text-center">
-          {{ 'auth.signup.tosNotice' | transloco }}
-        </p>
-      </div>
-    </section>
+        <div class="form-control">
+          <label class="label" for="confirmPassword">
+            <span class="label-text text-sm font-medium">
+              {{ 'auth.signup.passwordConfirmLabel' | transloco }}
+            </span>
+          </label>
+          <input
+            id="confirmPassword"
+            type="password"
+            formControlName="confirmPassword"
+            class="input input-bordered w-full"
+            autocomplete="new-password"
+            required
+          />
+          @if (passwordsDoNotMatch()) {
+          <span class="label-text-alt text-error">
+            {{ 'auth.signup.passwordConfirmError' | transloco }}
+          </span>
+          }
+        </div>
+
+        <div class="form-control">
+          <label class="label" for="defaultCurrencyId">
+            <span class="label-text text-sm font-medium">
+              {{ 'auth.signup.currencyLabel' | transloco }}
+            </span>
+          </label>
+          <select
+            id="defaultCurrencyId"
+            formControlName="defaultCurrencyId"
+            class="select select-bordered w-full"
+            required
+          >
+            @for (currency of currencies; track currency.id) {
+            <option [ngValue]="currency.id">{{ currency.symbol }}</option>
+            }
+          </select>
+          <span class="label-text-alt text-base-content/60">
+            {{ 'auth.signup.currencyHelper' | transloco }}
+          </span>
+        </div>
+      </fieldset>
+
+      <button
+        class="btn btn-primary w-full"
+        type="submit"
+        [disabled]="submitting()"
+      >
+        @if (submitting()) {
+        <span class="loading loading-spinner loading-sm"></span>
+        {{ 'auth.signup.submitBusy' | transloco }} } @else { {{
+        'auth.signup.submitIdle' | transloco }} }
+      </button>
+    </form>
+
+    <p class="text-xs text-base-content/60 text-center">
+      {{ 'auth.signup.tosNotice' | transloco }}
+    </p>
+  </div>
+</section>

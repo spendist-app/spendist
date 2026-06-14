@@ -38,7 +38,8 @@ const en = {
       clear: 'Clear',
       searchPlaceholder: 'Search icons',
       noResults: 'No icons match “{{query}}”.',
-      customInfo: 'Icon “{{icon}}” isn’t part of the Heroicons set, but it will be kept as-is.',
+      customInfo:
+        'Icon “{{icon}}” isn’t part of the Heroicons set, but it will be kept as-is.',
     },
   },
   navbar: {
@@ -59,7 +60,8 @@ const en = {
   },
   landing: {
     title: 'Welcome to Spendist',
-    subtitle: 'Sign in to start tracking your spending, or create an account to get started.',
+    subtitle:
+      'Sign in to start tracking your spending, or create an account to get started.',
     loginCta: 'Log in',
     signupCta: 'Sign up',
     hero: {
@@ -120,19 +122,23 @@ const en = {
         'No ads, no upsells, no data selling. Just a clean, powerful tool designed around your needs.',
       privacy: {
         title: 'Privacy first',
-        description: 'Your financial data stays yours. End-to-end encryption, no third-party analytics.',
+        description:
+          'Your financial data stays yours. End-to-end encryption, no third-party analytics.',
       },
       speed: {
         title: 'Lightning fast',
-        description: 'Built on modern web technologies with server-side rendering for instant page loads.',
+        description:
+          'Built on modern web technologies with server-side rendering for instant page loads.',
       },
       i18n: {
         title: 'Multilingual',
-        description: 'Full support for English and Polish, with more languages on the way.',
+        description:
+          'Full support for English and Polish, with more languages on the way.',
       },
       themes: {
         title: 'Dark & light themes',
-        description: 'Easy on the eyes, day or night. Switch themes instantly from any page.',
+        description:
+          'Easy on the eyes, day or night. Switch themes instantly from any page.',
       },
     },
     cta: {
@@ -171,14 +177,17 @@ const en = {
       emailLabel: 'Email',
       emailError: 'Enter a valid email address.',
       passwordLabel: 'Password',
-      passwordHelper: 'Use at least 8 characters including letters and numbers.',
+      passwordHelper:
+        'Use at least 8 characters, including an uppercase letter, a lowercase letter, and a number.',
       passwordConfirmLabel: 'Confirm password',
       passwordConfirmError: 'Passwords must match.',
       currencyLabel: 'First wallet currency',
-      currencyHelper: 'We preselect this from your browser language or region, but you can change it.',
+      currencyHelper:
+        'We preselect this from your browser language or region, but you can change it.',
       submitIdle: 'Sign up',
       submitBusy: 'Creating account...',
-      tosNotice: 'By continuing you agree to our future Terms of Service and Privacy Policy.',
+      tosNotice:
+        'By continuing you agree to our future Terms of Service and Privacy Policy.',
     },
   },
   settings: {
@@ -196,10 +205,8 @@ const en = {
         label: 'Profile',
         description: 'Identity, preferences, security',
         header: 'Profile overview',
-        text:
-          'Keep your personal details current so insights, notifications, and preferences stay in sync.',
-        note:
-          'Advanced profile preferences (notifications, integrations) will live here soon.',
+        text: 'Keep your personal details current so insights, notifications, and preferences stay in sync.',
+        note: 'Advanced profile preferences (notifications, integrations) will live here soon.',
         fallbackName: 'Your profile',
         notSet: 'Not set',
         language: 'Language',
@@ -222,8 +229,7 @@ const en = {
         label: 'Wallets',
         description: 'Accounts, currencies, defaults',
         header: 'Wallets & balances',
-        text:
-          'Create separate wallets for your accounts, assign currencies, and decide which one should be the default choice in Spendist.',
+        text: 'Create separate wallets for your accounts, assign currencies, and decide which one should be the default choice in Spendist.',
         addWallet: 'Add wallet',
         status: {
           errorTitle: 'We couldn’t finish that wallet action.',
@@ -231,19 +237,22 @@ const en = {
         list: {
           title: 'Wallets',
           emptyTitle: 'No wallets yet',
-          emptyBody: 'Create a wallet to start tracking balances and assign it a currency.',
+          emptyBody:
+            'Create a wallet to start tracking balances and assign it a currency.',
           defaultBadge: 'Default',
           makeDefault: 'Make default',
         },
         form: {
           createTitle: 'Create wallet',
           editTitle: 'Edit wallet',
-          description: 'Name the wallet, select a currency, and decide whether it should be the default option.',
+          description:
+            'Name the wallet, select a currency, and decide whether it should be the default option.',
           nameLabel: 'Wallet name',
           namePlaceholder: 'e.g. Daily expenses',
           currencyLabel: 'Currency',
           defaultLabel: 'Set as default wallet',
-          defaultHelp: 'The default wallet is preselected whenever you create a new transaction.',
+          defaultHelp:
+            'The default wallet is preselected whenever you create a new transaction.',
           submitCreate: 'Save wallet',
           submitUpdate: 'Update wallet',
           cancelEdit: 'Cancel edit',
@@ -259,8 +268,7 @@ const en = {
         label: 'Categories',
         description: 'Labels, groups, automation',
         header: 'Categories & groups',
-        text:
-          'Organize spending labels and cluster them into grouped themes. Use search or filters to jump to what matters.',
+        text: 'Organize spending labels and cluster them into grouped themes. Use search or filters to jump to what matters.',
         addCategory: 'Add category',
         addGroup: 'New category group',
         tabs: {
@@ -273,7 +281,8 @@ const en = {
           all: 'All groups',
           count: '({{total}} categories)',
         },
-        emptyGroups: 'Create a category group before adding categories. Groups keep your spending organized.',
+        emptyGroups:
+          'Create a category group before adding categories. Groups keep your spending organized.',
         noMatches:
           'No categories match your filters. Try a different group or clear the search.',
         list: {
@@ -285,7 +294,8 @@ const en = {
         editor: {
           createTitle: 'Create category',
           editTitle: 'Edit category',
-          description: 'Define the label, choose a color, and assign it to a group you already use.',
+          description:
+            'Define the label, choose a color, and assign it to a group you already use.',
           nameLabel: 'Category name',
           namePlaceholder: 'e.g. Groceries',
           nameRequired: 'Name is required.',
@@ -294,7 +304,8 @@ const en = {
           groupRequired: 'Choose where this category belongs.',
           parentLabel: 'Parent category',
           parentNone: 'No parent category',
-          parentHelp: 'Use up to three levels, for example Food / Groceries / Biedronka.',
+          parentHelp:
+            'Use up to three levels, for example Food / Groceries / Biedronka.',
           colorLabel: 'Accent color',
           colorPlaceholder: '#0EA5A5',
           iconLabel: 'Heroicon',
@@ -320,45 +331,51 @@ const en = {
         groups: {
           formTitleCreate: 'Create category group',
           formTitleEdit: 'Edit category group',
-          description: 'Group related categories to unlock richer insights and quicker filtering.',
+          description:
+            'Group related categories to unlock richer insights and quicker filtering.',
           nameLabel: 'Group name',
           namePlaceholder: 'e.g. Essentials',
           nameError: 'Name cannot be empty.',
           colorLabel: 'Accent color',
           pill: {
-            description: 'Use this group to cluster related categories and simplify your budgeting review.',
+            description:
+              'Use this group to cluster related categories and simplify your budgeting review.',
           },
           emptyCtaTitle: 'Need another theme?',
           emptyCtaBody:
             'Create a group to cluster related categories. You can move categories any time.',
         },
         modals: {
-          confirmCategoryDelete: 'Delete this category? This action cannot be undone.',
-          confirmGroupDelete: 'Delete this category group? Categories assigned to it must be moved first.',
+          confirmCategoryDelete:
+            'Delete this category? This action cannot be undone.',
+          confirmGroupDelete:
+            'Delete this category group? Categories assigned to it must be moved first.',
         },
       },
       spendistCsv: {
         label: 'Export/import Spendist',
         description: 'CSV, filters, data transfer',
         header: 'Export/import from Spendist',
-        text:
-          'Export transactions to CSV or import a file generated by Spendist. This import is separate from Kontomierz.',
+        text: 'Export transactions to CSV or import a file generated by Spendist. This import is separate from Kontomierz.',
         export: {
           title: 'Export transactions',
-          description: 'Download all transactions matching the filters. Parent categories include their subcategories.',
+          description:
+            'Download all transactions matching the filters. Parent categories include their subcategories.',
           monthRange: 'Specific month',
           allRange: 'All time',
           monthLabel: 'Export month',
           categoriesLabel: 'Categories',
           clearCategories: 'Clear',
           noCategories: 'No categories available for filtering.',
-          categoryHelp: 'When no category is selected, the export includes all transactions.',
+          categoryHelp:
+            'When no category is selected, the export includes all transactions.',
           action: 'Export CSV',
           exported: 'Exported {{total}} transactions.',
         },
         import: {
           title: 'Import transactions',
-          description: 'Choose a CSV exported from Spendist. Analysis shows duplicates, new reference data, and issues before saving.',
+          description:
+            'Choose a CSV exported from Spendist. Analysis shows duplicates, new reference data, and issues before saving.',
           fileLabel: 'CSV file',
           fileEmpty: 'No file selected.',
           chooseFile: 'Choose file',
@@ -367,7 +384,8 @@ const en = {
         },
         schema: {
           title: 'Accepted CSV schema',
-          description: 'The exported file is the import template. Required columns are described below.',
+          description:
+            'The exported file is the import template. Required columns are described below.',
           columns: {
             id: 'Optional on import; reference to the source transaction only.',
             occurred_at: 'Required; ISO date, e.g. 2026-02-01T00:00:00.000Z.',
@@ -375,15 +393,19 @@ const en = {
             direction: 'Required; expense or income.',
             amount: 'Required; transaction amount.',
             currency: 'Required; ISO currency code, e.g. PLN.',
-            amount_in_default: 'Optional; default-currency amount, falls back to amount when empty.',
+            amount_in_default:
+              'Optional; default-currency amount, falls back to amount when empty.',
             category_group: 'Required; missing groups are created.',
             category_path: 'Required; slash-separated path, up to 3 levels.',
-            category: 'Optional; leaf category label, ignored when category_path exists.',
+            category:
+              'Optional; leaf category label, ignored when category_path exists.',
             wallet: 'Required; missing wallets are created.',
-            wallet_currency: 'Required when the wallet does not exist; ISO currency code.',
+            wallet_currency:
+              'Required when the wallet does not exist; ISO currency code.',
             tags: 'Optional; semicolon-separated tag names.',
             is_automatic: 'Optional; true/false, defaults to false.',
-            recurring_scheduled_for: 'Optional; used only when is_automatic=true.',
+            recurring_scheduled_for:
+              'Optional; used only when is_automatic=true.',
             import_source: 'Optional; preserved in import metadata.',
             imported_at: 'Optional; reference to a previous import only.',
           },
@@ -391,7 +413,8 @@ const en = {
         status: {
           errorTitle: 'The Spendist CSV file could not be processed.',
           progress: 'Import progress',
-          imported: 'Imported: {{imported}}. Duplicates skipped during import: {{duplicates}}.',
+          imported:
+            'Imported: {{imported}}. Duplicates skipped during import: {{duplicates}}.',
         },
         summary: {
           label: 'Import summary',
@@ -408,8 +431,7 @@ const en = {
         },
         empty: {
           title: 'Check a file first',
-          body:
-            'After analysis you will see valid transactions, duplicates, and missing reference data before importing.',
+          body: 'After analysis you will see valid transactions, duplicates, and missing reference data before importing.',
         },
         errors: {
           authRequired: 'Sign in again to export or import data.',
@@ -424,8 +446,7 @@ const en = {
         label: 'Kontomierz import',
         description: 'XLSX files, categories, tags',
         header: 'Import data from Kontomierz',
-        text:
-          'Load a Kontomierz XLSX export. The file is parsed in your browser, and only transactions, categories, and tags are saved to the database.',
+        text: 'Load a Kontomierz XLSX export. The file is parsed in your browser, and only transactions, categories, and tags are saved to the database.',
         form: {
           walletLabel: 'Target wallet',
           walletPlaceholder: 'Select a wallet',
@@ -440,7 +461,8 @@ const en = {
         status: {
           errorTitle: 'The import could not be completed.',
           progress: 'Import progress',
-          imported: 'Imported: {{imported}}. Duplicates skipped during import: {{duplicates}}.',
+          imported:
+            'Imported: {{imported}}. Duplicates skipped during import: {{duplicates}}.',
         },
         summary: {
           label: 'Import summary',
@@ -457,8 +479,7 @@ const en = {
         },
         empty: {
           title: 'Check a file first',
-          body:
-            'After analysis you will see transaction, duplicate, new category, and tag counts before the import writes anything.',
+          body: 'After analysis you will see transaction, duplicate, new category, and tag counts before the import writes anything.',
         },
         errors: {
           authRequired: 'Sign in again to import data.',
@@ -484,10 +505,12 @@ const en = {
     },
     items: {
       recurring_transaction_created: {
-        title: 'Recurring transaction created: {{description}} ({{amount}} {{currency}})',
+        title:
+          'Recurring transaction created: {{description}} ({{amount}} {{currency}})',
       },
       recurring_transaction_ended: {
-        title: 'Recurring payment ended: {{description}} (ended on {{endDate}})',
+        title:
+          'Recurring payment ended: {{description}} (ended on {{endDate}})',
       },
       exchange_rates_sync_failed: {
         title: 'Exchange rates sync failed: {{error}}',
@@ -502,7 +525,8 @@ const en = {
   dashboard: {
     badge: 'Dashboard',
     title: 'Your personalised command centre',
-    description: 'Track balances, cash flow, and upcoming activity. This view will evolve as Spendist grows.',
+    description:
+      'Track balances, cash flow, and upcoming activity. This view will evolve as Spendist grows.',
     placeholder: {
       title: 'Dashboard widgets are on the way',
       body: 'Stay tuned for insights, summaries, and controls tailored to your spending habits.',
@@ -510,8 +534,10 @@ const en = {
     structure: {
       badge: 'Cash flow',
       title: 'Income vs. expenses',
-      subtitle: 'Raw sums from up to the last 12 calendar months of posted transactions.',
-      empty: 'No transactions recorded yet. Add your first income or expense to populate this list.',
+      subtitle:
+        'Raw sums from up to the last 12 calendar months of posted transactions.',
+      empty:
+        'No transactions recorded yet. Add your first income or expense to populate this list.',
       noWallet: 'Select a wallet to see its historical structure.',
       errorTitle: 'Cash flow data could not be loaded',
       retry: 'Try again',
@@ -523,7 +549,8 @@ const en = {
     categoryWidget: {
       badge: 'Categories',
       title: 'Monthly category structure',
-      subtitle: 'Totals per category for the selected month. Visualisations will land soon.',
+      subtitle:
+        'Totals per category for the selected month. Visualisations will land soon.',
       selectLabel: 'Select month',
       noMonths: 'No months available yet',
       errorTitle: 'Category data could not be loaded',
@@ -547,7 +574,8 @@ const en = {
     recurringWidget: {
       badge: 'Recurring',
       title: 'Recurring payment transactions',
-      subtitle: 'Count and totals for transactions created by recurring payments in the selected month.',
+      subtitle:
+        'Count and totals for transactions created by recurring payments in the selected month.',
       selectLabel: 'Select month',
       noMonths: 'No months with recurring transactions',
       noWalletSelected: 'Select a wallet to load data.',
@@ -592,7 +620,8 @@ const en = {
       errorTitle: 'Transactions could not be loaded',
       retry: 'Try again',
       emptyTitle: 'No transactions match your filters',
-      emptyBody: 'Adjust the filters or add a new transaction to populate this view.',
+      emptyBody:
+        'Adjust the filters or add a new transaction to populate this view.',
       noDescription: 'Untitled transaction',
       automatic: 'Automatic',
       recurringSource: 'Recurring',
@@ -623,7 +652,8 @@ const en = {
         edit: 'Edit transaction',
       },
       subtitle: {
-        create: 'Capture the essentials now — you can enrich the record with more details later.',
+        create:
+          'Capture the essentials now — you can enrich the record with more details later.',
         edit: 'Update the details below to keep your history accurate.',
       },
       submit: {
@@ -656,7 +686,8 @@ const en = {
       },
       validation: {
         amount: 'Enter an amount greater than zero.',
-        exchangeRateUnavailable: 'Exchange rate is unavailable for this date and currency pair.',
+        exchangeRateUnavailable:
+          'Exchange rate is unavailable for this date and currency pair.',
       },
       actions: {
         clearTags: 'Clear selection',
@@ -665,26 +696,32 @@ const en = {
         hideAdvanced: 'Hide advanced fields',
       },
       help: {
-        amountExpression: 'You can enter expressions like “2.3 + 2,5 + 12,41”. Dots, commas, plus, minus, multiply, and divide are all supported.',
+        amountExpression:
+          'You can enter expressions like “2.3 + 2,5 + 12,41”. Dots, commas, plus, minus, multiply, and divide are all supported.',
         quantity: 'Use this when recording identical items bought together.',
-        advancedDisclaimer: 'Transactions default to your primary wallet — choose another if this one should be tracked elsewhere.',
+        advancedDisclaimer:
+          'Transactions default to your primary wallet — choose another if this one should be tracked elsewhere.',
       },
-      emptyTags: 'Start typing to create your first tag or choose from suggestions.',
+      emptyTags:
+        'Start typing to create your first tag or choose from suggestions.',
     },
   },
   modules: {
     recurringPayments: {
       badge: 'Modules',
       title: 'Recurring payments',
-      description: 'Keep automatic charges under control. Monitor renewals and upcoming bills in one place.',
+      description:
+        'Keep automatic charges under control. Monitor renewals and upcoming bills in one place.',
       stats: {
         monthly: {
           label: 'Generated this month',
-          caption: 'Automatic expense transactions created from recurring payments this month.',
+          caption:
+            'Automatic expense transactions created from recurring payments this month.',
         },
         yearly: {
           label: 'Generated year-to-date',
-          caption: 'Automatic expense transactions created from recurring payments since January.',
+          caption:
+            'Automatic expense transactions created from recurring payments since January.',
         },
       },
       actions: {
@@ -693,9 +730,11 @@ const en = {
       form: {
         badge: 'Add recurring',
         title: 'Schedule a recurring payment',
-        subtitle: 'Define the cadence, category, and tags. We will enqueue new entries automatically.',
+        subtitle:
+          'Define the cadence, category, and tags. We will enqueue new entries automatically.',
         editTitle: 'Update recurring payment',
-        editSubtitle: 'Adjust the cadence, amount, or tagging. Future runs will follow the latest details.',
+        editSubtitle:
+          'Adjust the cadence, amount, or tagging. Future runs will follow the latest details.',
         fields: {
           name: {
             label: 'Name',
@@ -712,7 +751,8 @@ const en = {
             label: 'Wallet',
             placeholder: 'Select wallet',
             error: 'Pick the wallet that should fund this recurring payment.',
-            currencyHint: 'Transactions will use the {{ currency }} currency from this wallet.',
+            currencyHint:
+              'Transactions will use the {{ currency }} currency from this wallet.',
           },
           amount: {
             label: 'Amount',
@@ -724,7 +764,8 @@ const en = {
           amountMode: {
             label: 'Amount mode',
             fixedHint: 'Every generated transaction will use this amount.',
-            variableHint: 'Due dates will wait in pending amounts until you enter the actual bill.',
+            variableHint:
+              'Due dates will wait in pending amounts until you enter the actual bill.',
             options: {
               fixed: 'Fixed amount',
               variable: 'Variable amount',
@@ -775,7 +816,8 @@ const en = {
           tags: {
             label: 'Tags',
             hint: 'Attach existing tags to mirror them on generated transactions.',
-            empty: 'Create your first tag in the transactions view to see suggestions here.',
+            empty:
+              'Create your first tag in the transactions view to see suggestions here.',
           },
         },
         actions: {
@@ -784,10 +826,13 @@ const en = {
           cancelEdit: 'Cancel editing',
         },
         notifications: {
-          error: 'We could not save the recurring payment. Please try again in a moment.',
+          error:
+            'We could not save the recurring payment. Please try again in a moment.',
           invalid: 'Check the highlighted fields before saving.',
-          backfillError: 'The recurring payment was saved, but historical transactions could not be generated right now.',
-          duplicateName: 'A recurring payment with this name already exists. Pick a different label or edit the existing one.',
+          backfillError:
+            'The recurring payment was saved, but historical transactions could not be generated right now.',
+          duplicateName:
+            'A recurring payment with this name already exists. Pick a different label or edit the existing one.',
         },
       },
       pending: {
@@ -799,12 +844,14 @@ const en = {
       list: {
         badge: 'Overview',
         title: 'Active recurring payments',
-        subtitle: 'Upcoming runs, assigned categories, and tag context for every automated entry.',
+        subtitle:
+          'Upcoming runs, assigned categories, and tag context for every automated entry.',
         empty: {
           title: 'No recurring payments yet',
           body: 'Add your first recurring payment to keep track of automated charges.',
           filteredTitle: 'No recurring payments in this view',
-          filteredBody: 'Change the filter to see active, stopped, or all recurring payments.',
+          filteredBody:
+            'Change the filter to see active, stopped, or all recurring payments.',
         },
         filters: {
           active: 'Active',
@@ -861,7 +908,8 @@ const en = {
           delete: 'Delete',
         },
         confirmStop: 'Stop “{{ name }}”? Future runs will be paused.',
-        confirmResume: 'Resume “{{ name }}”? Future runs will follow the schedule again.',
+        confirmResume:
+          'Resume “{{ name }}”? Future runs will follow the schedule again.',
         confirmDelete: 'Remove “{{ name }}”? Future runs will stop scheduling.',
       },
     },

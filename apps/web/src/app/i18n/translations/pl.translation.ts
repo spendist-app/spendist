@@ -38,7 +38,8 @@ const pl = {
       clear: 'Wyczyść',
       searchPlaceholder: 'Szukaj ikon',
       noResults: 'Brak ikon pasujących do „{{query}}”.',
-      customInfo: 'Ikona „{{icon}}” nie należy do zestawu Heroicons, ale pozostanie zapisana.',
+      customInfo:
+        'Ikona „{{icon}}” nie należy do zestawu Heroicons, ale pozostanie zapisana.',
     },
   },
   navbar: {
@@ -59,7 +60,8 @@ const pl = {
   },
   landing: {
     title: 'Witamy w Spendist',
-    subtitle: 'Zaloguj się, aby śledzić wydatki, albo utwórz konto i zacznij od razu.',
+    subtitle:
+      'Zaloguj się, aby śledzić wydatki, albo utwórz konto i zacznij od razu.',
     loginCta: 'Zaloguj się',
     signupCta: 'Zarejestruj się',
     hero: {
@@ -120,19 +122,23 @@ const pl = {
         'Bez reklam, bez upsellingu, bez sprzedawania danych. Czyste, potężne narzędzie zaprojektowane wokół Twoich potrzeb.',
       privacy: {
         title: 'Prywatność przede wszystkim',
-        description: 'Twoje dane finansowe są Twoje. Szyfrowanie end-to-end, brak analityki firm trzecich.',
+        description:
+          'Twoje dane finansowe są Twoje. Szyfrowanie end-to-end, brak analityki firm trzecich.',
       },
       speed: {
         title: 'Błyskawiczna szybkość',
-        description: 'Zbudowany na nowoczesnych technologiach z SSR dla natychmiastowego ładowania.',
+        description:
+          'Zbudowany na nowoczesnych technologiach z SSR dla natychmiastowego ładowania.',
       },
       i18n: {
         title: 'Wielojęzyczność',
-        description: 'Pełne wsparcie dla angielskiego i polskiego, kolejne języki w drodze.',
+        description:
+          'Pełne wsparcie dla angielskiego i polskiego, kolejne języki w drodze.',
       },
       themes: {
         title: 'Ciemny i jasny motyw',
-        description: 'Łagodny dla oczu, dniem i nocą. Przełączaj motyw natychmiast z dowolnej strony.',
+        description:
+          'Łagodny dla oczu, dniem i nocą. Przełączaj motyw natychmiast z dowolnej strony.',
       },
     },
     cta: {
@@ -171,14 +177,17 @@ const pl = {
       emailLabel: 'Adres e-mail',
       emailError: 'Podaj poprawny adres e-mail.',
       passwordLabel: 'Hasło',
-      passwordHelper: 'Użyj co najmniej 8 znaków, w tym liter i cyfr.',
+      passwordHelper:
+        'Użyj co najmniej 8 znaków, w tym wielkiej litery, małej litery i cyfry.',
       passwordConfirmLabel: 'Potwierdź hasło',
       passwordConfirmError: 'Hasła muszą być takie same.',
       currencyLabel: 'Waluta pierwszego portfela',
-      currencyHelper: 'Podpowiadamy ją na podstawie języka lub regionu przeglądarki, ale możesz ją zmienić.',
+      currencyHelper:
+        'Podpowiadamy ją na podstawie języka lub regionu przeglądarki, ale możesz ją zmienić.',
       submitIdle: 'Zarejestruj się',
       submitBusy: 'Tworzenie konta...',
-      tosNotice: 'Kontynuując, akceptujesz przyszły regulamin oraz politykę prywatności.',
+      tosNotice:
+        'Kontynuując, akceptujesz przyszły regulamin oraz politykę prywatności.',
     },
   },
   settings: {
@@ -196,10 +205,8 @@ const pl = {
         label: 'Profil',
         description: 'Tożsamość, preferencje, bezpieczeństwo',
         header: 'Przegląd profilu',
-        text:
-          'Aktualizuj swoje dane, aby analizy, powiadomienia i preferencje były zawsze na bieżąco.',
-        note:
-          'Zaawansowane ustawienia profilu (powiadomienia, integracje) pojawią się tutaj wkrótce.',
+        text: 'Aktualizuj swoje dane, aby analizy, powiadomienia i preferencje były zawsze na bieżąco.',
+        note: 'Zaawansowane ustawienia profilu (powiadomienia, integracje) pojawią się tutaj wkrótce.',
         fallbackName: 'Twój profil',
         notSet: 'Nie ustawiono',
         language: 'Język',
@@ -222,8 +229,7 @@ const pl = {
         label: 'Portfele',
         description: 'Konta, waluty, domyślne ustawienia',
         header: 'Portfele i rachunki',
-        text:
-          'Twórz portfele dla swoich kont, przypisuj im waluty i zdecyduj, który ma być domyślny w Spendist.',
+        text: 'Twórz portfele dla swoich kont, przypisuj im waluty i zdecyduj, który ma być domyślny w Spendist.',
         addWallet: 'Dodaj portfel',
         status: {
           errorTitle: 'Nie udało się wykonać operacji na portfelu.',
@@ -231,26 +237,30 @@ const pl = {
         list: {
           title: 'Lista portfeli',
           emptyTitle: 'Brak portfeli',
-          emptyBody: 'Dodaj portfel, aby śledzić środki i przypisać do niego walutę.',
+          emptyBody:
+            'Dodaj portfel, aby śledzić środki i przypisać do niego walutę.',
           defaultBadge: 'Domyślny',
           makeDefault: 'Ustaw jako domyślny',
         },
         form: {
           createTitle: 'Dodaj portfel',
           editTitle: 'Edytuj portfel',
-          description: 'Nazwij portfel, wybierz walutę i zdecyduj, czy ma być domyślnym wyborem.',
+          description:
+            'Nazwij portfel, wybierz walutę i zdecyduj, czy ma być domyślnym wyborem.',
           nameLabel: 'Nazwa portfela',
           namePlaceholder: 'np. Wydatki codzienne',
           currencyLabel: 'Waluta',
           defaultLabel: 'Ustaw jako portfel domyślny',
-          defaultHelp: 'Portfel domyślny jest podpowiadany podczas dodawania nowych transakcji.',
+          defaultHelp:
+            'Portfel domyślny jest podpowiadany podczas dodawania nowych transakcji.',
           submitCreate: 'Zapisz portfel',
           submitUpdate: 'Zapisz zmiany',
           cancelEdit: 'Anuluj edycję',
         },
         errors: {
           nameRequired: 'Podaj nazwę portfela.',
-          onlyOneDefault: 'Tylko jeden portfel może być ustawiony jako domyślny.',
+          onlyOneDefault:
+            'Tylko jeden portfel może być ustawiony jako domyślny.',
           generic: 'Nie udało się zaktualizować portfela. Spróbuj ponownie.',
           notFound: 'Portfel, który próbujesz zaktualizować, nie istnieje.',
         },
@@ -259,8 +269,7 @@ const pl = {
         label: 'Kategorie',
         description: 'Etykiety, grupy, automatyzacje',
         header: 'Kategorie i grupy',
-        text:
-          'Porządkuj etykiety wydatków i grupuj je w tematy. Wyszukuj i filtruj, aby szybko znaleźć to, czego potrzebujesz.',
+        text: 'Porządkuj etykiety wydatków i grupuj je w tematy. Wyszukuj i filtruj, aby szybko znaleźć to, czego potrzebujesz.',
         addCategory: 'Dodaj kategorię',
         addGroup: 'Nowa grupa kategorii',
         tabs: {
@@ -285,7 +294,8 @@ const pl = {
         editor: {
           createTitle: 'Utwórz kategorię',
           editTitle: 'Edytuj kategorię',
-          description: 'Nadaj nazwę, wybierz kolor i przypisz kategorię do istniejącej grupy.',
+          description:
+            'Nadaj nazwę, wybierz kolor i przypisz kategorię do istniejącej grupy.',
           nameLabel: 'Nazwa kategorii',
           namePlaceholder: 'np. Zakupy spożywcze',
           nameRequired: 'Nazwa jest wymagana.',
@@ -294,7 +304,8 @@ const pl = {
           groupRequired: 'Wybierz grupę dla tej kategorii.',
           parentLabel: 'Kategoria nadrzędna',
           parentNone: 'Brak kategorii nadrzędnej',
-          parentHelp: 'Użyj maksymalnie trzech poziomów, np. Jedzenie / Spożywcze / Biedronka.',
+          parentHelp:
+            'Użyj maksymalnie trzech poziomów, np. Jedzenie / Spożywcze / Biedronka.',
           colorLabel: 'Kolor akcentu',
           colorPlaceholder: '#0EA5A5',
           iconLabel: 'Ikona Heroicon',
@@ -320,45 +331,51 @@ const pl = {
         groups: {
           formTitleCreate: 'Utwórz grupę kategorii',
           formTitleEdit: 'Edytuj grupę kategorii',
-          description: 'Grupuj powiązane kategorie, aby zyskać lepszy wgląd i szybsze filtrowanie.',
+          description:
+            'Grupuj powiązane kategorie, aby zyskać lepszy wgląd i szybsze filtrowanie.',
           nameLabel: 'Nazwa grupy',
           namePlaceholder: 'np. Podstawowe',
           nameError: 'Nazwa nie może być pusta.',
           colorLabel: 'Kolor akcentu',
           pill: {
-            description: 'Ta grupa pomaga porządkować powiązane kategorie i ułatwia przegląd budżetu.',
+            description:
+              'Ta grupa pomaga porządkować powiązane kategorie i ułatwia przegląd budżetu.',
           },
           emptyCtaTitle: 'Potrzebujesz kolejnego motywu?',
           emptyCtaBody:
             'Utwórz grupę, aby pogrupować podobne kategorie. Możesz przenosić je w dowolnym momencie.',
         },
         modals: {
-          confirmCategoryDelete: 'Usunąć tę kategorię? Tej operacji nie można cofnąć.',
-          confirmGroupDelete: 'Usunąć tę grupę kategorii? Przenieś przypisane kategorie przed usunięciem.',
+          confirmCategoryDelete:
+            'Usunąć tę kategorię? Tej operacji nie można cofnąć.',
+          confirmGroupDelete:
+            'Usunąć tę grupę kategorii? Przenieś przypisane kategorie przed usunięciem.',
         },
       },
       spendistCsv: {
         label: 'Export/import Spendist',
         description: 'CSV, filtry, przenoszenie danych',
         header: 'Export/import from Spendist',
-        text:
-          'Eksportuj transakcje do CSV albo zaimportuj plik wygenerowany przez Spendist. Ten import jest niezależny od Kontomierza.',
+        text: 'Eksportuj transakcje do CSV albo zaimportuj plik wygenerowany przez Spendist. Ten import jest niezależny od Kontomierza.',
         export: {
           title: 'Eksport transakcji',
-          description: 'Pobierz wszystkie transakcje pasujące do filtrów. Kategorie nadrzędne obejmują także podkategorie.',
+          description:
+            'Pobierz wszystkie transakcje pasujące do filtrów. Kategorie nadrzędne obejmują także podkategorie.',
           monthRange: 'Konkretny miesiąc',
           allRange: 'Cały okres',
           monthLabel: 'Miesiąc eksportu',
           categoriesLabel: 'Kategorie',
           clearCategories: 'Wyczyść',
           noCategories: 'Brak kategorii do filtrowania.',
-          categoryHelp: 'Bez zaznaczenia kategorii eksport obejmie wszystkie transakcje.',
+          categoryHelp:
+            'Bez zaznaczenia kategorii eksport obejmie wszystkie transakcje.',
           action: 'Eksportuj CSV',
           exported: 'Wyeksportowano {{total}} transakcji.',
         },
         import: {
           title: 'Import transakcji',
-          description: 'Wybierz CSV wyeksportowany ze Spendist. Analiza pokaże duplikaty, nowe słowniki i problemy przed zapisem.',
+          description:
+            'Wybierz CSV wyeksportowany ze Spendist. Analiza pokaże duplikaty, nowe słowniki i problemy przed zapisem.',
           fileLabel: 'Plik CSV',
           fileEmpty: 'Nie wybrano pliku.',
           chooseFile: 'Wybierz plik',
@@ -367,7 +384,8 @@ const pl = {
         },
         schema: {
           title: 'Accepted CSV schema',
-          description: 'Eksportowany plik jest wzorcem importu. Kolumny wymagane są opisane poniżej.',
+          description:
+            'Eksportowany plik jest wzorcem importu. Kolumny wymagane są opisane poniżej.',
           columns: {
             id: 'Opcjonalne przy imporcie; tylko referencja do źródłowej transakcji.',
             occurred_at: 'Wymagane; data ISO, np. 2026-02-01T00:00:00.000Z.',
@@ -375,23 +393,30 @@ const pl = {
             direction: 'Wymagane; expense albo income.',
             amount: 'Wymagane; kwota transakcji.',
             currency: 'Wymagane; kod waluty ISO, np. PLN.',
-            amount_in_default: 'Opcjonalne; kwota w walucie domyślnej, gdy puste użyjemy amount.',
+            amount_in_default:
+              'Opcjonalne; kwota w walucie domyślnej, gdy puste użyjemy amount.',
             category_group: 'Wymagane; brakująca grupa zostanie utworzona.',
-            category_path: 'Wymagane; ścieżka z ukośnikami, maksymalnie 3 poziomy.',
-            category: 'Opcjonalne; nazwa końcowej kategorii, ignorowana gdy jest category_path.',
+            category_path:
+              'Wymagane; ścieżka z ukośnikami, maksymalnie 3 poziomy.',
+            category:
+              'Opcjonalne; nazwa końcowej kategorii, ignorowana gdy jest category_path.',
             wallet: 'Wymagane; brakujący portfel zostanie utworzony.',
-            wallet_currency: 'Wymagane, gdy portfel nie istnieje; kod waluty ISO.',
+            wallet_currency:
+              'Wymagane, gdy portfel nie istnieje; kod waluty ISO.',
             tags: 'Opcjonalne; tagi rozdzielone średnikiem.',
             is_automatic: 'Opcjonalne; true/false, domyślnie false.',
-            recurring_scheduled_for: 'Opcjonalne; używane tylko przy is_automatic=true.',
+            recurring_scheduled_for:
+              'Opcjonalne; używane tylko przy is_automatic=true.',
             import_source: 'Opcjonalne; zachowane w metadanych importu.',
-            imported_at: 'Opcjonalne; tylko referencja do poprzedniego importu.',
+            imported_at:
+              'Opcjonalne; tylko referencja do poprzedniego importu.',
           },
         },
         status: {
           errorTitle: 'Nie udało się obsłużyć pliku Spendist CSV.',
           progress: 'Postęp importu',
-          imported: 'Zaimportowano: {{imported}}. Pominięto duplikaty podczas importu: {{duplicates}}.',
+          imported:
+            'Zaimportowano: {{imported}}. Pominięto duplikaty podczas importu: {{duplicates}}.',
         },
         summary: {
           label: 'Podsumowanie importu',
@@ -408,11 +433,11 @@ const pl = {
         },
         empty: {
           title: 'Najpierw sprawdź plik',
-          body:
-            'Po analizie zobaczysz liczbę poprawnych transakcji, duplikatów i brakujących słowników przed importem.',
+          body: 'Po analizie zobaczysz liczbę poprawnych transakcji, duplikatów i brakujących słowników przed importem.',
         },
         errors: {
-          authRequired: 'Zaloguj się ponownie, aby eksportować lub importować dane.',
+          authRequired:
+            'Zaloguj się ponownie, aby eksportować lub importować dane.',
           unsupportedFile: 'Wybierz plik w formacie CSV.',
           invalidMonth: 'Wybierz poprawny miesiąc.',
           exportFailed: 'Eksport CSV nie powiódł się.',
@@ -424,8 +449,7 @@ const pl = {
         label: 'Import z Kontomierza',
         description: 'Pliki XLSX, kategorie, tagi',
         header: 'Import danych z Kontomierza',
-        text:
-          'Wczytaj eksport XLSX z Kontomierza. Plik jest parsowany w przeglądarce, a do bazy trafiają tylko transakcje, kategorie i tagi.',
+        text: 'Wczytaj eksport XLSX z Kontomierza. Plik jest parsowany w przeglądarce, a do bazy trafiają tylko transakcje, kategorie i tagi.',
         form: {
           walletLabel: 'Portfel docelowy',
           walletPlaceholder: 'Wybierz portfel',
@@ -440,7 +464,8 @@ const pl = {
         status: {
           errorTitle: 'Nie udało się zaimportować danych.',
           progress: 'Postęp importu',
-          imported: 'Zaimportowano: {{imported}}. Pominięto duplikaty podczas importu: {{duplicates}}.',
+          imported:
+            'Zaimportowano: {{imported}}. Pominięto duplikaty podczas importu: {{duplicates}}.',
         },
         summary: {
           label: 'Podsumowanie importu',
@@ -457,8 +482,7 @@ const pl = {
         },
         empty: {
           title: 'Najpierw sprawdź plik',
-          body:
-            'Po analizie zobaczysz liczbę transakcji, duplikatów, nowych kategorii i tagów przed właściwym importem.',
+          body: 'Po analizie zobaczysz liczbę transakcji, duplikatów, nowych kategorii i tagów przed właściwym importem.',
         },
         errors: {
           authRequired: 'Zaloguj się ponownie, aby importować dane.',
@@ -484,10 +508,12 @@ const pl = {
     },
     items: {
       recurring_transaction_created: {
-        title: 'Utworzono transakcję cykliczną: {{description}} ({{amount}} {{currency}})',
+        title:
+          'Utworzono transakcję cykliczną: {{description}} ({{amount}} {{currency}})',
       },
       recurring_transaction_ended: {
-        title: 'Płatność cykliczna zakończona: {{description}} (koniec: {{endDate}})',
+        title:
+          'Płatność cykliczna zakończona: {{description}} (koniec: {{endDate}})',
       },
       exchange_rates_sync_failed: {
         title: 'Synchronizacja kursów walut nie powiodła się: {{error}}',
@@ -502,7 +528,8 @@ const pl = {
   dashboard: {
     badge: 'Pulpit',
     title: 'Twoje centrum dowodzenia',
-    description: 'Śledź bilanse, przepływy i nadchodzące aktywności. Widok rozbuduje się wraz ze Spendist.',
+    description:
+      'Śledź bilanse, przepływy i nadchodzące aktywności. Widok rozbuduje się wraz ze Spendist.',
     placeholder: {
       title: 'Widżety pulpitu są w przygotowaniu',
       body: 'Wkrótce pojawią się tu wglądy, podsumowania i skróty dopasowane do Twoich nawyków.',
@@ -510,8 +537,10 @@ const pl = {
     structure: {
       badge: 'Struktura',
       title: 'Wydatki vs. przychody',
-      subtitle: 'Surowe sumy z maksymalnie ostatnich 12 miesięcy kalendarzowych.',
-      empty: 'Brak danych. Dodaj pierwszą transakcję, aby zobaczyć zestawienie.',
+      subtitle:
+        'Surowe sumy z maksymalnie ostatnich 12 miesięcy kalendarzowych.',
+      empty:
+        'Brak danych. Dodaj pierwszą transakcję, aby zobaczyć zestawienie.',
       noWallet: 'Wybierz portfel, aby zobaczyć dane.',
       errorTitle: 'Nie udało się załadować przepływów',
       retry: 'Spróbuj ponownie',
@@ -523,7 +552,8 @@ const pl = {
     categoryWidget: {
       badge: 'Kategorie',
       title: 'Struktura miesięczna',
-      subtitle: 'Łączne kwoty dla wybranego miesiąca. Wkrótce dodamy wizualizacje.',
+      subtitle:
+        'Łączne kwoty dla wybranego miesiąca. Wkrótce dodamy wizualizacje.',
       selectLabel: 'Wybierz miesiąc',
       noMonths: 'Brak dostępnych miesięcy',
       errorTitle: 'Nie udało się załadować danych kategorii',
@@ -547,7 +577,8 @@ const pl = {
     recurringWidget: {
       badge: 'Cykliczne',
       title: 'Transakcje z płatności cyklicznych',
-      subtitle: 'Liczba i kwoty transakcji utworzonych przez płatności cykliczne w wybranym miesiącu.',
+      subtitle:
+        'Liczba i kwoty transakcji utworzonych przez płatności cykliczne w wybranym miesiącu.',
       selectLabel: 'Wybierz miesiąc',
       noMonths: 'Brak miesięcy z transakcjami cyklicznymi',
       noWalletSelected: 'Wybierz portfel, aby załadować dane.',
@@ -592,7 +623,8 @@ const pl = {
       errorTitle: 'Nie udało się załadować transakcji',
       retry: 'Spróbuj ponownie',
       emptyTitle: 'Brak transakcji w filtrach',
-      emptyBody: 'Dostosuj filtry lub dodaj nową transakcję, aby zobaczyć listę.',
+      emptyBody:
+        'Dostosuj filtry lub dodaj nową transakcję, aby zobaczyć listę.',
       noDescription: 'Transakcja bez opisu',
       automatic: 'Automatyczna',
       recurringSource: 'Cykliczna',
@@ -665,26 +697,33 @@ const pl = {
         hideAdvanced: 'Ukryj pola zaawansowane',
       },
       help: {
-        amountExpression: 'Możesz wpisać wyrażenie, np. „2.3 + 2,5 + 12,41”. Kropki, przecinki oraz podstawowe działania (+ − × ÷) są obsługiwane automatycznie.',
-        quantity: 'Użyj, gdy zapisujesz kilka identycznych pozycji za jednym razem.',
-        advancedDisclaimer: 'Każda transakcja trafia domyślnie do głównego portfela — zmień go tutaj, jeśli ma być zaksięgowana gdzie indziej.',
+        amountExpression:
+          'Możesz wpisać wyrażenie, np. „2.3 + 2,5 + 12,41”. Kropki, przecinki oraz podstawowe działania (+ − × ÷) są obsługiwane automatycznie.',
+        quantity:
+          'Użyj, gdy zapisujesz kilka identycznych pozycji za jednym razem.',
+        advancedDisclaimer:
+          'Każda transakcja trafia domyślnie do głównego portfela — zmień go tutaj, jeśli ma być zaksięgowana gdzie indziej.',
       },
-      emptyTags: 'Zacznij pisać, aby dodać pierwszy tag lub wybierz z podpowiedzi.',
+      emptyTags:
+        'Zacznij pisać, aby dodać pierwszy tag lub wybierz z podpowiedzi.',
     },
   },
   modules: {
     recurringPayments: {
       badge: 'Moduły',
       title: 'Płatności cykliczne',
-      description: 'Kontroluj automatyczne obciążenia. Monitoruj odnowienia i nadchodzące rachunki w jednym miejscu.',
+      description:
+        'Kontroluj automatyczne obciążenia. Monitoruj odnowienia i nadchodzące rachunki w jednym miejscu.',
       stats: {
         monthly: {
           label: 'Wygenerowane w tym miesiącu',
-          caption: 'Automatyczne transakcje wydatkowe utworzone z płatności cyklicznych w tym miesiącu.',
+          caption:
+            'Automatyczne transakcje wydatkowe utworzone z płatności cyklicznych w tym miesiącu.',
         },
         yearly: {
           label: 'Wygenerowane od początku roku',
-          caption: 'Automatyczne transakcje wydatkowe utworzone z płatności cyklicznych od stycznia.',
+          caption:
+            'Automatyczne transakcje wydatkowe utworzone z płatności cyklicznych od stycznia.',
         },
       },
       actions: {
@@ -693,9 +732,11 @@ const pl = {
       form: {
         badge: 'Dodaj płatność',
         title: 'Zaplanuj płatność cykliczną',
-        subtitle: 'Ustal częstotliwość, kategorię i tagi. Nowe wpisy dodamy automatycznie.',
+        subtitle:
+          'Ustal częstotliwość, kategorię i tagi. Nowe wpisy dodamy automatycznie.',
         editTitle: 'Zaktualizuj płatność cykliczną',
-        editSubtitle: 'Zmieniaj częstotliwość, kwotę lub tagi. Kolejne obciążenia dostosujemy do nowych danych.',
+        editSubtitle:
+          'Zmieniaj częstotliwość, kwotę lub tagi. Kolejne obciążenia dostosujemy do nowych danych.',
         fields: {
           name: {
             label: 'Nazwa',
@@ -711,8 +752,10 @@ const pl = {
           wallet: {
             label: 'Portfel',
             placeholder: 'Wybierz portfel',
-            error: 'Wskaż portfel, z którego ma pochodzić ta płatność cykliczna.',
-            currencyHint: 'Transakcje będą księgowane w walucie {{ currency }} przypisanej do portfela.',
+            error:
+              'Wskaż portfel, z którego ma pochodzić ta płatność cykliczna.',
+            currencyHint:
+              'Transakcje będą księgowane w walucie {{ currency }} przypisanej do portfela.',
           },
           amount: {
             label: 'Kwota',
@@ -724,7 +767,8 @@ const pl = {
           amountMode: {
             label: 'Tryb kwoty',
             fixedHint: 'Każda wygenerowana transakcja użyje tej kwoty.',
-            variableHint: 'Terminy trafią do oczekujących kwot, aż wpiszesz faktyczny rachunek.',
+            variableHint:
+              'Terminy trafią do oczekujących kwot, aż wpiszesz faktyczny rachunek.',
             options: {
               fixed: 'Stała kwota',
               variable: 'Zmienna kwota',
@@ -784,15 +828,19 @@ const pl = {
           cancelEdit: 'Anuluj edycję',
         },
         notifications: {
-          error: 'Nie udało się zapisać płatności cyklicznej. Spróbuj ponownie za chwilę.',
+          error:
+            'Nie udało się zapisać płatności cyklicznej. Spróbuj ponownie za chwilę.',
           invalid: 'Sprawdź oznaczone pola przed zapisaniem.',
-          backfillError: 'Płatność cykliczna została zapisana, ale nie udało się teraz wygenerować historii.',
-          duplicateName: 'Płatność cykliczna o tej nazwie już istnieje. Zmień etykietę lub edytuj istniejący wpis.',
+          backfillError:
+            'Płatność cykliczna została zapisana, ale nie udało się teraz wygenerować historii.',
+          duplicateName:
+            'Płatność cykliczna o tej nazwie już istnieje. Zmień etykietę lub edytuj istniejący wpis.',
         },
       },
       pending: {
         title: 'Oczekujące kwoty',
-        subtitle: 'Płatności cykliczne ze zmienną kwotą czekające na faktyczną wartość.',
+        subtitle:
+          'Płatności cykliczne ze zmienną kwotą czekające na faktyczną wartość.',
         amount: 'Faktyczna kwota',
         complete: 'Zaksięguj',
       },
@@ -804,7 +852,8 @@ const pl = {
           title: 'Brak płatności cyklicznych',
           body: 'Dodaj pierwszą płatność, aby śledzić automatyczne obciążenia.',
           filteredTitle: 'Brak płatności w tym widoku',
-          filteredBody: 'Zmień filtr, aby zobaczyć aktywne, zastopowane albo wszystkie płatności cykliczne.',
+          filteredBody:
+            'Zmień filtr, aby zobaczyć aktywne, zastopowane albo wszystkie płatności cykliczne.',
         },
         filters: {
           active: 'Aktywne',
@@ -860,9 +909,12 @@ const pl = {
           resume: 'Wznów',
           delete: 'Usuń',
         },
-        confirmStop: 'Zastopować „{{ name }}”? Kolejne uruchomienia zostaną wstrzymane.',
-        confirmResume: 'Wznowić „{{ name }}”? Kolejne uruchomienia wrócą do harmonogramu.',
-        confirmDelete: 'Usunąć „{{ name }}”? Kolejne uruchomienia zostaną zatrzymane.',
+        confirmStop:
+          'Zastopować „{{ name }}”? Kolejne uruchomienia zostaną wstrzymane.',
+        confirmResume:
+          'Wznowić „{{ name }}”? Kolejne uruchomienia wrócą do harmonogramu.',
+        confirmDelete:
+          'Usunąć „{{ name }}”? Kolejne uruchomienia zostaną zatrzymane.',
       },
     },
   },

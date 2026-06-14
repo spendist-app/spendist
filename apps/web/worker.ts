@@ -11,6 +11,9 @@ interface Env {
   NG_APP_SUPABASE_PUBLISHABLE_KEY?: string;
   NG_APP_SUPABASE_ANON_KEY?: string;
   NG_APP_SUPABASE_FUNCTIONS_URL?: string;
+  NG_APP_BUILD_COMMIT?: string;
+  CF_PAGES_COMMIT_SHA?: string;
+  GITHUB_SHA?: string;
 }
 
 const CONTENT_SECURITY_POLICY = [
@@ -54,6 +57,8 @@ const buildEnvPayload = (env: Env): Record<string, string> => {
     env.NG_APP_SUPABASE_PUBLISHABLE_KEY ??
     env.NG_APP_SUPABASE_ANON_KEY ??
     '';
+  const buildCommit =
+    env.NG_APP_BUILD_COMMIT ?? env.CF_PAGES_COMMIT_SHA ?? env.GITHUB_SHA ?? '';
 
   return {
     SUPABASE_URL: supabaseUrl,
@@ -65,6 +70,7 @@ const buildEnvPayload = (env: Env): Record<string, string> => {
     NG_APP_SUPABASE_FUNCTIONS_URL:
       env.NG_APP_SUPABASE_FUNCTIONS_URL ??
       (supabaseUrl ? `${supabaseUrl.replace(/\/$/, '')}/functions/v1` : ''),
+    NG_APP_BUILD_COMMIT: buildCommit,
   };
 };
 
