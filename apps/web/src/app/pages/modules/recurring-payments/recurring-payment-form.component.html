@@ -64,15 +64,9 @@
                   autocomplete="off"
                 />
                 @if (nameControl.invalid && (nameControl.dirty || nameControl.touched)) {
-                  @if (nameControl.hasError('duplicate')) {
-                    <p class="text-xs text-error">
-                      {{ 'modules.recurringPayments.form.fields.name.duplicate' | transloco }}
-                    </p>
-                  } @else {
-                    <p class="text-xs text-error">
-                      {{ 'modules.recurringPayments.form.fields.name.error' | transloco }}
-                    </p>
-                  }
+                  <p class="text-xs text-error">
+                    {{ 'modules.recurringPayments.form.fields.name.error' | transloco }}
+                  </p>
                 }
               </div>
 

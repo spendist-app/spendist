@@ -740,7 +740,6 @@ const en = {
             label: 'Name',
             placeholder: 'Netflix, rent, gym membership…',
             error: 'Provide a name up to 120 characters.',
-            duplicate: 'You already track a recurring payment with this name.',
           },
           category: {
             label: 'Category',
@@ -831,8 +830,6 @@ const en = {
           invalid: 'Check the highlighted fields before saving.',
           backfillError:
             'The recurring payment was saved, but historical transactions could not be generated right now.',
-          duplicateName:
-            'A recurring payment with this name already exists. Pick a different label or edit the existing one.',
         },
       },
       pending: {

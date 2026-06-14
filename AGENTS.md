@@ -60,6 +60,7 @@ Notuj progress w plikach .agent/\*
 
 ## Supabase Migrations & Functions
 
+- Aplikacja jest w produkcji: nie wprowadzaj breaking changes w bazie danych bez wyraźnej zgody użytkownika. Preferuj migracje kompatybilne wstecz, zmiany addytywne albo luzujące ograniczenia; destrukcyjne zmiany, rename kolumn, zmiany typów i usuwanie danych wymagają planu migracji/backfillu oraz akceptacji.
 - Każda nowa migracja lub funkcja tworzona w Supabase musi równolegle trafić do katalogu `supabase/migrations` w repozytorium (commit razem z kodem, który jej potrzebuje).
 - Synchronizuj historię (`supabase migration list --local/--db-url`) przed push, żeby uniknąć rozjazdów między bazą a repo.
 

@@ -682,6 +682,7 @@ export class SettingsPageComponent {
 
   protected openGroupCreator(): void {
     this.store.clearError();
+    this.selectCategoriesTab('groups');
     this.groupEditorMode.set('create');
     this.editingGroupId.set(null);
     this.categoryGroupForm.setValue({

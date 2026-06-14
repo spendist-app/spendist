@@ -1064,10 +1064,6 @@ export class RecurringPaymentsStore {
     if (error && typeof error === 'object') {
       const maybePostgrestError = error as PostgrestError;
 
-      if (maybePostgrestError.code === '23505' && maybePostgrestError.message?.includes('recurring_transactions_owner_name_idx')) {
-        return 'modules.recurringPayments.form.notifications.duplicateName';
-      }
-
       if ('message' in maybePostgrestError && maybePostgrestError.message) {
         return maybePostgrestError.message;
       }
