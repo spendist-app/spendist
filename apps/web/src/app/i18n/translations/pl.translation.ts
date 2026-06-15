@@ -742,7 +742,6 @@ const pl = {
             label: 'Nazwa',
             placeholder: 'Netflix, czynsz, siłownia…',
             error: 'Podaj nazwę (maks. 120 znaków).',
-            duplicate: 'Masz już płatność cykliczną o tej nazwie.',
           },
           category: {
             label: 'Kategoria',
@@ -833,8 +832,6 @@ const pl = {
           invalid: 'Sprawdź oznaczone pola przed zapisaniem.',
           backfillError:
             'Płatność cykliczna została zapisana, ale nie udało się teraz wygenerować historii.',
-          duplicateName:
-            'Płatność cykliczna o tej nazwie już istnieje. Zmień etykietę lub edytuj istniejący wpis.',
         },
       },
       pending: {

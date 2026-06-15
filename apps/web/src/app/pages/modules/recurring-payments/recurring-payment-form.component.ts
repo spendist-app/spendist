@@ -157,21 +157,6 @@ export class RecurringPaymentFormComponent {
   readonly schedulePreview = signal('');
 
   constructor() {
-    this.nameControl.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
-      const errors = this.nameControl.errors;
-      if (errors?.['duplicate']) {
-        const rest = { ...errors };
-        delete rest['duplicate'];
-        const remainingErrors = Object.keys(rest).length > 0 ? rest : null;
-        this.nameControl.setErrors(remainingErrors);
-      }
-
-      const duplicateMessage = this.transloco.translate('modules.recurringPayments.form.notifications.duplicateName');
-      if (this.submissionError() === duplicateMessage) {
-        this.submissionError.set(null);
-      }
-    });
-
     this.amountModeControl.valueChanges.pipe(takeUntilDestroyed()).subscribe((mode) => {
       this.syncAmountValidators(mode);
       this.submissionError.set(null);
@@ -362,15 +347,6 @@ export class RecurringPaymentFormComponent {
     } catch (error) {
       logError('RecurringPaymentForm', 'submission failed', error);
       const storeError = this.store.mutationError();
-      if (storeError === 'modules.recurringPayments.form.notifications.duplicateName') {
-        const duplicateMessage = this.transloco.translate(storeError);
-        this.submissionError.set(duplicateMessage);
-        this.nameControl.setErrors({ ...(this.nameControl.errors ?? {}), duplicate: true });
-        this.nameControl.markAsTouched();
-        this.nameControl.markAsDirty();
-        return;
-      }
-
       const shouldTranslate =
         !!storeError && (storeError.startsWith('modules.') || storeError.startsWith('common.'));
       const message = shouldTranslate ? this.transloco.translate(storeError) : storeError;

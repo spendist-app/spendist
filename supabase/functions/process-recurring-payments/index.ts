@@ -83,11 +83,12 @@ Deno.serve(async (request) => {
   let query = supabase
     .from('recurring_transactions')
     .select('id,schedule,start_date,end_date,last_run_at,is_paused')
-    .lte('start_date', isoDate(now))
     .eq('is_paused', false);
 
   if (body.recurringId) {
     query = query.eq('id', body.recurringId);
+  } else {
+    query = query.lte('start_date', isoDate(now));
   }
 
   if (ownerId) {
