@@ -33,6 +33,8 @@ The app boots with `provideZonelessChangeDetection()` (`apps/web/src/app/app.con
 
 Unit specs live beside their sources with the `*.spec.ts` suffix. Use Angular TestBed helpers, keep DOM expectations explicit (see `app.spec.ts`), and prefer focused signal-based assertions. Run `npx nx test web --coverage` after logic changes; coverage data is written to `coverage/apps/web`. Seed shared mocks or snapshot serializers in `apps/web/src/test-setup.ts` instead of duplicating boilerplate.
 
+E2E tests live in `apps/web-e2e` and follow the Tickist-style guarded database reset flow. Use `.local_env.e2e` or `.env.e2e` with a dedicated `SUPABASE_E2E_DB_URL`; it must not point to `SUPABASE_DB_URL` or `SUPABASE_REMOTE_DB_URL`.
+
 ## Commit & Pull Request Guidelines
 
 Adopt Conventional Commits to keep Nx inference effective (e.g., `feat(web): add spending dashboard`). Scope messages to the affected project, mention linked GitHub issues, and describe Tailwind or zoneless implications in the PR body. Ensure lint, test, and build targets pass locally (`npx nx affected --target=test,lint,build`) before requesting review, and include screenshots or terminal output when UI or CLI behavior changes.
@@ -67,6 +69,10 @@ Notuj progress w plikach .agent/\*
 ## Inne
 
 Zawsze sprawdzaj jaka jest data. Nie wierz swojej intuicji. Np poprzez new Date().now()
+
+## Skills
+
+- Jeśli użytkownik aktywuje `caveman` albo prosi o mówienie jak caveman, używaj skill `caveman` i utrzymuj ten styl w kolejnych odpowiedziach, dopóki użytkownik go wyraźnie nie wyłączy.
 
 <!-- nx configuration start-->
 <!-- Leave the start & end comments to automatically receive updates. -->
