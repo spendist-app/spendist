@@ -251,7 +251,7 @@ describe('RecurringPaymentFormComponent', () => {
       endDate: null,
       schedule: monthlyCronForLocalTime(1, '12:00'),
       tags: [],
-      currency: 'PLN',
+      currency: 'USD',
       exchangeRate: null,
       category: null,
       walletName: 'Main',
@@ -275,6 +275,7 @@ describe('RecurringPaymentFormComponent', () => {
     expect(store.lastUpdatePayload).toEqual(
       expect.objectContaining({
         name: 'Chatgpt',
+        currency: 'USD',
         startDate: '2026-06-10',
         schedule: dailyCronForLocalTime('12:30'),
       }),

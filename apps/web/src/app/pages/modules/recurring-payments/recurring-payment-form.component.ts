@@ -135,6 +135,7 @@ export class RecurringPaymentFormComponent {
   readonly selectedTags = signal<string[]>([]);
   readonly scheduleFrequencyView = signal<ScheduleFrequency>('monthly');
   readonly selectedCurrencyView = signal(this.store.defaultCurrency());
+  private readonly currencyFollowsWallet = signal(true);
   private readonly selectedWalletCurrency = signal(this.store.defaultCurrency());
   readonly walletCurrency = computed(() => this.selectedWalletCurrency());
   readonly currencyOptions = computed<readonly CurrencyOption[]>(() => {
@@ -163,6 +164,7 @@ export class RecurringPaymentFormComponent {
     });
 
     this.currencyControl.valueChanges.pipe(takeUntilDestroyed()).subscribe((currency) => {
+      this.currencyFollowsWallet.set(false);
       this.selectedCurrencyView.set(currency);
     });
 
@@ -239,6 +241,7 @@ export class RecurringPaymentFormComponent {
 
       this.selectedTags.set(tagIds);
       this.selectedCurrencyView.set(editing.currency);
+      this.currencyFollowsWallet.set(false);
       this.form.controls.tagIds.setValue(tagIds, { emitEvent: false });
       this.applyScheduleFromCron(editing.schedule);
       this.syncAmountValidators(editing.amountMode);
@@ -410,6 +413,7 @@ export class RecurringPaymentFormComponent {
 
   private resetForm(): void {
     const defaultWalletId = this.store.defaultWalletId();
+    this.currencyFollowsWallet.set(true);
     this.form.reset(
       {
         name: '',
@@ -447,10 +451,11 @@ export class RecurringPaymentFormComponent {
     const wallet = walletId ? wallets.find((item) => item.id === walletId) ?? null : null;
     const currency = wallet?.currency ?? this.store.defaultCurrency();
     this.selectedWalletCurrency.set(currency);
-    if (updateCurrencyControl || !this.currencyControl.value) {
+    if (updateCurrencyControl || !this.currencyControl.value || this.currencyFollowsWallet()) {
       this.currencyControl.setValue(currency, { emitEvent: false });
       this.selectedCurrencyView.set(currency);
       this.currencyControl.markAsPristine();
+      this.currencyFollowsWallet.set(true);
     }
   }
 
