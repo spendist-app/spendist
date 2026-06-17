@@ -1018,6 +1018,11 @@ export class RecurringPaymentsStore {
     if (result.error) {
       throw new RecurringPaymentsStoreError('modules.recurringPayments.form.notifications.backfillError');
     }
+
+    const data = result.data as { skippedCount?: number } | null;
+    if ((data?.skippedCount ?? 0) > 0) {
+      throw new RecurringPaymentsStoreError('modules.recurringPayments.form.notifications.backfillError');
+    }
   }
 
   private ensureNoErrorSingle<T>(result: PostgrestSingleResponse<T>): T {
