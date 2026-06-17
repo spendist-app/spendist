@@ -50,6 +50,12 @@ export const appRoutes: Route[] = [
       ),
   },
   {
+    path: 'modules/places',
+    canActivate: [requireAuthGuard],
+    loadComponent: () =>
+      import('./pages/modules/places/places.page').then((m) => m.PlacesPageComponent),
+  },
+  {
     path: '**',
     redirectTo: '',
   },

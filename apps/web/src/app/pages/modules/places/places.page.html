@@ -1,0 +1,201 @@
+<section class="mx-auto flex min-h-[calc(100vh-6rem)] w-full max-w-6xl flex-col gap-6 px-4 py-10 sm:py-14">
+  <header class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <div class="space-y-2">
+      <p class="badge badge-primary badge-outline text-xs uppercase tracking-wide">
+        {{ 'places.badge' | transloco }}
+      </p>
+      <h1 class="text-3xl font-semibold sm:text-4xl">
+        {{ 'places.title' | transloco }}
+      </h1>
+      <p class="max-w-2xl text-sm text-base-content/70 sm:text-base">
+        {{ 'places.description' | transloco }}
+      </p>
+    </div>
+
+    <button type="button" class="btn btn-primary" (click)="openCreateForm()">
+      {{ 'places.actions.add' | transloco }}
+    </button>
+  </header>
+
+  @if (store.error(); as error) {
+    <div class="rounded-2xl border border-error/40 bg-error/5 p-4">
+      <p class="text-sm font-semibold text-error">
+        {{ 'places.errors.title' | transloco }}
+      </p>
+      <p class="text-sm text-base-content/70">
+        {{ displayError(error) }}
+      </p>
+      <button type="button" class="btn btn-error btn-sm mt-3" (click)="store.refresh()">
+        {{ 'places.actions.retry' | transloco }}
+      </button>
+    </div>
+  }
+
+  <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,24rem)]">
+    <section class="rounded-3xl border border-base-300 bg-base-100/80 p-5 shadow-sm sm:p-6">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <label class="form-control w-full sm:max-w-sm">
+          <span class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60">
+            {{ 'places.search.label' | transloco }}
+          </span>
+          <input
+            type="search"
+            class="input input-bordered"
+            [placeholder]="'places.search.placeholder' | transloco"
+            [value]="query()"
+            (input)="onSearch($event)"
+          />
+        </label>
+        <p class="text-xs font-semibold uppercase tracking-wide text-base-content/50">
+          {{ 'places.search.count' | transloco: { count: visiblePlaces().length } }}
+        </p>
+      </div>
+
+      <div class="mt-6">
+        @if (store.loading()) {
+          <div class="space-y-3">
+            <div class="skeleton h-24 rounded-2xl"></div>
+            <div class="skeleton h-24 rounded-2xl"></div>
+            <div class="skeleton h-24 rounded-2xl"></div>
+          </div>
+        } @else if (store.empty()) {
+          <div class="rounded-2xl border border-dashed border-base-300 p-6 text-center text-sm text-base-content/70">
+            {{ 'places.empty' | transloco }}
+          </div>
+        } @else if (visiblePlaces().length === 0) {
+          <div class="rounded-2xl border border-dashed border-base-300 p-6 text-center text-sm text-base-content/70">
+            {{ 'places.search.empty' | transloco }}
+          </div>
+        } @else {
+          <div class="grid gap-3">
+            @for (place of visiblePlaces(); track place.id) {
+              <article class="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div class="min-w-0 space-y-1">
+                    <h2 class="truncate text-lg font-semibold text-base-content">
+                      {{ place.name }}
+                    </h2>
+                    @if (formatAddress(place); as address) {
+                      <p class="text-sm text-base-content/70">{{ address }}</p>
+                    } @else {
+                      <p class="text-sm text-base-content/50">
+                        {{ 'places.noAddress' | transloco }}
+                      </p>
+                    }
+                    @if (place.note) {
+                      <p class="text-sm text-base-content/60">{{ place.note }}</p>
+                    }
+                  </div>
+
+                  <div class="flex shrink-0 gap-2">
+                    <button type="button" class="btn btn-ghost btn-sm" (click)="openEditForm(place)">
+                      {{ 'places.actions.edit' | transloco }}
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-sm text-error"
+                      [disabled]="store.mutationPending()"
+                      (click)="deletePlace(place)"
+                    >
+                      {{ 'common.actions.delete' | transloco }}
+                    </button>
+                  </div>
+                </div>
+              </article>
+            }
+          </div>
+        }
+      </div>
+    </section>
+
+    <aside class="rounded-3xl border border-base-300 bg-base-100/80 p-5 shadow-sm sm:p-6">
+      @if (formOpen()) {
+        <form class="space-y-4" [formGroup]="form" (ngSubmit)="submit()">
+          <div class="space-y-1">
+            <p class="badge badge-outline text-xs uppercase tracking-wide">
+              {{ 'places.form.badge' | transloco }}
+            </p>
+            <h2 class="text-xl font-semibold">
+              {{ formTitleKey() | transloco }}
+            </h2>
+          </div>
+
+          <label class="form-control">
+            <span class="label-text font-semibold">
+              {{ 'places.form.fields.name' | transloco }}
+            </span>
+            <input class="input input-bordered" formControlName="name" maxlength="120" />
+            @if (form.controls.name.touched && form.controls.name.invalid) {
+              <span class="mt-1 text-xs text-error">
+                {{ 'places.form.validation.name' | transloco }}
+              </span>
+            }
+          </label>
+
+          <label class="form-control">
+            <span class="label-text font-semibold">
+              {{ 'places.form.fields.street' | transloco }}
+            </span>
+            <input class="input input-bordered" formControlName="street" maxlength="160" />
+          </label>
+
+          <div class="grid gap-4 sm:grid-cols-2">
+            <label class="form-control">
+              <span class="label-text font-semibold">
+                {{ 'places.form.fields.postalCode' | transloco }}
+              </span>
+              <input class="input input-bordered" formControlName="postalCode" maxlength="32" />
+            </label>
+
+            <label class="form-control">
+              <span class="label-text font-semibold">
+                {{ 'places.form.fields.city' | transloco }}
+              </span>
+              <input class="input input-bordered" formControlName="city" maxlength="80" />
+            </label>
+          </div>
+
+          <label class="form-control">
+            <span class="label-text font-semibold">
+              {{ 'places.form.fields.country' | transloco }}
+            </span>
+            <input class="input input-bordered" formControlName="country" maxlength="80" />
+          </label>
+
+          <label class="form-control">
+            <span class="label-text font-semibold">
+              {{ 'places.form.fields.note' | transloco }}
+            </span>
+            <textarea class="textarea textarea-bordered min-h-24" formControlName="note" maxlength="500"></textarea>
+          </label>
+
+          <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
+            <button type="button" class="btn btn-ghost" (click)="closeForm()">
+              {{ 'common.actions.cancel' | transloco }}
+            </button>
+            <button type="submit" class="btn btn-primary" [disabled]="store.mutationPending()">
+              @if (store.mutationPending()) {
+                <span class="loading loading-spinner loading-sm"></span>
+                {{ 'places.form.submit.busy' | transloco }}
+              } @else if (editingPlaceId()) {
+                {{ 'places.form.submit.edit' | transloco }}
+              } @else {
+                {{ 'places.form.submit.create' | transloco }}
+              }
+            </button>
+          </div>
+        </form>
+      } @else {
+        <div class="rounded-2xl border border-dashed border-base-300 p-6 text-sm text-base-content/70">
+          <h2 class="text-lg font-semibold text-base-content">
+            {{ 'places.form.closedTitle' | transloco }}
+          </h2>
+          <p class="mt-2">{{ 'places.form.closedBody' | transloco }}</p>
+          <button type="button" class="btn btn-primary btn-sm mt-4" (click)="openCreateForm()">
+            {{ 'places.actions.add' | transloco }}
+          </button>
+        </div>
+      }
+    </aside>
+  </div>
+</section>

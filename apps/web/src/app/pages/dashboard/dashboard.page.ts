@@ -70,6 +70,38 @@ export class DashboardPageComponent {
     this.store.selectRecurringMonth(select.value);
   }
 
+  protected onPlaceYearChange(event: Event): void {
+    const select = event.target as HTMLSelectElement | null;
+    if (!select) {
+      return;
+    }
+
+    this.store.selectPlaceYear(select.value);
+  }
+
+  protected formatDate(date: Date | null): string {
+    if (!date) {
+      return '';
+    }
+
+    return new Intl.DateTimeFormat(this.locale(), {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    }).format(date);
+  }
+
+  protected formatAddress(entry: {
+    readonly street: string | null;
+    readonly postalCode: string | null;
+    readonly city: string | null;
+    readonly country: string | null;
+  }): string {
+    return [entry.street, entry.postalCode, entry.city, entry.country]
+      .filter((value): value is string => !!value)
+      .join(', ');
+  }
+
   private formatMagnitude(value: number): string {
     return new Intl.NumberFormat(this.locale(), {
       minimumFractionDigits: 2,

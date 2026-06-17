@@ -11,6 +11,7 @@ import type {
   TransactionRow,
   TransactionTagRow,
   WalletRow,
+  PlaceRow,
   Tables,
 } from '@spendist/data-access/supabase-types';
 import type { CategoryEntity, CategoryGroupEntity } from '../settings/settings.store';
@@ -36,6 +37,7 @@ interface TransactionEntity {
   readonly recurringScheduledFor: Date | null;
   readonly exchangeRate: number | null;
   readonly walletId: string;
+  readonly placeId: string | null;
 }
 
 interface TransactionsState {
@@ -52,6 +54,7 @@ interface TransactionsState {
   readonly loadingMoreTransactions: boolean;
   readonly tags: readonly TagEntity[];
   readonly wallets: readonly WalletEntity[];
+  readonly places: readonly PlaceEntity[];
   readonly currencies: readonly CurrencyOption[];
   readonly defaultCurrency: string | null;
   readonly availableYears: readonly number[];
@@ -79,6 +82,17 @@ export interface WalletEntity {
   readonly currency: string;
 }
 
+export interface PlaceEntity {
+  readonly id: string;
+  readonly ownerId: string;
+  readonly name: string;
+  readonly street: string | null;
+  readonly city: string | null;
+  readonly postalCode: string | null;
+  readonly country: string | null;
+  readonly note: string | null;
+}
+
 export type TransactionPresetId = 'currentMonth' | 'previousMonth' | 'thisYear' | 'lastYear' | 'allTime' | 'custom';
 
 interface TransactionsFilters {
@@ -97,6 +111,7 @@ export interface TransactionViewModel extends TransactionEntity {
   readonly category: CategoryEntity | null;
   readonly group: CategoryGroupEntity | null;
   readonly tagIds: readonly string[];
+  readonly place: PlaceEntity | null;
 }
 
 interface CurrencyOption {
@@ -133,6 +148,7 @@ export interface CreateTransactionPayload {
   readonly foreignAmount?: number | null;
   readonly foreignCurrency?: string | null;
   readonly walletId: string;
+  readonly placeId?: string | null;
 }
 
 export type UpdateTransactionPayload = Omit<CreateTransactionPayload, 'quantity'>;
@@ -149,6 +165,7 @@ interface NormalizedCreatePayload {
   readonly tagIds: readonly string[];
   readonly exchangeRate: number | null;
   readonly walletId: string;
+  readonly placeId: string | null;
 }
 
 interface NormalizedUpdatePayload {
@@ -162,6 +179,7 @@ interface NormalizedUpdatePayload {
   readonly tagIds: readonly string[];
   readonly exchangeRate: number | null;
   readonly walletId: string;
+  readonly placeId: string | null;
 }
 
 @Injectable()
@@ -184,6 +202,7 @@ export class TransactionsStore {
     loadingMoreTransactions: false,
     tags: [],
     wallets: [],
+    places: [],
     currencies: [],
     defaultCurrency: null,
     availableYears: [],
@@ -215,6 +234,7 @@ export class TransactionsStore {
   readonly loadingMoreTransactions = computed(() => this.state().loadingMoreTransactions);
   readonly tags = computed(() => this.state().tags);
   readonly wallets = computed(() => this.state().wallets);
+  readonly places = computed(() => this.state().places);
   readonly currencies = computed(() => this.state().currencies);
   readonly defaultCurrency = computed(() => this.state().defaultCurrency ?? FALLBACK_CURRENCY);
   readonly defaultWalletId = computed(() => {
@@ -264,6 +284,7 @@ export class TransactionsStore {
     const state = this.state();
     const categoriesById = new Map(state.categories.map((category) => [category.id, category]));
     const groupsById = new Map(state.groups.map((group) => [group.id, group]));
+    const placesById = new Map(state.places.map((place) => [place.id, place]));
     const tagsMap = state.transactionTags;
 
     return state.transactions.map((transaction) => {
@@ -274,6 +295,7 @@ export class TransactionsStore {
         category,
         group,
         tagIds: tagsMap.get(transaction.id) ?? [],
+        place: transaction.placeId ? placesById.get(transaction.placeId) ?? null : null,
       };
     });
   });
@@ -310,6 +332,7 @@ export class TransactionsStore {
           loadingMoreTransactions: false,
           tags: [],
           wallets: [],
+          places: [],
           currencies: [],
           defaultCurrency: null,
           availableYears: [],
@@ -376,12 +399,13 @@ export class TransactionsStore {
     }));
 
     try {
-      const [groupsResult, categoriesResult, tagsResult, walletsResult, currenciesResult, availableYears] =
+      const [groupsResult, categoriesResult, tagsResult, walletsResult, placesResult, currenciesResult, availableYears] =
         await Promise.all([
           this.supabase.from('categories_group').select('*').eq('owner_id', userId).order('name', { ascending: true }),
           this.supabase.from('categories').select('*').eq('owner_id', userId).order('name', { ascending: true }),
           this.supabase.from('tags').select('*').eq('owner_id', userId).order('name', { ascending: true }),
           this.supabase.from('wallets').select('*').eq('owner_id', userId).order('name', { ascending: true }),
+          this.supabase.from('places').select('*').eq('owner_id', userId).order('name', { ascending: true }),
           this.supabase.from('currencies').select('*').order('symbol', { ascending: true }),
           this.loadAvailableYears(userId),
         ]);
@@ -402,6 +426,10 @@ export class TransactionsStore {
         throw walletsResult.error;
       }
 
+      if (placesResult.error) {
+        throw placesResult.error;
+      }
+
       if (currenciesResult.error) {
         throw currenciesResult.error;
       }
@@ -413,6 +441,7 @@ export class TransactionsStore {
         (categoriesResult.data ?? []).map((category) => this.mapCategoryRow(category as CategoryRow)),
       );
       const tags = this.sortTags((tagsResult.data ?? []).map((tag) => this.mapTagRow(tag as TagRow)));
+      const places = this.sortPlaces((placesResult.data ?? []).map((place) => this.mapPlaceRow(place as PlaceRow)));
       const currencyRows = (currenciesResult.data ?? []).map((row) => this.mapCurrencyRow(row as CurrencyRow));
       const currencyLookup = new Map(currencyRows.map((currency) => [currency.id, currency.symbol]));
       const currencies = this.sortCurrencies(currencyRows);
@@ -435,6 +464,7 @@ export class TransactionsStore {
         loadingMoreTransactions: false,
         tags,
         wallets,
+        places,
         currencies,
         defaultCurrency,
         availableYears,
@@ -670,6 +700,11 @@ export class TransactionsStore {
       filters.push(`category_id.in.(${matchingCategoryIds.join(',')})`);
     }
 
+    const matchingPlaceIds = this.matchingPlaceIdsForSearch(normalized);
+    if (matchingPlaceIds.length > 0) {
+      filters.push(`place_id.in.(${matchingPlaceIds.join(',')})`);
+    }
+
     return filters.join(',');
   }
 
@@ -690,6 +725,17 @@ export class TransactionsStore {
           (category.groupId ? matchingGroupIds.has(category.groupId) : false),
       )
       .map((category) => category.id);
+  }
+
+  private matchingPlaceIdsForSearch(searchTerm: string): readonly string[] {
+    const normalized = searchTerm.toLowerCase();
+    return this.state()
+      .places.filter((place) =>
+        [place.name, place.street, place.city, place.postalCode, place.country, place.note]
+          .filter((value): value is string => !!value)
+          .some((value) => value.toLowerCase().includes(normalized)),
+      )
+      .map((place) => place.id);
   }
 
   applyPreset(preset: TransactionPresetId): void {
@@ -919,6 +965,7 @@ export class TransactionsStore {
         is_automatic: false,
         exchange_rate: normalized.exchangeRate,
         wallet_id: normalized.walletId,
+        place_id: normalized.placeId,
       }));
 
       const { data: inserted, error } = await this.supabase.from('transactions').insert(rows).select('id');
@@ -1001,6 +1048,7 @@ export class TransactionsStore {
           direction: normalized.direction,
           exchange_rate: normalized.exchangeRate,
           wallet_id: normalized.walletId,
+          place_id: normalized.placeId,
         })
         .eq('owner_id', userId)
         .eq('id', transactionId);
@@ -1305,6 +1353,13 @@ export class TransactionsStore {
     });
   }
 
+  private sortPlaces(places: readonly PlaceEntity[]): PlaceEntity[] {
+    return [...places].sort((a, b) => {
+      const byName = a.name.localeCompare(b.name);
+      return byName === 0 ? (a.city ?? '').localeCompare(b.city ?? '') : byName;
+    });
+  }
+
   private sortCurrencies(currencies: readonly CurrencyOption[]): CurrencyOption[] {
     return [...currencies].sort((a, b) => a.symbol.localeCompare(b.symbol));
   }
@@ -1339,6 +1394,20 @@ export class TransactionsStore {
       recurringScheduledFor: row.recurring_scheduled_for ? new Date(row.recurring_scheduled_for) : null,
       exchangeRate: Number.isFinite(exchangeRate ?? NaN) ? (exchangeRate as number) : null,
       walletId: row.wallet_id,
+      placeId: row.place_id ?? null,
+    };
+  }
+
+  private mapPlaceRow(row: PlaceRow): PlaceEntity {
+    return {
+      id: row.id,
+      ownerId: row.owner_id,
+      name: row.name,
+      street: row.street ?? null,
+      city: row.city ?? null,
+      postalCode: row.postal_code ?? null,
+      country: row.country ?? null,
+      note: row.note ?? null,
     };
   }
 
@@ -1491,6 +1560,7 @@ export class TransactionsStore {
     if (!wallet) {
       return null;
     }
+    const placeId = this.resolvePlaceId(payload.placeId);
     const walletCurrency = wallet.currency.toUpperCase();
     const currency = this.normalizeCurrency(payload.currency) ?? walletCurrency;
     const normalizedForeignAmount =
@@ -1521,6 +1591,7 @@ export class TransactionsStore {
       tagIds,
       exchangeRate,
       walletId,
+      placeId,
     };
   }
 
@@ -1548,6 +1619,7 @@ export class TransactionsStore {
     if (!wallet) {
       return null;
     }
+    const placeId = this.resolvePlaceId(payload.placeId);
     const walletCurrency = wallet.currency.toUpperCase();
     const currency = this.normalizeCurrency(payload.currency) ?? walletCurrency;
     const normalizedForeignAmount =
@@ -1577,6 +1649,7 @@ export class TransactionsStore {
       tagIds,
       exchangeRate,
       walletId,
+      placeId,
     };
   }
 
@@ -1599,6 +1672,17 @@ export class TransactionsStore {
     }
 
     return wallets[0]?.id ?? null;
+  }
+
+  private resolvePlaceId(candidate: string | null | undefined): string | null {
+    const normalized = candidate?.trim() ?? '';
+    if (!normalized) {
+      return null;
+    }
+
+    return this.state().places.some((place) => place.id === normalized)
+      ? normalized
+      : null;
   }
 
   private describeError(error: unknown): string {

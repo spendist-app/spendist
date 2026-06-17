@@ -49,6 +49,7 @@ const pl = {
     transactions: 'Transakcje',
     modules: 'Moduły',
     modulesRecurring: 'Płatności cykliczne',
+    modulesPlaces: 'Miejsca',
     menuToggle: 'Otwórz menu nawigacji',
     about: {
       menuItem: 'O aplikacji',
@@ -590,6 +591,20 @@ const pl = {
       expense: 'Wydatki',
       net: 'Bilans',
     },
+    placesWidget: {
+      badge: 'Miejsca',
+      title: 'Wydatki według miejsc',
+      subtitle:
+        'Suma wydatków dla miejsc w wybranym roku i aktualnym portfelu.',
+      yearLabel: 'Rok',
+      noWalletSelected: 'Wybierz portfel, aby załadować miejsca.',
+      errorTitle: 'Nie udało się załadować miejsc',
+      retry: 'Spróbuj ponownie',
+      empty: 'Brak transakcji z miejscem w tym roku.',
+      latest: 'Ostatnia transakcja',
+      transactions: 'Transakcje',
+      expense: 'Wydatki',
+    },
   },
   transactions: {
     badge: 'Transakcje',
@@ -629,6 +644,7 @@ const pl = {
       automatic: 'Automatyczna',
       recurringSource: 'Cykliczna',
       uncategorized: 'Brak kategorii',
+      place: 'Miejsce',
       direction: {
         income: 'Przychód',
         expense: 'Wydatek',
@@ -667,6 +683,7 @@ const pl = {
       fields: {
         description: 'Opis',
         category: 'Kategoria',
+        place: 'Miejsce',
         date: 'Data',
         amount: 'Kwota',
         currency: 'Waluta',
@@ -683,6 +700,7 @@ const pl = {
       placeholders: {
         description: 'Opcjonalna notatka, np. Zakupy spożywcze',
         category: 'Wybierz kategorię',
+        place: 'Brak miejsca',
         wallet: 'Wybierz portfel',
         tagInput: 'Wpisz tag i naciśnij Enter…',
       },
@@ -695,6 +713,7 @@ const pl = {
         removeTag: 'Usuń {{ name }}',
         showAdvanced: 'Pokaż pola zaawansowane',
         hideAdvanced: 'Ukryj pola zaawansowane',
+        updateExchangeRate: 'Aktualizuj kurs',
       },
       help: {
         amountExpression:
@@ -706,6 +725,60 @@ const pl = {
       },
       emptyTags:
         'Zacznij pisać, aby dodać pierwszy tag lub wybierz z podpowiedzi.',
+    },
+  },
+  places: {
+    badge: 'Moduły',
+    title: 'Miejsca',
+    description:
+      'Zapisuj miejsca, w których robisz wydatki, i przypisuj je do transakcji.',
+    empty: 'Dodaj pierwsze miejsce, aby później przypisywać je do transakcji.',
+    noAddress: 'Brak adresu',
+    search: {
+      label: 'Wyszukaj miejsce',
+      placeholder: 'Nazwa, miasto, ulica…',
+      count: '{{ count }} miejsc',
+      empty: 'Brak miejsc pasujących do wyszukiwania.',
+    },
+    actions: {
+      add: 'Dodaj miejsce',
+      edit: 'Edytuj',
+      retry: 'Spróbuj ponownie',
+      deleteConfirm:
+        'Usunąć miejsce „{{ name }}”? Transakcje zostaną zachowane, ale stracą przypisane miejsce.',
+    },
+    form: {
+      badge: 'Miejsce',
+      title: {
+        create: 'Dodaj miejsce',
+        edit: 'Edytuj miejsce',
+      },
+      closedTitle: 'Wybierz miejsce',
+      closedBody:
+        'Wybierz miejsce z listy do edycji albo dodaj nowe miejsce.',
+      fields: {
+        name: 'Nazwa',
+        street: 'Ulica i numer',
+        postalCode: 'Kod pocztowy',
+        city: 'Miasto',
+        country: 'Kraj',
+        note: 'Notatka',
+      },
+      validation: {
+        name: 'Podaj nazwę miejsca.',
+      },
+      submit: {
+        create: 'Zapisz miejsce',
+        edit: 'Zapisz zmiany',
+        busy: 'Zapisywanie…',
+      },
+    },
+    errors: {
+      title: 'Nie udało się wykonać operacji',
+      auth: 'Musisz być zalogowany, aby zarządzać miejscami.',
+      emptyResponse: 'Supabase zwrócił pustą odpowiedź.',
+      generic: 'Nie udało się zapisać miejsca.',
+      nameRequired: 'Podaj nazwę miejsca.',
     },
   },
   modules: {

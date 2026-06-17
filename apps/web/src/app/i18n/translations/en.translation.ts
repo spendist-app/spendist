@@ -49,6 +49,7 @@ const en = {
     transactions: 'Transactions',
     modules: 'Modules',
     modulesRecurring: 'Recurring payments',
+    modulesPlaces: 'Places',
     menuToggle: 'Open navigation menu',
     about: {
       menuItem: 'About',
@@ -587,6 +588,20 @@ const en = {
       expense: 'Expense',
       net: 'Net result',
     },
+    placesWidget: {
+      badge: 'Places',
+      title: 'Spending by place',
+      subtitle:
+        'Expense totals for places in the selected year and current wallet.',
+      yearLabel: 'Year',
+      noWalletSelected: 'Select a wallet to load places.',
+      errorTitle: 'Place data could not be loaded',
+      retry: 'Try again',
+      empty: 'No transactions with a place in this year.',
+      latest: 'Latest transaction',
+      transactions: 'Transactions',
+      expense: 'Expenses',
+    },
   },
   transactions: {
     badge: 'Transactions',
@@ -626,6 +641,7 @@ const en = {
       automatic: 'Automatic',
       recurringSource: 'Recurring',
       uncategorized: 'No category',
+      place: 'Place',
       direction: {
         income: 'Income',
         expense: 'Expense',
@@ -665,6 +681,7 @@ const en = {
       fields: {
         description: 'Description',
         category: 'Category',
+        place: 'Place',
         date: 'Date',
         amount: 'Amount',
         currency: 'Currency',
@@ -681,6 +698,7 @@ const en = {
       placeholders: {
         description: 'Optional note, e.g. Grocery run',
         category: 'Select category',
+        place: 'No place',
         wallet: 'Select wallet',
         tagInput: 'Type a tag and press Enter…',
       },
@@ -694,6 +712,7 @@ const en = {
         removeTag: 'Remove {{ name }}',
         showAdvanced: 'Show advanced fields',
         hideAdvanced: 'Hide advanced fields',
+        updateExchangeRate: 'Update exchange rate',
       },
       help: {
         amountExpression:
@@ -704,6 +723,59 @@ const en = {
       },
       emptyTags:
         'Start typing to create your first tag or choose from suggestions.',
+    },
+  },
+  places: {
+    badge: 'Modules',
+    title: 'Places',
+    description:
+      'Save places where you spend money and assign them to transactions.',
+    empty: 'Add your first place to assign it to transactions later.',
+    noAddress: 'No address',
+    search: {
+      label: 'Search places',
+      placeholder: 'Name, city, street…',
+      count: '{{ count }} places',
+      empty: 'No places match your search.',
+    },
+    actions: {
+      add: 'Add place',
+      edit: 'Edit',
+      retry: 'Try again',
+      deleteConfirm:
+        'Delete “{{ name }}”? Transactions will be kept, but their place will be cleared.',
+    },
+    form: {
+      badge: 'Place',
+      title: {
+        create: 'Add place',
+        edit: 'Edit place',
+      },
+      closedTitle: 'Select a place',
+      closedBody: 'Select a place from the list to edit it or add a new one.',
+      fields: {
+        name: 'Name',
+        street: 'Street and number',
+        postalCode: 'Postal code',
+        city: 'City',
+        country: 'Country',
+        note: 'Note',
+      },
+      validation: {
+        name: 'Enter a place name.',
+      },
+      submit: {
+        create: 'Save place',
+        edit: 'Save changes',
+        busy: 'Saving…',
+      },
+    },
+    errors: {
+      title: 'Operation failed',
+      auth: 'You need to be signed in to manage places.',
+      emptyResponse: 'Supabase returned empty response.',
+      generic: 'Place could not be saved.',
+      nameRequired: 'Enter a place name.',
     },
   },
   modules: {

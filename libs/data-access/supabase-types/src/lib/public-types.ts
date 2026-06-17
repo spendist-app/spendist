@@ -19,6 +19,10 @@ export type CategoryGroupRow = PublicTables['categories_group']['Row'];
 export type CategoryGroupInsert = PublicTables['categories_group']['Insert'];
 export type CategoryGroupUpdate = PublicTables['categories_group']['Update'];
 
+export type PlaceRow = PublicTables['places']['Row'];
+export type PlaceInsert = PublicTables['places']['Insert'];
+export type PlaceUpdate = PublicTables['places']['Update'];
+
 export type WalletRow = PublicTables['wallets']['Row'];
 export type WalletInsert = PublicTables['wallets']['Insert'];
 export type WalletUpdate = PublicTables['wallets']['Update'];
