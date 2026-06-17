@@ -17,6 +17,10 @@ type AuthSessionResponse = {
   };
 };
 
+type BootstrapRow = {
+  id: string;
+};
+
 export async function resetDatabase(phase: ResetPhase): Promise<void> {
   const envFile = resolveEnvFile();
   const dbUrl =
@@ -135,53 +139,136 @@ async function ensureUserBootstrapData(
     `${baseUrl}/rest/v1/categories?select=id&owner_id=eq.${userId}&limit=1`,
     { headers }
   );
-  const existingCategories = (await categories.json()) as Array<{ id: string }>;
+  const existingCategories = await parseJsonArray<BootstrapRow>(
+    categories,
+    'load bootstrap categories'
+  );
   if (existingCategories.length > 0) {
     return;
   }
 
-  const groupResponse = await fetch(
-    `${baseUrl}/rest/v1/categories_group?select=id`,
-    {
-      method: 'POST',
-      headers: {
-        ...headers,
-        Prefer: 'return=representation',
-      },
-      body: JSON.stringify({
-        owner_id: userId,
-        name: 'Essentials',
-        color: '#0EA5A5',
-        icon: 'heroHome',
-      }),
-    }
-  );
-  const [group] = (await groupResponse.json()) as Array<{ id: string }>;
+  const group =
+    (await findBootstrapRowByName(
+      baseUrl,
+      headers,
+      'categories_group',
+      userId,
+      'Essentials'
+    )) ??
+    (await createBootstrapGroup(baseUrl, headers, userId));
   if (!group?.id) {
     throw new Error('[e2e-db] Failed to create bootstrap category group.');
   }
 
-  const categoryResponse = await fetch(
-    `${baseUrl}/rest/v1/categories?select=id`,
-    {
-      method: 'POST',
-      headers: {
-        ...headers,
-        Prefer: 'return=representation',
-      },
-      body: JSON.stringify({
-        owner_id: userId,
-        group_id: group.id,
-        name: 'Groceries',
-        color: '#0EA5A5',
-        icon: 'heroShoppingCart',
-      }),
-    }
-  );
-  const [category] = (await categoryResponse.json()) as Array<{ id: string }>;
+  const category =
+    (await findBootstrapRowByName(
+      baseUrl,
+      headers,
+      'categories',
+      userId,
+      'Groceries'
+    )) ??
+    (await createBootstrapCategory(baseUrl, headers, userId, group.id));
   if (!category?.id) {
     throw new Error('[e2e-db] Failed to create bootstrap category.');
   }
+}
+
+async function findBootstrapRowByName(
+  baseUrl: string,
+  headers: Record<string, string>,
+  table: 'categories_group' | 'categories',
+  userId: string,
+  name: string
+): Promise<BootstrapRow | null> {
+  const response = await fetch(
+    `${baseUrl}/rest/v1/${table}?select=id&owner_id=eq.${encodeURIComponent(
+      userId
+    )}&name=eq.${encodeURIComponent(name)}&limit=1`,
+    { headers }
+  );
+  const rows = await parseJsonArray<BootstrapRow>(
+    response,
+    `load bootstrap ${table}`
+  );
+  return rows[0] ?? null;
+}
+
+async function createBootstrapGroup(
+  baseUrl: string,
+  headers: Record<string, string>,
+  userId: string
+): Promise<BootstrapRow | null> {
+  const response = await fetch(`${baseUrl}/rest/v1/categories_group?select=id`, {
+    method: 'POST',
+    headers: {
+      ...headers,
+      Prefer: 'return=representation',
+    },
+    body: JSON.stringify({
+      owner_id: userId,
+      name: 'Essentials',
+      color: '#0EA5A5',
+      icon: 'heroHome',
+    }),
+  });
+  const rows = await parseJsonArray<BootstrapRow>(
+    response,
+    'create bootstrap category group'
+  );
+  return rows[0] ?? null;
+}
+
+async function createBootstrapCategory(
+  baseUrl: string,
+  headers: Record<string, string>,
+  userId: string,
+  groupId: string
+): Promise<BootstrapRow | null> {
+  const response = await fetch(`${baseUrl}/rest/v1/categories?select=id`, {
+    method: 'POST',
+    headers: {
+      ...headers,
+      Prefer: 'return=representation',
+    },
+    body: JSON.stringify({
+      owner_id: userId,
+      group_id: groupId,
+      name: 'Groceries',
+      color: '#0EA5A5',
+      icon: 'heroShoppingCart',
+    }),
+  });
+  const rows = await parseJsonArray<BootstrapRow>(
+    response,
+    'create bootstrap category'
+  );
+  return rows[0] ?? null;
+}
+
+async function parseJsonArray<T>(
+  response: Response,
+  action: string
+): Promise<T[]> {
+  const body = await response.text();
+  if (!response.ok) {
+    throw new Error(
+      `[e2e-db] Failed to ${action} (${response.status}): ${truncateForLog(
+        body
+      )}`
+    );
+  }
+
+  const parsed = body ? (JSON.parse(body) as unknown) : [];
+  if (!Array.isArray(parsed)) {
+    throw new Error(
+      `[e2e-db] Expected array while trying to ${action}: ${truncateForLog(
+        body
+      )}`
+    );
+  }
+
+  return parsed as T[];
 }
 
 async function signUp(
