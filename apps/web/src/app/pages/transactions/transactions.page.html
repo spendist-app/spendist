@@ -338,6 +338,14 @@
                                 · {{ group.name }}
                               }
                             </p>
+                            @if (transaction.place; as place) {
+                              <p class="text-sm text-base-content/60">
+                                {{ 'transactions.list.place' | transloco }}: {{ place.name }}
+                                @if (place.city) {
+                                  · {{ place.city }}
+                                }
+                              </p>
+                            }
                             <p class="text-xs uppercase tracking-wide text-base-content/40">
                               {{ ('transactions.list.direction.' + transaction.direction) | transloco }}
                             </p>

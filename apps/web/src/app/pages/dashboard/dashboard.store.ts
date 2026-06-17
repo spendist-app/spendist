@@ -10,6 +10,7 @@ type AvailableMonthRow = Database['public']['Functions']['available_transaction_
 type MonthlyCategoryCashflowRow = Database['public']['Functions']['monthly_category_cashflow']['Returns'][number];
 type MonthlyRecurringTransactionRow =
   Database['public']['Functions']['monthly_recurring_transaction_summary']['Returns'][number];
+type PlaceExpenseSummaryRow = Database['public']['Functions']['place_expense_summary']['Returns'][number];
 type TransactionDirection = Database['public']['Enums']['transaction_direction'];
 type WalletRow = Pick<Database['public']['Tables']['wallets']['Row'], 'id' | 'name' | 'is_default'>;
 
@@ -70,6 +71,24 @@ interface RecurringTransactionSummaryState {
   readonly entries: readonly RecurringTransactionSummaryEntry[];
 }
 
+interface PlaceExpenseSummaryEntry {
+  readonly placeId: string;
+  readonly placeName: string;
+  readonly street: string | null;
+  readonly city: string | null;
+  readonly postalCode: string | null;
+  readonly country: string | null;
+  readonly totalAmount: number;
+  readonly transactionCount: number;
+  readonly latestTransactionAt: Date | null;
+}
+
+interface PlaceExpenseSummaryState {
+  readonly loading: boolean;
+  readonly error: string | null;
+  readonly entries: readonly PlaceExpenseSummaryEntry[];
+}
+
 interface WalletOption {
   readonly id: string;
   readonly name: string;
@@ -114,11 +133,18 @@ export class DashboardStore {
     entries: [],
   });
   private readonly selectedRecurringMonth = signal<string | null>(null);
+  private readonly placeState = signal<PlaceExpenseSummaryState>({
+    loading: true,
+    error: null,
+    entries: [],
+  });
+  private readonly selectedPlaceYear = signal<number>(new Date().getFullYear());
 
   private structureRequestToken = 0;
   private monthOptionsRequestToken = 0;
   private categoryRequestToken = 0;
   private recurringRequestToken = 0;
+  private placeRequestToken = 0;
 
   readonly walletsLoading = computed(() => this.walletState().loading);
   readonly walletError = computed(() => this.walletState().error);
@@ -182,6 +208,20 @@ export class DashboardStore {
 
     return this.recurringState().entries.find((entry) => entry.id === selection) ?? null;
   });
+  readonly placeLoading = computed(() => this.placeState().loading);
+  readonly placeError = computed(() => this.placeState().error);
+  readonly placeEntries = computed(() => this.placeState().entries);
+  readonly placeEmpty = computed(
+    () =>
+      !this.placeState().loading &&
+      !this.placeState().error &&
+      this.placeState().entries.length === 0,
+  );
+  readonly selectedPlaceYearValue = computed(() => this.selectedPlaceYear());
+  readonly placeYearOptions = computed(() => {
+    const current = new Date().getFullYear();
+    return Array.from({ length: 5 }, (_, index) => current - index);
+  });
 
   constructor() {
     effect(() => {
@@ -228,6 +268,11 @@ export class DashboardStore {
           error: null,
           entries: [],
         });
+        this.placeState.set({
+          loading: false,
+          error: null,
+          entries: [],
+        });
         this.selectedRecurringMonth.set(null);
         return;
       }
@@ -245,10 +290,28 @@ export class DashboardStore {
         entries: [],
       });
       this.selectedRecurringMonth.set(null);
+      this.placeState.set({
+        loading: true,
+        error: null,
+        entries: [],
+      });
 
       void this.loadMonthlyStructure(true);
       void this.loadAvailableMonths(true);
       void this.loadRecurringSummary(true);
+      void this.loadPlaceSummary(true);
+    });
+
+    effect(() => {
+      const walletId = this.selectedWallet();
+      const year = this.selectedPlaceYear();
+      const hasUser = !!this.userId();
+
+      if (!hasUser || !walletId || !year) {
+        return;
+      }
+
+      void this.loadPlaceSummary(true);
     });
 
     effect(() => {
@@ -300,6 +363,15 @@ export class DashboardStore {
     }
 
     void this.loadRecurringSummary(true);
+  }
+
+  refreshPlaceSummary(): void {
+    if (!this.selectedWallet()) {
+      void this.loadWallets();
+      return;
+    }
+
+    void this.loadPlaceSummary(true);
   }
 
   selectWallet(id: string | null | undefined): void {
@@ -359,11 +431,25 @@ export class DashboardStore {
     this.selectedRecurringMonth.set(normalized);
   }
 
+  selectPlaceYear(value: string | number | null | undefined): void {
+    const parsed = typeof value === 'number' ? value : Number(value);
+    if (!Number.isInteger(parsed) || parsed < 2000 || parsed > 2100) {
+      return;
+    }
+
+    if (this.selectedPlaceYear() === parsed) {
+      return;
+    }
+
+    this.selectedPlaceYear.set(parsed);
+  }
+
   private resetAllState(): void {
     this.structureRequestToken = 0;
     this.monthOptionsRequestToken = 0;
     this.categoryRequestToken = 0;
     this.recurringRequestToken = 0;
+    this.placeRequestToken = 0;
     this.walletState.set({
       loading: false,
       error: null,
@@ -388,6 +474,12 @@ export class DashboardStore {
       entries: [],
     });
     this.selectedRecurringMonth.set(null);
+    this.placeState.set({
+      loading: false,
+      error: null,
+      entries: [],
+    });
+    this.selectedPlaceYear.set(new Date().getFullYear());
   }
 
   private async loadWallets(): Promise<void> {
@@ -661,6 +753,60 @@ export class DashboardStore {
     }
   }
 
+  private async loadPlaceSummary(force = false): Promise<void> {
+    if (!this.userId()) {
+      return;
+    }
+    const walletId = this.selectedWallet();
+    if (!walletId) {
+      return;
+    }
+
+    if (!force && this.placeState().loading) {
+      return;
+    }
+
+    const token = ++this.placeRequestToken;
+    this.placeState.set({
+      loading: true,
+      error: null,
+      entries: [],
+    });
+
+    try {
+      const { data, error } = await this.supabase.rpc('place_expense_summary', {
+        p_year: this.selectedPlaceYear(),
+        p_wallet_id: walletId,
+      });
+
+      if (token !== this.placeRequestToken) {
+        return;
+      }
+
+      if (error) {
+        throw error;
+      }
+
+      const entries = (data ?? []).map((row: PlaceExpenseSummaryRow) => this.mapPlaceSummaryRow(row));
+      this.placeState.set({
+        loading: false,
+        error: null,
+        entries,
+      });
+    } catch (error) {
+      if (token !== this.placeRequestToken) {
+        return;
+      }
+
+      logError('DashboardStore', 'Failed to load place expense summary', error);
+      this.placeState.set({
+        loading: false,
+        error: this.describeError(error),
+        entries: [],
+      });
+    }
+  }
+
   private mapWalletRow(row: WalletRow): WalletOption {
     return {
       id: row.id,
@@ -716,6 +862,20 @@ export class DashboardStore {
       expenseTotal,
       netTotal: incomeTotal - expenseTotal,
       transactionCount: this.parseCount(row.transaction_count),
+    };
+  }
+
+  private mapPlaceSummaryRow(row: PlaceExpenseSummaryRow): PlaceExpenseSummaryEntry {
+    return {
+      placeId: row.place_id,
+      placeName: row.place_name,
+      street: row.street ?? null,
+      city: row.city ?? null,
+      postalCode: row.postal_code ?? null,
+      country: row.country ?? null,
+      totalAmount: this.parseNumeric(row.total_amount),
+      transactionCount: this.parseCount(row.transaction_count),
+      latestTransactionAt: row.latest_transaction_at ? this.normalizeDate(row.latest_transaction_at) : null,
     };
   }
 

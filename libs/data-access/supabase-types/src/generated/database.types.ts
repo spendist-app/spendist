@@ -251,6 +251,60 @@ export type Database = {
         }
         Relationships: []
       }
+      places: {
+        Row: {
+          city: string | null
+          country: string | null
+          creation_date: string
+          id: string
+          name: string
+          note: string | null
+          owner_id: string
+          postal_code: string | null
+          street: string | null
+          updated_at: string
+        }
+        Insert: {
+          city?: string | null
+          country?: string | null
+          creation_date?: string
+          id?: string
+          name: string
+          note?: string | null
+          owner_id: string
+          postal_code?: string | null
+          street?: string | null
+          updated_at?: string
+        }
+        Update: {
+          city?: string | null
+          country?: string | null
+          creation_date?: string
+          id?: string
+          name?: string
+          note?: string | null
+          owner_id?: string
+          postal_code?: string | null
+          street?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "places_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "places_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_transactions_overview"
+            referencedColumns: ["owner_id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -628,6 +682,7 @@ export type Database = {
           is_automatic: boolean
           occurred_at: string
           owner_id: string
+          place_id: string | null
           recurring_scheduled_for: string | null
           recurring_transaction_id: string | null
           updated_at: string
@@ -650,6 +705,7 @@ export type Database = {
           is_automatic?: boolean
           occurred_at: string
           owner_id: string
+          place_id?: string | null
           recurring_scheduled_for?: string | null
           recurring_transaction_id?: string | null
           updated_at?: string
@@ -672,6 +728,7 @@ export type Database = {
           is_automatic?: boolean
           occurred_at?: string
           owner_id?: string
+          place_id?: string | null
           recurring_scheduled_for?: string | null
           recurring_transaction_id?: string | null
           updated_at?: string
@@ -698,6 +755,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "recurring_transactions_overview"
             referencedColumns: ["owner_id"]
+          },
+          {
+            foreignKeyName: "transactions_place_owner_fk"
+            columns: ["owner_id", "place_id"]
+            isOneToOne: false
+            referencedRelation: "places"
+            referencedColumns: ["owner_id", "id"]
           },
           {
             foreignKeyName: "transactions_recurring_transaction_fk"
@@ -862,6 +926,20 @@ export type Database = {
       notify_admins_exchange_rates_sync_failed: {
         Args: { p_payload: Json }
         Returns: number
+      }
+      place_expense_summary: {
+        Args: { p_wallet_id: string; p_year: number }
+        Returns: {
+          city: string
+          country: string
+          latest_transaction_at: string
+          place_id: string
+          place_name: string
+          postal_code: string
+          street: string
+          total_amount: number
+          transaction_count: number
+        }[]
       }
       resolve_preferred_currency_id: {
         Args: { user_meta: Json }

@@ -111,6 +111,114 @@
   <section class="rounded-3xl border border-base-300 bg-base-100/80 p-6 shadow-sm sm:p-8">
     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div class="space-y-2">
+        <p class="badge badge-primary badge-outline text-xs uppercase tracking-wide">
+          {{ 'dashboard.placesWidget.badge' | transloco }}
+        </p>
+        <div class="space-y-1">
+          <h2 class="text-2xl font-semibold">
+            {{ 'dashboard.placesWidget.title' | transloco }}
+          </h2>
+          <p class="text-sm text-base-content/70">
+            {{ 'dashboard.placesWidget.subtitle' | transloco }}
+          </p>
+        </div>
+      </div>
+
+      <div class="w-full sm:max-w-xs">
+        <label class="form-control w-full">
+          <span class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60">
+            {{ 'dashboard.placesWidget.yearLabel' | transloco }}
+          </span>
+          <select
+            class="select select-bordered"
+            [value]="store.selectedPlaceYearValue()"
+            (change)="onPlaceYearChange($event)"
+            [disabled]="!store.selectedWalletId()"
+          >
+            @for (year of store.placeYearOptions(); track year) {
+              <option [value]="year">{{ year }}</option>
+            }
+          </select>
+        </label>
+      </div>
+    </div>
+
+    <div class="mt-6">
+      @if (!store.selectedWalletId()) {
+        <div class="rounded-2xl border border-dashed border-base-200 bg-base-100/70 p-6 text-center text-sm text-base-content/70">
+          {{ 'dashboard.placesWidget.noWalletSelected' | transloco }}
+        </div>
+      } @else if (store.placeLoading()) {
+        <div class="space-y-3">
+          @for (placeholder of skeletonPlaceholders; track placeholder) {
+            <div class="skeleton h-24 rounded-2xl"></div>
+          }
+        </div>
+      } @else if (store.placeError()) {
+        <div class="rounded-2xl border border-error/40 bg-error/5 p-4">
+          <p class="text-sm font-semibold text-error">
+            {{ 'dashboard.placesWidget.errorTitle' | transloco }}
+          </p>
+          <p class="text-sm text-base-content/70">
+            {{ store.placeError() }}
+          </p>
+          <button type="button" class="btn btn-error btn-sm mt-3" (click)="store.refreshPlaceSummary()">
+            {{ 'dashboard.placesWidget.retry' | transloco }}
+          </button>
+        </div>
+      } @else if (store.placeEmpty()) {
+        <div class="rounded-2xl border border-dashed border-base-200 bg-base-100/70 p-6 text-center text-sm text-base-content/70">
+          {{ 'dashboard.placesWidget.empty' | transloco }}
+        </div>
+      } @else {
+        <div class="grid gap-3">
+          @for (place of store.placeEntries(); track place.placeId) {
+            <article class="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
+              <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div class="min-w-0 space-y-1">
+                  <h3 class="truncate text-lg font-semibold text-base-content">
+                    {{ place.placeName }}
+                  </h3>
+                  @if (formatAddress(place); as address) {
+                    <p class="text-sm text-base-content/70">{{ address }}</p>
+                  }
+                  @if (place.latestTransactionAt) {
+                    <p class="text-xs text-base-content/50">
+                      {{ 'dashboard.placesWidget.latest' | transloco }}:
+                      {{ formatDate(place.latestTransactionAt) }}
+                    </p>
+                  }
+                </div>
+
+                <dl class="grid shrink-0 grid-cols-2 gap-4 text-right">
+                  <div>
+                    <dt class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+                      {{ 'dashboard.placesWidget.transactions' | transloco }}
+                    </dt>
+                    <dd class="text-lg font-semibold text-base-content">
+                      {{ place.transactionCount }}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt class="text-xs font-semibold uppercase tracking-wide text-error/80">
+                      {{ 'dashboard.placesWidget.expense' | transloco }}
+                    </dt>
+                    <dd class="text-lg font-semibold text-error">
+                      {{ formatExpense(place.totalAmount) }}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            </article>
+          }
+        </div>
+      }
+    </div>
+  </section>
+
+  <section class="rounded-3xl border border-base-300 bg-base-100/80 p-6 shadow-sm sm:p-8">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div class="space-y-2">
         <p class="badge badge-accent badge-outline text-xs uppercase tracking-wide">
           {{ 'dashboard.recurringWidget.badge' | transloco }}
         </p>

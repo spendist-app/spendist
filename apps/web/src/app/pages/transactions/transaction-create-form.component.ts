@@ -18,6 +18,7 @@ import {
   TransactionsStore,
   TagEntity,
   WalletEntity,
+  PlaceEntity,
   TransactionViewModel,
   UpdateTransactionPayload,
 } from './transactions.store';
@@ -63,6 +64,7 @@ export class TransactionCreateFormComponent {
   readonly transaction = input<TransactionViewModel | null>(null);
   readonly prefill = input<TransactionViewModel | null | undefined>(undefined);
   protected readonly showAdvanced = signal(false);
+  protected readonly exchangeRateRefreshPending = signal(false);
   protected readonly isEditMode = computed(() => this.mode() === 'edit');
   protected readonly tags = computed<readonly TagEntity[]>(() =>
     this.store.tags()
@@ -70,28 +72,36 @@ export class TransactionCreateFormComponent {
   protected readonly wallets = computed<readonly WalletEntity[]>(() =>
     this.store.wallets()
   );
+  protected readonly places = computed<readonly PlaceEntity[]>(() =>
+    this.store.places()
+  );
   private readonly selectedWalletCurrency = signal(
     this.store.defaultCurrency()
   );
+  private readonly currencyFollowsWallet = signal(true);
   protected readonly walletCurrency = computed(() =>
     this.selectedWalletCurrency()
   );
   protected readonly categoryView = computed(() => this.buildCategoryView());
-  protected readonly currencyOptions = computed<readonly CurrencyOptionView[]>(() => {
-    const currencies = this.store.currencies();
-    if (currencies.length === 0) {
-      return [{ id: -1, symbol: this.walletCurrency() }];
+  protected readonly currencyOptions = computed<readonly CurrencyOptionView[]>(
+    () => {
+      const currencies = this.store.currencies();
+      if (currencies.length === 0) {
+        return [{ id: -1, symbol: this.walletCurrency() }];
+      }
+
+      const selectedCurrency = this.form.controls.currency.value?.toUpperCase();
+      const hasSelectedCurrency = selectedCurrency
+        ? currencies.some(
+            (currency) => currency.symbol.toUpperCase() === selectedCurrency
+          )
+        : true;
+
+      return hasSelectedCurrency || !selectedCurrency
+        ? currencies
+        : [...currencies, { id: -1, symbol: selectedCurrency }];
     }
-
-    const selectedCurrency = this.form.controls.currency.value?.toUpperCase();
-    const hasSelectedCurrency = selectedCurrency
-      ? currencies.some((currency) => currency.symbol.toUpperCase() === selectedCurrency)
-      : true;
-
-    return hasSelectedCurrency || !selectedCurrency
-      ? currencies
-      : [...currencies, { id: -1, symbol: selectedCurrency }];
-  });
+  );
 
   protected readonly form = this.formBuilder.group({
     description: this.formBuilder.control<string>('', {
@@ -100,6 +110,9 @@ export class TransactionCreateFormComponent {
     }),
     categoryId: this.formBuilder.control<string>('', {
       validators: [Validators.required],
+      nonNullable: true,
+    }),
+    placeId: this.formBuilder.control<string>('', {
       nonNullable: true,
     }),
     occurredOn: this.formBuilder.control<string>(this.todayIsoString(), {
@@ -228,6 +241,9 @@ export class TransactionCreateFormComponent {
     effect(() => {
       const desiredCurrency = this.walletCurrency();
       const control = this.form.controls.currency;
+      if (!this.currencyFollowsWallet()) {
+        return;
+      }
 
       if (control.value !== desiredCurrency) {
         control.setValue(desiredCurrency, { emitEvent: false });
@@ -267,6 +283,7 @@ export class TransactionCreateFormComponent {
     this.form.controls.currency.valueChanges
       .pipe(takeUntilDestroyed())
       .subscribe(() => {
+        this.currencyFollowsWallet.set(false);
         this.syncAmountInDefault();
       });
 
@@ -518,6 +535,51 @@ export class TransactionCreateFormComponent {
     this.showAdvanced.update((value) => !value);
   }
 
+  protected async updateExchangeRateFromTable(): Promise<void> {
+    if (this.exchangeRateRefreshPending()) {
+      return;
+    }
+
+    const amount = parseAmountInput(this.form.controls.amount.value);
+    if (amount === null) {
+      this.form.controls.amount.setErrors({ invalid: true });
+      return;
+    }
+
+    const occurredAt = this.parseDate(this.form.controls.occurredOn.value);
+    if (!occurredAt) {
+      this.form.controls.occurredOn.setErrors({ invalid: true });
+      return;
+    }
+
+    const currency = (this.form.controls.currency.value ?? '').toUpperCase();
+    const defaultCurrency = this.walletCurrency().toUpperCase();
+
+    this.exchangeRateRefreshPending.set(true);
+    try {
+      const amountInDefault = await this.calculateAmountInDefault(
+        amount,
+        currency || defaultCurrency,
+        defaultCurrency,
+        occurredAt
+      );
+
+      if (amountInDefault === null) {
+        this.form.controls.foreignAmount.setValue('', { emitEvent: false });
+        this.setExchangeRateUnavailableError();
+        return;
+      }
+
+      this.form.controls.foreignAmount.setValue(amountInDefault.toFixed(2), {
+        emitEvent: false,
+      });
+      this.form.controls.foreignAmount.markAsDirty();
+      this.clearExchangeRateUnavailableError();
+    } finally {
+      this.exchangeRateRefreshPending.set(false);
+    }
+  }
+
   protected selectDirection(direction: TransactionDirection): void {
     this.form.controls.direction.setValue(direction);
   }
@@ -602,7 +664,7 @@ export class TransactionCreateFormComponent {
             amount,
             currency,
             defaultCurrency,
-            occurredAt,
+            occurredAt
           ));
 
     if (currency !== defaultCurrency && resolvedAmountInDefault === null) {
@@ -621,6 +683,7 @@ export class TransactionCreateFormComponent {
       foreignAmount: resolvedAmountInDefault,
       foreignCurrency: resolvedAmountInDefault ? defaultCurrency : null,
       walletId,
+      placeId: raw.placeId || null,
     };
 
     if (mode === 'create') {
@@ -656,6 +719,7 @@ export class TransactionCreateFormComponent {
     this.form.reset({
       description: '',
       categoryId: defaultCategory,
+      placeId: '',
       occurredOn: this.todayIsoString(),
       amount: '',
       currency: this.store.defaultCurrency(),
@@ -668,16 +732,24 @@ export class TransactionCreateFormComponent {
     this.form.markAsPristine();
     this.form.markAsUntouched();
     this.showAdvanced.set(false);
+    this.currencyFollowsWallet.set(true);
     this.store.dismissMutationError();
     this.tagInput.set('');
-    this.syncWalletCurrency(this.form.controls.walletId.value);
+    this.syncWalletCurrency(this.form.controls.walletId.value, true);
     this.syncAmountInDefault();
   }
 
   private populateFormForEdit(transaction: TransactionViewModel): void {
+    const walletCurrency =
+      this.wallets().find((wallet) => wallet.id === transaction.walletId)
+        ?.currency ?? this.store.defaultCurrency();
+    this.currencyFollowsWallet.set(
+      transaction.currency.toUpperCase() === walletCurrency.toUpperCase()
+    );
     this.form.reset({
       description: transaction.description ?? '',
       categoryId: transaction.categoryId,
+      placeId: transaction.placeId ?? '',
       occurredOn: this.toDateInput(transaction.occurredAt),
       amount: transaction.amount.toFixed(2),
       currency: transaction.currency,
@@ -699,9 +771,16 @@ export class TransactionCreateFormComponent {
   private populateFormForCreatePrefill(
     transaction: TransactionViewModel
   ): void {
+    const walletCurrency =
+      this.wallets().find((wallet) => wallet.id === transaction.walletId)
+        ?.currency ?? this.store.defaultCurrency();
+    this.currencyFollowsWallet.set(
+      transaction.currency.toUpperCase() === walletCurrency.toUpperCase()
+    );
     this.form.reset({
       description: transaction.description ?? '',
       categoryId: transaction.categoryId,
+      placeId: transaction.placeId ?? '',
       occurredOn: this.toDateInput(transaction.occurredAt),
       amount: transaction.amount.toFixed(2),
       currency: transaction.currency,
@@ -784,7 +863,10 @@ export class TransactionCreateFormComponent {
     return amount.toFixed(2);
   }
 
-  private syncWalletCurrency(walletId: string | null | undefined): void {
+  private syncWalletCurrency(
+    walletId: string | null | undefined,
+    updateCurrencyControl = false
+  ): void {
     const wallets = this.wallets();
     const wallet = walletId
       ? wallets.find((item) => item.id === walletId) ?? null
@@ -793,9 +875,14 @@ export class TransactionCreateFormComponent {
     this.selectedWalletCurrency.set(currency);
 
     const currencyControl = this.form.controls.currency;
-    if (currencyControl.value !== currency) {
+    if (
+      updateCurrencyControl ||
+      !currencyControl.value ||
+      this.currencyFollowsWallet()
+    ) {
       currencyControl.setValue(currency, { emitEvent: false });
       currencyControl.markAsPristine();
+      this.currencyFollowsWallet.set(true);
     }
   }
 
@@ -829,7 +916,7 @@ export class TransactionCreateFormComponent {
       amount,
       currency || defaultCurrency,
       defaultCurrency,
-      occurredAt,
+      occurredAt
     );
 
     if (requestToken !== this.exchangeRateRequestToken) {
@@ -868,7 +955,7 @@ export class TransactionCreateFormComponent {
       const rate = await this.store.getExchangeRate(
         sourceCurrency,
         targetCurrency,
-        occurredAt,
+        occurredAt
       );
       return rate === null ? null : amount * rate;
     } catch (error) {
@@ -893,7 +980,8 @@ export class TransactionCreateFormComponent {
       return;
     }
 
-    const { exchangeRateUnavailable: _exchangeRateUnavailable, ...remaining } = errors;
+    const remaining = { ...errors };
+    delete remaining['exchangeRateUnavailable'];
     control.setErrors(Object.keys(remaining).length > 0 ? remaining : null);
   }
 
@@ -938,7 +1026,12 @@ export class TransactionCreateFormComponent {
       groupName: group.name,
       options: group.categories.map((category) => ({
         id: category.id,
-        label: this.buildCategoryLabel(category.id, category.name, category.parentId, categoryNames),
+        label: this.buildCategoryLabel(
+          category.id,
+          category.name,
+          category.parentId,
+          categoryNames
+        ),
         groupName: group.name,
       })),
     }));
@@ -950,7 +1043,12 @@ export class TransactionCreateFormComponent {
               groupName: null,
               options: ungrouped.map((category) => ({
                 id: category.id,
-                label: this.buildCategoryLabel(category.id, category.name, category.parentId, categoryNames),
+                label: this.buildCategoryLabel(
+                  category.id,
+                  category.name,
+                  category.parentId,
+                  categoryNames
+                ),
                 groupName: null,
               })),
             },
@@ -964,7 +1062,7 @@ export class TransactionCreateFormComponent {
     categoryId: string,
     categoryName: string,
     parentId: string | null,
-    categoryNames: ReadonlyMap<string, string>,
+    categoryNames: ReadonlyMap<string, string>
   ): string {
     const names = [categoryName];
     let currentParentId = parentId;
@@ -977,7 +1075,9 @@ export class TransactionCreateFormComponent {
         break;
       }
       names.unshift(parentName);
-      const parent = this.store.categories().find((category) => category.id === currentParentId);
+      const parent = this.store
+        .categories()
+        .find((category) => category.id === currentParentId);
       currentParentId = parent?.parentId ?? null;
     }
 

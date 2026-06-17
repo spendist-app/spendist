@@ -35,6 +35,11 @@
                       {{ 'navbar.modulesRecurring' | transloco }}
                     </a>
                   </li>
+                  <li>
+                    <a class="rounded-lg px-3 py-2 text-sm" routerLink="/modules/places">
+                      {{ 'navbar.modulesPlaces' | transloco }}
+                    </a>
+                  </li>
                 </ul>
               </li>
             </ul>
@@ -92,6 +97,16 @@
                   (click)="closeModulesMenu()"
                 >
                   {{ 'navbar.modulesRecurring' | transloco }}
+                </a>
+              </li>
+              <li>
+                <a
+                  class="rounded-lg px-3 py-2 text-sm"
+                  routerLink="/modules/places"
+                  routerLinkActive="active"
+                  (click)="closeModulesMenu()"
+                >
+                  {{ 'navbar.modulesPlaces' | transloco }}
                 </a>
               </li>
             </ul>

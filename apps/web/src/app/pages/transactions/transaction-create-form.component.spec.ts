@@ -28,6 +28,18 @@ class TransactionsStoreStub {
       currency: 'PLN',
     },
   ]);
+  readonly places = signal([
+    {
+      id: 'place-1',
+      ownerId: 'user-1',
+      name: 'Barber',
+      street: 'Main 1',
+      city: 'Zebrzydowice',
+      postalCode: null,
+      country: null,
+      note: null,
+    },
+  ]);
   readonly currencies = signal([
     { id: 1, symbol: 'PLN' },
     { id: 2, symbol: 'EUR' },
@@ -37,6 +49,7 @@ class TransactionsStoreStub {
   readonly defaultWalletId = signal('wallet-1');
   readonly transactionMutationPending = signal(false);
   readonly mutationError = signal(null);
+  getExchangeRateCalls = 0;
 
   dismissMutationError(): void {
     return;
@@ -47,7 +60,8 @@ class TransactionsStoreStub {
   }
 
   async getExchangeRate(): Promise<number> {
-    return 1;
+    this.getExchangeRateCalls += 1;
+    return 4;
   }
 
   async createTransactions(): Promise<{ success: true }> {
@@ -79,10 +93,69 @@ describe('TransactionCreateFormComponent', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
     const currencySelect = compiled.querySelector(
-      'select[formControlName="currency"]',
+      'select[formControlName="currency"]'
     ) as HTMLSelectElement | null;
-    const options = Array.from(currencySelect?.options ?? []).map((option) => option.value);
+    const options = Array.from(currencySelect?.options ?? []).map(
+      (option) => option.value
+    );
 
     expect(options).toEqual(['PLN', 'EUR', 'USD']);
+  });
+
+  it('updates default amount from exchange rate in edit mode', async () => {
+    const fixture = TestBed.createComponent(TransactionCreateFormComponent);
+    const store = TestBed.inject(
+      TransactionsStore
+    ) as unknown as TransactionsStoreStub;
+    fixture.componentRef.setInput('mode', 'edit');
+    fixture.componentRef.setInput('transaction', {
+      id: 'transaction-1',
+      ownerId: 'user-1',
+      categoryId: 'category-1',
+      occurredAt: new Date(Date.UTC(2026, 4, 29)),
+      description: 'Foreign transaction',
+      amount: 10,
+      amountInDefault: 35,
+      currency: 'USD',
+      direction: 'expense',
+      isAutomatic: false,
+      recurringTransactionId: null,
+      recurringScheduledFor: null,
+      exchangeRate: null,
+      walletId: 'wallet-1',
+      placeId: 'place-1',
+      category: null,
+      group: null,
+      tagIds: [],
+      place: null,
+    });
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const currencySelect = compiled.querySelector(
+      'select[formControlName="currency"]'
+    ) as HTMLSelectElement;
+    expect(currencySelect.value).toBe('USD');
+
+    compiled
+      .querySelector<HTMLButtonElement>('button[aria-expanded="false"]')
+      ?.click();
+    fixture.detectChanges();
+
+    const defaultAmountInput = compiled.querySelector(
+      'input[formControlName="foreignAmount"]'
+    ) as HTMLInputElement;
+    defaultAmountInput.value = '1';
+    defaultAmountInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    compiled
+      .querySelector<HTMLButtonElement>('button.btn-outline.mt-2')
+      ?.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(store.getExchangeRateCalls).toBeGreaterThan(0);
+    expect(defaultAmountInput.value).toBe('40.00');
   });
 });
