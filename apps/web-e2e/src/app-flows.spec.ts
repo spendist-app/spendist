@@ -113,6 +113,15 @@ test('registers a new account and opens dashboard', async ({
 
   await expect(page).toHaveURL(/\/dashboard$/, { timeout: 15000 });
   await expect(page.getByRole('heading', { name: /Dashboard/i })).toBeVisible();
+
+  await openSettingsPanel(page, 'Categories');
+  await expect(page.getByText('Food').first()).toBeVisible();
+  await expect(page.getByText('Groceries').first()).toBeVisible();
+  await expect(page.getByText('Biedronka').first()).toBeVisible();
+
+  await page.getByRole('tab', { name: 'Category groups' }).click();
+  await expect(page.locator('article').filter({ hasText: 'Essentials' })).toBeVisible();
+  await expect(page.locator('article').filter({ hasText: 'Income' })).toBeVisible();
 });
 
 test('adds transaction and keeps it after reload', async ({
