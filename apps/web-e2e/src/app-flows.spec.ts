@@ -6,7 +6,7 @@ import {
   type TestInfo,
 } from '@playwright/test';
 
-const DEFAULT_EMAIL = 'e2e-shared-user@spendist.dev';
+const DEFAULT_EMAIL = 'e2e-shared-user@gmail.com';
 const DEFAULT_PASSWORD = 'Test1234!';
 const DASHBOARD_HEADING = 'Your personalised command centre';
 
@@ -50,9 +50,16 @@ async function ensureAuthenticated(page: Page): Promise<void> {
 
 async function fillStableInput(input: Locator, value: string): Promise<void> {
   await expect(input).toBeEditable({ timeout: 15000 });
-  await input.fill(value);
-  await expect(input).toHaveValue(value);
-  await input.page().waitForTimeout(100);
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    await input.fill(value);
+    await input.page().waitForTimeout(150);
+
+    if ((await input.inputValue()) === value) {
+      return;
+    }
+  }
+
   await expect(input).toHaveValue(value);
 }
 
@@ -70,13 +77,25 @@ function envValueOrDefault(key: string, fallback: string): string {
 }
 
 async function selectFirstRealOption(select: Locator): Promise<string> {
-  const option = select.locator('option:not([disabled])').nth(1);
-  const value = await option.getAttribute('value');
-  if (!value) {
-    throw new Error('Missing selectable option value.');
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    const value = await select.locator('option').evaluateAll((options) => {
+      const option = options.find((element) => {
+        const candidate = element as HTMLOptionElement;
+        return !candidate.disabled && candidate.value.trim().length > 0;
+      }) as HTMLOptionElement | undefined;
+
+      return option?.value ?? '';
+    });
+
+    if (value) {
+      await select.selectOption(value);
+      return value;
+    }
+
+    await select.page().waitForTimeout(250);
   }
-  await select.selectOption(value);
-  return value;
+
+  throw new Error('Missing selectable option value.');
 }
 
 async function selectOptionContaining(
@@ -115,11 +134,57 @@ async function openSettingsPanel(
   page: Page,
   panel: 'Wallets' | 'Categories'
 ): Promise<void> {
-  await page.goto('/settings');
+  await openSettings(page);
   await page.getByRole('button', { name: new RegExp(`^${panel}\\b`) }).click();
 
   const heading = panel === 'Categories' ? 'Categories & groups' : panel;
   await expect(page.getByRole('heading', { name: heading })).toBeVisible();
+  if (panel === 'Categories') {
+    await page.getByRole('tab', { name: 'Manage categories' }).click();
+    await expect(page.locator('#settings-category-search')).toBeVisible({
+      timeout: 15000,
+    });
+  } else {
+    await expect(page.getByRole('button', { name: 'Add wallet' })).toBeVisible({
+      timeout: 15000,
+    });
+  }
+}
+
+async function openDashboard(page: Page): Promise<void> {
+  await page.getByRole('link', { name: 'Dashboard' }).click();
+  await expect(page).toHaveURL(/\/dashboard$/, { timeout: 15000 });
+  await expect(
+    page.getByRole('heading', { name: DASHBOARD_HEADING })
+  ).toBeVisible();
+}
+
+async function openTransactions(page: Page): Promise<void> {
+  await page.getByRole('link', { name: 'Transactions' }).click();
+  await expect(page).toHaveURL(/\/transactions$/, { timeout: 15000 });
+  await expect(page.getByRole('heading', { name: 'Transactions' })).toBeVisible();
+}
+
+async function openModule(
+  page: Page,
+  linkName: 'Places' | 'Recurring payments',
+  heading: string
+): Promise<void> {
+  await page.getByRole('button', { name: 'Modules' }).click();
+  await page.getByRole('link', { name: linkName }).click();
+  await expect(page).toHaveURL(
+    linkName === 'Places' ? /\/modules\/places$/ : /\/modules\/recurring-payments$/,
+    { timeout: 15000 }
+  );
+  await expect(
+    page.getByRole('heading', { name: heading, exact: true })
+  ).toBeVisible();
+}
+
+async function openSettings(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Settings' }).click();
+  await page.getByRole('menuitem', { name: 'Settings' }).click();
+  await expect(page).toHaveURL(/\/settings$/, { timeout: 15000 });
 }
 
 function formWithHeading(page: Page, heading: string): Locator {
@@ -142,7 +207,7 @@ test('registers a new account and opens dashboard', async ({
 }, testInfo) => {
   const suffix = uniqueSuffix(testInfo);
   const name = `Spendist User ${suffix}`;
-  const email = `signup-${suffix}@spendist.dev`;
+  const email = `signup-${suffix}@gmail.com`;
 
   await page.goto('/signup');
   await fillStableInput(page.locator('#name'), name);
@@ -185,10 +250,7 @@ test('adds transaction and keeps it after reload', async ({
   const description = `E2E coffee ${uniqueSuffix(testInfo)}`;
 
   await ensureAuthenticated(page);
-  await page.goto('/transactions');
-  await expect(
-    page.getByRole('heading', { name: 'Transactions' })
-  ).toBeVisible();
+  await openTransactions(page);
 
   await page.getByRole('button', { name: 'Add transaction' }).click();
   await expect(
@@ -209,6 +271,7 @@ test('adds transaction and keeps it after reload', async ({
   await expect(page.getByText(description)).toBeVisible();
 
   await page.reload();
+  await openTransactions(page);
   await expect(page.getByText(description)).toBeVisible();
 });
 
@@ -220,8 +283,7 @@ test('creates place and assigns it to a transaction', async ({
   const description = `E2E haircut ${suffix}`;
 
   await ensureAuthenticated(page);
-  await page.goto('/modules/places');
-  await expect(page.getByRole('heading', { name: 'Places' })).toBeVisible();
+  await openModule(page, 'Places', 'Places');
 
   await page.getByRole('button', { name: 'Add place' }).first().click();
   const placeForm = formWithHeading(page, 'Add place');
@@ -235,7 +297,7 @@ test('creates place and assigns it to a transaction', async ({
   await expect(page.locator('article').filter({ hasText: placeName })).toBeVisible();
   await expect(page.getByText('Zebrzydowice').first()).toBeVisible();
 
-  await page.goto('/transactions');
+  await openTransactions(page);
   await page.getByRole('button', { name: 'Add transaction' }).click();
   await page.locator('input[formcontrolname="description"]').fill(description);
   await selectFirstRealOption(
@@ -252,7 +314,7 @@ test('creates place and assigns it to a transaction', async ({
   await expect(transactionRow).toBeVisible();
   await expect(transactionRow).toContainText(placeName);
 
-  await page.goto('/dashboard');
+  await openDashboard(page);
   await expect(page.getByRole('heading', { name: 'Spending by place' })).toBeVisible();
   const placeSummary = page.locator('article').filter({ hasText: placeName });
   await expect(placeSummary).toBeVisible();
@@ -265,7 +327,7 @@ test('updates transaction exchange rate in edit form', async ({
   const description = `E2E exchange ${uniqueSuffix(testInfo)}`;
 
   await ensureAuthenticated(page);
-  await page.goto('/transactions');
+  await openTransactions(page);
   await page.getByRole('button', { name: 'Add transaction' }).click();
 
   await page.locator('input[formcontrolname="description"]').fill(description);
@@ -276,6 +338,7 @@ test('updates transaction exchange rate in edit form', async ({
   await page.locator('input[formcontrolname="amount"]').fill('10');
   await page.locator('select[formcontrolname="currency"]').selectOption('USD');
   await page.getByRole('button', { name: 'Save transaction' }).click();
+  await page.getByRole('button', { name: 'All time' }).click();
   await expect(page.getByText(description)).toBeVisible();
 
   const transactionRow = page.locator('li').filter({ hasText: description });
@@ -306,6 +369,8 @@ test('updates transaction exchange rate in edit form', async ({
   await expect(transactionRow).toContainText('PLN');
 
   await page.reload();
+  await openTransactions(page);
+  await page.getByRole('button', { name: 'All time' }).click();
   await expect(
     page.locator('li').filter({ hasText: description })
   ).toContainText('PLN');
@@ -318,10 +383,7 @@ test('adds recurring payment with selected currency', async ({
 
   await stubRecurringBackfill(page);
   await ensureAuthenticated(page);
-  await page.goto('/modules/recurring-payments');
-  await expect(
-    page.getByRole('heading', { name: 'Recurring payments' })
-  ).toBeVisible();
+  await openModule(page, 'Recurring payments', 'Active recurring payments');
 
   await page
     .getByRole('button', { name: /Add recurring/i })
@@ -347,6 +409,7 @@ test('adds recurring payment with selected currency', async ({
   await expect(page.getByText('USD')).toBeVisible();
 
   await page.reload();
+  await openModule(page, 'Recurring payments', 'Active recurring payments');
   await expect(page.getByText(name)).toBeVisible();
   await expect(page.getByText('USD')).toBeVisible();
 });

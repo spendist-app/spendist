@@ -823,7 +823,7 @@ export class RecurringPaymentsStore {
       schedule: row.schedule,
       amount: parseNumber(row.amount),
       amountMode: (row.amount_mode ?? 'fixed') as RecurringAmountMode,
-      currency: wallet?.currency ?? row.currency,
+      currency: row.currency,
       exchangeRate: row.exchange_rate != null ? parseNumber(row.exchange_rate) : null,
       direction: row.direction,
       category: categoryLookup.get(row.category_id) ?? null,

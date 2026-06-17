@@ -28,6 +28,7 @@ export default defineConfig({
   ...nxE2EPreset(__filename, { testDir: './src' }),
   globalSetup: './src/global-setup.ts',
   globalTeardown: './src/global-teardown.ts',
+  workers: 1,
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     baseURL,

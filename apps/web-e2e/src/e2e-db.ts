@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { createHmac } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { workspaceRoot } from '@nx/devkit';
@@ -7,14 +8,25 @@ type ResetPhase = 'setup' | 'teardown';
 
 const DEFAULT_RESET_ATTEMPTS = 3;
 const RETRY_BASE_DELAY_MS = 5000;
-const DEFAULT_EMAIL = 'e2e-shared-user@spendist.dev';
+const DEFAULT_EMAIL = 'e2e-shared-user@gmail.com';
 const DEFAULT_PASSWORD = 'Test1234!';
+const LOCAL_SUPABASE_JWT_SECRET =
+  'super-secret-jwt-token-with-at-least-32-characters-long';
 
 type AuthSessionResponse = {
   access_token?: string;
   user?: {
     id?: string;
   };
+};
+
+type AuthAdminUser = {
+  id?: string;
+  email?: string;
+};
+
+type AuthAdminUsersResponse = {
+  users?: AuthAdminUser[];
 };
 
 type BootstrapRow = {
@@ -24,8 +36,8 @@ type BootstrapRow = {
 export async function resetDatabase(phase: ResetPhase): Promise<void> {
   const envFile = resolveEnvFile();
   const dbUrl =
-    process.env['SUPABASE_E2E_DB_URL'] ??
-    (envFile ? readEnvValue(envFile, 'SUPABASE_E2E_DB_URL') : null);
+    (envFile ? readEnvValue(envFile, 'SUPABASE_E2E_DB_URL') : null) ??
+    process.env['SUPABASE_E2E_DB_URL'];
 
   if (!dbUrl) {
     throw new Error(
@@ -34,8 +46,8 @@ export async function resetDatabase(phase: ResetPhase): Promise<void> {
   }
 
   const localDbUrl =
-    process.env['SUPABASE_DB_URL'] ??
-    (envFile ? readEnvValue(envFile, 'SUPABASE_DB_URL') : null);
+    (envFile ? readEnvValue(envFile, 'SUPABASE_DB_URL') : null) ??
+    process.env['SUPABASE_DB_URL'];
   if (localDbUrl && areSameDatabaseUrl(dbUrl, localDbUrl)) {
     throw new Error(
       'Refusing to reset database: SUPABASE_E2E_DB_URL points to SUPABASE_DB_URL.'
@@ -43,8 +55,8 @@ export async function resetDatabase(phase: ResetPhase): Promise<void> {
   }
 
   const remoteDbUrl =
-    process.env['SUPABASE_REMOTE_DB_URL'] ??
-    (envFile ? readEnvValue(envFile, 'SUPABASE_REMOTE_DB_URL') : null);
+    (envFile ? readEnvValue(envFile, 'SUPABASE_REMOTE_DB_URL') : null) ??
+    process.env['SUPABASE_REMOTE_DB_URL'];
   if (remoteDbUrl && areSameDatabaseUrl(dbUrl, remoteDbUrl)) {
     throw new Error(
       'Refusing to reset database: SUPABASE_E2E_DB_URL points to SUPABASE_REMOTE_DB_URL.'
@@ -80,10 +92,11 @@ export async function ensureE2EAccount(): Promise<void> {
   const email = envValueOrDefault('E2E_AUTH_EMAIL', DEFAULT_EMAIL);
   const password = envValueOrDefault('E2E_AUTH_PASSWORD', DEFAULT_PASSWORD);
   const baseUrl = supabaseUrl.replace(/\/+$/, '');
+  const serviceRoleKey = resolveServiceRoleKey(envFile);
 
   const signedIn = await signIn(baseUrl, publishableKey, email, password);
   if (!signedIn.ok) {
-    await signUp(baseUrl, publishableKey, email, password);
+    await createConfirmedAuthUser(baseUrl, serviceRoleKey, email, password);
   }
 
   const session = await signIn(baseUrl, publishableKey, email, password);
@@ -271,19 +284,20 @@ async function parseJsonArray<T>(
   return parsed as T[];
 }
 
-async function signUp(
+async function createConfirmedAuthUser(
   baseUrl: string,
-  publishableKey: string,
+  serviceRoleKey: string,
   email: string,
   password: string
 ): Promise<void> {
-  const response = await fetch(`${baseUrl}/auth/v1/signup`, {
+  const response = await fetch(`${baseUrl}/auth/v1/admin/users`, {
     method: 'POST',
-    headers: authHeaders(publishableKey),
+    headers: authHeaders(serviceRoleKey),
     body: JSON.stringify({
       email,
       password,
-      data: {
+      email_confirm: true,
+      user_metadata: {
         username: 'spendist_e2e',
         full_name: 'Spendist E2E',
         language: 'en',
@@ -295,11 +309,88 @@ async function signUp(
   });
 
   const body = await response.text();
-  if (!response.ok && !body.toLowerCase().includes('already registered')) {
+  const normalizedBody = body.toLowerCase();
+  if (
+    !response.ok &&
+    (normalizedBody.includes('already registered') ||
+      normalizedBody.includes('email_exists'))
+  ) {
+    await confirmExistingAuthUser(baseUrl, serviceRoleKey, email, password);
+    return;
+  }
+
+  if (!response.ok) {
     throw new Error(
-      `[e2e-db] Failed to create e2e auth user (${
+      `[e2e-db] Failed to create confirmed e2e auth user (${
         response.status
       }): ${truncateForLog(body)}`
+    );
+  }
+
+  const created = JSON.parse(body) as AuthAdminUser;
+  if (!created.id) {
+    throw new Error(
+      `[e2e-db] Confirmed e2e auth user response did not include id: ${truncateForLog(
+        body
+      )}`
+    );
+  }
+}
+
+async function confirmExistingAuthUser(
+  baseUrl: string,
+  serviceRoleKey: string,
+  email: string,
+  password: string
+): Promise<void> {
+  const usersResponse = await fetch(
+    `${baseUrl}/auth/v1/admin/users?page=1&per_page=1000`,
+    {
+      headers: authHeaders(serviceRoleKey),
+    }
+  );
+  const usersBody = await usersResponse.text();
+  if (!usersResponse.ok) {
+    throw new Error(
+      `[e2e-db] Failed to list auth users (${usersResponse.status}): ${truncateForLog(
+        usersBody
+      )}`
+    );
+  }
+
+  const users = JSON.parse(usersBody) as AuthAdminUsersResponse;
+  const user = users.users?.find(
+    (entry) => entry.email?.toLowerCase() === email.toLowerCase()
+  );
+  if (!user?.id) {
+    throw new Error(`[e2e-db] Auth user already exists but could not be found.`);
+  }
+
+  const updateResponse = await fetch(
+    `${baseUrl}/auth/v1/admin/users/${user.id}`,
+    {
+      method: 'PUT',
+      headers: authHeaders(serviceRoleKey),
+      body: JSON.stringify({
+        password,
+        email_confirm: true,
+        user_metadata: {
+          username: 'spendist_e2e',
+          full_name: 'Spendist E2E',
+          language: 'en',
+          timezone: 'UTC',
+          default_currency_id: 1,
+          wallet_currency_id: 1,
+        },
+      }),
+    }
+  );
+  const updateBody = await updateResponse.text();
+  if (!updateResponse.ok) {
+    throw new Error(
+      `[e2e-db] Failed to confirm existing auth user (${
+        updateResponse.status
+      }): ${truncateForLog(updateBody)}`
     );
   }
 }
@@ -328,6 +419,60 @@ function authHeaders(publishableKey: string): Record<string, string> {
     apikey: publishableKey,
     Authorization: `Bearer ${publishableKey}`,
   };
+}
+
+function resolveServiceRoleKey(envFile: string | null): string {
+  const serviceRoleKeys = [
+    'E2E_SUPABASE_SERVICE_ROLE_KEY',
+    'SUPABASE_SERVICE_ROLE_KEY',
+    'SUPABASE_SECRET_KEY',
+  ] as const;
+  const configured = envFile
+    ? serviceRoleKeys
+        .map((key) => readEnvValue(envFile, key))
+        .find((value): value is string => !!value)
+    : serviceRoleKeys.map((key) => process.env[key]).find(Boolean);
+  if (configured) {
+    return configured;
+  }
+
+  const jwtSecretKeys = [
+    'E2E_SUPABASE_JWT_SECRET',
+    'SUPABASE_JWT_SECRET',
+    'JWT_SECRET',
+  ] as const;
+  const jwtSecret =
+    (envFile
+      ? jwtSecretKeys
+          .map((key) => readEnvValue(envFile, key))
+          .find((value): value is string => !!value)
+      : jwtSecretKeys.map((key) => process.env[key]).find(Boolean)) ??
+    LOCAL_SUPABASE_JWT_SECRET;
+  return createServiceRoleJwt(jwtSecret);
+}
+
+function createServiceRoleJwt(secret: string): string {
+  const now = Math.floor(Date.now() / 1000);
+  const header = { alg: 'HS256', typ: 'JWT' };
+  const payload = {
+    aud: 'authenticated',
+    exp: now + 60 * 60,
+    iat: now,
+    iss: 'supabase',
+    role: 'service_role',
+    sub: 'service_role',
+  };
+  const signingInput = `${base64UrlEncode(JSON.stringify(header))}.${base64UrlEncode(
+    JSON.stringify(payload)
+  )}`;
+  const signature = createHmac('sha256', secret)
+    .update(signingInput)
+    .digest('base64url');
+  return `${signingInput}.${signature}`;
+}
+
+function base64UrlEncode(value: string): string {
+  return Buffer.from(value).toString('base64url');
 }
 
 async function resetDatabaseWithRetry(
@@ -420,7 +565,7 @@ function readFirstAvailableEnvValue(
 ): string | null {
   for (const key of keys) {
     const value =
-      process.env[key] ?? (envFile ? readEnvValue(envFile, key) : null);
+      (envFile ? readEnvValue(envFile, key) : null) ?? process.env[key];
     if (value) {
       return value;
     }
