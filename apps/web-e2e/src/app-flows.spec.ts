@@ -26,8 +26,8 @@ async function ensureAuthenticated(page: Page): Promise<void> {
   const password = envValueOrDefault('E2E_AUTH_PASSWORD', DEFAULT_PASSWORD);
 
   await page.goto('/login');
-  await page.getByLabel('Email').fill(email);
-  await page.getByLabel('Password').fill(password);
+  await fillStableInput(page.locator('#email'), email);
+  await fillStableInput(page.locator('#password'), password);
   await page.getByRole('button', { name: 'Log in' }).click();
 
   try {
@@ -46,6 +46,14 @@ async function ensureAuthenticated(page: Page): Promise<void> {
       }. ${error instanceof Error ? error.message : String(error)}`
     );
   }
+}
+
+async function fillStableInput(input: Locator, value: string): Promise<void> {
+  await expect(input).toBeEditable({ timeout: 15000 });
+  await input.fill(value);
+  await expect(input).toHaveValue(value);
+  await input.page().waitForTimeout(100);
+  await expect(input).toHaveValue(value);
 }
 
 function envValueOrDefault(key: string, fallback: string): string {
@@ -133,19 +141,33 @@ test('registers a new account and opens dashboard', async ({
   page,
 }, testInfo) => {
   const suffix = uniqueSuffix(testInfo);
+  const name = `Spendist User ${suffix}`;
+  const email = `signup-${suffix}@spendist.dev`;
 
   await page.goto('/signup');
-  await page.getByLabel('Name').fill(`Spendist User ${suffix}`);
-  await page.getByLabel('Email').fill(`signup-${suffix}@spendist.dev`);
-  await page.getByLabel('Password', { exact: true }).fill(DEFAULT_PASSWORD);
-  await page.getByLabel('Confirm password').fill(DEFAULT_PASSWORD);
+  await fillStableInput(page.locator('#name'), name);
+  await fillStableInput(page.locator('#email'), email);
+  await fillStableInput(page.locator('#password'), DEFAULT_PASSWORD);
+  await fillStableInput(page.locator('#confirmPassword'), DEFAULT_PASSWORD);
   await page.getByLabel('First wallet currency').selectOption({ label: 'PLN' });
   await page.getByRole('button', { name: 'Sign up' }).click();
 
-  await expect(page).toHaveURL(/\/dashboard$/, { timeout: 15000 });
-  await expect(
-    page.getByRole('heading', { name: DASHBOARD_HEADING })
-  ).toBeVisible();
+  try {
+    await expect(page).toHaveURL(/\/dashboard$/, { timeout: 15000 });
+    await expect(
+      page.getByRole('heading', { name: DASHBOARD_HEADING })
+    ).toBeVisible();
+  } catch (error) {
+    const alerts = await page
+      .locator('[role="alert"], .alert, .text-error')
+      .allTextContents()
+      .catch(() => []);
+    throw new Error(
+      `Signup did not reach dashboard. Current URL: ${page.url()}. Alerts: ${
+        alerts.join(' | ') || 'none'
+      }. ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
 
   await openSettingsPanel(page, 'Categories');
   await expect(page.getByText('Food').first()).toBeVisible();
