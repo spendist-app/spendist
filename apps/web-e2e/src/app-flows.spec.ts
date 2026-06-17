@@ -8,6 +8,7 @@ import {
 
 const DEFAULT_EMAIL = 'e2e-shared-user@spendist.dev';
 const DEFAULT_PASSWORD = 'Test1234!';
+const DASHBOARD_HEADING = 'Your personalised command centre';
 
 function uniqueSuffix(testInfo: TestInfo): string {
   const randomPart = Math.random().toString(36).slice(2, 8);
@@ -29,7 +30,22 @@ async function ensureAuthenticated(page: Page): Promise<void> {
   await page.getByLabel('Password').fill(password);
   await page.getByRole('button', { name: 'Log in' }).click();
 
-  await expect(page).toHaveURL(/\/dashboard$/, { timeout: 15000 });
+  try {
+    await expect(page).toHaveURL(/\/dashboard$/, { timeout: 15000 });
+    await expect(
+      page.getByRole('heading', { name: DASHBOARD_HEADING })
+    ).toBeVisible({ timeout: 15000 });
+  } catch (error) {
+    const alerts = await page
+      .locator('[role="alert"], .alert, .text-error')
+      .allTextContents()
+      .catch(() => []);
+    throw new Error(
+      `Login did not reach dashboard. Current URL: ${page.url()}. Alerts: ${
+        alerts.join(' | ') || 'none'
+      }. ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
 }
 
 async function selectFirstRealOption(select: Locator): Promise<string> {
@@ -95,7 +111,9 @@ function formWithHeading(page: Page, heading: string): Locator {
 test('logs in with the shared e2e account', async ({ page }) => {
   await ensureAuthenticated(page);
 
-  await expect(page.getByRole('heading', { name: /Dashboard/i })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: DASHBOARD_HEADING })
+  ).toBeVisible();
 });
 
 test('registers a new account and opens dashboard', async ({
@@ -112,7 +130,9 @@ test('registers a new account and opens dashboard', async ({
   await page.getByRole('button', { name: 'Sign up' }).click();
 
   await expect(page).toHaveURL(/\/dashboard$/, { timeout: 15000 });
-  await expect(page.getByRole('heading', { name: /Dashboard/i })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: DASHBOARD_HEADING })
+  ).toBeVisible();
 
   await openSettingsPanel(page, 'Categories');
   await expect(page.getByText('Food').first()).toBeVisible();
