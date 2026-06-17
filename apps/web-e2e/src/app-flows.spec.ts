@@ -22,8 +22,8 @@ function futureDateInput(daysFromToday: number): string {
 }
 
 async function ensureAuthenticated(page: Page): Promise<void> {
-  const email = process.env['E2E_AUTH_EMAIL'] ?? DEFAULT_EMAIL;
-  const password = process.env['E2E_AUTH_PASSWORD'] ?? DEFAULT_PASSWORD;
+  const email = envValueOrDefault('E2E_AUTH_EMAIL', DEFAULT_EMAIL);
+  const password = envValueOrDefault('E2E_AUTH_PASSWORD', DEFAULT_PASSWORD);
 
   await page.goto('/login');
   await page.getByLabel('Email').fill(email);
@@ -46,6 +46,19 @@ async function ensureAuthenticated(page: Page): Promise<void> {
       }. ${error instanceof Error ? error.message : String(error)}`
     );
   }
+}
+
+function envValueOrDefault(key: string, fallback: string): string {
+  const value = process.env[key]?.trim();
+  if (!value) {
+    return fallback;
+  }
+
+  if (key.endsWith('_EMAIL') && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+    return fallback;
+  }
+
+  return value;
 }
 
 async function selectFirstRealOption(select: Locator): Promise<string> {

@@ -31,6 +31,7 @@ export default defineConfig({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     baseURL,
+    locale: 'en-US',
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
   },
@@ -99,7 +100,7 @@ function loadEnvFile(file: string): void {
 
     const key = trimmed.slice(0, separatorIndex).trim();
     const rawValue = trimmed.slice(separatorIndex + 1).trim();
-    if (!key || process.env[key] != null) {
+    if (!key || (process.env[key] != null && process.env[key]?.trim() !== '')) {
       continue;
     }
 

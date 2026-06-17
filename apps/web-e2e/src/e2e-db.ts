@@ -77,8 +77,8 @@ export async function ensureE2EAccount(): Promise<void> {
     throw new Error('Missing Supabase publishable/anon key for e2e bootstrap.');
   }
 
-  const email = process.env['E2E_AUTH_EMAIL'] ?? DEFAULT_EMAIL;
-  const password = process.env['E2E_AUTH_PASSWORD'] ?? DEFAULT_PASSWORD;
+  const email = envValueOrDefault('E2E_AUTH_EMAIL', DEFAULT_EMAIL);
+  const password = envValueOrDefault('E2E_AUTH_PASSWORD', DEFAULT_PASSWORD);
   const baseUrl = supabaseUrl.replace(/\/+$/, '');
 
   const signedIn = await signIn(baseUrl, publishableKey, email, password);
@@ -454,6 +454,19 @@ function readEnvValue(file: string, key: string): string | null {
     return value;
   }
   return null;
+}
+
+function envValueOrDefault(key: string, fallback: string): string {
+  const value = process.env[key]?.trim();
+  if (!value) {
+    return fallback;
+  }
+
+  if (key.endsWith('_EMAIL') && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+    return fallback;
+  }
+
+  return value;
 }
 
 function resolveEnvFile(): string | null {
