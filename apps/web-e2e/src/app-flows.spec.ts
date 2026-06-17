@@ -108,7 +108,7 @@ test('registers a new account and opens dashboard', async ({
   await page.getByLabel('Email').fill(`signup-${suffix}@spendist.dev`);
   await page.getByLabel('Password', { exact: true }).fill(DEFAULT_PASSWORD);
   await page.getByLabel('Confirm password').fill(DEFAULT_PASSWORD);
-  await page.getByLabel('First wallet currency').selectOption('1');
+  await page.getByLabel('First wallet currency').selectOption({ label: 'PLN' });
   await page.getByRole('button', { name: 'Sign up' }).click();
 
   await expect(page).toHaveURL(/\/dashboard$/, { timeout: 15000 });
