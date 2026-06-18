@@ -52,6 +52,8 @@ interface CurrencyOptionView {
 })
 export class TransactionCreateFormComponent {
   private static readonly MAX_QUANTITY = 50;
+  private static readonly RECENT_DEFAULTS_STORAGE_KEY =
+    'spendist.transactionForm.recentDefaults';
   protected readonly closeIcon = heroIconSvg('heroXMark');
 
   private readonly formBuilder = inject(FormBuilder);
@@ -182,7 +184,10 @@ export class TransactionCreateFormComponent {
       const categories = this.store.categories();
       const current = this.form.controls.categoryId.value;
       if (!current && categories.length > 0) {
-        this.form.controls.categoryId.setValue(categories[0].id);
+        this.form.controls.categoryId.setValue(
+          this.resolveCategoryId(this.recentDefaults()?.categoryId) ??
+            categories[0].id
+        );
       }
     });
 
@@ -289,8 +294,15 @@ export class TransactionCreateFormComponent {
 
     this.form.controls.occurredOn.valueChanges
       .pipe(takeUntilDestroyed())
-      .subscribe(() => {
+      .subscribe((occurredOn) => {
+        this.persistRecentDefaults({ occurredOn });
         this.syncAmountInDefault();
+      });
+
+    this.form.controls.categoryId.valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe((categoryId) => {
+        this.persistRecentDefaults({ categoryId });
       });
 
     this.form.controls.walletId.valueChanges
@@ -693,6 +705,10 @@ export class TransactionCreateFormComponent {
       });
 
       if (result.success) {
+        this.persistRecentDefaults({
+          occurredOn: raw.occurredOn,
+          categoryId: raw.categoryId,
+        });
         this.saved.emit();
         this.onClose();
       }
@@ -715,12 +731,16 @@ export class TransactionCreateFormComponent {
   }
 
   private resetForm(): void {
-    const defaultCategory = this.store.categories()[0]?.id ?? '';
+    const defaults = this.recentDefaults();
+    const defaultCategory =
+      this.resolveCategoryId(defaults?.categoryId) ??
+      this.store.categories()[0]?.id ??
+      '';
     this.form.reset({
       description: '',
       categoryId: defaultCategory,
       placeId: '',
-      occurredOn: this.todayIsoString(),
+      occurredOn: defaults?.occurredOn ?? this.todayIsoString(),
       amount: '',
       currency: this.store.defaultCurrency(),
       direction: 'expense',
@@ -737,6 +757,81 @@ export class TransactionCreateFormComponent {
     this.tagInput.set('');
     this.syncWalletCurrency(this.form.controls.walletId.value, true);
     this.syncAmountInDefault();
+  }
+
+  private persistRecentDefaults(
+    patch: Partial<{ occurredOn: string; categoryId: string }>
+  ): void {
+    if (this.mode() !== 'create' || this.prefill()) {
+      return;
+    }
+
+    const current = this.recentDefaults();
+    const next = {
+      occurredOn:
+        this.isDateInputValue(patch.occurredOn ?? current?.occurredOn)
+          ? patch.occurredOn ?? current?.occurredOn
+          : undefined,
+      categoryId:
+        this.resolveCategoryId(patch.categoryId ?? current?.categoryId) ??
+        undefined,
+    };
+
+    if (!next.occurredOn && !next.categoryId) {
+      return;
+    }
+
+    try {
+      sessionStorage.setItem(
+        TransactionCreateFormComponent.RECENT_DEFAULTS_STORAGE_KEY,
+        JSON.stringify(next)
+      );
+    } catch {
+      return;
+    }
+  }
+
+  private recentDefaults(): { occurredOn?: string; categoryId?: string } | null {
+    try {
+      const raw = sessionStorage.getItem(
+        TransactionCreateFormComponent.RECENT_DEFAULTS_STORAGE_KEY
+      );
+      if (!raw) {
+        return null;
+      }
+
+      const parsed = JSON.parse(raw) as {
+        occurredOn?: unknown;
+        categoryId?: unknown;
+      };
+      const occurredOn =
+        typeof parsed.occurredOn === 'string' &&
+        this.isDateInputValue(parsed.occurredOn)
+          ? parsed.occurredOn
+          : undefined;
+      const categoryId =
+        typeof parsed.categoryId === 'string'
+          ? this.resolveCategoryId(parsed.categoryId) ?? undefined
+          : undefined;
+
+      return occurredOn || categoryId ? { occurredOn, categoryId } : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private resolveCategoryId(categoryId: string | null | undefined): string | null {
+    if (!categoryId) {
+      return null;
+    }
+
+    return this.store.categories().some((category) => category.id === categoryId)
+      ? categoryId
+      : null;
+  }
+
+  private isDateInputValue(value: string | null | undefined): value is string {
+    return !!value && this.parseDate(value) !== null;
   }
 
   private populateFormForEdit(transaction: TransactionViewModel): void {

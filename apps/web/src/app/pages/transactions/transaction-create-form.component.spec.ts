@@ -14,6 +14,14 @@ class TransactionsStoreStub {
       groupId: null,
       parentId: null,
     },
+    {
+      id: 'category-2',
+      name: 'Transport',
+      color: null,
+      icon: null,
+      groupId: null,
+      parentId: null,
+    },
   ]);
   readonly groupedCategories = signal([]);
   readonly ungroupedCategories = signal(this.categories());
@@ -74,7 +82,11 @@ class TransactionsStoreStub {
 }
 
 describe('TransactionCreateFormComponent', () => {
+  const recentDefaultsStorageKey = 'spendist.transactionForm.recentDefaults';
+
   beforeEach(async () => {
+    sessionStorage.clear();
+
     await TestBed.configureTestingModule({
       imports: [TransactionCreateFormComponent],
       providers: [
@@ -85,6 +97,10 @@ describe('TransactionCreateFormComponent', () => {
         ...provideAppTransloco(),
       ],
     }).compileComponents();
+  });
+
+  afterEach(() => {
+    sessionStorage.clear();
   });
 
   it('shows all application currencies in the amount selector', () => {
@@ -100,6 +116,46 @@ describe('TransactionCreateFormComponent', () => {
     );
 
     expect(options).toEqual(['PLN', 'EUR', 'USD']);
+  });
+
+  it('uses recent create date and category from session storage', () => {
+    sessionStorage.setItem(
+      recentDefaultsStorageKey,
+      JSON.stringify({
+        occurredOn: '2026-06-15',
+        categoryId: 'category-2',
+      })
+    );
+
+    const fixture = TestBed.createComponent(TransactionCreateFormComponent);
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance;
+    expect(component['form'].controls.occurredOn.value).toBe('2026-06-15');
+    expect(component['form'].controls.categoryId.value).toBe('category-2');
+  });
+
+  it('remembers create date and category after saving', async () => {
+    const fixture = TestBed.createComponent(TransactionCreateFormComponent);
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance;
+    component['form'].patchValue({
+      categoryId: 'category-2',
+      occurredOn: '2026-06-16',
+      amount: '42',
+      walletId: 'wallet-1',
+    });
+
+    await component['submit']();
+
+    const stored = JSON.parse(
+      sessionStorage.getItem(recentDefaultsStorageKey) ?? '{}'
+    ) as { occurredOn?: string; categoryId?: string };
+    expect(stored).toEqual({
+      occurredOn: '2026-06-16',
+      categoryId: 'category-2',
+    });
   });
 
   it('updates default amount from exchange rate in edit mode', async () => {
