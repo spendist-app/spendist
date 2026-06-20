@@ -21,6 +21,13 @@ function futureDateInput(daysFromToday: number): string {
   return date.toISOString().slice(0, 10);
 }
 
+function previousMonthStartInput(): string {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1))
+    .toISOString()
+    .slice(0, 10);
+}
+
 async function ensureAuthenticated(page: Page): Promise<void> {
   const email = envValueOrDefault('E2E_AUTH_EMAIL', DEFAULT_EMAIL);
   const password = envValueOrDefault('E2E_AUTH_PASSWORD', DEFAULT_PASSWORD);
@@ -74,6 +81,26 @@ function envValueOrDefault(key: string, fallback: string): string {
   }
 
   return value;
+}
+
+async function currencyAmount(locator: Locator): Promise<number> {
+  const text = (await locator.textContent()) ?? '';
+  const sign = text.includes('-') ? -1 : 1;
+  const numericText = text.replace(/[^\d.,]/g, '');
+  const decimalSeparatorIndex = Math.max(
+    numericText.lastIndexOf(','),
+    numericText.lastIndexOf('.')
+  );
+
+  if (decimalSeparatorIndex < 0) {
+    return sign * Number(numericText);
+  }
+
+  const integerPart = numericText
+    .slice(0, decimalSeparatorIndex)
+    .replace(/[.,]/g, '');
+  const fractionPart = numericText.slice(decimalSeparatorIndex + 1);
+  return sign * Number(`${integerPart}.${fractionPart}`);
 }
 
 async function selectFirstRealOption(select: Locator): Promise<string> {
@@ -133,8 +160,37 @@ async function filterTransactionsByDate(
   page: Page,
   occurredOn: string
 ): Promise<void> {
-  await page.getByLabel('Date from', { exact: true }).fill(occurredOn);
-  await page.getByLabel('Date to', { exact: true }).fill(occurredOn);
+  await filterTransactionsByRange(page, occurredOn, occurredOn);
+}
+
+async function filterTransactionsByRange(
+  page: Page,
+  from: string,
+  to: string
+): Promise<void> {
+  const fromInput = page.getByLabel('Date from', { exact: true });
+  const toInput = page.getByLabel('Date to', { exact: true });
+
+  await fromInput.fill(from);
+  await toInput.fill(to);
+
+  const summaryResponse = page.waitForResponse((response) => {
+    if (!response.url().includes('/rpc/category_expense_summary')) {
+      return false;
+    }
+
+    const body = response.request().postDataJSON() as {
+      p_from?: string | null;
+      p_to?: string | null;
+    };
+    return (
+      body.p_from?.startsWith(from) === true &&
+      body.p_to?.startsWith(to) === true
+    );
+  });
+
+  await toInput.press('Tab');
+  await summaryResponse;
 }
 
 async function stubRecurringBackfill(page: Page): Promise<void> {
@@ -389,16 +445,36 @@ test('updates transaction exchange rate in edit form', async ({
 
   await ensureAuthenticated(page);
   await openTransactions(page);
+  await filterTransactionsByDate(page, '2026-05-29');
   await page.getByRole('button', { name: 'Add transaction' }).click();
 
   await page.locator('input[formcontrolname="description"]').fill(description);
   await page.locator('input[formcontrolname="occurredOn"]').fill('2026-05-29');
-  await selectFirstTransactionCategory(page);
+  const categoryLabel = await selectFirstTransactionCategory(page);
+  const categoryFilter = page
+    .locator('aside nav button')
+    .filter({ hasText: categoryLabel });
+  const categoryAmount = categoryFilter.locator('span').last();
+  const categoryTotalBefore = Math.abs(await currencyAmount(categoryAmount));
+
   await page.locator('input[formcontrolname="amount"]').fill('10');
   await page.locator('select[formcontrolname="currency"]').selectOption('USD');
+  await page.getByRole('button', { name: 'Show advanced fields' }).click();
+  const initialDefaultAmount = page.locator(
+    'input[formcontrolname="foreignAmount"]'
+  );
+  await expect
+    .poll(() => initialDefaultAmount.inputValue())
+    .toBe('36.39');
   await page.getByRole('button', { name: 'Save transaction' }).click();
-  await filterTransactionsByDate(page, '2026-05-29');
   await expect(page.getByText(description)).toBeVisible();
+
+  await expect
+    .poll(
+      async () =>
+        Math.abs(await currencyAmount(categoryAmount)) - categoryTotalBefore
+    )
+    .toBeCloseTo(36.39, 2);
 
   const transactionRow = page.locator('li').filter({ hasText: description });
   await transactionRow.getByRole('button', { name: 'Edit' }).click();
@@ -473,6 +549,57 @@ test('adds recurring payment with selected currency', async ({
   await expect(page.getByText('USD')).toBeVisible();
 });
 
+test('backfills transactions for a recurring payment started in the past', async ({
+  page,
+}, testInfo) => {
+  const name = `E2E recurring history ${uniqueSuffix(testInfo)}`;
+  const startDate = previousMonthStartInput();
+  const today = futureDateInput(0);
+
+  await ensureAuthenticated(page);
+  await openModule(page, 'Recurring payments', 'Active recurring payments');
+  await page
+    .getByRole('button', { name: /Add recurring/i })
+    .last()
+    .click();
+
+  await page.locator('#recurring-name').fill(name);
+  await selectFirstRealOption(page.locator('#recurring-category'));
+  await selectFirstRealOption(page.locator('#recurring-wallet'));
+  await page.locator('#recurring-amount').fill('12');
+  await page.locator('select[formcontrolname="currency"]').selectOption('PLN');
+  await page.locator('#recurring-schedule-frequency').selectOption('monthly');
+  await page.locator('input[formcontrolname="scheduleDayOfMonth"]').fill('1');
+  await page.locator('#recurring-start-date').fill(startDate);
+
+  const backfillResponse = page.waitForResponse(
+    (response) =>
+      response.url().includes('/functions/v1/process-recurring-payments') &&
+      response.request().method() === 'POST'
+  );
+  await page.getByRole('button', { name: 'Save recurring payment' }).click();
+
+  const response = await backfillResponse;
+  const responseBody = await response.text();
+  expect(
+    response.ok(),
+    `Backfill failed with HTTP ${response.status()}: ${responseBody}`
+  ).toBe(true);
+  const result = JSON.parse(responseBody) as {
+    processedCount?: number;
+    skippedCount?: number;
+  };
+  expect(result.skippedCount).toBe(0);
+  expect(result.processedCount).toBeGreaterThanOrEqual(2);
+  await expect(
+    page.getByRole('heading', { name: 'Schedule a recurring payment' })
+  ).toHaveCount(0);
+
+  await openTransactions(page);
+  await filterTransactionsByRange(page, startDate, today);
+  await expect(page.locator('li').filter({ hasText: name })).toHaveCount(2);
+});
+
 test('creates wallet and keeps it after reload', async ({ page }, testInfo) => {
   const walletName = `E2E wallet ${uniqueSuffix(testInfo)}`;
 
@@ -516,7 +643,7 @@ test('creates category group and category', async ({ page }, testInfo) => {
   ).toBeVisible();
 
   await page.getByRole('tab', { name: 'Manage categories' }).click();
-  await page.getByRole('button', { name: 'Add category' }).click();
+  await page.getByRole('button', { name: 'Add category', exact: true }).click();
 
   const categoryForm = formWithHeading(page, 'Create category');
   await categoryForm
