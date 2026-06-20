@@ -23,8 +23,55 @@ class TransactionsStoreStub {
   });
   readonly transactions = signal([]);
   readonly filteredTransactions = signal([]);
-  readonly groupedCategories = signal([]);
-  readonly ungroupedCategories = signal([]);
+  readonly groupedCategories = signal([
+    {
+      id: 'group-1',
+      ownerId: 'user-1',
+      name: 'Daily',
+      color: null,
+      icon: null,
+      categories: [
+        {
+          id: 'category-active',
+          ownerId: 'user-1',
+          name: 'Groceries',
+          color: null,
+          icon: null,
+          groupId: 'group-1',
+          parentId: null,
+        },
+        {
+          id: 'category-empty',
+          ownerId: 'user-1',
+          name: 'Empty category',
+          color: null,
+          icon: null,
+          groupId: 'group-1',
+          parentId: null,
+        },
+      ],
+    },
+  ]);
+  readonly ungroupedCategories = signal([
+    {
+      id: 'category-ungrouped-active',
+      ownerId: 'user-1',
+      name: 'Loose active',
+      color: null,
+      icon: null,
+      groupId: '',
+      parentId: null,
+    },
+    {
+      id: 'category-ungrouped-empty',
+      ownerId: 'user-1',
+      name: 'Loose empty',
+      color: null,
+      icon: null,
+      groupId: '',
+      parentId: null,
+    },
+  ]);
   readonly hasActiveCategoryFilter = signal(false);
   readonly loading = signal(false);
   readonly error = signal(null);
@@ -43,7 +90,22 @@ class TransactionsStoreStub {
     return 0;
   }
 
-  categoryExpenseTotal(): number {
+  categoryExpenseTotal(categoryId: string): number {
+    if (categoryId === 'category-active') {
+      return 25;
+    }
+
+    return 0;
+  }
+
+  categoryTransactionCount(categoryId: string): number {
+    if (
+      categoryId === 'category-active' ||
+      categoryId === 'category-ungrouped-active'
+    ) {
+      return 1;
+    }
+
     return 0;
   }
 
@@ -127,5 +189,72 @@ describe('TransactionsPageComponent', () => {
         minimumFractionDigits: 2,
       }).format(-1234.56),
     );
+  });
+
+  it('can hide categories without transactions from the category filter', () => {
+    const fixture = TestBed.createComponent(TransactionsPageComponent);
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance as unknown as {
+      onCategoryActivityFilterChange(event: Event): void;
+      visibleGroupedCategories(): readonly Array<{
+        readonly categories: readonly { readonly id: string }[];
+      }>;
+      visibleUngroupedCategories(): readonly { readonly id: string }[];
+    };
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.checked = true;
+    const event = new Event('change');
+    Object.defineProperty(event, 'target', { value: input });
+
+    component.onCategoryActivityFilterChange(event);
+
+    expect(
+      component.visibleGroupedCategories()[0]?.categories.map(
+        (category) => category.id
+      )
+    ).toEqual(['category-active']);
+    expect(
+      component
+        .visibleUngroupedCategories()
+        .map((category) => category.id)
+    ).toEqual(['category-ungrouped-active']);
+  });
+
+  it('opens the create transaction form with the N keyboard shortcut', () => {
+    const fixture = TestBed.createComponent(TransactionsPageComponent);
+    fixture.detectChanges();
+    const component = fixture.componentInstance as unknown as {
+      createFormOpen(): boolean;
+    };
+
+    const event = new KeyboardEvent('keydown', {
+      key: 'n',
+      bubbles: true,
+    });
+    document.dispatchEvent(event);
+
+    expect(component.createFormOpen()).toBe(true);
+  });
+
+  it('does not open the create form when N is typed in an input', () => {
+    const fixture = TestBed.createComponent(TransactionsPageComponent);
+    fixture.detectChanges();
+    const component = fixture.componentInstance as unknown as {
+      createFormOpen(): boolean;
+    };
+
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    input.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'n',
+        bubbles: true,
+      })
+    );
+    input.remove();
+
+    expect(component.createFormOpen()).toBe(false);
   });
 });

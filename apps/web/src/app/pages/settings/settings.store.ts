@@ -1,6 +1,11 @@
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { PostgrestError, SupabaseClient } from '@supabase/supabase-js';
 import { AuthService } from '../../core/auth.service';
+import {
+  ProfileService,
+  mapProfileRow,
+  type ProfileEntity,
+} from '../../core/profile.service';
 import { SUPABASE_CLIENT } from '../../core/supabase';
 import { canonicalHeroIconName } from '../../shared/icons/heroicons';
 import { logError } from '../../core/logger';
@@ -31,15 +36,6 @@ export interface WalletEntity {
   readonly isDefault: boolean;
   readonly currencyId: number;
   readonly currency: string;
-}
-
-export interface ProfileEntity {
-  readonly id: string;
-  readonly fullName: string;
-  readonly username: string;
-  readonly avatarUrl: string | null;
-  readonly language: string;
-  readonly timezone: string;
 }
 
 export interface CategoryPayload {
@@ -106,6 +102,7 @@ class SettingsStoreError extends Error {
 export class SettingsStore {
   private readonly supabase = inject<SupabaseClient>(SUPABASE_CLIENT);
   private readonly auth = inject(AuthService);
+  private readonly profileService = inject(ProfileService);
 
   private readonly userId = signal<string | null>(null);
   private readonly state = signal<SettingsState>({
@@ -250,7 +247,8 @@ export class SettingsStore {
       const groups = this.sortGroups(
         (groupsResult.data ?? []).map((group) => this.mapGroupRow(group as CategoryGroupRow)),
       );
-      const profile = profileResult.data ? this.mapProfileRow(profileResult.data as ProfileRow) : null;
+      const profile = profileResult.data ? mapProfileRow(profileResult.data as ProfileRow) : null;
+      this.profileService.setProfile(profile);
       const categories = this.sortCategories(
         (categoriesResult.data ?? []).map((category) => this.mapCategoryRow(category as CategoryRow)),
       );
@@ -606,7 +604,8 @@ export class SettingsStore {
         throw error;
       }
 
-      const profile = this.mapProfileRow(this.requireRow(data as ProfileRow | null));
+      const profile = mapProfileRow(this.requireRow(data as ProfileRow | null));
+      this.profileService.setProfile(profile);
       this.state.update((state) => ({
         ...state,
         profile,
@@ -815,17 +814,6 @@ export class SettingsStore {
       isDefault: !!row.is_default,
       currencyId,
       currency: currencyLookup.get(currencyId) ?? 'PLN',
-    };
-  }
-
-  private mapProfileRow(row: ProfileRow): ProfileEntity {
-    return {
-      id: row.id,
-      fullName: row.full_name,
-      username: row.username,
-      avatarUrl: row.avatar_url ?? null,
-      language: row.language,
-      timezone: row.timezone,
     };
   }
 

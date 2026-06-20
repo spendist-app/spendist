@@ -42,8 +42,22 @@
               </span>
             </button>
 
+            <label
+              class="flex items-center gap-3 rounded-xl border border-base-200 bg-base-100/70 px-3 py-2 text-sm"
+            >
+              <input
+                type="checkbox"
+                class="toggle toggle-primary toggle-sm"
+                [checked]="showOnlyCategoriesWithTransactions()"
+                (change)="onCategoryActivityFilterChange($event)"
+              />
+              <span class="min-w-0 flex-1 text-base-content/80">
+                {{ 'transactions.filters.onlyCategoriesWithTransactions' | transloco }}
+              </span>
+            </label>
+
             <nav class="space-y-5">
-              @for (group of store.groupedCategories(); track group.id) {
+              @for (group of visibleGroupedCategories(); track group.id) {
                 <section>
                   <header class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
                     <div class="flex min-w-0 items-start gap-2">
@@ -88,7 +102,7 @@
               }
             </nav>
 
-            @if (store.ungroupedCategories().length > 0) {
+            @if (visibleUngroupedCategories().length > 0) {
               <section class="rounded-xl border border-dashed border-base-200 p-3">
                 <div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
                   <h3 class="truncate text-xs font-semibold uppercase tracking-wide text-base-content/50">
@@ -99,7 +113,7 @@
                   </span>
                 </div>
                 <div class="mt-2 space-y-2">
-                  @for (category of store.ungroupedCategories(); track category.id) {
+                  @for (category of visibleUngroupedCategories(); track category.id) {
                     <button
                       type="button"
                       class="grid min-h-10 w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition hover:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
@@ -356,25 +370,34 @@
                           <div class="flex items-center gap-2">
                             <button
                               type="button"
-                              class="btn btn-ghost btn-xs"
+                              class="btn btn-ghost btn-square btn-xs tooltip"
+                              [attr.aria-label]="'transactions.list.actions.edit' | transloco"
+                              [attr.title]="'transactions.list.actions.edit' | transloco"
+                              [attr.data-tip]="'transactions.list.actions.edit' | transloco"
                               (click)="openEditForm(transaction)"
                             >
-                              {{ 'transactions.list.actions.edit' | transloco }}
+                              <ng-icon [svg]="editIcon" size="16" aria-hidden="true"></ng-icon>
                             </button>
                             <button
                               type="button"
-                              class="btn btn-ghost btn-xs"
+                              class="btn btn-ghost btn-square btn-xs tooltip"
+                              [attr.aria-label]="'transactions.list.actions.duplicate' | transloco"
+                              [attr.title]="'transactions.list.actions.duplicate' | transloco"
+                              [attr.data-tip]="'transactions.list.actions.duplicate' | transloco"
                               (click)="openDuplicate(transaction)"
                             >
-                              {{ 'transactions.list.actions.duplicate' | transloco }}
+                              <ng-icon [svg]="duplicateIcon" size="16" aria-hidden="true"></ng-icon>
                             </button>
                             <button
                               type="button"
-                              class="btn btn-ghost btn-xs text-error"
+                              class="btn btn-ghost btn-square btn-xs tooltip text-error"
+                              [attr.aria-label]="'transactions.list.actions.delete' | transloco"
+                              [attr.title]="'transactions.list.actions.delete' | transloco"
+                              [attr.data-tip]="'transactions.list.actions.delete' | transloco"
                               [disabled]="store.transactionMutationPending()"
                               (click)="confirmDelete(transaction)"
                             >
-                              {{ 'transactions.list.actions.delete' | transloco }}
+                              <ng-icon [svg]="deleteIcon" size="16" aria-hidden="true"></ng-icon>
                             </button>
                           </div>
                           <div class="flex flex-col items-end gap-1">
@@ -424,6 +447,7 @@
       type="button"
       class="btn btn-primary btn-circle fixed bottom-6 right-6 z-20 shadow-lg sm:bottom-8 sm:right-8"
       aria-label="{{ 'transactions.actions.add' | transloco }}"
+      aria-keyshortcuts="N"
       (click)="openCreateForm()"
     >
       <span aria-hidden="true" class="text-2xl leading-none">+</span>

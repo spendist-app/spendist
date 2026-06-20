@@ -610,6 +610,7 @@ const en = {
       categoriesTitle: 'Categories',
       clearCategories: 'Clear',
       allCategories: 'All categories',
+      onlyCategoriesWithTransactions: 'Only categories with transactions',
       categoryCount: '{{ total }} categories',
       ungroupedTitle: 'Unassigned',
       presets: {
@@ -674,6 +675,7 @@ const en = {
       },
       submit: {
         createIdle: 'Save transaction',
+        createAndContinue: 'Save and add another',
         editIdle: 'Update transaction',
         busy: 'Saving…',
       },
@@ -698,7 +700,9 @@ const en = {
       placeholders: {
         description: 'Optional note, e.g. Grocery run',
         category: 'Select category',
+        categorySearch: 'Search categories...',
         place: 'No place',
+        placeSearch: 'Search places...',
         wallet: 'Select wallet',
         tagInput: 'Type a tag and press Enter…',
       },
@@ -712,6 +716,7 @@ const en = {
         removeTag: 'Remove {{ name }}',
         showAdvanced: 'Show advanced fields',
         hideAdvanced: 'Hide advanced fields',
+        setToday: 'Set today',
         updateExchangeRate: 'Update exchange rate',
       },
       help: {
@@ -723,6 +728,8 @@ const en = {
       },
       emptyTags:
         'Start typing to create your first tag or choose from suggestions.',
+      emptyCategories: 'No matching categories.',
+      emptyPlaces: 'No matching places.',
     },
   },
   places: {

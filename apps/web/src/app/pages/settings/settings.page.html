@@ -138,10 +138,13 @@
               </label>
               <button
                 type="button"
-                class="btn btn-primary btn-sm"
+                class="btn btn-primary btn-square btn-sm tooltip"
+                [attr.aria-label]="'common.actions.openProfileEditor' | transloco"
+                [attr.title]="'common.actions.openProfileEditor' | transloco"
+                [attr.data-tip]="'common.actions.openProfileEditor' | transloco"
                 (click)="openProfileEditor()"
               >
-                {{ 'common.actions.openProfileEditor' | transloco }}
+                <ng-icon [svg]="editIcon" size="18" aria-hidden="true"></ng-icon>
               </button>
               <button
                 type="button"
@@ -839,19 +842,25 @@
               <div class="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  class="btn btn-primary btn-sm"
+                  class="btn btn-primary btn-square btn-sm tooltip"
+                  [attr.aria-label]="'settings.panels.categories.details.edit' | transloco"
+                  [attr.title]="'settings.panels.categories.details.edit' | transloco"
+                  [attr.data-tip]="'settings.panels.categories.details.edit' | transloco"
                   (click)="openCategoryEditor(category.id)"
                   [disabled]="store.categoryMutationPending()"
                 >
-                  {{ 'settings.panels.categories.details.edit' | transloco }}
+                  <ng-icon [svg]="editIcon" size="18" aria-hidden="true"></ng-icon>
                 </button>
                 <button
                   type="button"
-                  class="btn btn-ghost btn-sm text-error"
+                  class="btn btn-ghost btn-square btn-sm tooltip text-error"
+                  [attr.aria-label]="'common.actions.delete' | transloco"
+                  [attr.title]="'common.actions.delete' | transloco"
+                  [attr.data-tip]="'common.actions.delete' | transloco"
                   (click)="deleteCategory(category.id)"
                   [disabled]="store.categoryMutationPending()"
                 >
-                  {{ 'common.actions.delete' | transloco }}
+                  <ng-icon [svg]="deleteIcon" size="18" aria-hidden="true"></ng-icon>
                 </button>
               </div>
             </div>
@@ -1042,11 +1051,14 @@
                 </button>
                 <button
                   type="button"
-                  class="btn btn-ghost btn-xs text-error"
+                  class="btn btn-ghost btn-square btn-xs tooltip text-error"
+                  [attr.aria-label]="'common.actions.deleteGroup' | transloco"
+                  [attr.title]="'common.actions.deleteGroup' | transloco"
+                  [attr.data-tip]="'common.actions.deleteGroup' | transloco"
                   (click)="deleteCategoryGroup(group.id)"
                   [disabled]="store.groupMutationPending()"
                 >
-                  {{ 'common.actions.deleteGroup' | transloco }}
+                  <ng-icon [svg]="deleteIcon" size="16" aria-hidden="true"></ng-icon>
                 </button>
               </div>
             </article>

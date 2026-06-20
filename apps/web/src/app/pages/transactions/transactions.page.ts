@@ -1,7 +1,8 @@
-import { ChangeDetectionStrategy, Component, OnDestroy, PLATFORM_ID, computed, effect, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnDestroy, PLATFORM_ID, computed, effect, inject, signal } from '@angular/core';
 import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { TranslocoPipe, TranslocoService } from '@ngneat/transloco';
 import { NgIcon } from '@ng-icons/core';
+import { heroDocumentDuplicate, heroPencilSquare, heroTrash } from '@ng-icons/heroicons/outline';
 import { TransactionsStore, TransactionPresetId, TransactionViewModel } from './transactions.store';
 import { heroIconSvg as heroIconSvgFn, formatHeroIconLabel as formatHeroIconLabelFn } from '../../shared/icons/heroicons';
 import { LanguageService } from '../../core/language.service';
@@ -35,9 +36,13 @@ export class TransactionsPageComponent implements OnDestroy {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly document = inject(DOCUMENT);
   private readonly transloco = inject(TranslocoService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly heroIconSvg = heroIconSvgFn;
   protected readonly formatHeroIconLabel = formatHeroIconLabelFn;
+  protected readonly editIcon = heroPencilSquare;
+  protected readonly duplicateIcon = heroDocumentDuplicate;
+  protected readonly deleteIcon = heroTrash;
 
   protected readonly filters = computed(() => this.store.activeFilters());
   protected readonly locale = computed(() => this.resolveLocale(this.languageService.currentLanguage()));
@@ -55,12 +60,35 @@ export class TransactionsPageComponent implements OnDestroy {
     { id: 'previousMonth', labelKey: 'transactions.filters.presets.previousMonth' },
     { id: 'thisYear', labelKey: 'transactions.filters.presets.thisYear' },
     { id: 'lastYear', labelKey: 'transactions.filters.presets.lastYear' },
-    { id: 'allTime', labelKey: 'transactions.filters.presets.allTime' },
   ];
 
   protected readonly monthYearOptions = computed(() => this.buildMonthYearOptions());
   protected readonly selectedMonthValue = computed(() => this.computeSelectedMonthValue());
   protected readonly selectedYearValue = computed(() => this.computeSelectedYearValue());
+  protected readonly showOnlyCategoriesWithTransactions = signal(false);
+  protected readonly visibleGroupedCategories = computed(() =>
+    this.store
+      .groupedCategories()
+      .map((group) => ({
+        ...group,
+        categories: this.showOnlyCategoriesWithTransactions()
+          ? group.categories.filter((category) =>
+              this.categoryHasTransactions(category.id)
+            )
+          : group.categories,
+      }))
+      .filter((group) => group.categories.length > 0)
+  );
+  protected readonly visibleUngroupedCategories = computed(() => {
+    const categories = this.store.ungroupedCategories();
+    if (!this.showOnlyCategoriesWithTransactions()) {
+      return categories;
+    }
+
+    return categories.filter((category) =>
+      this.categoryHasTransactions(category.id)
+    );
+  });
 
   protected readonly skeletonPlaceholders = Array.from({ length: 4 }, (_, index) => index);
   private readonly scrollLockEffect = effect(() => {
@@ -73,6 +101,20 @@ export class TransactionsPageComponent implements OnDestroy {
     }
     body.classList.toggle('overflow-hidden', this.createFormOpen());
   });
+
+  constructor() {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
+    const handleKeydown = (event: KeyboardEvent) => {
+      this.handleKeyboardShortcut(event);
+    };
+    this.document.addEventListener('keydown', handleKeydown);
+    this.destroyRef.onDestroy(() => {
+      this.document.removeEventListener('keydown', handleKeydown);
+    });
+  }
 
   protected formatExpenseTotal(amount: number): string {
     const locale = this.locale();
@@ -182,6 +224,11 @@ export class TransactionsPageComponent implements OnDestroy {
     }
   }
 
+  protected onCategoryActivityFilterChange(event: Event): void {
+    const input = event.target as HTMLInputElement | null;
+    this.showOnlyCategoriesWithTransactions.set(!!input?.checked);
+  }
+
   protected toggleCategorySelectionAndScroll(categoryId: string): void {
     this.store.toggleCategorySelection(categoryId);
     this.scrollToTransactionsResults();
@@ -190,6 +237,13 @@ export class TransactionsPageComponent implements OnDestroy {
   protected clearCategorySelectionAndScroll(): void {
     this.store.clearCategorySelection();
     this.scrollToTransactionsResults();
+  }
+
+  protected categoryHasTransactions(categoryId: string): boolean {
+    return (
+      this.store.categoryTransactionCount(categoryId) > 0 ||
+      Math.abs(this.store.categoryExpenseTotal(categoryId)) > 0
+    );
   }
 
   protected trackTransaction(_index: number, transaction: TransactionViewModel): string {
@@ -202,6 +256,24 @@ export class TransactionsPageComponent implements OnDestroy {
     this.editingTransaction.set(null);
     this.duplicateTransaction.set(null);
     this.createFormOpen.set(true);
+  }
+
+  protected handleKeyboardShortcut(event: KeyboardEvent): void {
+    if (
+      event.defaultPrevented ||
+      event.altKey ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.shiftKey ||
+      event.key.toLowerCase() !== 'n' ||
+      this.createFormOpen() ||
+      this.isEditableShortcutTarget(event.target)
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    this.openCreateForm();
   }
 
   protected openEditForm(transaction: TransactionViewModel): void {
@@ -366,6 +438,20 @@ export class TransactionsPageComponent implements OnDestroy {
     this.document
       ?.getElementById('transactions-results')
       ?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
+
+  private isEditableShortcutTarget(target: EventTarget | null): boolean {
+    if (!(target instanceof HTMLElement)) {
+      return false;
+    }
+
+    const tagName = target.tagName.toLowerCase();
+    return (
+      tagName === 'input' ||
+      tagName === 'textarea' ||
+      tagName === 'select' ||
+      target.isContentEditable
+    );
   }
 
   private isStartOfMonth(date: Date): boolean {

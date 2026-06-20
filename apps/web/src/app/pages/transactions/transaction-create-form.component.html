@@ -75,14 +75,15 @@
         }
 
         <fieldset class="grid gap-3 sm:grid-cols-2">
-          <label class="form-control">
+          <label class="form-control sm:col-span-2">
             <span class="label-text text-sm font-semibold text-base-content">
               {{ 'transactions.form.fields.description' | transloco }}
             </span>
             <input
+              #descriptionInput
               formControlName="description"
               type="text"
-              class="input input-bordered"
+              class="input input-bordered w-full"
               maxlength="120"
               placeholder="{{
                 'transactions.form.placeholders.description' | transloco
@@ -99,47 +100,177 @@
               type="date"
               class="input input-bordered"
             />
+            <button
+              type="button"
+              class="mt-1 self-start text-xs font-medium text-primary hover:underline"
+              (click)="setDateToToday()"
+            >
+              {{ 'transactions.form.actions.setToday' | transloco }}
+            </button>
           </label>
 
-          <label class="form-control sm:col-span-2">
+          <div class="form-control sm:col-span-2">
             <span class="label-text text-sm font-semibold text-base-content">
               {{ 'transactions.form.fields.category' | transloco }}
             </span>
-            <select
-              formControlName="categoryId"
-              class="select select-bordered w-full"
+            <div
+              class="relative"
+              (focusout)="onCategoryDropdownFocusOut($event)"
             >
-              <option value="" disabled>
-                {{ 'transactions.form.placeholders.category' | transloco }}
-              </option>
-              @for (group of categoryView(); track group.groupName) { @if
-              (group.groupName) {
-              <optgroup [label]="group.groupName">
-                @for (item of group.options; track item.id) {
-                <option [value]="item.id">{{ item.label }}</option>
-                }
-              </optgroup>
-              } @else { @for (item of group.options; track item.id) {
-              <option [value]="item.id">{{ item.label }}</option>
-              } } }
-            </select>
-          </label>
+              <button
+                type="button"
+                class="btn btn-outline min-h-12 w-full justify-between gap-3 px-4 text-left font-normal"
+                aria-haspopup="listbox"
+                [attr.aria-expanded]="categoryDropdownOpen()"
+                [attr.aria-label]="'transactions.form.fields.category' | transloco"
+                (click)="toggleCategoryDropdown()"
+              >
+                <span
+                  class="min-w-0 flex-1 truncate"
+                  [class.text-base-content/50]="!selectedCategoryLabel()"
+                >
+                  @if (selectedCategoryLabel(); as label) {
+                  {{ label }}
+                  } @else {
+                  {{ 'transactions.form.placeholders.category' | transloco }}
+                  }
+                </span>
+                <span class="shrink-0 text-base-content/60" aria-hidden="true">
+                  v
+                </span>
+              </button>
 
-          <label class="form-control sm:col-span-2">
+              @if (categoryDropdownOpen()) {
+              <div
+                class="mt-2 rounded-xl border border-base-300 bg-base-100 p-2 shadow-lg"
+              >
+                <input
+                  #categorySearchInput
+                  type="search"
+                  class="input input-bordered input-sm w-full"
+                  [value]="categorySearch()"
+                  (input)="onCategorySearchInput($event)"
+                  (keydown.escape)="closeCategoryDropdown()"
+                  placeholder="{{
+                    'transactions.form.placeholders.categorySearch' | transloco
+                  }}"
+                  autocomplete="off"
+                />
+                <div class="mt-2 max-h-56 overflow-y-auto" role="listbox">
+                  @if (filteredCategoryView().length > 0) { @for (group of
+                  filteredCategoryView(); track group.groupName) {
+                  <div class="py-1">
+                    @if (group.groupName) {
+                    <p
+                      class="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-base-content/50"
+                    >
+                      {{ group.groupName }}
+                    </p>
+                    } @for (item of group.options; track item.id) {
+                    <button
+                      type="button"
+                      class="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm transition hover:bg-base-200"
+                      [class.bg-base-200]="selectedCategoryId() === item.id"
+                      (click)="selectCategory(item.id)"
+                      role="option"
+                      [attr.aria-selected]="selectedCategoryId() === item.id"
+                    >
+                      <span class="min-w-0 truncate">{{ item.label }}</span>
+                    </button>
+                    }
+                  </div>
+                  } } @else {
+                  <p class="px-3 py-4 text-sm text-base-content/60">
+                    {{ 'transactions.form.emptyCategories' | transloco }}
+                  </p>
+                  }
+                </div>
+              </div>
+              }
+            </div>
+          </div>
+
+          <div class="form-control sm:col-span-2">
             <span class="label-text text-sm font-semibold text-base-content">
               {{ 'transactions.form.fields.place' | transloco }}
             </span>
-            <select formControlName="placeId" class="select select-bordered w-full">
-              <option value="">
-                {{ 'transactions.form.placeholders.place' | transloco }}
-              </option>
-              @for (place of places(); track place.id) {
-              <option [value]="place.id">
-                {{ place.name }}{{ place.city ? ' · ' + place.city : '' }}
-              </option>
+            <div class="relative" (focusout)="onPlaceDropdownFocusOut($event)">
+              <button
+                type="button"
+                class="btn btn-outline min-h-12 w-full justify-between gap-3 px-4 text-left font-normal"
+                aria-haspopup="listbox"
+                [attr.aria-expanded]="placeDropdownOpen()"
+                [attr.aria-label]="'transactions.form.fields.place' | transloco"
+                (click)="togglePlaceDropdown()"
+              >
+                <span
+                  class="min-w-0 flex-1 truncate"
+                  [class.text-base-content/50]="!selectedPlaceLabel()"
+                >
+                  @if (selectedPlaceLabel(); as label) {
+                  {{ label }}
+                  } @else {
+                  {{ 'transactions.form.placeholders.place' | transloco }}
+                  }
+                </span>
+                <span class="shrink-0 text-base-content/60" aria-hidden="true">
+                  v
+                </span>
+              </button>
+
+              @if (placeDropdownOpen()) {
+              <div
+                class="mt-2 rounded-xl border border-base-300 bg-base-100 p-2 shadow-lg"
+              >
+                <input
+                  #placeSearchInput
+                  type="search"
+                  class="input input-bordered input-sm w-full"
+                  [value]="placeSearch()"
+                  (input)="onPlaceSearchInput($event)"
+                  (keydown.escape)="closePlaceDropdown()"
+                  placeholder="{{
+                    'transactions.form.placeholders.placeSearch' | transloco
+                  }}"
+                  autocomplete="off"
+                />
+                <div class="mt-2 max-h-56 overflow-y-auto" role="listbox">
+                  <button
+                    type="button"
+                    class="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm transition hover:bg-base-200"
+                    [class.bg-base-200]="!selectedPlaceId()"
+                    (click)="selectPlace('')"
+                    role="option"
+                    [attr.aria-selected]="!selectedPlaceId()"
+                  >
+                    <span class="min-w-0 truncate">
+                      {{ 'transactions.form.placeholders.place' | transloco }}
+                    </span>
+                  </button>
+                  @if (filteredPlaces().length > 0) { @for (place of
+                  filteredPlaces(); track place.id) {
+                  <button
+                    type="button"
+                    class="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm transition hover:bg-base-200"
+                    [class.bg-base-200]="selectedPlaceId() === place.id"
+                    (click)="selectPlace(place.id)"
+                    role="option"
+                    [attr.aria-selected]="selectedPlaceId() === place.id"
+                  >
+                    <span class="min-w-0 truncate">
+                      {{ formatPlaceLabel(place) }}
+                    </span>
+                  </button>
+                  } } @else {
+                  <p class="px-3 py-4 text-sm text-base-content/60">
+                    {{ 'transactions.form.emptyPlaces' | transloco }}
+                  </p>
+                  }
+                </div>
+              </div>
               }
-            </select>
-          </label>
+            </div>
+          </div>
 
           <label class="form-control">
             <span class="label-text text-sm font-semibold text-base-content">
@@ -402,6 +533,16 @@
         <button type="button" class="btn btn-ghost" (click)="onClose()">
           {{ 'common.actions.cancel' | transloco }}
         </button>
+        @if (!isEditMode()) {
+        <button
+          type="button"
+          class="btn btn-outline"
+          [disabled]="store.transactionMutationPending()"
+          (click)="submitAndAddAnother()"
+        >
+          {{ 'transactions.form.submit.createAndContinue' | transloco }}
+        </button>
+        }
         <button
           type="submit"
           class="btn btn-primary"

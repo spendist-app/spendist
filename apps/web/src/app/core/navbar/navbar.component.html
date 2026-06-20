@@ -158,9 +158,19 @@
                     [attr.aria-label]="'navbar.settings' | transloco"
                     (click)="toggleAccountMenu()"
                   >
+                    @if (avatarUrl(); as avatar) {
+                    <div class="w-10 rounded-full">
+                      <img
+                        [src]="avatar"
+                        [alt]="'settings.panels.profile.avatar.alt' | transloco"
+                        class="object-cover"
+                      />
+                    </div>
+                    } @else {
                     <div class="bg-neutral text-neutral-content w-10 rounded-full">
                       <span class="text-lg font-semibold uppercase">{{ initials() }}</span>
                     </div>
+                    }
                   </button>
                   <ul
                     tabindex="0"
