@@ -76,6 +76,26 @@ function envValueOrDefault(key: string, fallback: string): string {
   return value;
 }
 
+async function currencyAmount(locator: Locator): Promise<number> {
+  const text = (await locator.textContent()) ?? '';
+  const sign = text.includes('-') ? -1 : 1;
+  const numericText = text.replace(/[^\d.,]/g, '');
+  const decimalSeparatorIndex = Math.max(
+    numericText.lastIndexOf(','),
+    numericText.lastIndexOf('.')
+  );
+
+  if (decimalSeparatorIndex < 0) {
+    return sign * Number(numericText);
+  }
+
+  const integerPart = numericText
+    .slice(0, decimalSeparatorIndex)
+    .replace(/[.,]/g, '');
+  const fractionPart = numericText.slice(decimalSeparatorIndex + 1);
+  return sign * Number(`${integerPart}.${fractionPart}`);
+}
+
 async function selectFirstRealOption(select: Locator): Promise<string> {
   for (let attempt = 0; attempt < 40; attempt += 1) {
     const value = await select.locator('option').evaluateAll((options) => {
@@ -133,8 +153,29 @@ async function filterTransactionsByDate(
   page: Page,
   occurredOn: string
 ): Promise<void> {
-  await page.getByLabel('Date from', { exact: true }).fill(occurredOn);
-  await page.getByLabel('Date to', { exact: true }).fill(occurredOn);
+  const fromInput = page.getByLabel('Date from', { exact: true });
+  const toInput = page.getByLabel('Date to', { exact: true });
+
+  await fromInput.fill(occurredOn);
+  await toInput.fill(occurredOn);
+
+  const summaryResponse = page.waitForResponse((response) => {
+    if (!response.url().includes('/rpc/category_expense_summary')) {
+      return false;
+    }
+
+    const body = response.request().postDataJSON() as {
+      p_from?: string | null;
+      p_to?: string | null;
+    };
+    return (
+      body.p_from?.startsWith(occurredOn) === true &&
+      body.p_to?.startsWith(occurredOn) === true
+    );
+  });
+
+  await toInput.press('Tab');
+  await summaryResponse;
 }
 
 async function stubRecurringBackfill(page: Page): Promise<void> {
@@ -389,21 +430,29 @@ test('updates transaction exchange rate in edit form', async ({
 
   await ensureAuthenticated(page);
   await openTransactions(page);
+  await filterTransactionsByDate(page, '2026-05-29');
   await page.getByRole('button', { name: 'Add transaction' }).click();
 
   await page.locator('input[formcontrolname="description"]').fill(description);
   await page.locator('input[formcontrolname="occurredOn"]').fill('2026-05-29');
   const categoryLabel = await selectFirstTransactionCategory(page);
-  await page.locator('input[formcontrolname="amount"]').fill('10');
-  await page.locator('select[formcontrolname="currency"]').selectOption('USD');
-  await page.getByRole('button', { name: 'Save transaction' }).click();
-  await filterTransactionsByDate(page, '2026-05-29');
-  await expect(page.getByText(description)).toBeVisible();
-
   const categoryFilter = page
     .locator('aside nav button')
     .filter({ hasText: categoryLabel });
-  await expect(categoryFilter).toContainText(/36[,.]39/);
+  const categoryAmount = categoryFilter.locator('span').last();
+  const categoryTotalBefore = Math.abs(await currencyAmount(categoryAmount));
+
+  await page.locator('input[formcontrolname="amount"]').fill('10');
+  await page.locator('select[formcontrolname="currency"]').selectOption('USD');
+  await page.getByRole('button', { name: 'Save transaction' }).click();
+  await expect(page.getByText(description)).toBeVisible();
+
+  await expect
+    .poll(
+      async () =>
+        Math.abs(await currencyAmount(categoryAmount)) - categoryTotalBefore
+    )
+    .toBeCloseTo(36.39, 2);
 
   const transactionRow = page.locator('li').filter({ hasText: description });
   await transactionRow.getByRole('button', { name: 'Edit' }).click();
@@ -521,7 +570,7 @@ test('creates category group and category', async ({ page }, testInfo) => {
   ).toBeVisible();
 
   await page.getByRole('tab', { name: 'Manage categories' }).click();
-  await page.getByRole('button', { name: 'Add category' }).click();
+  await page.getByRole('button', { name: 'Add category', exact: true }).click();
 
   const categoryForm = formWithHeading(page, 'Create category');
   await categoryForm
