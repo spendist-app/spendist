@@ -10,6 +10,8 @@ import {
   signal,
 } from '@angular/core';
 import { TranslocoPipe, TranslocoService } from '@ngneat/transloco';
+import { NgIcon } from '@ng-icons/core';
+import { heroPencilSquare, heroTrash } from '@ng-icons/heroicons/outline';
 import {
   RecurringOccurrenceEntity,
   RecurringPaymentsFilter,
@@ -21,11 +23,13 @@ import { logError } from '../../../core/logger';
 @Component({
   standalone: true,
   selector: 'app-recurring-payment-list',
-  imports: [CommonModule, TranslocoPipe],
+  imports: [CommonModule, TranslocoPipe, NgIcon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './recurring-payment-list.component.html',
 })
 export class RecurringPaymentListComponent {
+  readonly editIcon = heroPencilSquare;
+  readonly deleteIcon = heroTrash;
   readonly store = inject(RecurringPaymentsStore);
   private readonly transloco = inject(TranslocoService);
   private readonly destroyRef = inject(DestroyRef);

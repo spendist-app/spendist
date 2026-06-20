@@ -4,6 +4,7 @@ import { TranslocoPipe } from '@ngneat/transloco';
 import { AuthService } from '../auth.service';
 import { LanguageService } from '../language.service';
 import { NotificationsMenuComponent } from '../notifications/notifications-menu.component';
+import { ProfileService } from '../profile.service';
 import { ThemeService } from '../theme.service';
 import { appInfoConfig } from '../../config/app-info.config';
 
@@ -15,6 +16,7 @@ import { appInfoConfig } from '../../config/app-info.config';
 })
 export class NavbarComponent {
   readonly auth = inject(AuthService);
+  private readonly profileService = inject(ProfileService);
   private readonly router = inject(Router);
   private readonly themeService = inject(ThemeService);
   private readonly languageService = inject(LanguageService);
@@ -26,26 +28,23 @@ export class NavbarComponent {
   readonly activeLanguage = computed(() => this.languageService.currentLanguage());
   readonly buildCommit = appInfoConfig.buildCommit;
   readonly buildCommitShort = shortCommit(appInfoConfig.buildCommit);
+  readonly avatarUrl = computed(() => this.profileService.avatarUrl());
   private modulesCloseTimer: ReturnType<typeof setTimeout> | null = null;
   private accountCloseTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly initials = computed(() => {
+    const profile = this.profileService.profile();
+    if (profile) {
+      return resolveInitials(profile.fullName || profile.username);
+    }
+
     const session = this.auth.session();
     const metadata = (session?.user.user_metadata ?? {}) as Record<string, unknown>;
     const rawFullName = metadata['full_name'];
     const nameCandidate = typeof rawFullName === 'string' && rawFullName.trim().length
       ? rawFullName
       : session?.user.email ?? '';
-    if (!nameCandidate) {
-      return 'U';
-    }
-
-    const parts = nameCandidate.trim().split(/\s+/);
-    if (parts.length === 1) {
-      return parts[0].slice(0, 2).toUpperCase();
-    }
-
-    return `${parts[0][0] ?? ''}${parts[1][0] ?? ''}`.toUpperCase();
+    return resolveInitials(nameCandidate);
   });
 
   readonly isDark = computed(() => this.themeService.theme() === 'spendistDark');
@@ -167,6 +166,19 @@ export class NavbarComponent {
       this.languageService.setLanguage(next);
     }
   }
+}
+
+function resolveInitials(nameCandidate: string): string {
+  if (!nameCandidate) {
+    return 'U';
+  }
+
+  const parts = nameCandidate.trim().split(/\s+/);
+  if (parts.length === 1) {
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+
+  return `${parts[0][0] ?? ''}${parts[1][0] ?? ''}`.toUpperCase();
 }
 
 function shortCommit(commit: string): string {

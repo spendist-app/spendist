@@ -206,11 +206,14 @@
                   <div class="flex flex-wrap justify-end gap-2">
                     <button
                       type="button"
-                      class="btn btn-ghost btn-sm"
+                      class="btn btn-ghost btn-square btn-sm tooltip"
+                      [attr.aria-label]="'modules.recurringPayments.list.actions.edit' | transloco"
+                      [attr.title]="'modules.recurringPayments.list.actions.edit' | transloco"
+                      [attr.data-tip]="'modules.recurringPayments.list.actions.edit' | transloco"
                       (click)="beginEdit(transaction)"
                       [disabled]="store.mutationPending()"
                     >
-                      {{ 'modules.recurringPayments.list.actions.edit' | transloco }}
+                      <ng-icon [svg]="editIcon" size="18" aria-hidden="true"></ng-icon>
                     </button>
                     @if (canStop(transaction)) {
                       <button
@@ -234,11 +237,14 @@
                     }
                     <button
                       type="button"
-                      class="btn btn-ghost btn-sm text-error"
+                      class="btn btn-ghost btn-square btn-sm tooltip text-error"
+                      [attr.aria-label]="'modules.recurringPayments.list.actions.delete' | transloco"
+                      [attr.title]="'modules.recurringPayments.list.actions.delete' | transloco"
+                      [attr.data-tip]="'modules.recurringPayments.list.actions.delete' | transloco"
                       (click)="confirmDelete(transaction)"
                       [disabled]="store.mutationPending()"
                     >
-                      {{ 'modules.recurringPayments.list.actions.delete' | transloco }}
+                      <ng-icon [svg]="deleteIcon" size="18" aria-hidden="true"></ng-icon>
                     </button>
                   </div>
                 </div>

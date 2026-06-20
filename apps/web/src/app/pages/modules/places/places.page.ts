@@ -1,17 +1,21 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslocoPipe, TranslocoService } from '@ngneat/transloco';
+import { NgIcon } from '@ng-icons/core';
+import { heroPencilSquare, heroTrash } from '@ng-icons/heroicons/outline';
 import { PlaceEntity, PlacesStore } from './places.store';
 
 @Component({
   standalone: true,
   selector: 'app-places-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, TranslocoPipe],
+  imports: [ReactiveFormsModule, TranslocoPipe, NgIcon],
   providers: [PlacesStore],
   templateUrl: './places.page.html',
 })
 export class PlacesPageComponent {
+  protected readonly editIcon = heroPencilSquare;
+  protected readonly deleteIcon = heroTrash;
   protected readonly store = inject(PlacesStore);
   private readonly formBuilder = inject(FormBuilder);
   private readonly transloco = inject(TranslocoService);

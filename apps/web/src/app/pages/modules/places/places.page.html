@@ -88,16 +88,26 @@
                   </div>
 
                   <div class="flex shrink-0 gap-2">
-                    <button type="button" class="btn btn-ghost btn-sm" (click)="openEditForm(place)">
-                      {{ 'places.actions.edit' | transloco }}
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-square btn-sm tooltip"
+                      [attr.aria-label]="'places.actions.edit' | transloco"
+                      [attr.title]="'places.actions.edit' | transloco"
+                      [attr.data-tip]="'places.actions.edit' | transloco"
+                      (click)="openEditForm(place)"
+                    >
+                      <ng-icon [svg]="editIcon" size="18" aria-hidden="true"></ng-icon>
                     </button>
                     <button
                       type="button"
-                      class="btn btn-ghost btn-sm text-error"
+                      class="btn btn-ghost btn-square btn-sm tooltip text-error"
+                      [attr.aria-label]="'common.actions.delete' | transloco"
+                      [attr.title]="'common.actions.delete' | transloco"
+                      [attr.data-tip]="'common.actions.delete' | transloco"
                       [disabled]="store.mutationPending()"
                       (click)="deletePlace(place)"
                     >
-                      {{ 'common.actions.delete' | transloco }}
+                      <ng-icon [svg]="deleteIcon" size="18" aria-hidden="true"></ng-icon>
                     </button>
                   </div>
                 </div>

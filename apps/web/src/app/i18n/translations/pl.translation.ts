@@ -613,6 +613,7 @@ const pl = {
       categoriesTitle: 'Kategorie',
       clearCategories: 'Wyczyść',
       allCategories: 'Wszystkie kategorie',
+      onlyCategoriesWithTransactions: 'Tylko kategorie z transakcjami',
       categoryCount: '{{ total }} kategorii',
       ungroupedTitle: 'Bez grupy',
       presets: {
@@ -676,6 +677,7 @@ const pl = {
       },
       submit: {
         createIdle: 'Zapisz transakcję',
+        createAndContinue: 'Zapisz i dodaj kolejną',
         editIdle: 'Zaktualizuj transakcję',
         busy: 'Zapisywanie…',
       },
@@ -700,7 +702,9 @@ const pl = {
       placeholders: {
         description: 'Opcjonalna notatka, np. Zakupy spożywcze',
         category: 'Wybierz kategorię',
+        categorySearch: 'Szukaj kategorii...',
         place: 'Brak miejsca',
+        placeSearch: 'Szukaj miejsca...',
         wallet: 'Wybierz portfel',
         tagInput: 'Wpisz tag i naciśnij Enter…',
       },
@@ -713,6 +717,7 @@ const pl = {
         removeTag: 'Usuń {{ name }}',
         showAdvanced: 'Pokaż pola zaawansowane',
         hideAdvanced: 'Ukryj pola zaawansowane',
+        setToday: 'Ustaw dzisiaj',
         updateExchangeRate: 'Aktualizuj kurs',
       },
       help: {
@@ -725,6 +730,8 @@ const pl = {
       },
       emptyTags:
         'Zacznij pisać, aby dodać pierwszy tag lub wybierz z podpowiedzi.',
+      emptyCategories: 'Brak pasujących kategorii.',
+      emptyPlaces: 'Brak pasujących miejsc.',
     },
   },
   places: {

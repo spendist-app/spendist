@@ -58,6 +58,7 @@ class TransactionsStoreStub {
   readonly transactionMutationPending = signal(false);
   readonly mutationError = signal(null);
   getExchangeRateCalls = 0;
+  createTransactionsCalls = 0;
 
   dismissMutationError(): void {
     return;
@@ -73,6 +74,7 @@ class TransactionsStoreStub {
   }
 
   async createTransactions(): Promise<{ success: true }> {
+    this.createTransactionsCalls += 1;
     return { success: true };
   }
 
@@ -118,6 +120,23 @@ describe('TransactionCreateFormComponent', () => {
     expect(options).toEqual(['PLN', 'EUR', 'USD']);
   });
 
+  it('focuses the full-width description field when creating a transaction', async () => {
+    const fixture = TestBed.createComponent(TransactionCreateFormComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const descriptionInput = compiled.querySelector(
+      'input[formControlName="description"]'
+    ) as HTMLInputElement | null;
+
+    expect(descriptionInput).not.toBeNull();
+    expect(descriptionInput?.parentElement?.classList).toContain(
+      'sm:col-span-2'
+    );
+    expect(document.activeElement).toBe(descriptionInput);
+  });
+
   it('uses recent create date and category from session storage', () => {
     sessionStorage.setItem(
       recentDefaultsStorageKey,
@@ -133,6 +152,103 @@ describe('TransactionCreateFormComponent', () => {
     const component = fixture.componentInstance;
     expect(component['form'].controls.occurredOn.value).toBe('2026-06-15');
     expect(component['form'].controls.categoryId.value).toBe('category-2');
+  });
+
+  it('sets the transaction date to today from the date helper action', () => {
+    const fixture = TestBed.createComponent(TransactionCreateFormComponent);
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance;
+    component['form'].controls.occurredOn.setValue('2026-06-01');
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const dateInput = compiled.querySelector<HTMLInputElement>(
+      'input[formControlName="occurredOn"]'
+    );
+    const setTodayButton =
+      dateInput?.parentElement?.querySelector<HTMLButtonElement>('button');
+    setTodayButton?.click();
+    fixture.detectChanges();
+
+    const today = new Date();
+    const expectedDate = [
+      today.getUTCFullYear(),
+      String(today.getUTCMonth() + 1).padStart(2, '0'),
+      String(today.getUTCDate()).padStart(2, '0'),
+    ].join('-');
+
+    expect(component['form'].controls.occurredOn.value).toBe(expectedDate);
+    expect(component['form'].controls.occurredOn.dirty).toBe(true);
+    expect(component['form'].controls.occurredOn.touched).toBe(true);
+  });
+
+  it('focuses category search after opening the category dropdown and filters options', async () => {
+    const fixture = TestBed.createComponent(TransactionCreateFormComponent);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const dropdownButtons = compiled.querySelectorAll<HTMLButtonElement>(
+      'button[aria-haspopup="listbox"]'
+    );
+    dropdownButtons[0]?.click();
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    fixture.detectChanges();
+
+    const searchInput = compiled.querySelector<HTMLInputElement>(
+      'input[type="search"]'
+    );
+    if (!searchInput) {
+      throw new Error('Category search input was not rendered.');
+    }
+    expect(document.activeElement).toBe(searchInput);
+
+    searchInput.value = 'transport';
+    searchInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    const listbox = compiled.querySelector('[role="listbox"]') as HTMLElement;
+    expect(listbox.textContent).toContain('Transport');
+    expect(listbox.textContent).not.toContain('Food');
+  });
+
+  it('uses the same focused searchable dropdown for transaction places', async () => {
+    const fixture = TestBed.createComponent(TransactionCreateFormComponent);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const dropdownButtons = compiled.querySelectorAll<HTMLButtonElement>(
+      'button[aria-haspopup="listbox"]'
+    );
+    dropdownButtons[1]?.click();
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    fixture.detectChanges();
+
+    const searchInput = compiled.querySelector<HTMLInputElement>(
+      'input[type="search"]'
+    );
+    if (!searchInput) {
+      throw new Error('Place search input was not rendered.');
+    }
+    expect(document.activeElement).toBe(searchInput);
+
+    searchInput.value = 'zebrzydowice';
+    searchInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    const listbox = compiled.querySelector('[role="listbox"]') as HTMLElement;
+    expect(listbox.textContent).toContain('Barber');
+
+    compiled
+      .querySelector<HTMLButtonElement>('[role="option"]:last-child')
+      ?.click();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance['form'].controls.placeId.value).toBe(
+      'place-1'
+    );
   });
 
   it('remembers create date and category after saving', async () => {
@@ -156,6 +272,42 @@ describe('TransactionCreateFormComponent', () => {
       occurredOn: '2026-06-16',
       categoryId: 'category-2',
     });
+  });
+
+  it('saves and resets the form without closing when adding another transaction', async () => {
+    const fixture = TestBed.createComponent(TransactionCreateFormComponent);
+    const store = TestBed.inject(
+      TransactionsStore
+    ) as unknown as TransactionsStoreStub;
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance;
+    let closed = false;
+    let saved = false;
+    component.closed.subscribe(() => {
+      closed = true;
+    });
+    component.saved.subscribe(() => {
+      saved = true;
+    });
+    component['form'].patchValue({
+      description: 'First transaction',
+      categoryId: 'category-2',
+      occurredOn: '2026-06-16',
+      amount: '42',
+      walletId: 'wallet-1',
+    });
+
+    await component['submitAndAddAnother']();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(store.createTransactionsCalls).toBe(1);
+    expect(saved).toBe(true);
+    expect(closed).toBe(false);
+    expect(component['form'].controls.description.value).toBe('');
+    expect(component['form'].controls.amount.value).toBe('');
+    expect(component['form'].controls.occurredOn.value).toBe('2026-06-16');
+    expect(component['form'].controls.categoryId.value).toBe('category-2');
   });
 
   it('updates default amount from exchange rate in edit mode', async () => {
@@ -194,7 +346,7 @@ describe('TransactionCreateFormComponent', () => {
     expect(currencySelect.value).toBe('USD');
 
     compiled
-      .querySelector<HTMLButtonElement>('button[aria-expanded="false"]')
+      .querySelector<HTMLButtonElement>('section button.btn-outline.btn-sm')
       ?.click();
     fixture.detectChanges();
 

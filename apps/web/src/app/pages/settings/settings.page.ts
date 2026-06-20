@@ -13,13 +13,14 @@ import {
 } from '@angular/forms';
 import { TranslocoPipe, TranslocoService } from '@ngneat/transloco';
 import { NgIcon } from '@ng-icons/core';
+import { heroPencilSquare, heroTrash } from '@ng-icons/heroicons/outline';
 import {
   SettingsStore,
   CategoryEntity,
   CategoryGroupEntity,
-  ProfileEntity,
   WalletEntity,
 } from './settings.store';
+import type { ProfileEntity } from '../../core/profile.service';
 import {
   canonicalHeroIconName,
   formatHeroIconLabel as formatHeroIconLabelFn,
@@ -83,6 +84,8 @@ export class SettingsPageComponent {
   protected readonly heroIconSvg = heroIconSvgFn;
   protected readonly formatHeroIconLabel = formatHeroIconLabelFn;
   protected readonly isHeroIconName = isHeroIconNameFn;
+  protected readonly editIcon = heroPencilSquare;
+  protected readonly deleteIcon = heroTrash;
 
   protected readonly panels: readonly SettingsPanel[] = [
     {

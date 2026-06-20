@@ -6,6 +6,7 @@ import { App } from './app';
 import { AuthService } from './core/auth.service';
 import { NavbarComponent } from './core/navbar/navbar.component';
 import { NotificationsStore } from './core/notifications/notifications.store';
+import { ProfileService } from './core/profile.service';
 import { provideAppTransloco } from './i18n/transloco.providers';
 
 class AuthServiceStub {
@@ -62,9 +63,15 @@ class NotificationsStoreStub {
   }
 }
 
+class ProfileServiceStub {
+  readonly profile = signal(null);
+  readonly avatarUrl = signal<string | null>(null);
+}
+
 describe('App', () => {
   let authStub: AuthServiceStub;
   let notificationsStub: NotificationsStoreStub;
+  let profileStub: ProfileServiceStub;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -78,12 +85,17 @@ describe('App', () => {
           provide: NotificationsStore,
           useClass: NotificationsStoreStub,
         },
+        {
+          provide: ProfileService,
+          useClass: ProfileServiceStub,
+        },
         provideRouter([]),
         ...provideAppTransloco(),
       ],
     }).compileComponents();
     authStub = TestBed.inject(AuthService) as AuthServiceStub;
     notificationsStub = TestBed.inject(NotificationsStore) as unknown as NotificationsStoreStub;
+    profileStub = TestBed.inject(ProfileService) as unknown as ProfileServiceStub;
   });
 
   it('should create app shell', () => {
@@ -111,6 +123,20 @@ describe('App', () => {
     const avatar = compiled.querySelector('.avatar');
     expect(avatar).toBeTruthy();
     expect(compiled.textContent).not.toContain('Log in');
+  });
+
+  it('should show profile avatar image in the navbar when available', () => {
+    const fixture = TestBed.createComponent(App);
+    authStub.setAuthenticated(true);
+    profileStub.avatarUrl.set('https://cdn.example.test/avatar.png?v=1');
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const avatarImage = compiled.querySelector<HTMLImageElement>(
+      '.avatar img'
+    );
+
+    expect(avatarImage?.src).toBe('https://cdn.example.test/avatar.png?v=1');
   });
 
   it('should show notification bell when signed in', () => {

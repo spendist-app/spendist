@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
+  afterNextRender,
   effect,
   inject,
   signal,
@@ -9,9 +10,10 @@ import {
   OutputEmitterRef,
   output,
   input,
+  viewChild,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { TranslocoPipe } from '@ngneat/transloco';
 import { NgIcon } from '@ng-icons/core';
 import {
@@ -59,6 +61,12 @@ export class TransactionCreateFormComponent {
   private readonly formBuilder = inject(FormBuilder);
   protected readonly store = inject(TransactionsStore);
   private readonly host = inject(ElementRef<HTMLElement>);
+  protected readonly descriptionInput =
+    viewChild<ElementRef<HTMLInputElement>>('descriptionInput');
+  protected readonly categorySearchInput =
+    viewChild<ElementRef<HTMLInputElement>>('categorySearchInput');
+  protected readonly placeSearchInput =
+    viewChild<ElementRef<HTMLInputElement>>('placeSearchInput');
   private suggestionBlurTimer: ReturnType<typeof setTimeout> | null = null;
   private exchangeRateRequestToken = 0;
 
@@ -152,10 +160,85 @@ export class TransactionCreateFormComponent {
   });
 
   protected readonly controls = this.form.controls;
+  protected readonly selectedCategoryId = toSignal(
+    this.form.controls.categoryId.valueChanges,
+    { initialValue: this.form.controls.categoryId.value }
+  );
+  protected readonly selectedPlaceId = toSignal(
+    this.form.controls.placeId.valueChanges,
+    { initialValue: this.form.controls.placeId.value }
+  );
+  protected readonly categoryDropdownOpen = signal(false);
+  protected readonly categorySearch = signal('');
+  protected readonly placeDropdownOpen = signal(false);
+  protected readonly placeSearch = signal('');
+  protected readonly selectedCategoryLabel = computed(() => {
+    const categoryId = this.selectedCategoryId();
+    if (!categoryId) {
+      return '';
+    }
+
+    for (const group of this.categoryView()) {
+      const option = group.options.find((item) => item.id === categoryId);
+      if (option) {
+        return option.label;
+      }
+    }
+
+    return '';
+  });
+  protected readonly selectedPlaceLabel = computed(() => {
+    const placeId = this.selectedPlaceId();
+    if (!placeId) {
+      return '';
+    }
+
+    const place = this.places().find((item) => item.id === placeId);
+    return place ? this.formatPlaceLabel(place) : '';
+  });
+  protected readonly filteredCategoryView = computed(() => {
+    const query = this.categorySearch().trim().toLowerCase();
+    if (!query) {
+      return this.categoryView();
+    }
+
+    return this.categoryView()
+      .map((group) => ({
+        groupName: group.groupName,
+        options: group.options.filter((option) =>
+          [option.label, option.groupName ?? ''].some((value) =>
+            value.toLowerCase().includes(query)
+          )
+        ),
+      }))
+      .filter((group) => group.options.length > 0);
+  });
+  protected readonly filteredPlaces = computed(() => {
+    const query = this.placeSearch().trim().toLowerCase();
+    if (!query) {
+      return this.places();
+    }
+
+    return this.places().filter((place) =>
+      [
+        place.name,
+        place.street ?? '',
+        place.city ?? '',
+        place.postalCode ?? '',
+        place.country ?? '',
+      ].some((value) => value.toLowerCase().includes(query))
+    );
+  });
   readonly closed: OutputEmitterRef<void> = output();
   readonly saved: OutputEmitterRef<void> = output();
 
   constructor() {
+    afterNextRender(() => {
+      if (this.mode() === 'create') {
+        this.descriptionInput()?.nativeElement.focus();
+      }
+    });
+
     effect(() => {
       const mode = this.mode();
       const editTransaction = this.transaction();
@@ -316,6 +399,78 @@ export class TransactionCreateFormComponent {
         ? this.form.controls.walletId.value
         : null
     );
+  }
+
+  protected toggleCategoryDropdown(): void {
+    if (this.categoryDropdownOpen()) {
+      this.closeCategoryDropdown();
+      return;
+    }
+
+    this.placeDropdownOpen.set(false);
+    this.categorySearch.set('');
+    this.categoryDropdownOpen.set(true);
+    this.focusCategorySearch();
+  }
+
+  protected closeCategoryDropdown(): void {
+    this.categoryDropdownOpen.set(false);
+    this.categorySearch.set('');
+  }
+
+  protected onCategorySearchInput(event: Event): void {
+    const input = event.target as HTMLInputElement | null;
+    this.categorySearch.set(input?.value ?? '');
+  }
+
+  protected selectCategory(categoryId: string): void {
+    const control = this.form.controls.categoryId;
+    control.setValue(categoryId);
+    control.markAsDirty();
+    control.markAsTouched();
+    this.closeCategoryDropdown();
+  }
+
+  protected onCategoryDropdownFocusOut(event: FocusEvent): void {
+    this.closeDropdownWhenFocusLeaves(event, () => this.closeCategoryDropdown());
+  }
+
+  protected togglePlaceDropdown(): void {
+    if (this.placeDropdownOpen()) {
+      this.closePlaceDropdown();
+      return;
+    }
+
+    this.categoryDropdownOpen.set(false);
+    this.placeSearch.set('');
+    this.placeDropdownOpen.set(true);
+    this.focusPlaceSearch();
+  }
+
+  protected closePlaceDropdown(): void {
+    this.placeDropdownOpen.set(false);
+    this.placeSearch.set('');
+  }
+
+  protected onPlaceSearchInput(event: Event): void {
+    const input = event.target as HTMLInputElement | null;
+    this.placeSearch.set(input?.value ?? '');
+  }
+
+  protected selectPlace(placeId: string): void {
+    const control = this.form.controls.placeId;
+    control.setValue(placeId);
+    control.markAsDirty();
+    control.markAsTouched();
+    this.closePlaceDropdown();
+  }
+
+  protected onPlaceDropdownFocusOut(event: FocusEvent): void {
+    this.closeDropdownWhenFocusLeaves(event, () => this.closePlaceDropdown());
+  }
+
+  protected formatPlaceLabel(place: PlaceEntity): string {
+    return place.city ? `${place.name} · ${place.city}` : place.name;
   }
 
   protected clearTags(): void {
@@ -596,12 +751,27 @@ export class TransactionCreateFormComponent {
     this.form.controls.direction.setValue(direction);
   }
 
+  protected async submitAndAddAnother(): Promise<void> {
+    if (this.isEditMode()) {
+      return;
+    }
+
+    await this.submit('continue');
+  }
+
+  protected setDateToToday(): void {
+    const control = this.form.controls.occurredOn;
+    control.setValue(this.todayIsoString());
+    control.markAsDirty();
+    control.markAsTouched();
+  }
+
   protected onClose(): void {
     this.resetForm();
     this.closed.emit();
   }
 
-  protected async submit(): Promise<void> {
+  protected async submit(afterCreate: 'close' | 'continue' = 'close'): Promise<void> {
     if (this.store.transactionMutationPending()) {
       return;
     }
@@ -710,6 +880,12 @@ export class TransactionCreateFormComponent {
           categoryId: raw.categoryId,
         });
         this.saved.emit();
+        if (afterCreate === 'continue') {
+          this.resetForm();
+          this.focusDescriptionInput();
+          return;
+        }
+
         this.onClose();
       }
       return;
@@ -752,6 +928,7 @@ export class TransactionCreateFormComponent {
     this.form.markAsPristine();
     this.form.markAsUntouched();
     this.showAdvanced.set(false);
+    this.closeFormDropdowns();
     this.currencyFollowsWallet.set(true);
     this.store.dismissMutationError();
     this.tagInput.set('');
@@ -857,6 +1034,7 @@ export class TransactionCreateFormComponent {
     this.form.markAsPristine();
     this.form.markAsUntouched();
     this.showAdvanced.set(false);
+    this.closeFormDropdowns();
     this.store.dismissMutationError();
     this.tagInput.set('');
     this.syncWalletCurrency(transaction.walletId);
@@ -888,6 +1066,7 @@ export class TransactionCreateFormComponent {
     this.form.markAsPristine();
     this.form.markAsUntouched();
     this.showAdvanced.set(false);
+    this.closeFormDropdowns();
     this.store.dismissMutationError();
     this.tagInput.set('');
     this.syncWalletCurrency(transaction.walletId);
@@ -1177,5 +1356,39 @@ export class TransactionCreateFormComponent {
     }
 
     return names.join(' / ');
+  }
+
+  private focusCategorySearch(): void {
+    setTimeout(() => {
+      this.categorySearchInput()?.nativeElement.focus();
+    }, 0);
+  }
+
+  private focusPlaceSearch(): void {
+    setTimeout(() => {
+      this.placeSearchInput()?.nativeElement.focus();
+    }, 0);
+  }
+
+  private focusDescriptionInput(): void {
+    setTimeout(() => {
+      this.descriptionInput()?.nativeElement.focus();
+    }, 0);
+  }
+
+  private closeDropdownWhenFocusLeaves(
+    event: FocusEvent,
+    close: () => void
+  ): void {
+    const container = event.currentTarget as HTMLElement | null;
+    const nextTarget = event.relatedTarget as Node | null;
+    if (!container || !nextTarget || !container.contains(nextTarget)) {
+      close();
+    }
+  }
+
+  private closeFormDropdowns(): void {
+    this.closeCategoryDropdown();
+    this.closePlaceDropdown();
   }
 }
