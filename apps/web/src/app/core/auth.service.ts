@@ -54,13 +54,17 @@ export class AuthService implements OnDestroy {
   readonly loading = computed(() => this.authState().loading);
   readonly isAuthenticated = computed(() => !!this.session());
 
-  private readonly subscription = this.supabase.auth.onAuthStateChange((_event, session) => {
+  private readonly subscription = this.supabase.auth.onAuthStateChange((event, session) => {
     this.runInContext(() => {
       this.state.set({
         session: session ?? null,
         loading: false,
       });
     });
+
+    if (session && (event === 'INITIAL_SESSION' || event === 'SIGNED_IN')) {
+      void this.seedDefaultCategories(session);
+    }
   }).data.subscription;
 
   constructor() {
@@ -115,28 +119,23 @@ export class AuthService implements OnDestroy {
         return { error: 'User could not be created. Please try again.' };
       }
 
-      const { error: profileError } = await this.supabase
-        .from('profiles')
-        .update(
-        {
-          full_name: payload.fullName,
-          avatar_url: payload.avatarUrl ?? null,
-          language: payload.language ?? 'en',
-          timezone: payload.timezone,
+      if (data.session) {
+        const { error: profileError } = await this.supabase
+          .from('profiles')
+          .update(
+          {
+            full_name: payload.fullName,
+            avatar_url: payload.avatarUrl ?? null,
+            language: payload.language ?? 'en',
+            timezone: payload.timezone,
+          }
+          )
+          .eq('id', user.id);
+
+        if (profileError) {
+          return { error: this.normalizeProfileError(profileError) };
         }
-        )
-        .eq('id', user.id);
 
-      if (profileError) {
-        return { error: this.normalizeProfileError(profileError) };
-      }
-
-      const userLanguage = (payload.language ?? DEFAULT_LANGUAGE) as LanguageCode;
-
-      try {
-        await ensureDefaultCategoriesForUser(this.supabase, user.id, userLanguage);
-      } catch (seedError) {
-        logError('AuthService', 'Failed to seed default categories', seedError);
       }
 
       return { user };
@@ -178,6 +177,19 @@ export class AuthService implements OnDestroy {
 
   private runInContext(fn: () => void): void {
     this.environmentInjector.runInContext(fn);
+  }
+
+  private async seedDefaultCategories(session: Session): Promise<void> {
+    const language = session.user.user_metadata['language'];
+    const userLanguage = (
+      typeof language === 'string' ? language : DEFAULT_LANGUAGE
+    ) as LanguageCode;
+
+    try {
+      await ensureDefaultCategoriesForUser(this.supabase, session.user.id, userLanguage);
+    } catch (seedError) {
+      logError('AuthService', 'Failed to seed default categories', seedError);
+    }
   }
 
   private normalizeProfileError(error: PostgrestError): string {
