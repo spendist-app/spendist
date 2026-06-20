@@ -31,7 +31,6 @@ Deno.serve(async (request) => {
   const isSingleRecurringBackfill = !!body.recurringId;
 
   const supabaseUrl = requiredEnv('SUPABASE_URL');
-  const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? Deno.env.get('ANON_KEY');
   const serviceKey =
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ??
     Deno.env.get('SUPABASE_SECRET_KEY') ??
@@ -56,23 +55,11 @@ Deno.serve(async (request) => {
   let ownerId: string | null = null;
 
   if (!isSecretAuthorized && (configuredSecret || isSingleRecurringBackfill)) {
-    if (!isSingleRecurringBackfill || !anonKey || !authorization) {
+    if (!isSingleRecurringBackfill || !authorization) {
       return json({ error: 'Unauthorized' }, 401);
     }
 
-    const userClient = createClient(supabaseUrl, anonKey, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-      },
-      global: {
-        headers: {
-          Authorization: authorization,
-        },
-      },
-    });
-
-    const { data: userData, error: userError } = await userClient.auth.getUser();
+    const { data: userData, error: userError } = await supabase.auth.getUser(token);
     if (userError || !userData.user) {
       return json({ error: 'Unauthorized' }, 401);
     }

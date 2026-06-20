@@ -21,6 +21,13 @@ function futureDateInput(daysFromToday: number): string {
   return date.toISOString().slice(0, 10);
 }
 
+function previousMonthStartInput(): string {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1))
+    .toISOString()
+    .slice(0, 10);
+}
+
 async function ensureAuthenticated(page: Page): Promise<void> {
   const email = envValueOrDefault('E2E_AUTH_EMAIL', DEFAULT_EMAIL);
   const password = envValueOrDefault('E2E_AUTH_PASSWORD', DEFAULT_PASSWORD);
@@ -153,11 +160,19 @@ async function filterTransactionsByDate(
   page: Page,
   occurredOn: string
 ): Promise<void> {
+  await filterTransactionsByRange(page, occurredOn, occurredOn);
+}
+
+async function filterTransactionsByRange(
+  page: Page,
+  from: string,
+  to: string
+): Promise<void> {
   const fromInput = page.getByLabel('Date from', { exact: true });
   const toInput = page.getByLabel('Date to', { exact: true });
 
-  await fromInput.fill(occurredOn);
-  await toInput.fill(occurredOn);
+  await fromInput.fill(from);
+  await toInput.fill(to);
 
   const summaryResponse = page.waitForResponse((response) => {
     if (!response.url().includes('/rpc/category_expense_summary')) {
@@ -169,8 +184,8 @@ async function filterTransactionsByDate(
       p_to?: string | null;
     };
     return (
-      body.p_from?.startsWith(occurredOn) === true &&
-      body.p_to?.startsWith(occurredOn) === true
+      body.p_from?.startsWith(from) === true &&
+      body.p_to?.startsWith(to) === true
     );
   });
 
@@ -525,6 +540,53 @@ test('adds recurring payment with selected currency', async ({
   await openModule(page, 'Recurring payments', 'Active recurring payments');
   await expect(page.getByText(name)).toBeVisible();
   await expect(page.getByText('USD')).toBeVisible();
+});
+
+test('backfills transactions for a recurring payment started in the past', async ({
+  page,
+}, testInfo) => {
+  const name = `E2E recurring history ${uniqueSuffix(testInfo)}`;
+  const startDate = previousMonthStartInput();
+  const today = futureDateInput(0);
+
+  await ensureAuthenticated(page);
+  await openModule(page, 'Recurring payments', 'Active recurring payments');
+  await page
+    .getByRole('button', { name: /Add recurring/i })
+    .last()
+    .click();
+
+  await page.locator('#recurring-name').fill(name);
+  await selectFirstRealOption(page.locator('#recurring-category'));
+  await selectFirstRealOption(page.locator('#recurring-wallet'));
+  await page.locator('#recurring-amount').fill('12');
+  await page.locator('select[formcontrolname="currency"]').selectOption('PLN');
+  await page.locator('#recurring-schedule-frequency').selectOption('monthly');
+  await page.locator('input[formcontrolname="scheduleDayOfMonth"]').fill('1');
+  await page.locator('#recurring-start-date').fill(startDate);
+
+  const backfillResponse = page.waitForResponse(
+    (response) =>
+      response.url().includes('/functions/v1/process-recurring-payments') &&
+      response.request().method() === 'POST'
+  );
+  await page.getByRole('button', { name: 'Save recurring payment' }).click();
+
+  const response = await backfillResponse;
+  expect(response.ok()).toBe(true);
+  const result = (await response.json()) as {
+    processedCount?: number;
+    skippedCount?: number;
+  };
+  expect(result.skippedCount).toBe(0);
+  expect(result.processedCount).toBeGreaterThanOrEqual(2);
+  await expect(
+    page.getByRole('heading', { name: 'Schedule a recurring payment' })
+  ).toHaveCount(0);
+
+  await openTransactions(page);
+  await filterTransactionsByRange(page, startDate, today);
+  await expect(page.locator('li').filter({ hasText: name })).toHaveCount(2);
 });
 
 test('creates wallet and keeps it after reload', async ({ page }, testInfo) => {
