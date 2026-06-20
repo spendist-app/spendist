@@ -98,17 +98,43 @@ async function selectFirstRealOption(select: Locator): Promise<string> {
   throw new Error('Missing selectable option value.');
 }
 
-async function selectOptionContaining(
-  select: Locator,
-  text: string
-): Promise<string> {
-  const option = select.locator('option').filter({ hasText: text }).first();
-  const value = await option.getAttribute('value');
-  if (!value) {
-    throw new Error(`Missing option value for ${text}.`);
+async function selectFirstTransactionCategory(page: Page): Promise<string> {
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('button', { name: 'Category', exact: true }).click();
+
+  const search = dialog.getByPlaceholder('Search categories...');
+  await expect(search).toBeFocused();
+
+  const option = dialog.getByRole('option').first();
+  await expect(option).toBeVisible({ timeout: 15000 });
+  const label = (await option.textContent())?.trim() ?? '';
+  if (!label) {
+    throw new Error('Missing selectable transaction category.');
   }
-  await select.selectOption(value);
-  return value;
+
+  await option.click();
+  return label;
+}
+
+async function selectTransactionPlace(page: Page, name: string): Promise<void> {
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('button', { name: 'Place', exact: true }).click();
+
+  const search = dialog.getByPlaceholder('Search places...');
+  await expect(search).toBeFocused();
+  await search.fill(name);
+
+  const option = dialog.getByRole('option').filter({ hasText: name }).first();
+  await expect(option).toBeVisible({ timeout: 15000 });
+  await option.click();
+}
+
+async function filterTransactionsByDate(
+  page: Page,
+  occurredOn: string
+): Promise<void> {
+  await page.getByLabel('Date from', { exact: true }).fill(occurredOn);
+  await page.getByLabel('Date to', { exact: true }).fill(occurredOn);
 }
 
 async function stubRecurringBackfill(page: Page): Promise<void> {
@@ -162,7 +188,9 @@ async function openDashboard(page: Page): Promise<void> {
 async function openTransactions(page: Page): Promise<void> {
   await page.getByRole('link', { name: 'Transactions' }).click();
   await expect(page).toHaveURL(/\/transactions$/, { timeout: 15000 });
-  await expect(page.getByRole('heading', { name: 'Transactions' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Transactions', exact: true })
+  ).toBeVisible();
 }
 
 async function openModule(
@@ -258,9 +286,7 @@ test('adds transaction and keeps it after reload', async ({
   ).toBeVisible();
 
   await page.locator('input[formcontrolname="description"]').fill(description);
-  await selectFirstRealOption(
-    page.locator('select[formcontrolname="categoryId"]')
-  );
+  await selectFirstTransactionCategory(page);
   await page.locator('input[formcontrolname="amount"]').fill('12.50');
   await page.locator('select[formcontrolname="currency"]').selectOption('PLN');
   await page.getByRole('button', { name: 'Save transaction' }).click();
@@ -272,6 +298,46 @@ test('adds transaction and keeps it after reload', async ({
 
   await page.reload();
   await openTransactions(page);
+  await expect(page.getByText(description)).toBeVisible();
+});
+
+test('uses transaction quick-entry controls', async ({ page }, testInfo) => {
+  const description = `E2E quick entry ${uniqueSuffix(testInfo)}`;
+
+  await ensureAuthenticated(page);
+  await openTransactions(page);
+  await page.keyboard.press('n');
+
+  const dialog = page.getByRole('dialog');
+  await expect(
+    dialog.getByRole('heading', { name: 'Add transaction' })
+  ).toBeVisible();
+
+  const descriptionInput = dialog.locator(
+    'input[formcontrolname="description"]'
+  );
+  await expect(descriptionInput).toBeFocused();
+  await descriptionInput.fill(description);
+
+  const dateInput = dialog.locator('input[formcontrolname="occurredOn"]');
+  await dateInput.fill('2026-06-01');
+  await dialog.getByRole('button', { name: 'Set today' }).click();
+  await expect(dateInput).toHaveValue(futureDateInput(0));
+
+  await selectFirstTransactionCategory(page);
+  await dialog.locator('input[formcontrolname="amount"]').fill('9.99');
+  await dialog.getByRole('button', { name: 'Save and add another' }).click();
+
+  await expect(
+    dialog.getByRole('heading', { name: 'Add transaction' })
+  ).toBeVisible();
+  await expect(descriptionInput).toHaveValue('');
+  await expect(dialog.locator('input[formcontrolname="amount"]')).toHaveValue(
+    ''
+  );
+  await expect(descriptionInput).toBeFocused();
+  await dialog.getByRole('button', { name: 'Cancel' }).click();
+
   await expect(page.getByText(description)).toBeVisible();
 });
 
@@ -300,13 +366,8 @@ test('creates place and assigns it to a transaction', async ({
   await openTransactions(page);
   await page.getByRole('button', { name: 'Add transaction' }).click();
   await page.locator('input[formcontrolname="description"]').fill(description);
-  await selectFirstRealOption(
-    page.locator('select[formcontrolname="categoryId"]')
-  );
-  await selectOptionContaining(
-    page.locator('select[formcontrolname="placeId"]'),
-    placeName
-  );
+  await selectFirstTransactionCategory(page);
+  await selectTransactionPlace(page, placeName);
   await page.locator('input[formcontrolname="amount"]').fill('55');
   await page.getByRole('button', { name: 'Save transaction' }).click();
 
@@ -332,13 +393,11 @@ test('updates transaction exchange rate in edit form', async ({
 
   await page.locator('input[formcontrolname="description"]').fill(description);
   await page.locator('input[formcontrolname="occurredOn"]').fill('2026-05-29');
-  await selectFirstRealOption(
-    page.locator('select[formcontrolname="categoryId"]')
-  );
+  await selectFirstTransactionCategory(page);
   await page.locator('input[formcontrolname="amount"]').fill('10');
   await page.locator('select[formcontrolname="currency"]').selectOption('USD');
   await page.getByRole('button', { name: 'Save transaction' }).click();
-  await page.getByRole('button', { name: 'All time' }).click();
+  await filterTransactionsByDate(page, '2026-05-29');
   await expect(page.getByText(description)).toBeVisible();
 
   const transactionRow = page.locator('li').filter({ hasText: description });
@@ -370,7 +429,7 @@ test('updates transaction exchange rate in edit form', async ({
 
   await page.reload();
   await openTransactions(page);
-  await page.getByRole('button', { name: 'All time' }).click();
+  await filterTransactionsByDate(page, '2026-05-29');
   await expect(
     page.locator('li').filter({ hasText: description })
   ).toContainText('PLN');

@@ -72,7 +72,8 @@ Zawsze sprawdzaj jaka jest data. Nie wierz swojej intuicji. Np poprzez new Date(
 
 ## Skills
 
-- Jeśli użytkownik aktywuje `caveman` albo prosi o mówienie jak caveman, używaj skill `caveman` i utrzymuj ten styl w kolejnych odpowiedziach, dopóki użytkownik go wyraźnie nie wyłączy.
+- Domyślnie stosuj zasady `caveman lite` w technicznych update'ach i odpowiedziach: bez filleru/hedgingu, ale z pełnymi zdaniami i całą treścią techniczną.
+- Pełny skill `caveman` ładuj tylko na wyraźną prośbę lub gdy przewidywany output przekracza około 2 tys. tokenów (instrukcja kosztuje ~949 tokenów inputu; zmierzona oszczędność outputu 35–50%). Jawnie aktywowany tryb trwa do wyłączenia; `full`/`ultra` tylko na prośbę. Kod, commity, PR-y, dokumentacja użytkowa, ostrzeżenia bezpieczeństwa i działania nieodwracalne pozostają w normalnym stylu.
 
 <!-- nx configuration start-->
 <!-- Leave the start & end comments to automatically receive updates. -->
