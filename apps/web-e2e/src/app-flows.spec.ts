@@ -459,6 +459,13 @@ test('updates transaction exchange rate in edit form', async ({
 
   await page.locator('input[formcontrolname="amount"]').fill('10');
   await page.locator('select[formcontrolname="currency"]').selectOption('USD');
+  await page.getByRole('button', { name: 'Show advanced fields' }).click();
+  const initialDefaultAmount = page.locator(
+    'input[formcontrolname="foreignAmount"]'
+  );
+  await expect
+    .poll(() => initialDefaultAmount.inputValue())
+    .toBe('36.39');
   await page.getByRole('button', { name: 'Save transaction' }).click();
   await expect(page.getByText(description)).toBeVisible();
 
