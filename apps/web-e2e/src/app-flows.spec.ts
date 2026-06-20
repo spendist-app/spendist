@@ -393,12 +393,17 @@ test('updates transaction exchange rate in edit form', async ({
 
   await page.locator('input[formcontrolname="description"]').fill(description);
   await page.locator('input[formcontrolname="occurredOn"]').fill('2026-05-29');
-  await selectFirstTransactionCategory(page);
+  const categoryLabel = await selectFirstTransactionCategory(page);
   await page.locator('input[formcontrolname="amount"]').fill('10');
   await page.locator('select[formcontrolname="currency"]').selectOption('USD');
   await page.getByRole('button', { name: 'Save transaction' }).click();
   await filterTransactionsByDate(page, '2026-05-29');
   await expect(page.getByText(description)).toBeVisible();
+
+  const categoryFilter = page
+    .locator('aside nav button')
+    .filter({ hasText: categoryLabel });
+  await expect(categoryFilter).toContainText(/36[,.]39/);
 
   const transactionRow = page.locator('li').filter({ hasText: description });
   await transactionRow.getByRole('button', { name: 'Edit' }).click();
