@@ -573,8 +573,12 @@ test('backfills transactions for a recurring payment started in the past', async
   await page.getByRole('button', { name: 'Save recurring payment' }).click();
 
   const response = await backfillResponse;
-  expect(response.ok()).toBe(true);
-  const result = (await response.json()) as {
+  const responseBody = await response.text();
+  expect(
+    response.ok(),
+    `Backfill failed with HTTP ${response.status()}: ${responseBody}`
+  ).toBe(true);
+  const result = JSON.parse(responseBody) as {
     processedCount?: number;
     skippedCount?: number;
   };
