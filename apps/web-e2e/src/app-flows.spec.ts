@@ -257,7 +257,9 @@ async function openModule(
   await page.getByRole('button', { name: 'Modules' }).click();
   await page.getByRole('link', { name: linkName }).click();
   await expect(page).toHaveURL(
-    linkName === 'Places' ? /\/modules\/places$/ : /\/modules\/recurring-payments$/,
+    linkName === 'Places'
+      ? /\/modules\/places$/
+      : /\/modules\/recurring-payments$/,
     { timeout: 15000 }
   );
   await expect(
@@ -324,8 +326,12 @@ test('registers a new account and opens dashboard', async ({
   await expect(page.getByText('Biedronka').first()).toBeVisible();
 
   await page.getByRole('tab', { name: 'Category groups' }).click();
-  await expect(page.locator('article').filter({ hasText: 'Essentials' })).toBeVisible();
-  await expect(page.locator('article').filter({ hasText: 'Income' })).toBeVisible();
+  await expect(
+    page.locator('article').filter({ hasText: 'Essentials' })
+  ).toBeVisible();
+  await expect(
+    page.locator('article').filter({ hasText: 'Income' })
+  ).toBeVisible();
 });
 
 test('adds transaction and keeps it after reload', async ({
@@ -355,6 +361,49 @@ test('adds transaction and keeps it after reload', async ({
   await page.reload();
   await openTransactions(page);
   await expect(page.getByText(description)).toBeVisible();
+});
+
+test('shows transaction tags on the dashboard', async ({ page }, testInfo) => {
+  const suffix = uniqueSuffix(testInfo);
+  const description = `E2E tagged expense ${suffix}`;
+  const tagName = `e2e-tag-${suffix}`;
+
+  await ensureAuthenticated(page);
+  await openTransactions(page);
+
+  await page.getByRole('button', { name: 'Add transaction' }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(
+    dialog.getByRole('heading', { name: 'Add transaction' })
+  ).toBeVisible();
+
+  await dialog
+    .locator('input[formcontrolname="description"]')
+    .fill(description);
+  await selectFirstTransactionCategory(page);
+  await dialog.locator('input[formcontrolname="amount"]').fill('42.24');
+  await dialog
+    .locator('select[formcontrolname="currency"]')
+    .selectOption('PLN');
+  await dialog.getByLabel('Tags').fill(tagName);
+  await dialog.getByLabel('Tags').press('Enter');
+  await expect(
+    dialog.locator('.badge').filter({ hasText: tagName })
+  ).toBeVisible();
+  await dialog.getByRole('button', { name: 'Save transaction' }).click();
+
+  await expect(
+    dialog.getByRole('heading', { name: 'Add transaction' })
+  ).toHaveCount(0);
+  await expect(page.getByText(description)).toBeVisible();
+
+  await openDashboard(page);
+  const expenseTagsCard = page
+    .locator('article')
+    .filter({ has: page.getByRole('heading', { name: 'Expense tags' }) });
+  await expect(expenseTagsCard).toBeVisible({ timeout: 15000 });
+  await expect(expenseTagsCard).toContainText(tagName, { timeout: 15000 });
+  await expect(expenseTagsCard).toContainText('42.24');
 });
 
 test('uses transaction quick-entry controls', async ({ page }, testInfo) => {
@@ -416,7 +465,9 @@ test('creates place and assigns it to a transaction', async ({
   await placeForm.locator('input[formcontrolname="city"]').fill('Zebrzydowice');
   await placeForm.getByRole('button', { name: 'Save place' }).click();
 
-  await expect(page.locator('article').filter({ hasText: placeName })).toBeVisible();
+  await expect(
+    page.locator('article').filter({ hasText: placeName })
+  ).toBeVisible();
   await expect(page.getByText('Zebrzydowice').first()).toBeVisible();
 
   await openTransactions(page);
@@ -432,7 +483,9 @@ test('creates place and assigns it to a transaction', async ({
   await expect(transactionRow).toContainText(placeName);
 
   await openDashboard(page);
-  await expect(page.getByRole('heading', { name: 'Spending by place' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Spending by place' })
+  ).toBeVisible();
   const placeSummary = page.locator('article').filter({ hasText: placeName });
   await expect(placeSummary).toBeVisible();
   await expect(placeSummary).toContainText('55');
@@ -463,9 +516,7 @@ test('updates transaction exchange rate in edit form', async ({
   const initialDefaultAmount = page.locator(
     'input[formcontrolname="foreignAmount"]'
   );
-  await expect
-    .poll(() => initialDefaultAmount.inputValue())
-    .toBe('36.39');
+  await expect.poll(() => initialDefaultAmount.inputValue()).toBe('36.39');
   await page.getByRole('button', { name: 'Save transaction' }).click();
   await expect(page.getByText(description)).toBeVisible();
 

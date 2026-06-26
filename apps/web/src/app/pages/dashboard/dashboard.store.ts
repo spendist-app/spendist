@@ -5,14 +5,22 @@ import { SUPABASE_CLIENT } from '../../core/supabase';
 import { AuthService } from '../../core/auth.service';
 import { logError } from '../../core/logger';
 
-type MonthlyCashflowRow = Database['public']['Functions']['monthly_cashflow_summary']['Returns'][number];
-type AvailableMonthRow = Database['public']['Functions']['available_transaction_months']['Returns'][number];
-type MonthlyCategoryCashflowRow = Database['public']['Functions']['monthly_category_cashflow']['Returns'][number];
+type MonthlyCashflowRow =
+  Database['public']['Functions']['monthly_cashflow_summary']['Returns'][number];
+type AvailableMonthRow =
+  Database['public']['Functions']['available_transaction_months']['Returns'][number];
+type MonthlyCategoryCashflowRow =
+  Database['public']['Functions']['monthly_category_cashflow']['Returns'][number];
 type MonthlyRecurringTransactionRow =
   Database['public']['Functions']['monthly_recurring_transaction_summary']['Returns'][number];
-type PlaceExpenseSummaryRow = Database['public']['Functions']['place_expense_summary']['Returns'][number];
-type TransactionDirection = Database['public']['Enums']['transaction_direction'];
-type WalletRow = Pick<Database['public']['Tables']['wallets']['Row'], 'id' | 'name' | 'is_default'>;
+type PlaceExpenseSummaryRow =
+  Database['public']['Functions']['place_expense_summary']['Returns'][number];
+type TransactionDirection =
+  Database['public']['Enums']['transaction_direction'];
+type WalletRow = Pick<
+  Database['public']['Tables']['wallets']['Row'],
+  'id' | 'name' | 'is_default'
+>;
 
 export interface MonthlyStructureEntry {
   readonly id: string;
@@ -48,6 +56,50 @@ interface CategoryStructureState {
   readonly loading: boolean;
   readonly error: string | null;
   readonly entries: readonly CategoryStructureEntry[];
+}
+
+interface TagStructureEntry {
+  readonly tagId: string;
+  readonly tagName: string;
+  readonly color: string | null;
+  readonly icon: string | null;
+  readonly direction: TransactionDirection;
+  readonly totalAmount: number;
+  readonly transactionCount: number;
+}
+
+interface TagStructureState {
+  readonly loading: boolean;
+  readonly error: string | null;
+  readonly entries: readonly TagStructureEntry[];
+}
+
+interface TransactionTagSummaryRow {
+  readonly tag_id: string;
+  readonly tags:
+    | {
+        readonly name: string;
+        readonly color: string | null;
+        readonly icon: string | null;
+      }
+    | readonly {
+        readonly name: string;
+        readonly color: string | null;
+        readonly icon: string | null;
+      }[]
+    | null;
+  readonly transactions:
+    | {
+        readonly id: string;
+        readonly direction: TransactionDirection;
+        readonly amount_in_default: number | string | null;
+      }
+    | readonly {
+        readonly id: string;
+        readonly direction: TransactionDirection;
+        readonly amount_in_default: number | string | null;
+      }[]
+    | null;
 }
 
 interface CategoryTotals {
@@ -127,6 +179,11 @@ export class DashboardStore {
     error: null,
     entries: [],
   });
+  private readonly tagState = signal<TagStructureState>({
+    loading: true,
+    error: null,
+    entries: [],
+  });
   private readonly recurringState = signal<RecurringTransactionSummaryState>({
     loading: true,
     error: null,
@@ -143,6 +200,7 @@ export class DashboardStore {
   private structureRequestToken = 0;
   private monthOptionsRequestToken = 0;
   private categoryRequestToken = 0;
+  private tagRequestToken = 0;
   private recurringRequestToken = 0;
   private placeRequestToken = 0;
 
@@ -155,7 +213,10 @@ export class DashboardStore {
   readonly error = computed(() => this.structureState().error);
   readonly monthlyStructure = computed(() => this.structureState().structure);
   readonly empty = computed(
-    () => !this.structureState().loading && !this.structureState().error && this.structureState().structure.length === 0,
+    () =>
+      !this.structureState().loading &&
+      !this.structureState().error &&
+      this.structureState().structure.length === 0
   );
 
   readonly monthOptions = computed(() => this.monthOptionsState());
@@ -167,47 +228,75 @@ export class DashboardStore {
     () =>
       !this.categoryState().loading &&
       !this.categoryState().error &&
-      this.categoryState().entries.length === 0,
+      this.categoryState().entries.length === 0
   );
   readonly incomeCategories = computed(() =>
-    this.categoryState().entries.filter((entry) => entry.direction === 'income'),
+    this.categoryState().entries.filter((entry) => entry.direction === 'income')
   );
   readonly expenseCategories = computed(() =>
-    this.categoryState().entries.filter((entry) => entry.direction === 'expense'),
+    this.categoryState().entries.filter(
+      (entry) => entry.direction === 'expense'
+    )
   );
   readonly categoryTotals = computed<CategoryTotals>(() => {
-    const incomeTotal = this.incomeCategories().reduce((acc, entry) => acc + entry.totalAmount, 0);
-    const expenseTotal = this.expenseCategories().reduce((acc, entry) => acc + entry.totalAmount, 0);
+    const incomeTotal = this.incomeCategories().reduce(
+      (acc, entry) => acc + entry.totalAmount,
+      0
+    );
+    const expenseTotal = this.expenseCategories().reduce(
+      (acc, entry) => acc + entry.totalAmount,
+      0
+    );
     return {
       income: incomeTotal,
       expense: expenseTotal,
       net: incomeTotal - expenseTotal,
     };
   });
+  readonly tagLoading = computed(() => this.tagState().loading);
+  readonly tagError = computed(() => this.tagState().error);
+  readonly tagEmpty = computed(
+    () =>
+      !this.tagState().loading &&
+      !this.tagState().error &&
+      this.tagState().entries.length === 0
+  );
+  readonly incomeTags = computed(() =>
+    this.tagState().entries.filter((entry) => entry.direction === 'income')
+  );
+  readonly expenseTags = computed(() =>
+    this.tagState().entries.filter((entry) => entry.direction === 'expense')
+  );
   readonly recurringLoading = computed(() => this.recurringState().loading);
   readonly recurringError = computed(() => this.recurringState().error);
   readonly recurringEmpty = computed(
     () =>
       !this.recurringState().loading &&
       !this.recurringState().error &&
-      this.recurringState().entries.length === 0,
+      this.recurringState().entries.length === 0
   );
   readonly recurringMonthOptions = computed<readonly MonthOption[]>(() =>
     this.recurringState().entries.map((entry) => ({
       value: entry.id,
       date: entry.monthStart,
       label: entry.id,
-    })),
+    }))
   );
-  readonly selectedRecurringMonthValue = computed(() => this.selectedRecurringMonth());
-  readonly selectedRecurringSummary = computed<RecurringTransactionSummaryEntry | null>(() => {
-    const selection = this.selectedRecurringMonth();
-    if (!selection) {
-      return null;
-    }
+  readonly selectedRecurringMonthValue = computed(() =>
+    this.selectedRecurringMonth()
+  );
+  readonly selectedRecurringSummary =
+    computed<RecurringTransactionSummaryEntry | null>(() => {
+      const selection = this.selectedRecurringMonth();
+      if (!selection) {
+        return null;
+      }
 
-    return this.recurringState().entries.find((entry) => entry.id === selection) ?? null;
-  });
+      return (
+        this.recurringState().entries.find((entry) => entry.id === selection) ??
+        null
+      );
+    });
   readonly placeLoading = computed(() => this.placeState().loading);
   readonly placeError = computed(() => this.placeState().error);
   readonly placeEntries = computed(() => this.placeState().entries);
@@ -215,7 +304,7 @@ export class DashboardStore {
     () =>
       !this.placeState().loading &&
       !this.placeState().error &&
-      this.placeState().entries.length === 0,
+      this.placeState().entries.length === 0
   );
   readonly selectedPlaceYearValue = computed(() => this.selectedPlaceYear());
   readonly placeYearOptions = computed(() => {
@@ -263,6 +352,11 @@ export class DashboardStore {
           error: null,
           entries: [],
         });
+        this.tagState.set({
+          loading: false,
+          error: null,
+          entries: [],
+        });
         this.recurringState.set({
           loading: false,
           error: null,
@@ -278,6 +372,11 @@ export class DashboardStore {
       }
 
       this.categoryState.set({
+        loading: true,
+        error: null,
+        entries: [],
+      });
+      this.tagState.set({
         loading: true,
         error: null,
         entries: [],
@@ -326,11 +425,17 @@ export class DashboardStore {
             error: null,
             entries: [],
           });
+          this.tagState.set({
+            loading: false,
+            error: null,
+            entries: [],
+          });
         }
         return;
       }
 
       void this.loadCategoryStructure(selectedMonth);
+      void this.loadTagStructure(selectedMonth);
     });
   }
 
@@ -354,6 +459,7 @@ export class DashboardStore {
     }
 
     void this.loadCategoryStructure(selection);
+    void this.loadTagStructure(selection);
   }
 
   refreshRecurringSummary(): void {
@@ -385,7 +491,9 @@ export class DashboardStore {
       return;
     }
 
-    const exists = this.walletState().wallets.some((wallet) => wallet.id === normalized);
+    const exists = this.walletState().wallets.some(
+      (wallet) => wallet.id === normalized
+    );
     if (!exists) {
       return;
     }
@@ -404,7 +512,9 @@ export class DashboardStore {
       return;
     }
 
-    const exists = this.monthOptionsState().some((option) => option.value === normalized);
+    const exists = this.monthOptionsState().some(
+      (option) => option.value === normalized
+    );
     if (!exists) {
       return;
     }
@@ -423,7 +533,9 @@ export class DashboardStore {
       return;
     }
 
-    const exists = this.recurringState().entries.some((entry) => entry.id === normalized);
+    const exists = this.recurringState().entries.some(
+      (entry) => entry.id === normalized
+    );
     if (!exists) {
       return;
     }
@@ -448,6 +560,7 @@ export class DashboardStore {
     this.structureRequestToken = 0;
     this.monthOptionsRequestToken = 0;
     this.categoryRequestToken = 0;
+    this.tagRequestToken = 0;
     this.recurringRequestToken = 0;
     this.placeRequestToken = 0;
     this.walletState.set({
@@ -464,6 +577,11 @@ export class DashboardStore {
     this.monthOptionsState.set([]);
     this.selectedMonth.set(null);
     this.categoryState.set({
+      loading: false,
+      error: null,
+      entries: [],
+    });
+    this.tagState.set({
       loading: false,
       error: null,
       entries: [],
@@ -504,7 +622,9 @@ export class DashboardStore {
         throw error;
       }
 
-      const wallets = (data ?? []).map((row) => this.mapWalletRow(row as WalletRow));
+      const wallets = (data ?? []).map((row) =>
+        this.mapWalletRow(row as WalletRow)
+      );
       this.walletState.set({
         loading: false,
         error: null,
@@ -545,10 +665,13 @@ export class DashboardStore {
     }));
 
     try {
-      const { data, error } = await this.supabase.rpc('monthly_cashflow_summary', {
-        p_months: MONTH_LIMIT,
-        p_wallet_id: walletId,
-      });
+      const { data, error } = await this.supabase.rpc(
+        'monthly_cashflow_summary',
+        {
+          p_months: MONTH_LIMIT,
+          p_wallet_id: walletId,
+        }
+      );
 
       if (token !== this.structureRequestToken) {
         return;
@@ -558,7 +681,9 @@ export class DashboardStore {
         throw error;
       }
 
-      const structure = (data ?? []).map((row: MonthlyCashflowRow) => this.mapStructureRow(row));
+      const structure = (data ?? []).map((row: MonthlyCashflowRow) =>
+        this.mapStructureRow(row)
+      );
       this.structureState.set({
         loading: false,
         error: null,
@@ -590,9 +715,12 @@ export class DashboardStore {
     const token = ++this.monthOptionsRequestToken;
 
     try {
-      const { data, error } = await this.supabase.rpc('available_transaction_months', {
-        p_wallet_id: walletId,
-      });
+      const { data, error } = await this.supabase.rpc(
+        'available_transaction_months',
+        {
+          p_wallet_id: walletId,
+        }
+      );
 
       if (token !== this.monthOptionsRequestToken) {
         return;
@@ -604,7 +732,10 @@ export class DashboardStore {
 
       const options = (data ?? [])
         .map((row: AvailableMonthRow) => this.mapMonthRow(row))
-        .sort((a: MonthOption, b: MonthOption) => b.date.getTime() - a.date.getTime());
+        .sort(
+          (a: MonthOption, b: MonthOption) =>
+            b.date.getTime() - a.date.getTime()
+        );
 
       this.monthOptionsState.set(options);
 
@@ -630,6 +761,11 @@ export class DashboardStore {
         error: this.describeError(error),
         entries: [],
       });
+      this.tagState.set({
+        loading: false,
+        error: this.describeError(error),
+        entries: [],
+      });
     }
   }
 
@@ -650,10 +786,13 @@ export class DashboardStore {
     });
 
     try {
-      const { data, error } = await this.supabase.rpc('monthly_category_cashflow', {
-        p_month_start: monthValue,
-        p_wallet_id: walletId,
-      });
+      const { data, error } = await this.supabase.rpc(
+        'monthly_category_cashflow',
+        {
+          p_month_start: monthValue,
+          p_wallet_id: walletId,
+        }
+      );
 
       if (token !== this.categoryRequestToken) {
         return;
@@ -663,7 +802,9 @@ export class DashboardStore {
         throw error;
       }
 
-      const entries = (data ?? []).map((row: MonthlyCategoryCashflowRow) => this.mapCategoryRow(row));
+      const entries = (data ?? []).map((row: MonthlyCategoryCashflowRow) =>
+        this.mapCategoryRow(row)
+      );
       this.categoryState.set({
         loading: false,
         error: null,
@@ -676,6 +817,68 @@ export class DashboardStore {
 
       logError('DashboardStore', 'Failed to load category structure', error);
       this.categoryState.set({
+        loading: false,
+        error: this.describeError(error),
+        entries: [],
+      });
+    }
+  }
+
+  private async loadTagStructure(monthValue: string): Promise<void> {
+    const userId = this.userId();
+    if (!userId) {
+      return;
+    }
+    const walletId = this.selectedWallet();
+    if (!walletId) {
+      return;
+    }
+
+    const token = ++this.tagRequestToken;
+    this.tagState.set({
+      loading: true,
+      error: null,
+      entries: [],
+    });
+
+    try {
+      const monthStart = this.normalizeDate(monthValue);
+      const monthEnd = new Date(
+        Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth() + 1, 1)
+      );
+      const { data, error } = await this.supabase
+        .from('transaction_tags')
+        .select(
+          'tag_id, tags!inner(name, color, icon), transactions!inner(id, direction, amount_in_default, occurred_at, wallet_id)'
+        )
+        .eq('owner_id', userId)
+        .eq('transactions.wallet_id', walletId)
+        .gte('transactions.occurred_at', monthValue)
+        .lt('transactions.occurred_at', this.buildMonthValue(monthEnd));
+
+      if (token !== this.tagRequestToken) {
+        return;
+      }
+
+      if (error) {
+        throw error;
+      }
+
+      const entries = this.buildTagStructure(
+        (data ?? []) as unknown as readonly TransactionTagSummaryRow[]
+      );
+      this.tagState.set({
+        loading: false,
+        error: null,
+        entries,
+      });
+    } catch (error) {
+      if (token !== this.tagRequestToken) {
+        return;
+      }
+
+      logError('DashboardStore', 'Failed to load tag structure', error);
+      this.tagState.set({
         loading: false,
         error: this.describeError(error),
         entries: [],
@@ -704,9 +907,12 @@ export class DashboardStore {
     });
 
     try {
-      const { data, error } = await this.supabase.rpc('monthly_recurring_transaction_summary', {
-        p_wallet_id: walletId,
-      });
+      const { data, error } = await this.supabase.rpc(
+        'monthly_recurring_transaction_summary',
+        {
+          p_wallet_id: walletId,
+        }
+      );
 
       if (token !== this.recurringRequestToken) {
         return;
@@ -717,10 +923,14 @@ export class DashboardStore {
       }
 
       const entries = (data ?? [])
-        .map((row: MonthlyRecurringTransactionRow) => this.mapRecurringSummaryRow(row))
+        .map((row: MonthlyRecurringTransactionRow) =>
+          this.mapRecurringSummaryRow(row)
+        )
         .sort(
-          (a: RecurringTransactionSummaryEntry, b: RecurringTransactionSummaryEntry) =>
-            b.monthStart.getTime() - a.monthStart.getTime(),
+          (
+            a: RecurringTransactionSummaryEntry,
+            b: RecurringTransactionSummaryEntry
+          ) => b.monthStart.getTime() - a.monthStart.getTime()
         );
 
       this.recurringState.set({
@@ -733,7 +943,10 @@ export class DashboardStore {
       const nextSelection =
         !force &&
         currentSelection &&
-        entries.some((entry: RecurringTransactionSummaryEntry) => entry.id === currentSelection)
+        entries.some(
+          (entry: RecurringTransactionSummaryEntry) =>
+            entry.id === currentSelection
+        )
           ? currentSelection
           : this.resolveDefaultRecurringMonth(entries);
 
@@ -743,7 +956,11 @@ export class DashboardStore {
         return;
       }
 
-      logError('DashboardStore', 'Failed to load recurring transaction summary', error);
+      logError(
+        'DashboardStore',
+        'Failed to load recurring transaction summary',
+        error
+      );
       this.recurringState.set({
         loading: false,
         error: this.describeError(error),
@@ -787,7 +1004,9 @@ export class DashboardStore {
         throw error;
       }
 
-      const entries = (data ?? []).map((row: PlaceExpenseSummaryRow) => this.mapPlaceSummaryRow(row));
+      const entries = (data ?? []).map((row: PlaceExpenseSummaryRow) =>
+        this.mapPlaceSummaryRow(row)
+      );
       this.placeState.set({
         loading: false,
         error: null,
@@ -838,7 +1057,9 @@ export class DashboardStore {
     };
   }
 
-  private mapCategoryRow(row: MonthlyCategoryCashflowRow): CategoryStructureEntry {
+  private mapCategoryRow(
+    row: MonthlyCategoryCashflowRow
+  ): CategoryStructureEntry {
     return {
       categoryId: row.category_id,
       categoryName: row.category_name,
@@ -850,7 +1071,9 @@ export class DashboardStore {
     };
   }
 
-  private mapRecurringSummaryRow(row: MonthlyRecurringTransactionRow): RecurringTransactionSummaryEntry {
+  private mapRecurringSummaryRow(
+    row: MonthlyRecurringTransactionRow
+  ): RecurringTransactionSummaryEntry {
     const monthStart = this.normalizeDate(row.month_start);
     const incomeTotal = this.parseNumeric(row.income_total);
     const expenseTotal = this.parseNumeric(row.expense_total);
@@ -865,7 +1088,9 @@ export class DashboardStore {
     };
   }
 
-  private mapPlaceSummaryRow(row: PlaceExpenseSummaryRow): PlaceExpenseSummaryEntry {
+  private mapPlaceSummaryRow(
+    row: PlaceExpenseSummaryRow
+  ): PlaceExpenseSummaryEntry {
     return {
       placeId: row.place_id,
       placeName: row.place_name,
@@ -875,11 +1100,62 @@ export class DashboardStore {
       country: row.country ?? null,
       totalAmount: this.parseNumeric(row.total_amount),
       transactionCount: this.parseCount(row.transaction_count),
-      latestTransactionAt: row.latest_transaction_at ? this.normalizeDate(row.latest_transaction_at) : null,
+      latestTransactionAt: row.latest_transaction_at
+        ? this.normalizeDate(row.latest_transaction_at)
+        : null,
     };
   }
 
-  private resolveWalletSelection(wallets: readonly WalletOption[]): string | null {
+  private buildTagStructure(
+    rows: readonly TransactionTagSummaryRow[]
+  ): readonly TagStructureEntry[] {
+    const totals = new Map<string, TagStructureEntry>();
+
+    for (const row of rows) {
+      const tag = this.firstRelatedRow(row.tags);
+      const transaction = this.firstRelatedRow(row.transactions);
+      if (!tag || !transaction) {
+        continue;
+      }
+
+      const direction = (transaction.direction ??
+        'expense') as TransactionDirection;
+      const amount = this.parseNumeric(transaction.amount_in_default);
+      const key = `${row.tag_id}:${direction}`;
+      const current = totals.get(key);
+
+      totals.set(key, {
+        tagId: row.tag_id,
+        tagName: tag.name,
+        color: tag.color,
+        icon: tag.icon,
+        direction,
+        totalAmount: (current?.totalAmount ?? 0) + amount,
+        transactionCount: (current?.transactionCount ?? 0) + 1,
+      });
+    }
+
+    return [...totals.values()].sort((a, b) => {
+      const byAmount = b.totalAmount - a.totalAmount;
+      return byAmount === 0 ? a.tagName.localeCompare(b.tagName) : byAmount;
+    });
+  }
+
+  private firstRelatedRow<T>(value: T | readonly T[] | null): T | null {
+    if (!value) {
+      return null;
+    }
+
+    if (Array.isArray(value)) {
+      return (value as readonly T[])[0] ?? null;
+    }
+
+    return value as T;
+  }
+
+  private resolveWalletSelection(
+    wallets: readonly WalletOption[]
+  ): string | null {
     if (wallets.length === 0) {
       return null;
     }
@@ -903,7 +1179,9 @@ export class DashboardStore {
     return options[0]?.value ?? null;
   }
 
-  private resolveDefaultRecurringMonth(entries: readonly RecurringTransactionSummaryEntry[]): string | null {
+  private resolveDefaultRecurringMonth(
+    entries: readonly RecurringTransactionSummaryEntry[]
+  ): string | null {
     if (entries.length === 0) {
       return null;
     }

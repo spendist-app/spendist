@@ -568,8 +568,12 @@ const pl = {
       },
       incomeList: 'Kategorie przychodów',
       expenseList: 'Kategorie wydatków',
+      incomeTagList: 'Tagi przychodów',
+      expenseTagList: 'Tagi wydatków',
       noIncome: 'Brak kategorii przychodowych.',
       noExpense: 'Brak kategorii wydatkowych.',
+      noIncomeTags: 'Brak tagów przychodowych.',
+      noExpenseTags: 'Brak tagów wydatkowych.',
       walletLabel: 'Portfel',
       walletLoading: 'Ładowanie portfeli…',
       noWallets: 'Brak dostępnych portfeli.',
@@ -761,8 +765,7 @@ const pl = {
         edit: 'Edytuj miejsce',
       },
       closedTitle: 'Wybierz miejsce',
-      closedBody:
-        'Wybierz miejsce z listy do edycji albo dodaj nowe miejsce.',
+      closedBody: 'Wybierz miejsce z listy do edycji albo dodaj nowe miejsce.',
       fields: {
         name: 'Nazwa',
         street: 'Ulica i numer',
