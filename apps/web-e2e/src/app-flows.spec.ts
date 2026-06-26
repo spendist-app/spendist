@@ -406,6 +406,63 @@ test('shows transaction tags on the dashboard', async ({ page }, testInfo) => {
   await expect(expenseTagsCard).toContainText('42.24');
 });
 
+test('filters transactions from the sidebar tags tab', async ({
+  page,
+}, testInfo) => {
+  const suffix = uniqueSuffix(testInfo);
+  const currentDescription = `E2E current tagged expense ${suffix}`;
+  const previousDescription = `E2E previous tagged expense ${suffix}`;
+  const currentTagName = `e2e-current-tag-${suffix}`;
+  const previousTagName = `e2e-previous-tag-${suffix}`;
+
+  await ensureAuthenticated(page);
+  await openTransactions(page);
+
+  await page.getByRole('button', { name: 'Add transaction' }).click();
+  let dialog = page.getByRole('dialog');
+  await dialog
+    .locator('input[formcontrolname="description"]')
+    .fill(currentDescription);
+  await selectFirstTransactionCategory(page);
+  await dialog.locator('input[formcontrolname="amount"]').fill('11.11');
+  await dialog
+    .locator('select[formcontrolname="currency"]')
+    .selectOption('PLN');
+  await dialog.getByLabel('Tags').fill(currentTagName);
+  await dialog.getByLabel('Tags').press('Enter');
+  await dialog.getByRole('button', { name: 'Save transaction' }).click();
+  await expect(page.getByText(currentDescription)).toBeVisible();
+
+  await page.getByRole('button', { name: 'Add transaction' }).click();
+  dialog = page.getByRole('dialog');
+  await dialog
+    .locator('input[formcontrolname="description"]')
+    .fill(previousDescription);
+  await dialog
+    .locator('input[formcontrolname="occurredOn"]')
+    .fill(previousMonthStartInput());
+  await selectFirstTransactionCategory(page);
+  await dialog.locator('input[formcontrolname="amount"]').fill('22.22');
+  await dialog
+    .locator('select[formcontrolname="currency"]')
+    .selectOption('PLN');
+  await dialog.getByLabel('Tags').fill(previousTagName);
+  await dialog.getByLabel('Tags').press('Enter');
+  await dialog.getByRole('button', { name: 'Save transaction' }).click();
+
+  const sidebar = page.locator('aside');
+  await sidebar.getByRole('tab', { name: 'Tags' }).click();
+  await expect(sidebar.getByRole('button', { name: /All tags/ })).toBeVisible();
+  await expect(sidebar).toContainText(currentTagName, { timeout: 15000 });
+  await expect(sidebar).not.toContainText(previousTagName);
+
+  await sidebar
+    .getByRole('button', { name: new RegExp(currentTagName) })
+    .click();
+  await expect(page.getByText(currentDescription)).toBeVisible();
+  await expect(page.getByText(previousDescription)).toHaveCount(0);
+});
+
 test('uses transaction quick-entry controls', async ({ page }, testInfo) => {
   const description = `E2E quick entry ${uniqueSuffix(testInfo)}`;
 

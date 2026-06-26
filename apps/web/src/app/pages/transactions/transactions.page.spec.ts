@@ -16,6 +16,7 @@ class TransactionsStoreStub {
   readonly defaultCurrency = signal('PLN');
   readonly activeFilters = signal({
     selectedCategoryIds: [],
+    selectedTagIds: [],
     searchTerm: '',
     from: null,
     to: null,
@@ -73,6 +74,18 @@ class TransactionsStoreStub {
     },
   ]);
   readonly hasActiveCategoryFilter = signal(false);
+  readonly hasActiveTagFilter = signal(false);
+  readonly visibleTagSummaries = signal([
+    {
+      id: 'tag-active',
+      ownerId: 'user-1',
+      name: 'Home',
+      color: null,
+      icon: null,
+      totalAmount: 30,
+      transactionCount: 1,
+    },
+  ]);
   readonly loading = signal(false);
   readonly error = signal(null);
   readonly transactionMutationPending = signal(false);
@@ -114,6 +127,14 @@ class TransactionsStoreStub {
   }
 
   toggleCategorySelection(): void {
+    return;
+  }
+
+  clearTagSelection(): void {
+    return;
+  }
+
+  toggleTagSelection(): void {
     return;
   }
 
@@ -166,14 +187,18 @@ describe('TransactionsPageComponent', () => {
         signDisplay: 'always',
         maximumFractionDigits: 2,
         minimumFractionDigits: 2,
-      }).format(-1234.56),
+      }).format(-1234.56)
     );
   });
 
   it('formats category totals with the active locale and default currency', () => {
     const fixture = TestBed.createComponent(TransactionsPageComponent);
-    const language = TestBed.inject(LanguageService) as unknown as LanguageServiceStub;
-    const store = fixture.debugElement.injector.get(TransactionsStore) as unknown as TransactionsStoreStub;
+    const language = TestBed.inject(
+      LanguageService
+    ) as unknown as LanguageServiceStub;
+    const store = fixture.debugElement.injector.get(
+      TransactionsStore
+    ) as unknown as TransactionsStoreStub;
     const component = fixture.componentInstance as unknown as {
       formatExpenseTotal(amount: number): string;
     };
@@ -187,7 +212,7 @@ describe('TransactionsPageComponent', () => {
         currency: 'PLN',
         maximumFractionDigits: 2,
         minimumFractionDigits: 2,
-      }).format(-1234.56),
+      }).format(-1234.56)
     );
   });
 
@@ -211,14 +236,12 @@ describe('TransactionsPageComponent', () => {
     component.onCategoryActivityFilterChange(event);
 
     expect(
-      component.visibleGroupedCategories()[0]?.categories.map(
-        (category) => category.id
-      )
+      component
+        .visibleGroupedCategories()[0]
+        ?.categories.map((category) => category.id)
     ).toEqual(['category-active']);
     expect(
-      component
-        .visibleUngroupedCategories()
-        .map((category) => category.id)
+      component.visibleUngroupedCategories().map((category) => category.id)
     ).toEqual(['category-ungrouped-active']);
   });
 

@@ -1,10 +1,31 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, OnDestroy, PLATFORM_ID, computed, effect, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  OnDestroy,
+  PLATFORM_ID,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { TranslocoPipe, TranslocoService } from '@ngneat/transloco';
 import { NgIcon } from '@ng-icons/core';
-import { heroDocumentDuplicate, heroPencilSquare, heroTrash } from '@ng-icons/heroicons/outline';
-import { TransactionsStore, TransactionPresetId, TransactionViewModel } from './transactions.store';
-import { heroIconSvg as heroIconSvgFn, formatHeroIconLabel as formatHeroIconLabelFn } from '../../shared/icons/heroicons';
+import {
+  heroDocumentDuplicate,
+  heroPencilSquare,
+  heroTrash,
+} from '@ng-icons/heroicons/outline';
+import {
+  TransactionsStore,
+  TransactionPresetId,
+  TransactionViewModel,
+} from './transactions.store';
+import {
+  heroIconSvg as heroIconSvgFn,
+  formatHeroIconLabel as formatHeroIconLabelFn,
+} from '../../shared/icons/heroicons';
 import { LanguageService } from '../../core/language.service';
 import type { LanguageCode } from '../../i18n/languages';
 import { TransactionCreateFormComponent } from './transaction-create-form.component';
@@ -29,10 +50,18 @@ export class TransactionsPageComponent implements OnDestroy {
   protected readonly store = inject(TransactionsStore);
   protected readonly createFormOpen = signal(false);
   protected readonly formMode = signal<'create' | 'edit'>('create');
-  protected readonly editingTransaction = signal<TransactionViewModel | null>(null);
-  protected readonly duplicateTransaction = signal<TransactionViewModel | null>(null);
-  protected readonly activeTransaction = computed(() => this.editingTransaction());
-  protected readonly duplicateSource = computed(() => this.duplicateTransaction());
+  protected readonly editingTransaction = signal<TransactionViewModel | null>(
+    null
+  );
+  protected readonly duplicateTransaction = signal<TransactionViewModel | null>(
+    null
+  );
+  protected readonly activeTransaction = computed(() =>
+    this.editingTransaction()
+  );
+  protected readonly duplicateSource = computed(() =>
+    this.duplicateTransaction()
+  );
   private readonly platformId = inject(PLATFORM_ID);
   private readonly document = inject(DOCUMENT);
   private readonly transloco = inject(TranslocoService);
@@ -45,27 +74,45 @@ export class TransactionsPageComponent implements OnDestroy {
   protected readonly deleteIcon = heroTrash;
 
   protected readonly filters = computed(() => this.store.activeFilters());
-  protected readonly locale = computed(() => this.resolveLocale(this.languageService.currentLanguage()));
+  protected readonly locale = computed(() =>
+    this.resolveLocale(this.languageService.currentLanguage())
+  );
   protected readonly dateFormatter = computed(
     () =>
       new Intl.DateTimeFormat(this.locale(), {
         year: 'numeric',
         month: 'short',
         day: '2-digit',
-      }),
+      })
   );
 
-  protected readonly presetButtons: readonly { id: TransactionPresetId; labelKey: string }[] = [
-    { id: 'currentMonth', labelKey: 'transactions.filters.presets.currentMonth' },
-    { id: 'previousMonth', labelKey: 'transactions.filters.presets.previousMonth' },
+  protected readonly presetButtons: readonly {
+    id: TransactionPresetId;
+    labelKey: string;
+  }[] = [
+    {
+      id: 'currentMonth',
+      labelKey: 'transactions.filters.presets.currentMonth',
+    },
+    {
+      id: 'previousMonth',
+      labelKey: 'transactions.filters.presets.previousMonth',
+    },
     { id: 'thisYear', labelKey: 'transactions.filters.presets.thisYear' },
     { id: 'lastYear', labelKey: 'transactions.filters.presets.lastYear' },
   ];
 
-  protected readonly monthYearOptions = computed(() => this.buildMonthYearOptions());
-  protected readonly selectedMonthValue = computed(() => this.computeSelectedMonthValue());
-  protected readonly selectedYearValue = computed(() => this.computeSelectedYearValue());
+  protected readonly monthYearOptions = computed(() =>
+    this.buildMonthYearOptions()
+  );
+  protected readonly selectedMonthValue = computed(() =>
+    this.computeSelectedMonthValue()
+  );
+  protected readonly selectedYearValue = computed(() =>
+    this.computeSelectedYearValue()
+  );
   protected readonly showOnlyCategoriesWithTransactions = signal(false);
+  protected readonly sidebarTab = signal<'categories' | 'tags'>('categories');
   protected readonly visibleGroupedCategories = computed(() =>
     this.store
       .groupedCategories()
@@ -89,8 +136,14 @@ export class TransactionsPageComponent implements OnDestroy {
       this.categoryHasTransactions(category.id)
     );
   });
+  protected readonly visibleTags = computed(() =>
+    this.store.visibleTagSummaries()
+  );
 
-  protected readonly skeletonPlaceholders = Array.from({ length: 4 }, (_, index) => index);
+  protected readonly skeletonPlaceholders = Array.from(
+    { length: 4 },
+    (_, index) => index
+  );
   private readonly scrollLockEffect = effect(() => {
     if (!isPlatformBrowser(this.platformId)) {
       return;
@@ -130,7 +183,10 @@ export class TransactionsPageComponent implements OnDestroy {
 
   protected formatAmount(transaction: TransactionViewModel): string {
     const locale = this.locale();
-    const value = transaction.direction === 'expense' ? -transaction.amount : transaction.amount;
+    const value =
+      transaction.direction === 'expense'
+        ? -transaction.amount
+        : transaction.amount;
     return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency: transaction.currency,
@@ -140,7 +196,9 @@ export class TransactionsPageComponent implements OnDestroy {
     }).format(value);
   }
 
-  protected shouldShowDefaultAmount(transaction: TransactionViewModel): boolean {
+  protected shouldShowDefaultAmount(
+    transaction: TransactionViewModel
+  ): boolean {
     const defaultCurrency = this.store.defaultCurrency();
     return (
       transaction.currency.toUpperCase() !== defaultCurrency.toUpperCase() &&
@@ -149,7 +207,9 @@ export class TransactionsPageComponent implements OnDestroy {
     );
   }
 
-  protected formatDefaultCurrencyAmount(transaction: TransactionViewModel): string {
+  protected formatDefaultCurrencyAmount(
+    transaction: TransactionViewModel
+  ): string {
     const defaultCurrency = this.store.defaultCurrency();
     const locale = this.locale();
 
@@ -206,7 +266,12 @@ export class TransactionsPageComponent implements OnDestroy {
     const [yearSegment, monthSegment] = rawValue.split('-');
     const year = Number(yearSegment);
     const month = Number(monthSegment) - 1;
-    if (Number.isInteger(year) && Number.isInteger(month) && month >= 0 && month <= 11) {
+    if (
+      Number.isInteger(year) &&
+      Number.isInteger(month) &&
+      month >= 0 &&
+      month <= 11
+    ) {
       this.store.setSelectedMonth(year, month);
     }
   }
@@ -239,6 +304,16 @@ export class TransactionsPageComponent implements OnDestroy {
     this.scrollToTransactionsResults();
   }
 
+  protected toggleTagSelectionAndScroll(tagId: string): void {
+    this.store.toggleTagSelection(tagId);
+    this.scrollToTransactionsResults();
+  }
+
+  protected clearTagSelectionAndScroll(): void {
+    this.store.clearTagSelection();
+    this.scrollToTransactionsResults();
+  }
+
   protected categoryHasTransactions(categoryId: string): boolean {
     return (
       this.store.categoryTransactionCount(categoryId) > 0 ||
@@ -246,7 +321,10 @@ export class TransactionsPageComponent implements OnDestroy {
     );
   }
 
-  protected trackTransaction(_index: number, transaction: TransactionViewModel): string {
+  protected trackTransaction(
+    _index: number,
+    transaction: TransactionViewModel
+  ): string {
     return transaction.id;
   }
 
@@ -300,14 +378,18 @@ export class TransactionsPageComponent implements OnDestroy {
     this.store.dismissMutationError();
   }
 
-  protected async confirmDelete(transaction: TransactionViewModel): Promise<void> {
+  protected async confirmDelete(
+    transaction: TransactionViewModel
+  ): Promise<void> {
     if (this.store.transactionMutationPending()) {
       return;
     }
 
     let confirmed = true;
     if (isPlatformBrowser(this.platformId)) {
-      confirmed = window.confirm(this.transloco.translate('transactions.list.actions.deleteConfirm'));
+      confirmed = window.confirm(
+        this.transloco.translate('transactions.list.actions.deleteConfirm')
+      );
     }
 
     if (!confirmed) {
@@ -318,7 +400,10 @@ export class TransactionsPageComponent implements OnDestroy {
     if (result.success) {
       const active = this.editingTransaction();
       const duplicate = this.duplicateTransaction();
-      if ((active && active.id === transaction.id) || (duplicate && duplicate.id === transaction.id)) {
+      if (
+        (active && active.id === transaction.id) ||
+        (duplicate && duplicate.id === transaction.id)
+      ) {
         this.handleFormClosed();
       }
     }
@@ -332,7 +417,10 @@ export class TransactionsPageComponent implements OnDestroy {
 
   private buildMonthYearOptions(): readonly MonthYearOption[] {
     const locale = this.locale();
-    const formatter = new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' });
+    const formatter = new Intl.DateTimeFormat(locale, {
+      month: 'long',
+      year: 'numeric',
+    });
     const transactions = this.store.transactions();
     const seen = new Set<string>();
     const options: MonthYearOption[] = [];
@@ -350,7 +438,9 @@ export class TransactionsPageComponent implements OnDestroy {
         value: `${year}-${(month + 1).toString().padStart(2, '0')}`,
         year,
         month,
-        label: this.capitalize(formatter.format(new Date(Date.UTC(year, month, 1)))),
+        label: this.capitalize(
+          formatter.format(new Date(Date.UTC(year, month, 1)))
+        ),
       });
     }
 
@@ -359,10 +449,14 @@ export class TransactionsPageComponent implements OnDestroy {
       const fallbackYear = today.getUTCFullYear();
       const fallbackMonth = today.getUTCMonth();
       options.push({
-        value: `${fallbackYear}-${(fallbackMonth + 1).toString().padStart(2, '0')}`,
+        value: `${fallbackYear}-${(fallbackMonth + 1)
+          .toString()
+          .padStart(2, '0')}`,
         year: fallbackYear,
         month: fallbackMonth,
-        label: this.capitalize(formatter.format(new Date(Date.UTC(fallbackYear, fallbackMonth, 1)))),
+        label: this.capitalize(
+          formatter.format(new Date(Date.UTC(fallbackYear, fallbackMonth, 1)))
+        ),
       });
     }
 
@@ -423,7 +517,11 @@ export class TransactionsPageComponent implements OnDestroy {
     }
 
     const [year, month, day] = segments;
-    if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
+    if (
+      !Number.isInteger(year) ||
+      !Number.isInteger(month) ||
+      !Number.isInteger(day)
+    ) {
       return null;
     }
 
@@ -455,11 +553,26 @@ export class TransactionsPageComponent implements OnDestroy {
   }
 
   private isStartOfMonth(date: Date): boolean {
-    return date.getUTCDate() === 1 && date.getUTCHours() === 0 && date.getUTCMinutes() === 0 && date.getUTCSeconds() === 0;
+    return (
+      date.getUTCDate() === 1 &&
+      date.getUTCHours() === 0 &&
+      date.getUTCMinutes() === 0 &&
+      date.getUTCSeconds() === 0
+    );
   }
 
   private isEndOfMonth(date: Date): boolean {
-    const test = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0, 23, 59, 59, 999));
+    const test = new Date(
+      Date.UTC(
+        date.getUTCFullYear(),
+        date.getUTCMonth() + 1,
+        0,
+        23,
+        59,
+        59,
+        999
+      )
+    );
     return date.getTime() === test.getTime();
   }
 
@@ -474,7 +587,9 @@ export class TransactionsPageComponent implements OnDestroy {
   }
 
   private isEndOfYear(date: Date): boolean {
-    const test = new Date(Date.UTC(date.getUTCFullYear(), 11, 31, 23, 59, 59, 999));
+    const test = new Date(
+      Date.UTC(date.getUTCFullYear(), 11, 31, 23, 59, 59, 999)
+    );
     return date.getTime() === test.getTime();
   }
 

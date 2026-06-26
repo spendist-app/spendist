@@ -612,10 +612,16 @@ const en = {
     title: 'Transactions',
     filters: {
       categoriesTitle: 'Categories',
+      tagsTitle: 'Tags',
+      categoriesTab: 'Categories',
+      tagsTab: 'Tags',
       clearCategories: 'Clear',
+      clearTags: 'Clear',
       allCategories: 'All categories',
+      allTags: 'All tags',
       onlyCategoriesWithTransactions: 'Only categories with transactions',
       categoryCount: '{{ total }} categories',
+      noVisibleTags: 'No tags with expenses in this period.',
       ungroupedTitle: 'Unassigned',
       presets: {
         currentMonth: 'Current month',

@@ -615,10 +615,16 @@ const pl = {
     title: 'Transakcje',
     filters: {
       categoriesTitle: 'Kategorie',
+      tagsTitle: 'Tagi',
+      categoriesTab: 'Kategorie',
+      tagsTab: 'Tagi',
       clearCategories: 'Wyczyść',
+      clearTags: 'Wyczyść',
       allCategories: 'Wszystkie kategorie',
+      allTags: 'Wszystkie tagi',
       onlyCategoriesWithTransactions: 'Tylko kategorie z transakcjami',
       categoryCount: '{{ total }} kategorii',
+      noVisibleTags: 'Brak tagów z wydatkami w tym okresie.',
       ungroupedTitle: 'Bez grupy',
       presets: {
         currentMonth: 'Bieżący miesiąc',

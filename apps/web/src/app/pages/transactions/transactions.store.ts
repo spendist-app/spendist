@@ -14,7 +14,10 @@ import type {
   PlaceRow,
   Tables,
 } from '@spendist/data-access/supabase-types';
-import type { CategoryEntity, CategoryGroupEntity } from '../settings/settings.store';
+import type {
+  CategoryEntity,
+  CategoryGroupEntity,
+} from '../settings/settings.store';
 const FALLBACK_CURRENCY = 'PLN';
 const MAX_BULK_QUANTITY = 100;
 const SUPABASE_PAGE_SIZE = 1000;
@@ -61,6 +64,7 @@ interface TransactionsState {
   readonly transactionTags: ReadonlyMap<string, readonly string[]>;
   readonly categorySummaries: ReadonlyMap<string, CategoryExpenseSummary>;
   readonly groupSummaries: ReadonlyMap<string | null, GroupExpenseSummary>;
+  readonly tagSummaries: ReadonlyMap<string, TagExpenseSummary>;
   readonly summaryLoading: boolean;
   readonly summaryError: string | null;
 }
@@ -93,10 +97,17 @@ export interface PlaceEntity {
   readonly note: string | null;
 }
 
-export type TransactionPresetId = 'currentMonth' | 'previousMonth' | 'thisYear' | 'lastYear' | 'allTime' | 'custom';
+export type TransactionPresetId =
+  | 'currentMonth'
+  | 'previousMonth'
+  | 'thisYear'
+  | 'lastYear'
+  | 'allTime'
+  | 'custom';
 
 interface TransactionsFilters {
   readonly selectedCategoryIds: readonly string[];
+  readonly selectedTagIds: readonly string[];
   readonly searchTerm: string;
   readonly from: Date | null;
   readonly to: Date | null;
@@ -129,6 +140,35 @@ interface GroupExpenseSummary {
   readonly transactionCount: number;
 }
 
+export interface TagExpenseSummary extends TagEntity {
+  readonly totalAmount: number;
+  readonly transactionCount: number;
+}
+
+interface TransactionTagExpenseSummaryRow {
+  readonly tag_id: string;
+  readonly tags:
+    | {
+        readonly name: string;
+        readonly color: string | null;
+        readonly icon: string | null;
+      }
+    | readonly {
+        readonly name: string;
+        readonly color: string | null;
+        readonly icon: string | null;
+      }[]
+    | null;
+  readonly transactions:
+    | {
+        readonly amount_in_default: number | string | null;
+      }
+    | readonly {
+        readonly amount_in_default: number | string | null;
+      }[]
+    | null;
+}
+
 interface TransactionPageResult {
   readonly rows: readonly TransactionRow[];
   readonly tagRows: readonly TransactionTagRow[];
@@ -151,7 +191,10 @@ export interface CreateTransactionPayload {
   readonly placeId?: string | null;
 }
 
-export type UpdateTransactionPayload = Omit<CreateTransactionPayload, 'quantity'>;
+export type UpdateTransactionPayload = Omit<
+  CreateTransactionPayload,
+  'quantity'
+>;
 
 interface NormalizedCreatePayload {
   readonly categoryId: string;
@@ -209,11 +252,14 @@ export class TransactionsStore {
     transactionTags: new Map(),
     categorySummaries: new Map(),
     groupSummaries: new Map(),
+    tagSummaries: new Map(),
     summaryLoading: false,
     summaryError: null,
   });
 
-  private readonly filters = signal<TransactionsFilters>(this.createInitialFilters());
+  private readonly filters = signal<TransactionsFilters>(
+    this.createInitialFilters()
+  );
   private categorySummaryRequestToken = 0;
   private transactionRequestToken = 0;
   private lastSummaryRangeKey: string | null = null;
@@ -224,19 +270,31 @@ export class TransactionsStore {
   readonly loading = computed(() => this.state().loading);
   readonly error = computed(() => this.state().error);
   readonly mutationError = computed(() => this.state().mutationError);
-  readonly transactionMutationPending = computed(() => this.state().transactionMutationPending);
+  readonly transactionMutationPending = computed(
+    () => this.state().transactionMutationPending
+  );
   readonly categories = computed(() => this.state().categories);
   readonly groups = computed(() => this.state().groups);
   readonly transactions = computed(() => this.state().transactions);
-  readonly loadedTransactionCount = computed(() => this.state().transactions.length);
-  readonly totalMatchingTransactions = computed(() => this.state().totalMatchingTransactions);
-  readonly hasMoreTransactions = computed(() => this.state().hasMoreTransactions);
-  readonly loadingMoreTransactions = computed(() => this.state().loadingMoreTransactions);
+  readonly loadedTransactionCount = computed(
+    () => this.state().transactions.length
+  );
+  readonly totalMatchingTransactions = computed(
+    () => this.state().totalMatchingTransactions
+  );
+  readonly hasMoreTransactions = computed(
+    () => this.state().hasMoreTransactions
+  );
+  readonly loadingMoreTransactions = computed(
+    () => this.state().loadingMoreTransactions
+  );
   readonly tags = computed(() => this.state().tags);
   readonly wallets = computed(() => this.state().wallets);
   readonly places = computed(() => this.state().places);
   readonly currencies = computed(() => this.state().currencies);
-  readonly defaultCurrency = computed(() => this.state().defaultCurrency ?? FALLBACK_CURRENCY);
+  readonly defaultCurrency = computed(
+    () => this.state().defaultCurrency ?? FALLBACK_CURRENCY
+  );
   readonly defaultWalletId = computed(() => {
     const wallets = this.state().wallets;
     const preferred = wallets.find((wallet) => wallet.isDefault);
@@ -258,10 +316,21 @@ export class TransactionsStore {
       from: filters.from ? new Date(filters.from) : null,
       to: filters.to ? new Date(filters.to) : null,
       selectedCategoryIds: [...filters.selectedCategoryIds],
+      selectedTagIds: [...filters.selectedTagIds],
     };
   });
 
-  readonly hasActiveCategoryFilter = computed(() => this.filters().selectedCategoryIds.length > 0);
+  readonly hasActiveCategoryFilter = computed(
+    () => this.filters().selectedCategoryIds.length > 0
+  );
+  readonly hasActiveTagFilter = computed(
+    () => this.filters().selectedTagIds.length > 0
+  );
+  readonly visibleTagSummaries = computed<readonly TagExpenseSummary[]>(() =>
+    [...this.state().tagSummaries.values()].filter(
+      (tag) => tag.transactionCount > 0 && Math.abs(tag.totalAmount) > 0
+    )
+  );
   readonly groupedCategories = computed<readonly GroupWithCategories[]>(() => {
     const groups = this.state().groups;
     const categories = this.state().categories;
@@ -269,7 +338,9 @@ export class TransactionsStore {
     return groups
       .map((group) => ({
         ...group,
-        categories: categories.filter((category) => category.groupId === group.id),
+        categories: categories.filter(
+          (category) => category.groupId === group.id
+        ),
       }))
       .filter((group) => group.categories.length > 0);
   });
@@ -277,31 +348,39 @@ export class TransactionsStore {
   readonly ungroupedCategories = computed(() =>
     this.state()
       .categories.filter((category) => !category.groupId)
-      .sort((a, b) => a.name.localeCompare(b.name)),
+      .sort((a, b) => a.name.localeCompare(b.name))
   );
 
   readonly transactionsView = computed<readonly TransactionViewModel[]>(() => {
     const state = this.state();
-    const categoriesById = new Map(state.categories.map((category) => [category.id, category]));
+    const categoriesById = new Map(
+      state.categories.map((category) => [category.id, category])
+    );
     const groupsById = new Map(state.groups.map((group) => [group.id, group]));
     const placesById = new Map(state.places.map((place) => [place.id, place]));
     const tagsMap = state.transactionTags;
 
     return state.transactions.map((transaction) => {
       const category = categoriesById.get(transaction.categoryId) ?? null;
-      const group = category?.groupId ? groupsById.get(category.groupId) ?? null : null;
+      const group = category?.groupId
+        ? groupsById.get(category.groupId) ?? null
+        : null;
       return {
         ...transaction,
         category,
         group,
         tagIds: tagsMap.get(transaction.id) ?? [],
-        place: transaction.placeId ? placesById.get(transaction.placeId) ?? null : null,
+        place: transaction.placeId
+          ? placesById.get(transaction.placeId) ?? null
+          : null,
       };
     });
   });
 
   readonly filteredTransactions = computed(() => {
-    return [...this.transactionsView()].sort((a, b) => b.occurredAt.getTime() - a.occurredAt.getTime());
+    return [...this.transactionsView()].sort(
+      (a, b) => b.occurredAt.getTime() - a.occurredAt.getTime()
+    );
   });
 
   readonly availableYears = computed(() => {
@@ -339,6 +418,7 @@ export class TransactionsStore {
           transactionTags: new Map(),
           categorySummaries: new Map(),
           groupSummaries: new Map(),
+          tagSummaries: new Map(),
           summaryLoading: false,
           summaryError: null,
         });
@@ -367,7 +447,9 @@ export class TransactionsStore {
   }
 
   categoryTransactionCount(categoryId: string): number {
-    return this.state().categorySummaries.get(categoryId)?.transactionCount ?? 0;
+    return (
+      this.state().categorySummaries.get(categoryId)?.transactionCount ?? 0
+    );
   }
 
   groupExpenseTotal(groupId: string | null): number {
@@ -378,12 +460,24 @@ export class TransactionsStore {
     return this.state().groupSummaries.get(groupId)?.transactionCount ?? 0;
   }
 
+  tagExpenseTotal(tagId: string): number {
+    return this.state().tagSummaries.get(tagId)?.totalAmount ?? 0;
+  }
+
+  tagTransactionCount(tagId: string): number {
+    return this.state().tagSummaries.get(tagId)?.transactionCount ?? 0;
+  }
+
   overallExpenseTotal(): number {
     return this.totalExpenseAmountSignal();
   }
 
   getTransactionForEdit(transactionId: string): TransactionViewModel | null {
-    return this.transactionsView().find((transaction) => transaction.id === transactionId) ?? null;
+    return (
+      this.transactionsView().find(
+        (transaction) => transaction.id === transactionId
+      ) ?? null
+    );
   }
 
   async refresh(): Promise<void> {
@@ -399,16 +493,46 @@ export class TransactionsStore {
     }));
 
     try {
-      const [groupsResult, categoriesResult, tagsResult, walletsResult, placesResult, currenciesResult, availableYears] =
-        await Promise.all([
-          this.supabase.from('categories_group').select('*').eq('owner_id', userId).order('name', { ascending: true }),
-          this.supabase.from('categories').select('*').eq('owner_id', userId).order('name', { ascending: true }),
-          this.supabase.from('tags').select('*').eq('owner_id', userId).order('name', { ascending: true }),
-          this.supabase.from('wallets').select('*').eq('owner_id', userId).order('name', { ascending: true }),
-          this.supabase.from('places').select('*').eq('owner_id', userId).order('name', { ascending: true }),
-          this.supabase.from('currencies').select('*').order('symbol', { ascending: true }),
-          this.loadAvailableYears(userId),
-        ]);
+      const [
+        groupsResult,
+        categoriesResult,
+        tagsResult,
+        walletsResult,
+        placesResult,
+        currenciesResult,
+        availableYears,
+      ] = await Promise.all([
+        this.supabase
+          .from('categories_group')
+          .select('*')
+          .eq('owner_id', userId)
+          .order('name', { ascending: true }),
+        this.supabase
+          .from('categories')
+          .select('*')
+          .eq('owner_id', userId)
+          .order('name', { ascending: true }),
+        this.supabase
+          .from('tags')
+          .select('*')
+          .eq('owner_id', userId)
+          .order('name', { ascending: true }),
+        this.supabase
+          .from('wallets')
+          .select('*')
+          .eq('owner_id', userId)
+          .order('name', { ascending: true }),
+        this.supabase
+          .from('places')
+          .select('*')
+          .eq('owner_id', userId)
+          .order('name', { ascending: true }),
+        this.supabase
+          .from('currencies')
+          .select('*')
+          .order('symbol', { ascending: true }),
+        this.loadAvailableYears(userId),
+      ]);
 
       if (groupsResult.error) {
         throw groupsResult.error;
@@ -435,20 +559,39 @@ export class TransactionsStore {
       }
 
       const groups = this.sortGroups(
-        (groupsResult.data ?? []).map((group) => this.mapGroupRow(group as CategoryGroupRow)),
+        (groupsResult.data ?? []).map((group) =>
+          this.mapGroupRow(group as CategoryGroupRow)
+        )
       );
       const categories = this.sortCategories(
-        (categoriesResult.data ?? []).map((category) => this.mapCategoryRow(category as CategoryRow)),
+        (categoriesResult.data ?? []).map((category) =>
+          this.mapCategoryRow(category as CategoryRow)
+        )
       );
-      const tags = this.sortTags((tagsResult.data ?? []).map((tag) => this.mapTagRow(tag as TagRow)));
-      const places = this.sortPlaces((placesResult.data ?? []).map((place) => this.mapPlaceRow(place as PlaceRow)));
-      const currencyRows = (currenciesResult.data ?? []).map((row) => this.mapCurrencyRow(row as CurrencyRow));
-      const currencyLookup = new Map(currencyRows.map((currency) => [currency.id, currency.symbol]));
+      const tags = this.sortTags(
+        (tagsResult.data ?? []).map((tag) => this.mapTagRow(tag as TagRow))
+      );
+      const places = this.sortPlaces(
+        (placesResult.data ?? []).map((place) =>
+          this.mapPlaceRow(place as PlaceRow)
+        )
+      );
+      const currencyRows = (currenciesResult.data ?? []).map((row) =>
+        this.mapCurrencyRow(row as CurrencyRow)
+      );
+      const currencyLookup = new Map(
+        currencyRows.map((currency) => [currency.id, currency.symbol])
+      );
       const currencies = this.sortCurrencies(currencyRows);
       const wallets = this.sortWallets(
-        (walletsResult.data ?? []).map((wallet) => this.mapWalletRow(wallet as WalletRow, currencyLookup)),
+        (walletsResult.data ?? []).map((wallet) =>
+          this.mapWalletRow(wallet as WalletRow, currencyLookup)
+        )
       );
-      const defaultCurrency = wallets.find((wallet) => wallet.isDefault)?.currency ?? wallets[0]?.currency ?? FALLBACK_CURRENCY;
+      const defaultCurrency =
+        wallets.find((wallet) => wallet.isDefault)?.currency ??
+        wallets[0]?.currency ??
+        FALLBACK_CURRENCY;
       const previousState = this.state();
       this.state.set({
         loading: true,
@@ -471,10 +614,14 @@ export class TransactionsStore {
         transactionTags: new Map(),
         categorySummaries: previousState.categorySummaries,
         groupSummaries: previousState.groupSummaries,
+        tagSummaries: previousState.tagSummaries,
         summaryLoading: previousState.summaryLoading,
         summaryError: previousState.summaryError,
       });
-      await this.loadTransactionsPage({ append: false, showInitialLoading: false });
+      await this.loadTransactionsPage({
+        append: false,
+        showInitialLoading: false,
+      });
       this.scheduleCategorySummaryRefresh(true);
     } catch (error) {
       const message = this.describeError(error);
@@ -490,11 +637,18 @@ export class TransactionsStore {
 
   async loadMoreTransactions(): Promise<void> {
     const state = this.state();
-    if (state.loading || state.loadingMoreTransactions || !state.hasMoreTransactions) {
+    if (
+      state.loading ||
+      state.loadingMoreTransactions ||
+      !state.hasMoreTransactions
+    ) {
       return;
     }
 
-    await this.loadTransactionsPage({ append: true, showInitialLoading: false });
+    await this.loadTransactionsPage({
+      append: true,
+      showInitialLoading: false,
+    });
   }
 
   private async reloadTransactionsAfterFilterChange(): Promise<void> {
@@ -502,16 +656,24 @@ export class TransactionsStore {
       return;
     }
 
-    await this.loadTransactionsPage({ append: false, showInitialLoading: true });
+    await this.loadTransactionsPage({
+      append: false,
+      showInitialLoading: true,
+    });
   }
 
-  private async loadTransactionsPage(options: { append: boolean; showInitialLoading: boolean }): Promise<void> {
+  private async loadTransactionsPage(options: {
+    append: boolean;
+    showInitialLoading: boolean;
+  }): Promise<void> {
     const userId = this.userId();
     if (!userId) {
       return;
     }
 
-    const page = options.append ? this.state().transactionPage + 1 : FIRST_TRANSACTION_PAGE;
+    const page = options.append
+      ? this.state().transactionPage + 1
+      : FIRST_TRANSACTION_PAGE;
     const requestToken = ++this.transactionRequestToken;
 
     this.state.update((state) => ({
@@ -531,12 +693,18 @@ export class TransactionsStore {
     }));
 
     try {
-      const result = await this.fetchTransactionPage(userId, this.filters(), page);
+      const result = await this.fetchTransactionPage(
+        userId,
+        this.filters(),
+        page
+      );
       if (requestToken !== this.transactionRequestToken) {
         return;
       }
 
-      const transactions = result.rows.map((row) => this.mapTransactionRow(row));
+      const transactions = result.rows.map((row) =>
+        this.mapTransactionRow(row)
+      );
       const pageTags = this.buildTransactionTagsMap(result.tagRows);
       const nextTransactionTags = options.append
         ? new Map(this.state().transactionTags)
@@ -545,12 +713,16 @@ export class TransactionsStore {
         nextTransactionTags.set(transactionId, tagIds);
       }
 
-      const loadedRows = options.append ? this.state().transactions.length + transactions.length : transactions.length;
+      const loadedRows = options.append
+        ? this.state().transactions.length + transactions.length
+        : transactions.length;
       this.state.update((state) => ({
         ...state,
         loading: false,
         loadingMoreTransactions: false,
-        transactions: options.append ? [...state.transactions, ...transactions] : transactions,
+        transactions: options.append
+          ? [...state.transactions, ...transactions]
+          : transactions,
         transactionTags: nextTransactionTags,
         transactionPage: result.page,
         totalMatchingTransactions: result.total,
@@ -575,7 +747,7 @@ export class TransactionsStore {
   private async fetchTransactionPage(
     userId: string,
     filters: TransactionsFilters,
-    page: number,
+    page: number
   ): Promise<TransactionPageResult> {
     const from = page * SUPABASE_PAGE_SIZE;
     const to = from + SUPABASE_PAGE_SIZE - 1;
@@ -587,7 +759,10 @@ export class TransactionsStore {
       .range(from, to);
 
     if (filters.from) {
-      query = query.gte('occurred_at', this.startOfDay(filters.from).toISOString());
+      query = query.gte(
+        'occurred_at',
+        this.startOfDay(filters.from).toISOString()
+      );
     }
 
     if (filters.to) {
@@ -596,6 +771,23 @@ export class TransactionsStore {
 
     if (filters.selectedCategoryIds.length > 0) {
       query = query.in('category_id', [...filters.selectedCategoryIds]);
+    }
+
+    if (filters.selectedTagIds.length > 0) {
+      const transactionIds = await this.loadTransactionIdsForTags(
+        userId,
+        filters.selectedTagIds
+      );
+      if (transactionIds.length === 0) {
+        return {
+          rows: [],
+          tagRows: [],
+          total: 0,
+          page,
+        };
+      }
+
+      query = query.in('id', [...transactionIds]);
     }
 
     const searchFilter = this.buildTransactionSearchFilter(filters.searchTerm);
@@ -609,7 +801,10 @@ export class TransactionsStore {
     }
 
     const rows = (data ?? []) as TransactionRow[];
-    const tagRows = await this.loadTransactionTagRows(userId, rows.map((row) => row.id));
+    const tagRows = await this.loadTransactionTagRows(
+      userId,
+      rows.map((row) => row.id)
+    );
     return {
       rows,
       tagRows,
@@ -618,17 +813,41 @@ export class TransactionsStore {
     };
   }
 
+  private async loadTransactionIdsForTags(
+    userId: string,
+    tagIds: readonly string[]
+  ): Promise<readonly string[]> {
+    const { data, error } = await this.supabase
+      .from('transaction_tags')
+      .select('transaction_id')
+      .eq('owner_id', userId)
+      .in('tag_id', [...tagIds]);
+
+    if (error) {
+      throw error;
+    }
+
+    return Array.from(new Set((data ?? []).map((row) => row.transaction_id)));
+  }
+
   private async loadTransactionTagRows(
     userId: string,
-    transactionIds: readonly string[],
+    transactionIds: readonly string[]
   ): Promise<TransactionTagRow[]> {
     if (transactionIds.length === 0) {
       return [];
     }
 
     const rows: TransactionTagRow[] = [];
-    for (let index = 0; index < transactionIds.length; index += TRANSACTION_TAG_QUERY_BATCH_SIZE) {
-      const batch = transactionIds.slice(index, index + TRANSACTION_TAG_QUERY_BATCH_SIZE);
+    for (
+      let index = 0;
+      index < transactionIds.length;
+      index += TRANSACTION_TAG_QUERY_BATCH_SIZE
+    ) {
+      const batch = transactionIds.slice(
+        index,
+        index + TRANSACTION_TAG_QUERY_BATCH_SIZE
+      );
       const { data, error } = await this.supabase
         .from('transaction_tags')
         .select('*')
@@ -686,7 +905,10 @@ export class TransactionsStore {
   }
 
   private buildTransactionSearchFilter(searchTerm: string): string | null {
-    const normalized = searchTerm.trim().replace(/[%,()]/g, ' ').replace(/\s+/g, ' ');
+    const normalized = searchTerm
+      .trim()
+      .replace(/[%,()]/g, ' ')
+      .replace(/\s+/g, ' ');
     if (!normalized) {
       return null;
     }
@@ -715,14 +937,14 @@ export class TransactionsStore {
     const matchingGroupIds = new Set(
       groups
         .filter((group) => group.name.toLowerCase().includes(normalized))
-        .map((group) => group.id),
+        .map((group) => group.id)
     );
 
     return categories
       .filter(
         (category) =>
           category.name.toLowerCase().includes(normalized) ||
-          (category.groupId ? matchingGroupIds.has(category.groupId) : false),
+          (category.groupId ? matchingGroupIds.has(category.groupId) : false)
       )
       .map((category) => category.id);
   }
@@ -731,9 +953,16 @@ export class TransactionsStore {
     const normalized = searchTerm.toLowerCase();
     return this.state()
       .places.filter((place) =>
-        [place.name, place.street, place.city, place.postalCode, place.country, place.note]
+        [
+          place.name,
+          place.street,
+          place.city,
+          place.postalCode,
+          place.country,
+          place.note,
+        ]
           .filter((value): value is string => !!value)
-          .some((value) => value.toLowerCase().includes(normalized)),
+          .some((value) => value.toLowerCase().includes(normalized))
       )
       .map((place) => place.id);
   }
@@ -795,10 +1024,35 @@ export class TransactionsStore {
     void this.reloadTransactionsAfterFilterChange();
   }
 
+  toggleTagSelection(tagId: string): void {
+    this.filters.update((filters) => {
+      const set = new Set(filters.selectedTagIds);
+      if (set.has(tagId)) {
+        set.delete(tagId);
+      } else {
+        set.add(tagId);
+      }
+
+      return {
+        ...filters,
+        selectedTagIds: Array.from(set),
+      };
+    });
+    void this.reloadTransactionsAfterFilterChange();
+  }
+
   clearCategorySelection(): void {
     this.filters.update((filters) => ({
       ...filters,
       selectedCategoryIds: [],
+    }));
+    void this.reloadTransactionsAfterFilterChange();
+  }
+
+  clearTagSelection(): void {
+    this.filters.update((filters) => ({
+      ...filters,
+      selectedTagIds: [],
     }));
     void this.reloadTransactionsAfterFilterChange();
   }
@@ -849,8 +1103,8 @@ export class TransactionsStore {
       new Set(
         names
           .map((name) => this.normalizeTagName(name))
-          .filter((name): name is string => !!name),
-      ),
+          .filter((name): name is string => !!name)
+      )
     );
 
     if (sanitized.length === 0) {
@@ -858,7 +1112,9 @@ export class TransactionsStore {
     }
 
     const currentState = this.state();
-    const existingByName = new Map(currentState.tags.map((tag) => [tag.name.toLowerCase(), tag]));
+    const existingByName = new Map(
+      currentState.tags.map((tag) => [tag.name.toLowerCase(), tag])
+    );
     const result: TagEntity[] = [];
     const toCreate: string[] = [];
 
@@ -878,7 +1134,7 @@ export class TransactionsStore {
           toCreate.map((name) => ({
             owner_id: userId,
             name,
-          })),
+          }))
         )
         .select('*');
 
@@ -886,7 +1142,9 @@ export class TransactionsStore {
         throw error;
       }
 
-      const createdTags = (data ?? []).map((row) => this.mapTagRow(row as TagRow));
+      const createdTags = (data ?? []).map((row) =>
+        this.mapTagRow(row as TagRow)
+      );
       result.push(...createdTags);
 
       this.state.update((state) => ({
@@ -895,7 +1153,9 @@ export class TransactionsStore {
       }));
     }
 
-    const lookup = new Map(this.state().tags.map((tag) => [tag.name.toLowerCase(), tag]));
+    const lookup = new Map(
+      this.state().tags.map((tag) => [tag.name.toLowerCase(), tag])
+    );
     return sanitized
       .map((name) => lookup.get(name.toLowerCase()))
       .filter((tag): tag is TagEntity => !!tag);
@@ -904,7 +1164,7 @@ export class TransactionsStore {
   async getExchangeRate(
     sourceCurrency: string,
     targetCurrency: string,
-    rateDate: Date,
+    rateDate: Date
   ): Promise<number | null> {
     const source = this.normalizeCurrency(sourceCurrency);
     const target = this.normalizeCurrency(targetCurrency);
@@ -933,7 +1193,9 @@ export class TransactionsStore {
       : null;
   }
 
-  async createTransactions(payload: CreateTransactionPayload): Promise<{ success: boolean; error?: string }> {
+  async createTransactions(
+    payload: CreateTransactionPayload
+  ): Promise<{ success: boolean; error?: string }> {
     const userId = this.userId();
     if (!userId) {
       const message = 'You need to be signed in to create transactions.';
@@ -942,7 +1204,8 @@ export class TransactionsStore {
 
     const normalized = this.normalizeCreatePayload(payload);
     if (!normalized) {
-      const message = 'Invalid transaction data. Please review the form and try again.';
+      const message =
+        'Invalid transaction data. Please review the form and try again.';
       return { success: false, error: message };
     }
 
@@ -968,7 +1231,10 @@ export class TransactionsStore {
         place_id: normalized.placeId,
       }));
 
-      const { data: inserted, error } = await this.supabase.from('transactions').insert(rows).select('id');
+      const { data: inserted, error } = await this.supabase
+        .from('transactions')
+        .insert(rows)
+        .select('id');
       if (error) {
         throw error;
       }
@@ -984,10 +1250,12 @@ export class TransactionsStore {
             owner_id: userId,
             transaction_id: transaction.id,
             tag_id: tagId,
-          })),
+          }))
         );
 
-        const { error: tagError } = await this.supabase.from('transaction_tags').insert(tagRows);
+        const { error: tagError } = await this.supabase
+          .from('transaction_tags')
+          .insert(tagRows);
         if (tagError) {
           throw tagError;
         }
@@ -1015,7 +1283,7 @@ export class TransactionsStore {
 
   async updateTransaction(
     transactionId: string,
-    payload: UpdateTransactionPayload,
+    payload: UpdateTransactionPayload
   ): Promise<{ success: boolean; error?: string }> {
     const userId = this.userId();
     if (!userId) {
@@ -1025,7 +1293,8 @@ export class TransactionsStore {
 
     const normalized = this.normalizeUpdatePayload(payload);
     if (!normalized) {
-      const message = 'Invalid transaction data. Please review the form and try again.';
+      const message =
+        'Invalid transaction data. Please review the form and try again.';
       return { success: false, error: message };
     }
 
@@ -1073,7 +1342,9 @@ export class TransactionsStore {
           transaction_id: transactionId,
           tag_id: tagId,
         }));
-        const { error: insertTagsError } = await this.supabase.from('transaction_tags').insert(tagRows);
+        const { error: insertTagsError } = await this.supabase
+          .from('transaction_tags')
+          .insert(tagRows);
         if (insertTagsError) {
           throw insertTagsError;
         }
@@ -1099,7 +1370,9 @@ export class TransactionsStore {
     }
   }
 
-  async deleteTransaction(transactionId: string): Promise<{ success: boolean; error?: string }> {
+  async deleteTransaction(
+    transactionId: string
+  ): Promise<{ success: boolean; error?: string }> {
     const userId = this.userId();
     if (!userId) {
       const message = 'You need to be signed in to delete transactions.';
@@ -1145,9 +1418,13 @@ export class TransactionsStore {
 
   private createInitialFilters(): TransactionsFilters {
     const now = new Date();
-    const { from, to } = this.monthRange(now.getUTCFullYear(), now.getUTCMonth());
+    const { from, to } = this.monthRange(
+      now.getUTCFullYear(),
+      now.getUTCMonth()
+    );
     return {
       selectedCategoryIds: [],
+      selectedTagIds: [],
       searchTerm: '',
       preset: 'currentMonth',
       from,
@@ -1155,13 +1432,19 @@ export class TransactionsStore {
     };
   }
 
-  private resolvePresetRange(preset: TransactionPresetId): { from: Date | null; to: Date | null } {
+  private resolvePresetRange(preset: TransactionPresetId): {
+    from: Date | null;
+    to: Date | null;
+  } {
     const now = new Date();
     switch (preset) {
       case 'currentMonth':
         return this.monthRange(now.getUTCFullYear(), now.getUTCMonth());
       case 'previousMonth': {
-        const year = now.getUTCMonth() === 0 ? now.getUTCFullYear() - 1 : now.getUTCFullYear();
+        const year =
+          now.getUTCMonth() === 0
+            ? now.getUTCFullYear() - 1
+            : now.getUTCFullYear();
         const month = (now.getUTCMonth() + 11) % 12;
         return this.monthRange(year, month);
       }
@@ -1193,7 +1476,10 @@ export class TransactionsStore {
     }
   }
 
-  private normalizeDateRange(from: Date | null, to: Date | null): { from: Date | null; to: Date | null } {
+  private normalizeDateRange(
+    from: Date | null,
+    to: Date | null
+  ): { from: Date | null; to: Date | null } {
     if (!from && !to) {
       return { from: null, to: null };
     }
@@ -1211,9 +1497,14 @@ export class TransactionsStore {
     };
   }
 
-  private monthRange(year: number, monthIndex: number): { from: Date; to: Date } {
+  private monthRange(
+    year: number,
+    monthIndex: number
+  ): { from: Date; to: Date } {
     const from = new Date(Date.UTC(year, monthIndex, 1, 0, 0, 0, 0));
-    const to = this.endOfDay(new Date(Date.UTC(year, monthIndex + 1, 0, 0, 0, 0, 0)));
+    const to = this.endOfDay(
+      new Date(Date.UTC(year, monthIndex + 1, 0, 0, 0, 0, 0))
+    );
     return { from, to };
   }
 
@@ -1228,7 +1519,9 @@ export class TransactionsStore {
     }
 
     const filters = this.filters();
-    const fromIso = filters.from ? this.startOfDay(filters.from).toISOString() : null;
+    const fromIso = filters.from
+      ? this.startOfDay(filters.from).toISOString()
+      : null;
     const toIso = filters.to ? this.endOfDay(filters.to).toISOString() : null;
     const rangeKey = `${fromIso ?? ''}|${toIso ?? ''}`;
 
@@ -1240,7 +1533,10 @@ export class TransactionsStore {
     void this.loadCategorySummary(fromIso, toIso);
   }
 
-  private async loadCategorySummary(fromIso: string | null, toIso: string | null): Promise<void> {
+  private async loadCategorySummary(
+    fromIso: string | null,
+    toIso: string | null
+  ): Promise<void> {
     const userId = this.userId();
     if (!userId) {
       return;
@@ -1255,10 +1551,13 @@ export class TransactionsStore {
     }));
 
     try {
-      const { data, error } = await this.supabase.rpc('category_expense_summary', {
-        p_from: fromIso ?? null,
-        p_to: toIso ?? null,
-      });
+      const { data, error } = await this.supabase.rpc(
+        'category_expense_summary',
+        {
+          p_from: fromIso ?? null,
+          p_to: toIso ?? null,
+        }
+      );
 
       if (requestToken !== this.categorySummaryRequestToken) {
         return;
@@ -1270,6 +1569,11 @@ export class TransactionsStore {
 
       const categorySummaries = new Map<string, CategoryExpenseSummary>();
       const groupSummaries = new Map<string | null, GroupExpenseSummary>();
+      const tagSummaries = await this.loadTagExpenseSummary(
+        userId,
+        fromIso,
+        toIso
+      );
 
       for (const row of data ?? []) {
         categorySummaries.set(
@@ -1277,7 +1581,7 @@ export class TransactionsStore {
           Object.freeze({
             totalAmount: Number(row.category_total_amount ?? 0),
             transactionCount: Number(row.category_transaction_count ?? 0),
-          }),
+          })
         );
 
         const groupKey = row.group_id ?? null;
@@ -1287,7 +1591,7 @@ export class TransactionsStore {
             Object.freeze({
               totalAmount: Number(row.group_total_amount ?? 0),
               transactionCount: Number(row.group_transaction_count ?? 0),
-            }),
+            })
           );
         }
       }
@@ -1296,6 +1600,7 @@ export class TransactionsStore {
         ...state,
         categorySummaries,
         groupSummaries,
+        tagSummaries,
         summaryLoading: false,
         summaryError: null,
       }));
@@ -1305,7 +1610,11 @@ export class TransactionsStore {
       }
 
       const message = this.describeError(error);
-      logError('TransactionsStore', 'Failed to load category expense summary', error);
+      logError(
+        'TransactionsStore',
+        'Failed to load category expense summary',
+        error
+      );
       this.state.update((state) => ({
         ...state,
         summaryLoading: false,
@@ -1314,8 +1623,110 @@ export class TransactionsStore {
     }
   }
 
+  private async loadTagExpenseSummary(
+    userId: string,
+    fromIso: string | null,
+    toIso: string | null
+  ): Promise<ReadonlyMap<string, TagExpenseSummary>> {
+    let query = this.supabase
+      .from('transaction_tags')
+      .select(
+        'tag_id, tags!inner(name, color, icon), transactions!inner(amount_in_default, occurred_at, direction)'
+      )
+      .eq('owner_id', userId)
+      .eq('transactions.direction', 'expense');
+
+    if (fromIso) {
+      query = query.gte('transactions.occurred_at', fromIso);
+    }
+
+    if (toIso) {
+      query = query.lte('transactions.occurred_at', toIso);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      throw error;
+    }
+
+    return this.buildTagExpenseSummaries(
+      (data ?? []) as unknown as readonly TransactionTagExpenseSummaryRow[],
+      userId
+    );
+  }
+
+  private buildTagExpenseSummaries(
+    rows: readonly TransactionTagExpenseSummaryRow[],
+    userId: string
+  ): ReadonlyMap<string, TagExpenseSummary> {
+    const summaries = new Map<string, TagExpenseSummary>();
+
+    for (const row of rows) {
+      const tag = this.firstRelatedRow(row.tags);
+      const transaction = this.firstRelatedRow(row.transactions);
+      if (!tag || !transaction) {
+        continue;
+      }
+
+      const current = summaries.get(row.tag_id);
+      summaries.set(row.tag_id, {
+        id: row.tag_id,
+        ownerId: userId,
+        name: tag.name,
+        color: tag.color,
+        icon: tag.icon,
+        totalAmount:
+          (current?.totalAmount ?? 0) +
+          this.parseNumber(transaction.amount_in_default),
+        transactionCount: (current?.transactionCount ?? 0) + 1,
+      });
+    }
+
+    return new Map(
+      [...summaries.entries()].sort(([, a], [, b]) => {
+        const byAmount = b.totalAmount - a.totalAmount;
+        return byAmount === 0 ? a.name.localeCompare(b.name) : byAmount;
+      })
+    );
+  }
+
+  private firstRelatedRow<T>(value: T | readonly T[] | null): T | null {
+    if (!value) {
+      return null;
+    }
+
+    if (Array.isArray(value)) {
+      return (value as readonly T[])[0] ?? null;
+    }
+
+    return value as T;
+  }
+
+  private parseNumber(value: number | string | null | undefined): number {
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? value : 0;
+    }
+
+    if (typeof value === 'string') {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    return 0;
+  }
+
   private startOfDay(value: Date): Date {
-    return new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate(), 0, 0, 0, 0));
+    return new Date(
+      Date.UTC(
+        value.getUTCFullYear(),
+        value.getUTCMonth(),
+        value.getUTCDate(),
+        0,
+        0,
+        0,
+        0
+      )
+    );
   }
 
   private toDateOnly(value: Date): string {
@@ -1326,14 +1737,28 @@ export class TransactionsStore {
   }
 
   private endOfDay(value: Date): Date {
-    return new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate(), 23, 59, 59, 999));
+    return new Date(
+      Date.UTC(
+        value.getUTCFullYear(),
+        value.getUTCMonth(),
+        value.getUTCDate(),
+        23,
+        59,
+        59,
+        999
+      )
+    );
   }
 
-  private sortGroups(groups: readonly CategoryGroupEntity[]): CategoryGroupEntity[] {
+  private sortGroups(
+    groups: readonly CategoryGroupEntity[]
+  ): CategoryGroupEntity[] {
     return [...groups].sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  private sortCategories(categories: readonly CategoryEntity[]): CategoryEntity[] {
+  private sortCategories(
+    categories: readonly CategoryEntity[]
+  ): CategoryEntity[] {
     return [...categories].sort((a, b) => a.name.localeCompare(b.name));
   }
 
@@ -1360,24 +1785,27 @@ export class TransactionsStore {
     });
   }
 
-  private sortCurrencies(currencies: readonly CurrencyOption[]): CurrencyOption[] {
+  private sortCurrencies(
+    currencies: readonly CurrencyOption[]
+  ): CurrencyOption[] {
     return [...currencies].sort((a, b) => a.symbol.localeCompare(b.symbol));
   }
 
   private mapTransactionRow(row: TransactionRow): TransactionEntity {
-    const amount = typeof row.amount === 'number' ? row.amount : Number(row.amount);
+    const amount =
+      typeof row.amount === 'number' ? row.amount : Number(row.amount);
     const amountInDefault =
       typeof row.amount_in_default === 'number'
         ? row.amount_in_default
         : row.amount_in_default != null
-          ? Number(row.amount_in_default)
-          : amount;
+        ? Number(row.amount_in_default)
+        : amount;
     const exchangeRate =
       typeof row.exchange_rate === 'number'
         ? row.exchange_rate
         : row.exchange_rate != null
-          ? Number(row.exchange_rate)
-          : null;
+        ? Number(row.exchange_rate)
+        : null;
 
     return {
       id: row.id,
@@ -1386,13 +1814,21 @@ export class TransactionsStore {
       occurredAt: new Date(row.occurred_at),
       description: row.description ?? null,
       amount: Number.isFinite(amount) ? amount : 0,
-      amountInDefault: Number.isFinite(amountInDefault) ? amountInDefault : Number.isFinite(amount) ? amount : 0,
+      amountInDefault: Number.isFinite(amountInDefault)
+        ? amountInDefault
+        : Number.isFinite(amount)
+        ? amount
+        : 0,
       currency: row.currency,
       direction: row.direction,
       isAutomatic: !!row.is_automatic,
       recurringTransactionId: row.recurring_transaction_id ?? null,
-      recurringScheduledFor: row.recurring_scheduled_for ? new Date(row.recurring_scheduled_for) : null,
-      exchangeRate: Number.isFinite(exchangeRate ?? NaN) ? (exchangeRate as number) : null,
+      recurringScheduledFor: row.recurring_scheduled_for
+        ? new Date(row.recurring_scheduled_for)
+        : null,
+      exchangeRate: Number.isFinite(exchangeRate ?? NaN)
+        ? (exchangeRate as number)
+        : null,
       walletId: row.wallet_id,
       placeId: row.place_id ?? null,
     };
@@ -1450,7 +1886,10 @@ export class TransactionsStore {
     };
   }
 
-  private mapWalletRow(row: WalletRow, currencyLookup: ReadonlyMap<number, string>): WalletEntity {
+  private mapWalletRow(
+    row: WalletRow,
+    currencyLookup: ReadonlyMap<number, string>
+  ): WalletEntity {
     const currencyId = row.currency_id ?? 1;
     return {
       id: row.id,
@@ -1464,7 +1903,7 @@ export class TransactionsStore {
 
   private findCurrencySymbolById(
     currencies: readonly CurrencyOption[],
-    id: number | null | undefined,
+    id: number | null | undefined
   ): string | null {
     if (id == null) {
       return null;
@@ -1474,7 +1913,9 @@ export class TransactionsStore {
     return match ? match.symbol : null;
   }
 
-  private buildTransactionTagsMap(rows: readonly TransactionTagRow[]): ReadonlyMap<string, readonly string[]> {
+  private buildTransactionTagsMap(
+    rows: readonly TransactionTagRow[]
+  ): ReadonlyMap<string, readonly string[]> {
     const map = new Map<string, string[]>();
     for (const row of rows) {
       const existing = map.get(row.transaction_id);
@@ -1484,12 +1925,17 @@ export class TransactionsStore {
         map.set(row.transaction_id, [row.tag_id]);
       }
     }
-    return new Map(Array.from(map.entries(), ([id, tagIds]) => [id, Object.freeze(tagIds.slice())]));
+    return new Map(
+      Array.from(map.entries(), ([id, tagIds]) => [
+        id,
+        Object.freeze(tagIds.slice()),
+      ])
+    );
   }
 
   private normalizeCurrency(
     input: string | null | undefined,
-    currenciesOverride?: readonly CurrencyOption[],
+    currenciesOverride?: readonly CurrencyOption[]
   ): string | null {
     if (!input) {
       return null;
@@ -1511,7 +1957,10 @@ export class TransactionsStore {
     return trimmed;
   }
 
-  private isSupportedCurrency(symbol: string, currenciesOverride?: readonly CurrencyOption[]): boolean {
+  private isSupportedCurrency(
+    symbol: string,
+    currenciesOverride?: readonly CurrencyOption[]
+  ): boolean {
     const currencies = currenciesOverride ?? this.state().currencies;
     if (currencies.length === 0) {
       return true;
@@ -1533,7 +1982,9 @@ export class TransactionsStore {
     return trimmed.length > 60 ? trimmed.slice(0, 60) : trimmed;
   }
 
-  private normalizeCreatePayload(payload: CreateTransactionPayload): NormalizedCreatePayload | null {
+  private normalizeCreatePayload(
+    payload: CreateTransactionPayload
+  ): NormalizedCreatePayload | null {
     const amount = Number(payload.amount);
     if (!Number.isFinite(amount) || amount <= 0) {
       return null;
@@ -1546,7 +1997,10 @@ export class TransactionsStore {
       return null;
     }
 
-    if (!(payload.occurredAt instanceof Date) || Number.isNaN(payload.occurredAt.getTime())) {
+    if (
+      !(payload.occurredAt instanceof Date) ||
+      Number.isNaN(payload.occurredAt.getTime())
+    ) {
       return null;
     }
 
@@ -1564,7 +2018,9 @@ export class TransactionsStore {
     const walletCurrency = wallet.currency.toUpperCase();
     const currency = this.normalizeCurrency(payload.currency) ?? walletCurrency;
     const normalizedForeignAmount =
-      typeof payload.foreignAmount === 'number' && payload.foreignAmount > 0 ? payload.foreignAmount : null;
+      typeof payload.foreignAmount === 'number' && payload.foreignAmount > 0
+        ? payload.foreignAmount
+        : null;
 
     let amountInDefault = normalizedForeignAmount ?? amount;
     let exchangeRate: number | null = null;
@@ -1595,7 +2051,9 @@ export class TransactionsStore {
     };
   }
 
-  private normalizeUpdatePayload(payload: UpdateTransactionPayload): NormalizedUpdatePayload | null {
+  private normalizeUpdatePayload(
+    payload: UpdateTransactionPayload
+  ): NormalizedUpdatePayload | null {
     const amount = Number(payload.amount);
     if (!Number.isFinite(amount) || amount <= 0) {
       return null;
@@ -1605,7 +2063,10 @@ export class TransactionsStore {
       return null;
     }
 
-    if (!(payload.occurredAt instanceof Date) || Number.isNaN(payload.occurredAt.getTime())) {
+    if (
+      !(payload.occurredAt instanceof Date) ||
+      Number.isNaN(payload.occurredAt.getTime())
+    ) {
       return null;
     }
 
@@ -1623,7 +2084,9 @@ export class TransactionsStore {
     const walletCurrency = wallet.currency.toUpperCase();
     const currency = this.normalizeCurrency(payload.currency) ?? walletCurrency;
     const normalizedForeignAmount =
-      typeof payload.foreignAmount === 'number' && payload.foreignAmount > 0 ? payload.foreignAmount : null;
+      typeof payload.foreignAmount === 'number' && payload.foreignAmount > 0
+        ? payload.foreignAmount
+        : null;
 
     let amountInDefault = normalizedForeignAmount ?? amount;
     let exchangeRate: number | null = null;
