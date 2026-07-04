@@ -29,12 +29,18 @@ import {
 import { LanguageService } from '../../core/language.service';
 import type { LanguageCode } from '../../i18n/languages';
 import { TransactionCreateFormComponent } from './transaction-create-form.component';
+import type { TransactionFormSaveResult } from './transaction-create-form.component';
 
 interface MonthYearOption {
   readonly value: string;
   readonly year: number;
   readonly month: number;
   readonly label: string;
+}
+
+interface TransactionToast {
+  readonly id: number;
+  readonly messageKey: string;
 }
 
 @Component({
@@ -56,6 +62,9 @@ export class TransactionsPageComponent implements OnDestroy {
   protected readonly duplicateTransaction = signal<TransactionViewModel | null>(
     null
   );
+  protected readonly transactionToasts = signal<readonly TransactionToast[]>(
+    []
+  );
   protected readonly activeTransaction = computed(() =>
     this.editingTransaction()
   );
@@ -66,6 +75,8 @@ export class TransactionsPageComponent implements OnDestroy {
   private readonly document = inject(DOCUMENT);
   private readonly transloco = inject(TranslocoService);
   private readonly destroyRef = inject(DestroyRef);
+  private toastId = 0;
+  private readonly toastTimers = new Map<number, ReturnType<typeof setTimeout>>();
 
   protected readonly heroIconSvg = heroIconSvgFn;
   protected readonly formatHeroIconLabel = formatHeroIconLabelFn;
@@ -337,15 +348,17 @@ export class TransactionsPageComponent implements OnDestroy {
   }
 
   protected handleKeyboardShortcut(event: KeyboardEvent): void {
+    const isAddShortcut =
+      event.key.toLowerCase() === 'n' &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.shiftKey &&
+      (event.altKey || !this.isEditableShortcutTarget(event.target));
+
     if (
       event.defaultPrevented ||
-      event.altKey ||
-      event.ctrlKey ||
-      event.metaKey ||
-      event.shiftKey ||
-      event.key.toLowerCase() !== 'n' ||
-      this.createFormOpen() ||
-      this.isEditableShortcutTarget(event.target)
+      !isAddShortcut ||
+      this.createFormOpen()
     ) {
       return;
     }
@@ -376,6 +389,38 @@ export class TransactionsPageComponent implements OnDestroy {
     this.duplicateTransaction.set(null);
     this.formMode.set('create');
     this.store.dismissMutationError();
+  }
+
+  protected handleFormSaved(result: TransactionFormSaveResult): void {
+    const id = ++this.toastId;
+    const messageKey =
+      result === 'created'
+        ? 'transactions.toasts.created'
+        : 'transactions.toasts.updated';
+
+    this.transactionToasts.update((toasts) => [
+      ...toasts,
+      {
+        id,
+        messageKey,
+      },
+    ]);
+
+    const timer = setTimeout(() => {
+      this.dismissToast(id);
+    }, 3500);
+    this.toastTimers.set(id, timer);
+  }
+
+  protected dismissToast(id: number): void {
+    const timer = this.toastTimers.get(id);
+    if (timer) {
+      clearTimeout(timer);
+      this.toastTimers.delete(id);
+    }
+    this.transactionToasts.update((toasts) =>
+      toasts.filter((toast) => toast.id !== id)
+    );
   }
 
   protected async confirmDelete(
@@ -413,6 +458,10 @@ export class TransactionsPageComponent implements OnDestroy {
     if (isPlatformBrowser(this.platformId)) {
       this.document?.body?.classList.remove('overflow-hidden');
     }
+    for (const timer of this.toastTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.toastTimers.clear();
   }
 
   private buildMonthYearOptions(): readonly MonthYearOption[] {

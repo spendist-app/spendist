@@ -670,7 +670,12 @@ const pl = {
     },
     actions: {
       add: 'Dodaj transakcję',
+      addShortcutHint: 'Dodaj transakcję (Alt+N)',
       loadMore: 'Załaduj więcej',
+    },
+    toasts: {
+      created: 'Transakcja została zapisana w bazie.',
+      updated: 'Zmiany w transakcji zostały zapisane.',
     },
     form: {
       badge: {

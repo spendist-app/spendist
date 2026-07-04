@@ -43,6 +43,8 @@ interface CurrencyOptionView {
   readonly symbol: string;
 }
 
+export type TransactionFormSaveResult = 'created' | 'updated';
+
 @Component({
   standalone: true,
   selector: 'app-transaction-create-form',
@@ -193,7 +195,7 @@ export class TransactionCreateFormComponent {
     );
   });
   readonly closed: OutputEmitterRef<void> = output();
-  readonly saved: OutputEmitterRef<void> = output();
+  readonly saved: OutputEmitterRef<TransactionFormSaveResult> = output();
 
   constructor() {
     afterNextRender(() => {
@@ -807,7 +809,7 @@ export class TransactionCreateFormComponent {
           occurredOn: raw.occurredOn,
           categoryId: raw.categoryId,
         });
-        this.saved.emit();
+        this.saved.emit('created');
         if (afterCreate === 'continue') {
           this.resetForm();
           this.focusDescriptionInput();
@@ -829,7 +831,7 @@ export class TransactionCreateFormComponent {
       basePayload
     );
     if (updateResult.success) {
-      this.saved.emit();
+      this.saved.emit('updated');
       this.onClose();
     }
   }

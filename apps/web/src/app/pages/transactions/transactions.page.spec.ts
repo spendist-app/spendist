@@ -1,6 +1,6 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 
 import type { LanguageCode } from '../../i18n/languages';
 import { provideAppTransloco } from '../../i18n/transloco.providers';
@@ -168,6 +168,10 @@ describe('TransactionsPageComponent', () => {
       .compileComponents();
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('formats transaction amounts with the standard locale currency placement from Intl', () => {
     const fixture = TestBed.createComponent(TransactionsPageComponent);
     const component = fixture.componentInstance as unknown as {
@@ -261,6 +265,27 @@ describe('TransactionsPageComponent', () => {
     expect(component.createFormOpen()).toBe(true);
   });
 
+  it('opens the create transaction form with Alt+N from an input', () => {
+    const fixture = TestBed.createComponent(TransactionsPageComponent);
+    fixture.detectChanges();
+    const component = fixture.componentInstance as unknown as {
+      createFormOpen(): boolean;
+    };
+
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    input.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'n',
+        altKey: true,
+        bubbles: true,
+      })
+    );
+    input.remove();
+
+    expect(component.createFormOpen()).toBe(true);
+  });
+
   it('does not open the create form when N is typed in an input', () => {
     const fixture = TestBed.createComponent(TransactionsPageComponent);
     fixture.detectChanges();
@@ -279,5 +304,28 @@ describe('TransactionsPageComponent', () => {
     input.remove();
 
     expect(component.createFormOpen()).toBe(false);
+  });
+
+  it('shows a transient toast after a transaction is saved', () => {
+    vi.useFakeTimers();
+    const fixture = TestBed.createComponent(TransactionsPageComponent);
+    fixture.detectChanges();
+    const component = fixture.componentInstance as unknown as {
+      handleFormSaved(result: 'created'): void;
+      transactionToasts(): readonly { readonly messageKey: string }[];
+    };
+
+    component.handleFormSaved('created');
+    fixture.detectChanges();
+
+    expect(component.transactionToasts().length).toBe(1);
+    expect(component.transactionToasts()[0]?.messageKey).toBe(
+      'transactions.toasts.created'
+    );
+
+    vi.advanceTimersByTime(3500);
+    fixture.detectChanges();
+
+    expect(component.transactionToasts().length).toBe(0);
   });
 });

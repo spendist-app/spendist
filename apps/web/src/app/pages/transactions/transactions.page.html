@@ -597,11 +597,36 @@
   </div>
 </section>
 
+@if (transactionToasts().length > 0) {
+<div class="toast toast-top toast-end top-20 z-50 w-full max-w-sm px-4">
+  @for (toast of transactionToasts(); track toast.id) {
+  <div
+    class="alert alert-success flex items-start gap-3 rounded-lg border border-success/20 bg-success text-success-content shadow-lg"
+    role="status"
+    aria-live="polite"
+  >
+    <span class="min-w-0 flex-1 text-sm font-medium">
+      {{ toast.messageKey | transloco }}
+    </span>
+    <button
+      type="button"
+      class="btn btn-ghost btn-xs text-success-content"
+      [attr.aria-label]="'common.actions.dismiss' | transloco"
+      (click)="dismissToast(toast.id)"
+    >
+      {{ 'common.actions.dismiss' | transloco }}
+    </button>
+  </div>
+  }
+</div>
+}
+
 <button
   type="button"
   class="btn btn-primary btn-circle fixed bottom-6 right-6 z-20 shadow-lg sm:bottom-8 sm:right-8"
   aria-label="{{ 'transactions.actions.add' | transloco }}"
-  aria-keyshortcuts="N"
+  [attr.title]="'transactions.actions.addShortcutHint' | transloco"
+  aria-keyshortcuts="Alt+N N"
   (click)="openCreateForm()"
 >
   <span aria-hidden="true" class="text-2xl leading-none">+</span>
@@ -615,5 +640,6 @@ activeTransaction(); @let duplicate = duplicateSource();
   [transaction]="editing"
   [prefill]="duplicate"
   (closed)="handleFormClosed()"
+  (saved)="handleFormSaved($event)"
 ></app-transaction-create-form>
 }

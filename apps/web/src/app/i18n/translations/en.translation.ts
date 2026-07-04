@@ -667,7 +667,12 @@ const en = {
     },
     actions: {
       add: 'Add transaction',
+      addShortcutHint: 'Add transaction (Alt+N)',
       loadMore: 'Load more',
+    },
+    toasts: {
+      created: 'Transaction saved in the database.',
+      updated: 'Transaction changes saved.',
     },
     form: {
       badge: {
