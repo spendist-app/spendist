@@ -835,6 +835,8 @@ const pl = {
           category: {
             label: 'Kategoria',
             placeholder: 'Wybierz kategorię',
+            searchPlaceholder: 'Szukaj kategorii...',
+            empty: 'Brak pasujących kategorii.',
             error: 'Wybierz kategorię dla tej płatności.',
           },
           wallet: {

@@ -113,81 +113,15 @@
             <span class="label-text text-sm font-semibold text-base-content">
               {{ 'transactions.form.fields.category' | transloco }}
             </span>
-            <div
-              class="relative"
-              (focusout)="onCategoryDropdownFocusOut($event)"
-            >
-              <button
-                type="button"
-                class="btn btn-outline min-h-12 w-full justify-between gap-3 px-4 text-left font-normal"
-                aria-haspopup="listbox"
-                [attr.aria-expanded]="categoryDropdownOpen()"
-                [attr.aria-label]="'transactions.form.fields.category' | transloco"
-                (click)="toggleCategoryDropdown()"
-              >
-                <span
-                  class="min-w-0 flex-1 truncate"
-                  [class.text-base-content/50]="!selectedCategoryLabel()"
-                >
-                  @if (selectedCategoryLabel(); as label) {
-                  {{ label }}
-                  } @else {
-                  {{ 'transactions.form.placeholders.category' | transloco }}
-                  }
-                </span>
-                <span class="shrink-0 text-base-content/60" aria-hidden="true">
-                  v
-                </span>
-              </button>
-
-              @if (categoryDropdownOpen()) {
-              <div
-                class="mt-2 rounded-xl border border-base-300 bg-base-100 p-2 shadow-lg"
-              >
-                <input
-                  #categorySearchInput
-                  type="search"
-                  class="input input-bordered input-sm w-full"
-                  [value]="categorySearch()"
-                  (input)="onCategorySearchInput($event)"
-                  (keydown.escape)="closeCategoryDropdown()"
-                  placeholder="{{
-                    'transactions.form.placeholders.categorySearch' | transloco
-                  }}"
-                  autocomplete="off"
-                />
-                <div class="mt-2 max-h-56 overflow-y-auto" role="listbox">
-                  @if (filteredCategoryView().length > 0) { @for (group of
-                  filteredCategoryView(); track group.groupName) {
-                  <div class="py-1">
-                    @if (group.groupName) {
-                    <p
-                      class="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-base-content/50"
-                    >
-                      {{ group.groupName }}
-                    </p>
-                    } @for (item of group.options; track item.id) {
-                    <button
-                      type="button"
-                      class="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm transition hover:bg-base-200"
-                      [class.bg-base-200]="selectedCategoryId() === item.id"
-                      (click)="selectCategory(item.id)"
-                      role="option"
-                      [attr.aria-selected]="selectedCategoryId() === item.id"
-                    >
-                      <span class="min-w-0 truncate">{{ item.label }}</span>
-                    </button>
-                    }
-                  </div>
-                  } } @else {
-                  <p class="px-3 py-4 text-sm text-base-content/60">
-                    {{ 'transactions.form.emptyCategories' | transloco }}
-                  </p>
-                  }
-                </div>
-              </div>
-              }
-            </div>
+            <app-category-select
+              formControlName="categoryId"
+              [groups]="categoryView()"
+              [label]="'transactions.form.fields.category' | transloco"
+              [placeholder]="'transactions.form.placeholders.category' | transloco"
+              [searchPlaceholder]="'transactions.form.placeholders.categorySearch' | transloco"
+              [emptyLabel]="'transactions.form.emptyCategories' | transloco"
+              (opened)="closePlaceDropdown()"
+            />
           </div>
 
           <div class="form-control sm:col-span-2">

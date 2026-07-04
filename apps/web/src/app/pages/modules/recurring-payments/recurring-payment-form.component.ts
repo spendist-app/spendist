@@ -19,6 +19,10 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TranslocoPipe, TranslocoService } from '@ngneat/transloco';
 import { logError } from '../../../core/logger';
 import {
+  CategorySelectComponent,
+  CategorySelectOption,
+} from '../../../shared/category-select/category-select.component';
+import {
   RecurringPaymentsStore,
   RecurringAmountMode,
   RecurringCategorySummary,
@@ -26,11 +30,6 @@ import {
   CurrencyOption,
   WalletEntity,
 } from './recurring-payments.store';
-
-interface CategoryOption {
-  readonly id: string;
-  readonly label: string;
-}
 
 type ScheduleFrequency = 'daily' | 'weekly' | 'monthly';
 
@@ -55,7 +54,7 @@ type RecurringFormGroup = FormGroup<{
 @Component({
   standalone: true,
   selector: 'app-recurring-payment-form',
-  imports: [ReactiveFormsModule, TranslocoPipe],
+  imports: [ReactiveFormsModule, TranslocoPipe, CategorySelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './recurring-payment-form.component.html',
 })
@@ -461,7 +460,7 @@ export class RecurringPaymentFormComponent {
 
   private buildCategoryView(): readonly {
     groupName: string | null;
-    options: readonly CategoryOption[];
+    options: readonly CategorySelectOption[];
   }[] {
     const categories = this.store.categories();
     const categoryNames = new Map(categories.map((category) => [category.id, category.name]));

@@ -74,24 +74,15 @@
                 <label class="text-sm font-semibold text-base-content" for="recurring-category">
                   {{ 'modules.recurringPayments.form.fields.category.label' | transloco }}
                 </label>
-                <select id="recurring-category" class="select select-bordered w-full" formControlName="categoryId">
-                  <option value="">
-                    {{ 'modules.recurringPayments.form.fields.category.placeholder' | transloco }}
-                  </option>
-                  @for (group of categoryView(); track group.groupName) {
-                    @if (group.groupName) {
-                      <optgroup [label]="group.groupName">
-                        @for (item of group.options; track item.id) {
-                          <option [value]="item.id">{{ item.label }}</option>
-                        }
-                      </optgroup>
-                    } @else {
-                      @for (item of group.options; track item.id) {
-                        <option [value]="item.id">{{ item.label }}</option>
-                      }
-                    }
-                  }
-                </select>
+                <app-category-select
+                  id="recurring-category"
+                  formControlName="categoryId"
+                  [groups]="categoryView()"
+                  [label]="'modules.recurringPayments.form.fields.category.label' | transloco"
+                  [placeholder]="'modules.recurringPayments.form.fields.category.placeholder' | transloco"
+                  [searchPlaceholder]="'modules.recurringPayments.form.fields.category.searchPlaceholder' | transloco"
+                  [emptyLabel]="'modules.recurringPayments.form.fields.category.empty' | transloco"
+                />
                 @if (categoryControl.invalid && (categoryControl.dirty || categoryControl.touched)) {
                   <p class="text-xs text-error">
                     {{ 'modules.recurringPayments.form.fields.category.error' | transloco }}

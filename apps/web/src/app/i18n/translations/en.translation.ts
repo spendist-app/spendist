@@ -833,6 +833,8 @@ const en = {
           category: {
             label: 'Category',
             placeholder: 'Select category',
+            searchPlaceholder: 'Search categories...',
+            empty: 'No matching categories.',
             error: 'Choose a category to classify this payment.',
           },
           wallet: {
