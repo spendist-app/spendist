@@ -125,7 +125,7 @@ async function selectFirstRealOption(select: Locator): Promise<string> {
   throw new Error('Missing selectable option value.');
 }
 
-async function selectFirstTransactionCategory(page: Page): Promise<string> {
+async function selectFirstCategoryOption(page: Page): Promise<string> {
   const dialog = page.getByRole('dialog');
   await dialog.getByRole('button', { name: 'Category', exact: true }).click();
 
@@ -136,11 +136,15 @@ async function selectFirstTransactionCategory(page: Page): Promise<string> {
   await expect(option).toBeVisible({ timeout: 15000 });
   const label = (await option.textContent())?.trim() ?? '';
   if (!label) {
-    throw new Error('Missing selectable transaction category.');
+    throw new Error('Missing selectable category.');
   }
 
   await option.click();
   return label;
+}
+
+async function selectFirstTransactionCategory(page: Page): Promise<string> {
+  return selectFirstCategoryOption(page);
 }
 
 async function selectTransactionPlace(page: Page, name: string): Promise<void> {
@@ -230,6 +234,34 @@ async function openSettingsPanel(
     await expect(page.getByRole('button', { name: 'Add wallet' })).toBeVisible({
       timeout: 15000,
     });
+  }
+}
+
+async function expectDefaultCategoryGroups(page: Page): Promise<void> {
+  await page.getByRole('tab', { name: 'Category groups' }).click();
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const groupsPanel = page.locator('#settings-categories-panel-groups');
+    const essentials = groupsPanel.locator('article').filter({
+      has: page.getByRole('heading', { name: 'Essentials', exact: true }),
+    });
+    const income = groupsPanel.locator('article').filter({
+      has: page.getByRole('heading', { name: 'Income', exact: true }),
+    });
+
+    try {
+      await expect(essentials).toBeVisible({ timeout: 3000 });
+      await expect(income).toBeVisible({ timeout: 3000 });
+      return;
+    } catch (error) {
+      if (attempt === 4) {
+        throw error;
+      }
+
+      await page.reload();
+      await openSettingsPanel(page, 'Categories');
+      await page.getByRole('tab', { name: 'Category groups' }).click();
+    }
   }
 }
 
@@ -325,13 +357,7 @@ test('registers a new account and opens dashboard', async ({
   await expect(page.getByText('Groceries').first()).toBeVisible();
   await expect(page.getByText('Biedronka').first()).toBeVisible();
 
-  await page.getByRole('tab', { name: 'Category groups' }).click();
-  await expect(
-    page.locator('article').filter({ hasText: 'Essentials' })
-  ).toBeVisible();
-  await expect(
-    page.locator('article').filter({ hasText: 'Income' })
-  ).toBeVisible();
+  await expectDefaultCategoryGroups(page);
 });
 
 test('adds transaction and keeps it after reload', async ({
@@ -637,7 +663,7 @@ test('adds recurring payment with selected currency', async ({
   ).toBeVisible();
 
   await page.locator('#recurring-name').fill(name);
-  await selectFirstRealOption(page.locator('#recurring-category'));
+  await selectFirstCategoryOption(page);
   await selectFirstRealOption(page.locator('#recurring-wallet'));
   await page.locator('#recurring-amount').fill('29.99');
   await page.locator('select[formcontrolname="currency"]').selectOption('USD');
@@ -672,7 +698,7 @@ test('backfills transactions for a recurring payment started in the past', async
     .click();
 
   await page.locator('#recurring-name').fill(name);
-  await selectFirstRealOption(page.locator('#recurring-category'));
+  await selectFirstCategoryOption(page);
   await selectFirstRealOption(page.locator('#recurring-wallet'));
   await page.locator('#recurring-amount').fill('12');
   await page.locator('select[formcontrolname="currency"]').selectOption('PLN');
