@@ -667,12 +667,48 @@ const en = {
     },
     actions: {
       add: 'Add transaction',
+      addBulk: 'Add in bulk',
+      addBulkShort: 'Bulk',
       addShortcutHint: 'Add transaction (Alt+N)',
       loadMore: 'Load more',
     },
     toasts: {
       created: 'Transaction saved in the database.',
       updated: 'Transaction changes saved.',
+      bulkCreated: '{{ count }} transactions saved in the database.',
+    },
+    bulk: {
+      badge: 'Import',
+      title: 'Add transactions in bulk',
+      columns: {
+        date: 'Date',
+        description: 'Description',
+        amount: 'Amount',
+        currency: 'Currency',
+        direction: 'Type',
+        category: 'Category',
+        wallet: 'Wallet',
+        tags: 'Tags',
+        place: 'Place',
+      },
+      summary: 'Rows to save: {{ count }}',
+      duplicates: '{{ count }} possible duplicates detected.',
+      actions: {
+        addRows: 'Add 10 rows',
+        clearRow: 'Clear row',
+        save: 'Save {{ count }}',
+      },
+      validation: {
+        title: 'Fix the marked rows before saving.',
+        row: 'Row {{ row }}',
+        date: 'enter a valid date',
+        amount: 'enter an amount greater than zero',
+        category: 'select a category',
+        wallet: 'select a wallet',
+        currency: 'enter a valid currency',
+        exchangeRate: 'exchange rate is unavailable for this date and currency',
+        save: 'transaction could not be prepared',
+      },
     },
     form: {
       badge: {

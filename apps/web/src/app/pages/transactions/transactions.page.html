@@ -606,7 +606,7 @@
     aria-live="polite"
   >
     <span class="min-w-0 flex-1 text-sm font-medium">
-      {{ toast.messageKey | transloco }}
+      {{ toast.messageKey | transloco: toast.params }}
     </span>
     <button
       type="button"
@@ -620,6 +620,16 @@
   }
 </div>
 }
+
+<button
+  type="button"
+  class="btn btn-secondary fixed bottom-6 right-24 z-20 shadow-lg sm:bottom-8 sm:right-28"
+  aria-label="{{ 'transactions.actions.addBulk' | transloco }}"
+  [attr.title]="'transactions.actions.addBulk' | transloco"
+  (click)="openBulkCreateForm()"
+>
+  {{ 'transactions.actions.addBulkShort' | transloco }}
+</button>
 
 <button
   type="button"
@@ -642,4 +652,11 @@ activeTransaction(); @let duplicate = duplicateSource();
   (closed)="handleFormClosed()"
   (saved)="handleFormSaved($event)"
 ></app-transaction-create-form>
+}
+
+@if (bulkFormOpen()) {
+<app-transaction-bulk-create-form
+  (closed)="handleBulkFormClosed()"
+  (saved)="handleBulkFormSaved($event)"
+></app-transaction-bulk-create-form>
 }

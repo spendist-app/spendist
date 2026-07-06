@@ -670,12 +670,48 @@ const pl = {
     },
     actions: {
       add: 'Dodaj transakcję',
+      addBulk: 'Dodaj hurtowo',
+      addBulkShort: 'Hurtowo',
       addShortcutHint: 'Dodaj transakcję (Alt+N)',
       loadMore: 'Załaduj więcej',
     },
     toasts: {
       created: 'Transakcja została zapisana w bazie.',
       updated: 'Zmiany w transakcji zostały zapisane.',
+      bulkCreated: 'Zapisano {{ count }} transakcji w bazie.',
+    },
+    bulk: {
+      badge: 'Import',
+      title: 'Dodaj transakcje hurtowo',
+      columns: {
+        date: 'Data',
+        description: 'Opis',
+        amount: 'Kwota',
+        currency: 'Waluta',
+        direction: 'Typ',
+        category: 'Kategoria',
+        wallet: 'Portfel',
+        tags: 'Tagi',
+        place: 'Miejsce',
+      },
+      summary: 'Wiersze do zapisu: {{ count }}',
+      duplicates: 'Wykryto {{ count }} możliwych duplikatów.',
+      actions: {
+        addRows: 'Dodaj 10 wierszy',
+        clearRow: 'Wyczyść wiersz',
+        save: 'Zapisz {{ count }}',
+      },
+      validation: {
+        title: 'Popraw oznaczone wiersze przed zapisem.',
+        row: 'Wiersz {{ row }}',
+        date: 'podaj poprawną datę',
+        amount: 'podaj kwotę większą od zera',
+        category: 'wybierz kategorię',
+        wallet: 'wybierz portfel',
+        currency: 'podaj poprawną walutę',
+        exchangeRate: 'brak kursu dla daty i waluty',
+        save: 'nie udało się przygotować transakcji',
+      },
     },
     form: {
       badge: {

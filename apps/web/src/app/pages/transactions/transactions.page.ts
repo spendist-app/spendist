@@ -30,6 +30,7 @@ import { LanguageService } from '../../core/language.service';
 import type { LanguageCode } from '../../i18n/languages';
 import { TransactionCreateFormComponent } from './transaction-create-form.component';
 import type { TransactionFormSaveResult } from './transaction-create-form.component';
+import { TransactionBulkCreateFormComponent } from './transaction-bulk-create-form.component';
 
 interface MonthYearOption {
   readonly value: string;
@@ -41,13 +42,19 @@ interface MonthYearOption {
 interface TransactionToast {
   readonly id: number;
   readonly messageKey: string;
+  readonly params?: Record<string, unknown>;
 }
 
 @Component({
   standalone: true,
   selector: 'app-transactions-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TranslocoPipe, NgIcon, TransactionCreateFormComponent],
+  imports: [
+    TranslocoPipe,
+    NgIcon,
+    TransactionCreateFormComponent,
+    TransactionBulkCreateFormComponent,
+  ],
   providers: [TransactionsStore],
   templateUrl: './transactions.page.html',
 })
@@ -55,6 +62,7 @@ export class TransactionsPageComponent implements OnDestroy {
   private readonly languageService = inject(LanguageService);
   protected readonly store = inject(TransactionsStore);
   protected readonly createFormOpen = signal(false);
+  protected readonly bulkFormOpen = signal(false);
   protected readonly formMode = signal<'create' | 'edit'>('create');
   protected readonly editingTransaction = signal<TransactionViewModel | null>(
     null
@@ -163,7 +171,10 @@ export class TransactionsPageComponent implements OnDestroy {
     if (!body) {
       return;
     }
-    body.classList.toggle('overflow-hidden', this.createFormOpen());
+    body.classList.toggle(
+      'overflow-hidden',
+      this.createFormOpen() || this.bulkFormOpen()
+    );
   });
 
   constructor() {
@@ -341,6 +352,7 @@ export class TransactionsPageComponent implements OnDestroy {
 
   protected openCreateForm(): void {
     this.store.dismissMutationError();
+    this.bulkFormOpen.set(false);
     this.formMode.set('create');
     this.editingTransaction.set(null);
     this.duplicateTransaction.set(null);
@@ -358,7 +370,8 @@ export class TransactionsPageComponent implements OnDestroy {
     if (
       event.defaultPrevented ||
       !isAddShortcut ||
-      this.createFormOpen()
+      this.createFormOpen() ||
+      this.bulkFormOpen()
     ) {
       return;
     }
@@ -369,6 +382,7 @@ export class TransactionsPageComponent implements OnDestroy {
 
   protected openEditForm(transaction: TransactionViewModel): void {
     this.store.dismissMutationError();
+    this.bulkFormOpen.set(false);
     this.formMode.set('edit');
     this.editingTransaction.set(transaction);
     this.duplicateTransaction.set(null);
@@ -377,6 +391,7 @@ export class TransactionsPageComponent implements OnDestroy {
 
   protected openDuplicate(transaction: TransactionViewModel): void {
     this.store.dismissMutationError();
+    this.bulkFormOpen.set(false);
     this.formMode.set('create');
     this.editingTransaction.set(null);
     this.duplicateTransaction.set(transaction);
@@ -391,18 +406,41 @@ export class TransactionsPageComponent implements OnDestroy {
     this.store.dismissMutationError();
   }
 
+  protected openBulkCreateForm(): void {
+    this.handleFormClosed();
+    this.store.dismissMutationError();
+    this.bulkFormOpen.set(true);
+  }
+
+  protected handleBulkFormClosed(): void {
+    this.bulkFormOpen.set(false);
+    this.store.dismissMutationError();
+  }
+
   protected handleFormSaved(result: TransactionFormSaveResult): void {
-    const id = ++this.toastId;
-    const messageKey =
+    this.showToast(
       result === 'created'
         ? 'transactions.toasts.created'
-        : 'transactions.toasts.updated';
+        : 'transactions.toasts.updated'
+    );
+  }
+
+  protected handleBulkFormSaved(count: number): void {
+    this.showToast('transactions.toasts.bulkCreated', { count });
+  }
+
+  private showToast(
+    messageKey: string,
+    params?: Record<string, unknown>
+  ): void {
+    const id = ++this.toastId;
 
     this.transactionToasts.update((toasts) => [
       ...toasts,
       {
         id,
         messageKey,
+        params,
       },
     ]);
 

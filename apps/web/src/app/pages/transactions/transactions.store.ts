@@ -191,6 +191,15 @@ export interface CreateTransactionPayload {
   readonly placeId?: string | null;
 }
 
+export type CreateTransactionBatchItem = Omit<
+  CreateTransactionPayload,
+  'quantity'
+>;
+
+export interface CreateTransactionBatchPayload {
+  readonly transactions: readonly CreateTransactionBatchItem[];
+}
+
 export type UpdateTransactionPayload = Omit<
   CreateTransactionPayload,
   'quantity'
@@ -1278,6 +1287,107 @@ export class TransactionsStore {
         mutationError: message,
       }));
       return { success: false, error: message };
+    }
+  }
+
+  async createTransactionBatch(
+    payload: CreateTransactionBatchPayload
+  ): Promise<{ success: boolean; created: number; error?: string }> {
+    const userId = this.userId();
+    if (!userId) {
+      const message = 'You need to be signed in to create transactions.';
+      return { success: false, created: 0, error: message };
+    }
+
+    const normalized = payload.transactions
+      .map((transaction) =>
+        this.normalizeCreatePayload({
+          ...transaction,
+          quantity: 1,
+        })
+      )
+      .filter((transaction): transaction is NormalizedCreatePayload =>
+        Boolean(transaction)
+      );
+
+    if (
+      normalized.length === 0 ||
+      normalized.length !== payload.transactions.length
+    ) {
+      const message =
+        'Invalid transaction data. Please review the form and try again.';
+      return { success: false, created: 0, error: message };
+    }
+
+    this.state.update((state) => ({
+      ...state,
+      transactionMutationPending: true,
+      mutationError: null,
+    }));
+
+    try {
+      const rows = normalized.map((transaction) => ({
+        owner_id: userId,
+        category_id: transaction.categoryId,
+        description: transaction.description,
+        occurred_at: transaction.occurredAt.toISOString(),
+        amount: transaction.amount,
+        amount_in_default: transaction.amountInDefault,
+        currency: transaction.currency,
+        direction: transaction.direction,
+        is_automatic: false,
+        exchange_rate: transaction.exchangeRate,
+        wallet_id: transaction.walletId,
+        place_id: transaction.placeId,
+      }));
+
+      const { data: inserted, error } = await this.supabase
+        .from('transactions')
+        .insert(rows)
+        .select('id');
+      if (error) {
+        throw error;
+      }
+
+      const transactionRows = inserted ?? [];
+      if (transactionRows.length !== normalized.length) {
+        throw new Error('Transactions could not be created.');
+      }
+
+      const tagRows = transactionRows.flatMap((transaction, index) =>
+        normalized[index].tagIds.map((tagId) => ({
+          owner_id: userId,
+          transaction_id: transaction.id,
+          tag_id: tagId,
+        }))
+      );
+
+      if (tagRows.length > 0) {
+        const { error: tagError } = await this.supabase
+          .from('transaction_tags')
+          .insert(tagRows);
+        if (tagError) {
+          throw tagError;
+        }
+      }
+
+      await this.refresh();
+      this.state.update((state) => ({
+        ...state,
+        transactionMutationPending: false,
+        mutationError: null,
+      }));
+
+      return { success: true, created: transactionRows.length };
+    } catch (error) {
+      const message = this.describeError(error);
+      logError('TransactionsStore', 'Failed to create transaction batch', error);
+      this.state.update((state) => ({
+        ...state,
+        transactionMutationPending: false,
+        mutationError: message,
+      }));
+      return { success: false, created: 0, error: message };
     }
   }
 
