@@ -31,6 +31,21 @@ export const appRoutes: Route[] = [
     loadComponent: () => import('./pages/login/login.page').then((m) => m.LoginPageComponent),
   },
   {
+    path: 'forgot-password',
+    canActivate: [redirectAuthenticatedToHomeGuard],
+    loadComponent: () =>
+      import('./pages/forgot-password/forgot-password.page').then(
+        (m) => m.ForgotPasswordPageComponent
+      ),
+  },
+  {
+    path: 'reset-password',
+    loadComponent: () =>
+      import('./pages/reset-password/reset-password.page').then(
+        (m) => m.ResetPasswordPageComponent
+      ),
+  },
+  {
     path: 'signup',
     canActivate: [redirectAuthenticatedToHomeGuard],
     loadComponent: () => import('./pages/signup/signup.page').then((m) => m.SignupPageComponent),

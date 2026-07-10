@@ -162,6 +162,115 @@
         >
           {{ 'settings.panels.profile.note' | transloco }}
         </div>
+
+        @if (securityOpen()) {
+        <section
+          class="rounded-2xl border border-base-300 bg-base-100/80 p-6 shadow-sm"
+          aria-labelledby="settings-security-heading"
+        >
+          <form class="space-y-5" [formGroup]="passwordForm" (ngSubmit)="submitPasswordChange()">
+            <header class="space-y-1">
+              <h3 id="settings-security-heading" class="text-xl font-semibold">
+                {{ 'settings.panels.profile.security.title' | transloco }}
+              </h3>
+              <p class="text-sm text-base-content/70">
+                {{ 'settings.panels.profile.security.description' | transloco }}
+              </p>
+            </header>
+
+            @if (passwordChangeSuccess()) {
+            <p class="alert alert-success text-sm" role="status" aria-live="polite">
+              {{ 'settings.panels.profile.security.success' | transloco }}
+            </p>
+            }
+
+            @if (passwordChangeError(); as passwordError) {
+            <p class="alert alert-error text-sm" role="alert" aria-live="assertive">
+              {{ passwordError | transloco }}
+            </p>
+            }
+
+            <div class="grid gap-4 md:grid-cols-3">
+              <label class="form-control">
+                <span class="label-text text-sm font-semibold">
+                  {{ 'settings.panels.profile.security.currentPasswordLabel' | transloco }}
+                </span>
+                <input
+                  id="current-password"
+                  type="password"
+                  class="input input-bordered"
+                  formControlName="currentPassword"
+                  autocomplete="current-password"
+                />
+                @if (passwordFormControls.currentPassword.touched && passwordFormControls.currentPassword.invalid) {
+                <span class="mt-1 text-xs text-error">
+                  {{ 'settings.panels.profile.security.errors.currentRequired' | transloco }}
+                </span>
+                }
+              </label>
+
+              <label class="form-control">
+                <span class="label-text text-sm font-semibold">
+                  {{ 'settings.panels.profile.security.newPasswordLabel' | transloco }}
+                </span>
+                <input
+                  id="new-password"
+                  type="password"
+                  class="input input-bordered"
+                  formControlName="newPassword"
+                  autocomplete="new-password"
+                />
+                @if (passwordFormControls.newPassword.touched && passwordFormControls.newPassword.invalid) {
+                <span class="mt-1 text-xs text-error">
+                  {{ 'settings.panels.profile.security.errors.newPassword' | transloco }}
+                </span>
+                }
+              </label>
+
+              <label class="form-control">
+                <span class="label-text text-sm font-semibold">
+                  {{ 'settings.panels.profile.security.confirmPasswordLabel' | transloco }}
+                </span>
+                <input
+                  id="confirm-new-password"
+                  type="password"
+                  class="input input-bordered"
+                  formControlName="confirmPassword"
+                  autocomplete="new-password"
+                />
+                @if (passwordFormMismatch()) {
+                <span class="mt-1 text-xs text-error">
+                  {{ 'settings.panels.profile.security.errors.confirmPassword' | transloco }}
+                </span>
+                }
+              </label>
+            </div>
+
+            <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                class="btn btn-ghost"
+                (click)="manageSecurity()"
+                [disabled]="passwordChangePending()"
+              >
+                {{ 'common.actions.cancel' | transloco }}
+              </button>
+              <button
+                type="submit"
+                class="btn btn-primary"
+                [disabled]="passwordChangePending()"
+              >
+                @if (passwordChangePending()) {
+                <span class="loading loading-spinner loading-sm"></span>
+                {{ 'settings.panels.profile.security.submitBusy' | transloco }}
+                } @else {
+                {{ 'settings.panels.profile.security.submitIdle' | transloco }}
+                }
+              </button>
+            </div>
+          </form>
+        </section>
+        }
       </section>
       } @else if (activePanel() === 'wallets') {
       <section class="space-y-6">

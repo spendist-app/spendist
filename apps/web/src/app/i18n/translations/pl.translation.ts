@@ -166,8 +166,35 @@ const pl = {
       emailError: 'Podaj poprawny adres e-mail.',
       passwordLabel: 'Hasło',
       passwordError: 'Hasło jest wymagane.',
+      forgotPasswordLink: 'Nie pamiętasz hasła?',
+      passwordResetSuccess: 'Hasło zostało zmienione. Zaloguj się nowym hasłem.',
       submitIdle: 'Zaloguj się',
       submitBusy: 'Logowanie...',
+    },
+    forgotPassword: {
+      title: 'Zresetuj hasło',
+      subtitle: 'Podaj adres e-mail, a wyślemy link do ustawienia nowego hasła.',
+      emailLabel: 'Adres e-mail',
+      emailError: 'Podaj poprawny adres e-mail.',
+      success:
+        'Jeśli konto z tym adresem istnieje, wysłaliśmy link do resetu hasła.',
+      submitIdle: 'Wyślij link',
+      submitBusy: 'Wysyłanie...',
+      backToLogin: 'Wróć do logowania',
+    },
+    resetPassword: {
+      title: 'Ustaw nowe hasło',
+      subtitle: 'Wybierz nowe hasło do konta Spendist.',
+      passwordLabel: 'Nowe hasło',
+      passwordHelper:
+        'Użyj co najmniej 8 znaków, w tym wielkiej litery, małej litery i cyfry.',
+      passwordError:
+        'Użyj co najmniej 8 znaków, w tym wielkiej litery, małej litery i cyfry.',
+      confirmPasswordLabel: 'Potwierdź nowe hasło',
+      passwordConfirmError: 'Hasła muszą być takie same.',
+      requestNewLink: 'Poproś o nowy link resetujący',
+      submitIdle: 'Zmień hasło',
+      submitBusy: 'Zmienianie...',
     },
     signup: {
       title: 'Utwórz konto',
@@ -223,6 +250,24 @@ const pl = {
             tooLarge: 'Avatar może mieć maksymalnie 2 MB.',
             unsupportedType: 'Wybierz obraz PNG, JPG, WebP albo GIF.',
             generic: 'Nie udało się przesłać avatara. Spróbuj ponownie.',
+          },
+        },
+        security: {
+          title: 'Hasło',
+          description:
+            'Potwierdź obecne hasło i ustaw nowe hasło do kolejnych logowań.',
+          currentPasswordLabel: 'Obecne hasło',
+          newPasswordLabel: 'Nowe hasło',
+          confirmPasswordLabel: 'Potwierdź nowe hasło',
+          submitIdle: 'Zmień hasło',
+          submitBusy: 'Zmienianie...',
+          success: 'Hasło zostało zmienione.',
+          errors: {
+            currentRequired: 'Obecne hasło jest wymagane.',
+            newPassword:
+              'Użyj co najmniej 8 znaków, w tym wielkiej litery, małej litery i cyfry.',
+            confirmPassword: 'Hasła muszą być takie same.',
+            samePassword: 'Nowe hasło musi różnić się od obecnego.',
           },
         },
       },

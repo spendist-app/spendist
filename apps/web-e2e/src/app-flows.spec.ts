@@ -320,6 +320,25 @@ test('logs in with the shared e2e account', async ({ page }) => {
   ).toBeVisible();
 });
 
+test('shows password change validation in settings', async ({ page }) => {
+  await ensureAuthenticated(page);
+  await openSettings(page);
+
+  await page.getByRole('button', { name: 'Security options' }).click();
+
+  await expect(page.getByRole('heading', { name: 'Password' })).toBeVisible();
+  await page.getByRole('button', { name: 'Change password' }).click();
+  await expect(page.getByText('Current password is required.')).toBeVisible();
+
+  await fillStableInput(page.locator('#current-password'), DEFAULT_PASSWORD);
+  await fillStableInput(page.locator('#new-password'), 'Next1234');
+  await fillStableInput(page.locator('#confirm-new-password'), 'Different123');
+
+  await page.getByRole('button', { name: 'Change password' }).click();
+
+  await expect(page.getByText('Passwords must match.')).toBeVisible();
+});
+
 test('registers a new account and opens dashboard', async ({
   page,
 }, testInfo) => {

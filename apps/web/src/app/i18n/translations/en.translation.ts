@@ -166,8 +166,35 @@ const en = {
       emailError: 'Enter a valid email address.',
       passwordLabel: 'Password',
       passwordError: 'Password is required.',
+      forgotPasswordLink: 'Forgot password?',
+      passwordResetSuccess: 'Your password was changed. Log in with the new password.',
       submitIdle: 'Log in',
       submitBusy: 'Signing in...',
+    },
+    forgotPassword: {
+      title: 'Reset your password',
+      subtitle: 'Enter your email address and we will send you a password reset link.',
+      emailLabel: 'Email',
+      emailError: 'Enter a valid email address.',
+      success:
+        'If an account exists for this email, a reset link has been sent.',
+      submitIdle: 'Send reset link',
+      submitBusy: 'Sending...',
+      backToLogin: 'Back to login',
+    },
+    resetPassword: {
+      title: 'Set a new password',
+      subtitle: 'Choose a new password for your Spendist account.',
+      passwordLabel: 'New password',
+      passwordHelper:
+        'Use at least 8 characters, including an uppercase letter, a lowercase letter, and a number.',
+      passwordError:
+        'Use at least 8 characters, including uppercase, lowercase, and a number.',
+      confirmPasswordLabel: 'Confirm new password',
+      passwordConfirmError: 'Passwords must match.',
+      requestNewLink: 'Request a new reset link',
+      submitIdle: 'Change password',
+      submitBusy: 'Changing...',
     },
     signup: {
       title: 'Create your account',
@@ -223,6 +250,24 @@ const en = {
             tooLarge: 'Avatar image must be 2 MB or smaller.',
             unsupportedType: 'Choose a PNG, JPG, WebP, or GIF image.',
             generic: 'Unable to upload the avatar. Please try again.',
+          },
+        },
+        security: {
+          title: 'Password',
+          description:
+            'Confirm your current password and choose a new one for future logins.',
+          currentPasswordLabel: 'Current password',
+          newPasswordLabel: 'New password',
+          confirmPasswordLabel: 'Confirm new password',
+          submitIdle: 'Change password',
+          submitBusy: 'Changing...',
+          success: 'Password changed successfully.',
+          errors: {
+            currentRequired: 'Current password is required.',
+            newPassword:
+              'Use at least 8 characters, including uppercase, lowercase, and a number.',
+            confirmPassword: 'Passwords must match.',
+            samePassword: 'New password must be different from the current one.',
           },
         },
       },

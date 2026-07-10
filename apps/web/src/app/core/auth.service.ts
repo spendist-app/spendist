@@ -33,6 +33,10 @@ export interface AuthResult {
   error?: string;
 }
 
+export interface PasswordRecoveryResult {
+  error?: string;
+}
+
 /**
  * Keeps Supabase authentication state in sync with Angular signals so UI and routing
  * can react without relying on zones.
@@ -90,6 +94,111 @@ export class AuthService implements OnDestroy {
     } catch (error) {
       return { error: this.normalizeUnknownError(error) };
     }
+  }
+
+  async requestPasswordReset(email: string): Promise<PasswordRecoveryResult> {
+    try {
+      const redirectTo = this.resolveAuthRedirectUrl('/reset-password');
+      const { error } = await this.supabase.auth.resetPasswordForEmail(email, {
+        redirectTo,
+      });
+
+      if (error) {
+        return { error: error.message };
+      }
+
+      return {};
+    } catch (error) {
+      return { error: this.normalizeUnknownError(error) };
+    }
+  }
+
+  async establishPasswordRecoverySession(
+    url: string
+  ): Promise<PasswordRecoveryResult> {
+    try {
+      const parsedUrl = new URL(url);
+      const params = new URLSearchParams(parsedUrl.search);
+
+      if (parsedUrl.hash.length > 1) {
+        const hashParams = new URLSearchParams(parsedUrl.hash.slice(1));
+        hashParams.forEach((value, key) => {
+          if (!params.has(key)) {
+            params.set(key, value);
+          }
+        });
+      }
+
+      const code = params.get('code');
+      if (code) {
+        const { error } = await this.supabase.auth.exchangeCodeForSession(code);
+        return error ? { error: error.message } : {};
+      }
+
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+      if (accessToken && refreshToken) {
+        const { error } = await this.supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        return error ? { error: error.message } : {};
+      }
+
+      const tokenHash = params.get('token_hash');
+      if (tokenHash) {
+        const { error } = await this.supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: 'recovery',
+        });
+        return error ? { error: error.message } : {};
+      }
+
+      const { data, error } = await this.supabase.auth.getSession();
+      if (error) {
+        return { error: error.message };
+      }
+
+      return data.session
+        ? {}
+        : { error: 'Password reset link is missing or has expired.' };
+    } catch (error) {
+      return { error: this.normalizeUnknownError(error) };
+    }
+  }
+
+  async updatePassword(password: string): Promise<PasswordRecoveryResult> {
+    try {
+      const { error } = await this.supabase.auth.updateUser({ password });
+      if (error) {
+        return { error: error.message };
+      }
+
+      return {};
+    } catch (error) {
+      return { error: this.normalizeUnknownError(error) };
+    }
+  }
+
+  async changePassword(
+    currentPassword: string,
+    newPassword: string
+  ): Promise<PasswordRecoveryResult> {
+    const email = this.session()?.user.email;
+    if (!email) {
+      return { error: 'You need to sign in again before changing your password.' };
+    }
+
+    const reauthResult = await this.signInWithPassword({
+      email,
+      password: currentPassword,
+    });
+
+    if (reauthResult.error) {
+      return { error: 'Current password is incorrect.' };
+    }
+
+    return this.updatePassword(newPassword);
   }
 
   async signUp(payload: SignUpPayload): Promise<AuthResult> {
@@ -210,5 +319,13 @@ export class AuthService implements OnDestroy {
     }
 
     return 'Something went wrong. Please try again.';
+  }
+
+  private resolveAuthRedirectUrl(path: string): string {
+    if (typeof window === 'undefined') {
+      return path;
+    }
+
+    return new URL(path, window.location.origin).toString();
   }
 }

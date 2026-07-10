@@ -9,6 +9,7 @@ import {
 import {
   NonNullableFormBuilder,
   ReactiveFormsModule,
+  type ValidatorFn,
   Validators,
 } from '@angular/forms';
 import { TranslocoPipe, TranslocoService } from '@ngneat/transloco';
@@ -31,12 +32,32 @@ import { HeroIconPickerComponent } from '../../shared/icons/hero-icon-picker.com
 import { KontomierzImportStore } from './kontomierz-import.store';
 import { SpendistCsvTransferStore } from './spendist-csv-transfer.store';
 import { SPENDIST_CSV_HEADERS } from './spendist-csv-transfer.parser';
+import { AuthService } from '../../core/auth.service';
 
 type SettingsPanelId = 'profile' | 'wallets' | 'categories' | 'spendistCsv' | 'kontomierzImport';
 type CategoriesTabId = 'list' | 'groups';
 type CategoryEditorMode = 'create' | 'edit';
 type GroupEditorMode = 'create' | 'edit';
 type SpendistCsvRangeMode = 'month' | 'all';
+
+const passwordsMatchValidator = (passwordKey: string, confirmPasswordKey: string) => {
+  return (group: { get: (key: string) => { value: string } | null }) => {
+    const password = group.get(passwordKey)?.value ?? '';
+    const confirmPassword = group.get(confirmPasswordKey)?.value ?? '';
+    if (!password || !confirmPassword) {
+      return null;
+    }
+    return password !== confirmPassword ? { passwordsMismatch: true } : null;
+  };
+};
+
+function buildPasswordValidators(): ValidatorFn[] {
+  return [
+    Validators.required,
+    Validators.minLength(8),
+    Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/),
+  ];
+}
 
 interface SettingsPanel {
   readonly id: SettingsPanelId;
@@ -80,6 +101,7 @@ export class SettingsPageComponent {
   protected readonly kontomierzImport = inject(KontomierzImportStore);
   protected readonly spendistCsv = inject(SpendistCsvTransferStore);
   private readonly transloco = inject(TranslocoService);
+  private readonly auth = inject(AuthService);
 
   protected readonly heroIconSvg = heroIconSvgFn;
   protected readonly formatHeroIconLabel = formatHeroIconLabelFn;
@@ -129,6 +151,11 @@ export class SettingsPageComponent {
   protected readonly selectedSpendistCsvFile = signal<File | null>(null);
   protected readonly selectedSpendistCsvCategoryIds = signal<readonly string[]>([]);
   protected readonly spendistCsvHeaders = SPENDIST_CSV_HEADERS;
+  protected readonly securityOpen = signal(false);
+  protected readonly passwordChangePending = signal(false);
+  protected readonly passwordChangeError = signal<string | null>(null);
+  protected readonly passwordChangeSuccess = signal(false);
+  protected readonly passwordMismatchSubmitted = signal(false);
 
   protected readonly hasGroups = computed(() => this.store.groups().length > 0);
 
@@ -282,6 +309,27 @@ export class SettingsPageComponent {
   });
   protected readonly spendistCsvExportFormControls = this.spendistCsvExportForm.controls;
   protected readonly spendistCsvFileName = computed(() => this.selectedSpendistCsvFile()?.name ?? null);
+  protected readonly passwordForm = this.fb.group(
+    {
+      currentPassword: this.fb.control('', {
+        validators: [Validators.required],
+      }),
+      newPassword: this.fb.control('', {
+        validators: buildPasswordValidators(),
+      }),
+      confirmPassword: this.fb.control('', {
+        validators: [Validators.required],
+      }),
+    },
+    { validators: [passwordsMatchValidator('newPassword', 'confirmPassword')] }
+  );
+  protected readonly passwordFormControls = this.passwordForm.controls;
+  protected readonly passwordFormMismatch = computed(
+    () => this.passwordMismatchSubmitted() ||
+      (this.passwordsMismatch() &&
+      (this.passwordFormControls.confirmPassword.dirty ||
+        this.passwordFormControls.confirmPassword.touched))
+  );
 
   constructor() {
     effect(() => {
@@ -893,7 +941,67 @@ export class SettingsPageComponent {
   }
 
   protected manageSecurity(): void {
-    return;
+    this.securityOpen.update((open) => !open);
+    this.passwordChangeError.set(null);
+    this.passwordChangeSuccess.set(false);
+    this.passwordMismatchSubmitted.set(false);
+  }
+
+  protected async submitPasswordChange(): Promise<void> {
+    if (this.passwordChangePending()) {
+      return;
+    }
+
+    if (this.passwordsMismatch()) {
+      this.passwordMismatchSubmitted.set(true);
+      this.passwordForm.markAllAsTouched();
+      this.passwordFormControls.confirmPassword.markAsDirty();
+      return;
+    }
+
+    this.passwordMismatchSubmitted.set(false);
+
+    if (this.passwordForm.invalid) {
+      this.passwordForm.markAllAsTouched();
+      return;
+    }
+
+    const { currentPassword, newPassword } = this.passwordForm.getRawValue();
+
+    if (currentPassword === newPassword) {
+      this.passwordChangeError.set(
+        'settings.panels.profile.security.errors.samePassword'
+      );
+      return;
+    }
+
+    this.passwordChangePending.set(true);
+    this.passwordChangeError.set(null);
+    this.passwordChangeSuccess.set(false);
+
+    try {
+      const result = await this.auth.changePassword(currentPassword, newPassword);
+
+      if (result.error) {
+        this.passwordChangeError.set(result.error);
+        return;
+      }
+
+      this.passwordChangeSuccess.set(true);
+      this.passwordMismatchSubmitted.set(false);
+      this.passwordForm.reset(
+        {
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: '',
+        },
+        { emitEvent: false }
+      );
+      this.passwordForm.markAsPristine();
+      this.passwordForm.markAsUntouched();
+    } finally {
+      this.passwordChangePending.set(false);
+    }
   }
 
   protected clearProfileError(): void {
@@ -903,6 +1011,16 @@ export class SettingsPageComponent {
   private resolveGroupColor(groupId: string): string | null {
     const group = this.store.groups().find((item) => item.id === groupId);
     return group?.color ?? null;
+  }
+
+  private passwordsMismatch(): boolean {
+    const newPassword = this.passwordFormControls.newPassword.value;
+    const confirmPassword = this.passwordFormControls.confirmPassword.value;
+    return (
+      newPassword.length > 0 &&
+      confirmPassword.length > 0 &&
+      newPassword !== confirmPassword
+    );
   }
 
   private buildCategoryPath(

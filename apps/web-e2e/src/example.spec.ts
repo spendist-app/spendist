@@ -57,6 +57,21 @@ test('opens unauthenticated login and signup forms', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Sign up' })).toBeVisible();
 });
 
+test('opens password reset flow from login', async ({ page }) => {
+  await page.goto('/login');
+
+  await page.getByRole('link', { name: 'Forgot password?' }).click();
+
+  await expect(page).toHaveURL(/\/forgot-password$/);
+  await expect(
+    page.getByRole('heading', { name: 'Reset your password' })
+  ).toBeVisible();
+  await expect(page.getByLabel('Email')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Send reset link' }).click();
+  await expect(page.getByText('Enter a valid email address.')).toBeVisible();
+});
+
 test('exposes installable PWA metadata', async ({ page }) => {
   await page.goto('/');
 
