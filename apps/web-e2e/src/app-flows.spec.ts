@@ -320,6 +320,21 @@ test('logs in with the shared e2e account', async ({ page }) => {
   ).toBeVisible();
 });
 
+test('signs out and blocks protected routes afterwards', async ({ page }) => {
+  await ensureAuthenticated(page);
+
+  await page.getByRole('button', { name: 'Settings' }).click();
+  await page.getByRole('menuitem', { name: 'Sign out' }).click();
+
+  await expect(page).toHaveURL(/\/$/, { timeout: 15000 });
+  await expect(page.getByRole('link', { name: 'Log in' })).toBeVisible();
+
+  await page.goto('/dashboard');
+
+  await expect(page).toHaveURL(/\/$/, { timeout: 15000 });
+  await expect(page.getByRole('link', { name: 'Log in' })).toBeVisible();
+});
+
 test('shows password change validation in settings', async ({ page }) => {
   await ensureAuthenticated(page);
   await openSettings(page);
