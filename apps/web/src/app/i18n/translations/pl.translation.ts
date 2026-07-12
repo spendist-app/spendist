@@ -166,8 +166,35 @@ const pl = {
       emailError: 'Podaj poprawny adres e-mail.',
       passwordLabel: 'Hasło',
       passwordError: 'Hasło jest wymagane.',
+      forgotPasswordLink: 'Nie pamiętasz hasła?',
+      passwordResetSuccess: 'Hasło zostało zmienione. Zaloguj się nowym hasłem.',
       submitIdle: 'Zaloguj się',
       submitBusy: 'Logowanie...',
+    },
+    forgotPassword: {
+      title: 'Zresetuj hasło',
+      subtitle: 'Podaj adres e-mail, a wyślemy link do ustawienia nowego hasła.',
+      emailLabel: 'Adres e-mail',
+      emailError: 'Podaj poprawny adres e-mail.',
+      success:
+        'Jeśli konto z tym adresem istnieje, wysłaliśmy link do resetu hasła.',
+      submitIdle: 'Wyślij link',
+      submitBusy: 'Wysyłanie...',
+      backToLogin: 'Wróć do logowania',
+    },
+    resetPassword: {
+      title: 'Ustaw nowe hasło',
+      subtitle: 'Wybierz nowe hasło do konta Spendist.',
+      passwordLabel: 'Nowe hasło',
+      passwordHelper:
+        'Użyj co najmniej 8 znaków, w tym wielkiej litery, małej litery i cyfry.',
+      passwordError:
+        'Użyj co najmniej 8 znaków, w tym wielkiej litery, małej litery i cyfry.',
+      confirmPasswordLabel: 'Potwierdź nowe hasło',
+      passwordConfirmError: 'Hasła muszą być takie same.',
+      requestNewLink: 'Poproś o nowy link resetujący',
+      submitIdle: 'Zmień hasło',
+      submitBusy: 'Zmienianie...',
     },
     signup: {
       title: 'Utwórz konto',
@@ -223,6 +250,24 @@ const pl = {
             tooLarge: 'Avatar może mieć maksymalnie 2 MB.',
             unsupportedType: 'Wybierz obraz PNG, JPG, WebP albo GIF.',
             generic: 'Nie udało się przesłać avatara. Spróbuj ponownie.',
+          },
+        },
+        security: {
+          title: 'Hasło',
+          description:
+            'Potwierdź obecne hasło i ustaw nowe hasło do kolejnych logowań.',
+          currentPasswordLabel: 'Obecne hasło',
+          newPasswordLabel: 'Nowe hasło',
+          confirmPasswordLabel: 'Potwierdź nowe hasło',
+          submitIdle: 'Zmień hasło',
+          submitBusy: 'Zmienianie...',
+          success: 'Hasło zostało zmienione.',
+          errors: {
+            currentRequired: 'Obecne hasło jest wymagane.',
+            newPassword:
+              'Użyj co najmniej 8 znaków, w tym wielkiej litery, małej litery i cyfry.',
+            confirmPassword: 'Hasła muszą być takie same.',
+            samePassword: 'Nowe hasło musi różnić się od obecnego.',
           },
         },
       },
@@ -568,8 +613,12 @@ const pl = {
       },
       incomeList: 'Kategorie przychodów',
       expenseList: 'Kategorie wydatków',
+      incomeTagList: 'Tagi przychodów',
+      expenseTagList: 'Tagi wydatków',
       noIncome: 'Brak kategorii przychodowych.',
       noExpense: 'Brak kategorii wydatkowych.',
+      noIncomeTags: 'Brak tagów przychodowych.',
+      noExpenseTags: 'Brak tagów wydatkowych.',
       walletLabel: 'Portfel',
       walletLoading: 'Ładowanie portfeli…',
       noWallets: 'Brak dostępnych portfeli.',
@@ -611,10 +660,16 @@ const pl = {
     title: 'Transakcje',
     filters: {
       categoriesTitle: 'Kategorie',
+      tagsTitle: 'Tagi',
+      categoriesTab: 'Kategorie',
+      tagsTab: 'Tagi',
       clearCategories: 'Wyczyść',
+      clearTags: 'Wyczyść',
       allCategories: 'Wszystkie kategorie',
+      allTags: 'Wszystkie tagi',
       onlyCategoriesWithTransactions: 'Tylko kategorie z transakcjami',
       categoryCount: '{{ total }} kategorii',
+      noVisibleTags: 'Brak tagów z wydatkami w tym okresie.',
       ungroupedTitle: 'Bez grupy',
       presets: {
         currentMonth: 'Bieżący miesiąc',
@@ -660,7 +715,48 @@ const pl = {
     },
     actions: {
       add: 'Dodaj transakcję',
+      addBulk: 'Dodaj hurtowo',
+      addBulkShort: 'Hurtowo',
+      addShortcutHint: 'Dodaj transakcję (Alt+N)',
       loadMore: 'Załaduj więcej',
+    },
+    toasts: {
+      created: 'Transakcja została zapisana w bazie.',
+      updated: 'Zmiany w transakcji zostały zapisane.',
+      bulkCreated: 'Zapisano {{ count }} transakcji w bazie.',
+    },
+    bulk: {
+      badge: 'Import',
+      title: 'Dodaj transakcje hurtowo',
+      columns: {
+        date: 'Data',
+        description: 'Opis',
+        amount: 'Kwota',
+        currency: 'Waluta',
+        direction: 'Typ',
+        category: 'Kategoria',
+        wallet: 'Portfel',
+        tags: 'Tagi',
+        place: 'Miejsce',
+      },
+      summary: 'Wiersze do zapisu: {{ count }}',
+      duplicates: 'Wykryto {{ count }} możliwych duplikatów.',
+      actions: {
+        addRows: 'Dodaj 10 wierszy',
+        clearRow: 'Wyczyść wiersz',
+        save: 'Zapisz {{ count }}',
+      },
+      validation: {
+        title: 'Popraw oznaczone wiersze przed zapisem.',
+        row: 'Wiersz {{ row }}',
+        date: 'podaj poprawną datę',
+        amount: 'podaj kwotę większą od zera',
+        category: 'wybierz kategorię',
+        wallet: 'wybierz portfel',
+        currency: 'podaj poprawną walutę',
+        exchangeRate: 'brak kursu dla daty i waluty',
+        save: 'nie udało się przygotować transakcji',
+      },
     },
     form: {
       badge: {
@@ -761,8 +857,7 @@ const pl = {
         edit: 'Edytuj miejsce',
       },
       closedTitle: 'Wybierz miejsce',
-      closedBody:
-        'Wybierz miejsce z listy do edycji albo dodaj nowe miejsce.',
+      closedBody: 'Wybierz miejsce z listy do edycji albo dodaj nowe miejsce.',
       fields: {
         name: 'Nazwa',
         street: 'Ulica i numer',
@@ -826,6 +921,8 @@ const pl = {
           category: {
             label: 'Kategoria',
             placeholder: 'Wybierz kategorię',
+            searchPlaceholder: 'Szukaj kategorii...',
+            empty: 'Brak pasujących kategorii.',
             error: 'Wybierz kategorię dla tej płatności.',
           },
           wallet: {

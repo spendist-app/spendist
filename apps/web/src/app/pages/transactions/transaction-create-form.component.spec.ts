@@ -188,16 +188,16 @@ describe('TransactionCreateFormComponent', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    const dropdownButtons = compiled.querySelectorAll<HTMLButtonElement>(
-      'button[aria-haspopup="listbox"]'
+    const dropdownButton = compiled.querySelector<HTMLButtonElement>(
+      'app-category-select button[aria-haspopup="listbox"]'
     );
-    dropdownButtons[0]?.click();
+    dropdownButton?.click();
     fixture.detectChanges();
     await new Promise((resolve) => setTimeout(resolve, 0));
     fixture.detectChanges();
 
     const searchInput = compiled.querySelector<HTMLInputElement>(
-      'input[type="search"]'
+      'app-category-select input[type="search"]'
     );
     if (!searchInput) {
       throw new Error('Category search input was not rendered.');
@@ -208,7 +208,9 @@ describe('TransactionCreateFormComponent', () => {
     searchInput.dispatchEvent(new Event('input'));
     fixture.detectChanges();
 
-    const listbox = compiled.querySelector('[role="listbox"]') as HTMLElement;
+    const listbox = compiled.querySelector(
+      'app-category-select [role="listbox"]'
+    ) as HTMLElement;
     expect(listbox.textContent).toContain('Transport');
     expect(listbox.textContent).not.toContain('Food');
   });

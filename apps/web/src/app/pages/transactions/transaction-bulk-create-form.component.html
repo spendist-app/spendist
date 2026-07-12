@@ -1,0 +1,269 @@
+<section
+  class="fixed inset-0 z-30 flex items-end justify-center px-2 py-2 sm:items-center sm:px-4 sm:py-6"
+>
+  <button
+    type="button"
+    class="absolute inset-0 bg-base-200/70 backdrop-blur-sm"
+    [attr.aria-label]="'common.actions.close' | transloco"
+    (click)="onClose()"
+  ></button>
+
+  <div
+    class="relative z-10 flex max-h-[calc(100dvh-1rem)] w-full max-w-7xl flex-col overflow-hidden rounded-t-3xl border border-base-300 bg-base-100/95 shadow-2xl backdrop-blur sm:max-h-[calc(100dvh-3rem)] sm:rounded-3xl"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="transaction-bulk-form-title"
+  >
+    <header
+      class="sticky top-0 z-20 flex shrink-0 flex-col gap-3 border-b border-base-200 bg-base-100/95 px-4 py-4 backdrop-blur sm:flex-row sm:items-start sm:justify-between sm:px-6"
+    >
+      <div>
+        <p class="badge badge-primary badge-outline text-xs uppercase tracking-wide">
+          {{ 'transactions.bulk.badge' | transloco }}
+        </p>
+        <h2 id="transaction-bulk-form-title" class="mt-1 text-2xl font-semibold">
+          {{ 'transactions.bulk.title' | transloco }}
+        </h2>
+      </div>
+
+      <button
+        type="button"
+        class="btn btn-ghost btn-square btn-sm self-end sm:self-start"
+        [attr.aria-label]="'common.actions.close' | transloco"
+        (click)="onClose()"
+      >
+        <span aria-hidden="true">X</span>
+      </button>
+    </header>
+
+    <div class="min-h-0 flex-1 overflow-auto px-3 py-4 sm:px-5">
+      @if (store.mutationError(); as error) {
+      <div
+        class="alert alert-error mb-4 flex items-start gap-3 rounded-lg border border-error/20 bg-error/10 p-4 text-sm"
+      >
+        <span class="font-semibold">
+          {{ 'transactions.form.submitErrorTitle' | transloco }}
+        </span>
+        <span class="flex-1">{{ error }}</span>
+        <button
+          type="button"
+          class="btn btn-ghost btn-xs text-error"
+          (click)="store.dismissMutationError()"
+        >
+          {{ 'common.actions.dismiss' | transloco }}
+        </button>
+      </div>
+      }
+
+      @if (submitted() && validationIssues().length > 0) {
+      <div
+        class="alert alert-error mb-4 flex-col items-start gap-2 rounded-lg border border-error/20 bg-error/10 p-4 text-sm"
+      >
+        <div class="font-semibold">
+          {{ 'transactions.bulk.validation.title' | transloco }}
+        </div>
+        <ul class="space-y-1">
+          @for (issue of validationIssues(); track issue.rowId + issue.key) {
+          <li>
+            {{ 'transactions.bulk.validation.row' | transloco: { row:
+            issue.rowNumber } }}:
+            {{ ('transactions.bulk.validation.' + issue.key) | transloco }}
+          </li>
+          }
+        </ul>
+      </div>
+      }
+
+      @if (duplicateWarningCount() > 0) {
+      <div
+        class="alert alert-warning mb-4 rounded-lg border border-warning/20 bg-warning/10 p-4 text-sm"
+      >
+        {{ 'transactions.bulk.duplicates' | transloco: { count:
+        duplicateWarningCount() } }}
+      </div>
+      }
+
+      <div class="min-w-[1180px]" (paste)="onPaste($event)">
+        <div
+          class="grid grid-cols-[3rem_9rem_minmax(14rem,1fr)_9rem_7rem_8rem_17rem_12rem_13rem_12rem_4rem] border-y border-base-300 bg-base-200/60 text-xs font-semibold uppercase text-base-content/60"
+        >
+          <div class="px-2 py-2">#</div>
+          <div class="px-2 py-2">{{ 'transactions.bulk.columns.date' | transloco }}</div>
+          <div class="px-2 py-2">{{ 'transactions.bulk.columns.description' | transloco }}</div>
+          <div class="px-2 py-2">{{ 'transactions.bulk.columns.amount' | transloco }}</div>
+          <div class="px-2 py-2">{{ 'transactions.bulk.columns.currency' | transloco }}</div>
+          <div class="px-2 py-2">{{ 'transactions.bulk.columns.direction' | transloco }}</div>
+          <div class="px-2 py-2">{{ 'transactions.bulk.columns.category' | transloco }}</div>
+          <div class="px-2 py-2">{{ 'transactions.bulk.columns.wallet' | transloco }}</div>
+          <div class="px-2 py-2">{{ 'transactions.bulk.columns.tags' | transloco }}</div>
+          <div class="px-2 py-2">{{ 'transactions.bulk.columns.place' | transloco }}</div>
+          <div class="px-2 py-2"></div>
+        </div>
+
+        @for (row of rows(); track trackRow($index, row)) {
+        @let issue = rowIssue(row);
+        <div
+          class="grid grid-cols-[3rem_9rem_minmax(14rem,1fr)_9rem_7rem_8rem_17rem_12rem_13rem_12rem_4rem] items-start border-b border-base-200 bg-base-100"
+          [class.bg-error/5]="submitted() && issue"
+        >
+          <div class="px-2 py-2 text-sm font-medium text-base-content/50">
+            {{ $index + 1 }}
+          </div>
+
+          <div class="px-1 py-1">
+            <input
+              type="date"
+              class="input input-bordered input-sm w-full"
+              [ngModel]="row.occurredOn"
+              (ngModelChange)="updateRow(row.id, 'occurredOn', $event)"
+              (focus)="setFocusedRow($index)"
+            />
+          </div>
+
+          <div class="px-1 py-1">
+            <input
+              type="text"
+              class="input input-bordered input-sm w-full"
+              [ngModel]="row.description"
+              (ngModelChange)="updateRow(row.id, 'description', $event)"
+              (focus)="setFocusedRow($index)"
+              [placeholder]="'transactions.form.fields.description' | transloco"
+            />
+          </div>
+
+          <div class="px-1 py-1">
+            <input
+              type="text"
+              inputmode="text"
+              class="input input-bordered input-sm w-full font-mono"
+              [ngModel]="row.amount"
+              (ngModelChange)="updateRow(row.id, 'amount', $event)"
+              (focus)="setFocusedRow($index)"
+              placeholder="0.00"
+            />
+          </div>
+
+          <div class="px-1 py-1">
+            <select
+              class="select select-bordered select-sm w-full"
+              [ngModel]="row.currency"
+              (ngModelChange)="updateRow(row.id, 'currency', $event)"
+              (focus)="setFocusedRow($index)"
+            >
+              @for (option of currencyOptions(); track option.id) {
+              <option [value]="option.symbol">{{ option.symbol }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="px-1 py-1">
+            <select
+              class="select select-bordered select-sm w-full"
+              [ngModel]="row.direction"
+              (ngModelChange)="updateRow(row.id, 'direction', $event)"
+              (focus)="setFocusedRow($index)"
+            >
+              <option value="expense">
+                {{ 'transactions.form.directions.expense' | transloco }}
+              </option>
+              <option value="income">
+                {{ 'transactions.form.directions.income' | transloco }}
+              </option>
+            </select>
+          </div>
+
+          <div class="px-1 py-1">
+            <app-category-select
+              [ngModel]="row.categoryId"
+              (ngModelChange)="updateRow(row.id, 'categoryId', $event)"
+              [groups]="categoryView()"
+              [label]="'transactions.form.fields.category' | transloco"
+              [placeholder]="'transactions.form.placeholders.category' | transloco"
+              [searchPlaceholder]="'transactions.form.placeholders.categorySearch' | transloco"
+              [emptyLabel]="'transactions.form.emptyCategories' | transloco"
+            />
+          </div>
+
+          <div class="px-1 py-1">
+            <select
+              class="select select-bordered select-sm w-full"
+              [ngModel]="row.walletId"
+              (ngModelChange)="updateRow(row.id, 'walletId', $event)"
+              (focus)="setFocusedRow($index)"
+            >
+              @for (wallet of store.wallets(); track wallet.id) {
+              <option [value]="wallet.id">{{ wallet.name }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="px-1 py-1">
+            <input
+              type="text"
+              class="input input-bordered input-sm w-full"
+              [ngModel]="row.tags"
+              (ngModelChange)="updateRow(row.id, 'tags', $event)"
+              (focus)="setFocusedRow($index)"
+              [placeholder]="'transactions.form.fields.tags' | transloco"
+            />
+          </div>
+
+          <div class="px-1 py-1">
+            <select
+              class="select select-bordered select-sm w-full"
+              [ngModel]="row.placeId"
+              (ngModelChange)="updateRow(row.id, 'placeId', $event)"
+              (focus)="setFocusedRow($index)"
+            >
+              <option value="">{{ 'transactions.form.placeholders.place' | transloco }}</option>
+              @for (place of store.places(); track place.id) {
+              <option [value]="place.id">{{ place.name }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="px-1 py-1">
+            <button
+              type="button"
+              class="btn btn-ghost btn-square btn-sm"
+              [attr.aria-label]="'transactions.bulk.actions.clearRow' | transloco"
+              (click)="clearRow(row.id)"
+            >
+              X
+            </button>
+          </div>
+        </div>
+        }
+      </div>
+    </div>
+
+    <footer
+      class="sticky bottom-0 z-20 flex shrink-0 flex-col gap-3 border-t border-base-200 bg-base-100/95 px-4 py-4 backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:px-6"
+    >
+      <div class="text-sm text-base-content/70">
+        {{ 'transactions.bulk.summary' | transloco: { count:
+        activeRows().length } }}
+      </div>
+      <div class="flex flex-col gap-2 sm:flex-row">
+        <button type="button" class="btn btn-outline" (click)="addRows()">
+          {{ 'transactions.bulk.actions.addRows' | transloco }}
+        </button>
+        <button type="button" class="btn btn-ghost" (click)="onClose()">
+          {{ 'common.actions.cancel' | transloco }}
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          [disabled]="!canSubmit()"
+          (click)="submit()"
+        >
+          @if (store.transactionMutationPending()) {
+          <span class="loading loading-spinner loading-sm"></span>
+          }
+          {{ 'transactions.bulk.actions.save' | transloco: { count:
+          activeRows().length } }}
+        </button>
+      </div>
+    </footer>
+  </div>
+</section>

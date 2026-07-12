@@ -1,0 +1,67 @@
+<div class="relative" (focusout)="onFocusOut($event)">
+  <button
+    type="button"
+    class="btn btn-outline min-h-12 w-full justify-between gap-3 px-4 text-left font-normal"
+    aria-haspopup="listbox"
+    [attr.aria-expanded]="open()"
+    [attr.aria-label]="label()"
+    [disabled]="disabled()"
+    (click)="toggleDropdown()"
+  >
+    <span
+      class="min-w-0 flex-1 truncate"
+      [class.text-base-content/50]="!selectedLabel()"
+    >
+      @if (selectedLabel(); as selected) {
+      {{ selected }}
+      } @else {
+      {{ placeholder() }}
+      }
+    </span>
+    <span class="shrink-0 text-base-content/60" aria-hidden="true">v</span>
+  </button>
+
+  @if (open()) {
+  <div class="mt-2 rounded-xl border border-base-300 bg-base-100 p-2 shadow-lg">
+    <input
+      #searchInput
+      type="search"
+      class="input input-bordered input-sm w-full"
+      [value]="search()"
+      (input)="onSearchInput($event)"
+      (keydown.escape)="closeDropdown()"
+      [attr.placeholder]="searchPlaceholder()"
+      autocomplete="off"
+    />
+    <div class="mt-2 max-h-56 overflow-y-auto" role="listbox">
+      @if (filteredGroups().length > 0) { @for (group of filteredGroups(); track
+      group.groupName) {
+      <div class="py-1">
+        @if (group.groupName) {
+        <p
+          class="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-base-content/50"
+        >
+          {{ group.groupName }}
+        </p>
+        } @for (item of group.options; track item.id) {
+        <button
+          type="button"
+          class="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm transition hover:bg-base-200"
+          [class.bg-base-200]="value() === item.id"
+          (click)="select(item.id)"
+          role="option"
+          [attr.aria-selected]="value() === item.id"
+        >
+          <span class="min-w-0 truncate">{{ item.label }}</span>
+        </button>
+        }
+      </div>
+      } } @else {
+      <p class="px-3 py-4 text-sm text-base-content/60">
+        {{ emptyLabel() }}
+      </p>
+      }
+    </div>
+  </div>
+  }
+</div>

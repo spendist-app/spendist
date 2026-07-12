@@ -18,6 +18,12 @@
           </p>
         }
 
+        @if (passwordResetSuccess()) {
+          <p class="alert alert-success text-sm" role="status" aria-live="polite">
+            {{ 'auth.login.passwordResetSuccess' | transloco }}
+          </p>
+        }
+
         <form class="space-y-6" [formGroup]="form" (ngSubmit)="login()">
           <fieldset class="grid gap-4">
             <div class="form-control">
@@ -42,11 +48,14 @@
             </div>
 
             <div class="form-control">
-              <label class="label" for="password">
-                <span class="label-text text-sm font-medium">
+              <div class="label">
+                <label class="label-text text-sm font-medium" for="password">
                   {{ 'auth.login.passwordLabel' | transloco }}
-                </span>
-              </label>
+                </label>
+                <a class="link link-primary text-xs" routerLink="/forgot-password">
+                  {{ 'auth.login.forgotPasswordLink' | transloco }}
+                </a>
+              </div>
               <input
                 id="password"
                 type="password"

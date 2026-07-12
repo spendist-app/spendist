@@ -57,6 +57,59 @@ test('opens unauthenticated login and signup forms', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Sign up' })).toBeVisible();
 });
 
+test('opens password reset flow from login', async ({ page }) => {
+  await page.goto('/login');
+
+  await page.getByRole('link', { name: 'Forgot password?' }).click();
+
+  await expect(page).toHaveURL(/\/forgot-password$/);
+  await expect(
+    page.getByRole('heading', { name: 'Reset your password' })
+  ).toBeVisible();
+  await expect(page.getByLabel('Email')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Send reset link' }).click();
+  await expect(page.getByText('Enter a valid email address.')).toBeVisible();
+});
+
+test('shows reset-password expired link state without a recovery token', async ({
+  page,
+}) => {
+  await page.goto('/reset-password');
+
+  await expect(
+    page.getByRole('heading', { name: 'Set a new password' })
+  ).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Request a new reset link' })).toHaveAttribute(
+    'href',
+    '/forgot-password'
+  );
+});
+
+test('shows password reset success message on login callback', async ({
+  page,
+}) => {
+  await page.goto('/login?passwordReset=success');
+
+  await expect(
+    page.getByText('Your password was changed. Log in with the new password.')
+  ).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Log in' })).toBeVisible();
+});
+
+test('redirects guests away from protected application routes', async ({
+  page,
+}) => {
+  for (const route of ['/dashboard', '/transactions', '/settings']) {
+    await page.goto(route);
+
+    await expect(page).toHaveURL(/\/$/);
+    await expect(
+      page.getByRole('heading', { level: 1 })
+    ).toHaveText(/Take control of your\s+finances/);
+  }
+});
+
 test('exposes installable PWA metadata', async ({ page }) => {
   await page.goto('/');
 

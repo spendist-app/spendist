@@ -28,12 +28,10 @@ import type { TransactionDirection } from '@spendist/data-access/supabase-types'
 import { parseAmountInput } from './transaction-amount.parser';
 import { heroIconSvg } from '../../shared/icons/heroicons';
 import { logError } from '../../core/logger';
-
-interface CategoryOption {
-  readonly id: string;
-  readonly label: string;
-  readonly groupName: string | null;
-}
+import {
+  CategorySelectComponent,
+  CategorySelectOption,
+} from '../../shared/category-select/category-select.component';
 
 interface TagSelection {
   readonly id: string | null;
@@ -45,11 +43,18 @@ interface CurrencyOptionView {
   readonly symbol: string;
 }
 
+export type TransactionFormSaveResult = 'created' | 'updated';
+
 @Component({
   standalone: true,
   selector: 'app-transaction-create-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, TranslocoPipe, NgIcon],
+  imports: [
+    ReactiveFormsModule,
+    TranslocoPipe,
+    NgIcon,
+    CategorySelectComponent,
+  ],
   templateUrl: './transaction-create-form.component.html',
 })
 export class TransactionCreateFormComponent {
@@ -63,8 +68,6 @@ export class TransactionCreateFormComponent {
   private readonly host = inject(ElementRef<HTMLElement>);
   protected readonly descriptionInput =
     viewChild<ElementRef<HTMLInputElement>>('descriptionInput');
-  protected readonly categorySearchInput =
-    viewChild<ElementRef<HTMLInputElement>>('categorySearchInput');
   protected readonly placeSearchInput =
     viewChild<ElementRef<HTMLInputElement>>('placeSearchInput');
   private suggestionBlurTimer: ReturnType<typeof setTimeout> | null = null;
@@ -160,33 +163,12 @@ export class TransactionCreateFormComponent {
   });
 
   protected readonly controls = this.form.controls;
-  protected readonly selectedCategoryId = toSignal(
-    this.form.controls.categoryId.valueChanges,
-    { initialValue: this.form.controls.categoryId.value }
-  );
   protected readonly selectedPlaceId = toSignal(
     this.form.controls.placeId.valueChanges,
     { initialValue: this.form.controls.placeId.value }
   );
-  protected readonly categoryDropdownOpen = signal(false);
-  protected readonly categorySearch = signal('');
   protected readonly placeDropdownOpen = signal(false);
   protected readonly placeSearch = signal('');
-  protected readonly selectedCategoryLabel = computed(() => {
-    const categoryId = this.selectedCategoryId();
-    if (!categoryId) {
-      return '';
-    }
-
-    for (const group of this.categoryView()) {
-      const option = group.options.find((item) => item.id === categoryId);
-      if (option) {
-        return option.label;
-      }
-    }
-
-    return '';
-  });
   protected readonly selectedPlaceLabel = computed(() => {
     const placeId = this.selectedPlaceId();
     if (!placeId) {
@@ -195,23 +177,6 @@ export class TransactionCreateFormComponent {
 
     const place = this.places().find((item) => item.id === placeId);
     return place ? this.formatPlaceLabel(place) : '';
-  });
-  protected readonly filteredCategoryView = computed(() => {
-    const query = this.categorySearch().trim().toLowerCase();
-    if (!query) {
-      return this.categoryView();
-    }
-
-    return this.categoryView()
-      .map((group) => ({
-        groupName: group.groupName,
-        options: group.options.filter((option) =>
-          [option.label, option.groupName ?? ''].some((value) =>
-            value.toLowerCase().includes(query)
-          )
-        ),
-      }))
-      .filter((group) => group.options.length > 0);
   });
   protected readonly filteredPlaces = computed(() => {
     const query = this.placeSearch().trim().toLowerCase();
@@ -230,7 +195,7 @@ export class TransactionCreateFormComponent {
     );
   });
   readonly closed: OutputEmitterRef<void> = output();
-  readonly saved: OutputEmitterRef<void> = output();
+  readonly saved: OutputEmitterRef<TransactionFormSaveResult> = output();
 
   constructor() {
     afterNextRender(() => {
@@ -401,47 +366,12 @@ export class TransactionCreateFormComponent {
     );
   }
 
-  protected toggleCategoryDropdown(): void {
-    if (this.categoryDropdownOpen()) {
-      this.closeCategoryDropdown();
-      return;
-    }
-
-    this.placeDropdownOpen.set(false);
-    this.categorySearch.set('');
-    this.categoryDropdownOpen.set(true);
-    this.focusCategorySearch();
-  }
-
-  protected closeCategoryDropdown(): void {
-    this.categoryDropdownOpen.set(false);
-    this.categorySearch.set('');
-  }
-
-  protected onCategorySearchInput(event: Event): void {
-    const input = event.target as HTMLInputElement | null;
-    this.categorySearch.set(input?.value ?? '');
-  }
-
-  protected selectCategory(categoryId: string): void {
-    const control = this.form.controls.categoryId;
-    control.setValue(categoryId);
-    control.markAsDirty();
-    control.markAsTouched();
-    this.closeCategoryDropdown();
-  }
-
-  protected onCategoryDropdownFocusOut(event: FocusEvent): void {
-    this.closeDropdownWhenFocusLeaves(event, () => this.closeCategoryDropdown());
-  }
-
   protected togglePlaceDropdown(): void {
     if (this.placeDropdownOpen()) {
       this.closePlaceDropdown();
       return;
     }
 
-    this.categoryDropdownOpen.set(false);
     this.placeSearch.set('');
     this.placeDropdownOpen.set(true);
     this.focusPlaceSearch();
@@ -879,7 +809,7 @@ export class TransactionCreateFormComponent {
           occurredOn: raw.occurredOn,
           categoryId: raw.categoryId,
         });
-        this.saved.emit();
+        this.saved.emit('created');
         if (afterCreate === 'continue') {
           this.resetForm();
           this.focusDescriptionInput();
@@ -901,7 +831,7 @@ export class TransactionCreateFormComponent {
       basePayload
     );
     if (updateResult.success) {
-      this.saved.emit();
+      this.saved.emit('updated');
       this.onClose();
     }
   }
@@ -1288,7 +1218,7 @@ export class TransactionCreateFormComponent {
 
   private buildCategoryView(): readonly {
     groupName: string | null;
-    options: readonly CategoryOption[];
+    options: readonly CategorySelectOption[];
   }[] {
     const grouped = this.store.groupedCategories();
     const ungrouped = this.store.ungroupedCategories();
@@ -1358,12 +1288,6 @@ export class TransactionCreateFormComponent {
     return names.join(' / ');
   }
 
-  private focusCategorySearch(): void {
-    setTimeout(() => {
-      this.categorySearchInput()?.nativeElement.focus();
-    }, 0);
-  }
-
   private focusPlaceSearch(): void {
     setTimeout(() => {
       this.placeSearchInput()?.nativeElement.focus();
@@ -1388,7 +1312,6 @@ export class TransactionCreateFormComponent {
   }
 
   private closeFormDropdowns(): void {
-    this.closeCategoryDropdown();
     this.closePlaceDropdown();
   }
 }

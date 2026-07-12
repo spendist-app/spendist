@@ -1,6 +1,6 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 
 import type { LanguageCode } from '../../i18n/languages';
 import { provideAppTransloco } from '../../i18n/transloco.providers';
@@ -16,6 +16,7 @@ class TransactionsStoreStub {
   readonly defaultCurrency = signal('PLN');
   readonly activeFilters = signal({
     selectedCategoryIds: [],
+    selectedTagIds: [],
     searchTerm: '',
     from: null,
     to: null,
@@ -73,6 +74,18 @@ class TransactionsStoreStub {
     },
   ]);
   readonly hasActiveCategoryFilter = signal(false);
+  readonly hasActiveTagFilter = signal(false);
+  readonly visibleTagSummaries = signal([
+    {
+      id: 'tag-active',
+      ownerId: 'user-1',
+      name: 'Home',
+      color: null,
+      icon: null,
+      totalAmount: 30,
+      transactionCount: 1,
+    },
+  ]);
   readonly loading = signal(false);
   readonly error = signal(null);
   readonly transactionMutationPending = signal(false);
@@ -117,6 +130,14 @@ class TransactionsStoreStub {
     return;
   }
 
+  clearTagSelection(): void {
+    return;
+  }
+
+  toggleTagSelection(): void {
+    return;
+  }
+
   dismissMutationError(): void {
     return;
   }
@@ -147,6 +168,10 @@ describe('TransactionsPageComponent', () => {
       .compileComponents();
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('formats transaction amounts with the standard locale currency placement from Intl', () => {
     const fixture = TestBed.createComponent(TransactionsPageComponent);
     const component = fixture.componentInstance as unknown as {
@@ -166,14 +191,18 @@ describe('TransactionsPageComponent', () => {
         signDisplay: 'always',
         maximumFractionDigits: 2,
         minimumFractionDigits: 2,
-      }).format(-1234.56),
+      }).format(-1234.56)
     );
   });
 
   it('formats category totals with the active locale and default currency', () => {
     const fixture = TestBed.createComponent(TransactionsPageComponent);
-    const language = TestBed.inject(LanguageService) as unknown as LanguageServiceStub;
-    const store = fixture.debugElement.injector.get(TransactionsStore) as unknown as TransactionsStoreStub;
+    const language = TestBed.inject(
+      LanguageService
+    ) as unknown as LanguageServiceStub;
+    const store = fixture.debugElement.injector.get(
+      TransactionsStore
+    ) as unknown as TransactionsStoreStub;
     const component = fixture.componentInstance as unknown as {
       formatExpenseTotal(amount: number): string;
     };
@@ -187,7 +216,7 @@ describe('TransactionsPageComponent', () => {
         currency: 'PLN',
         maximumFractionDigits: 2,
         minimumFractionDigits: 2,
-      }).format(-1234.56),
+      }).format(-1234.56)
     );
   });
 
@@ -211,14 +240,12 @@ describe('TransactionsPageComponent', () => {
     component.onCategoryActivityFilterChange(event);
 
     expect(
-      component.visibleGroupedCategories()[0]?.categories.map(
-        (category) => category.id
-      )
+      component
+        .visibleGroupedCategories()[0]
+        ?.categories.map((category) => category.id)
     ).toEqual(['category-active']);
     expect(
-      component
-        .visibleUngroupedCategories()
-        .map((category) => category.id)
+      component.visibleUngroupedCategories().map((category) => category.id)
     ).toEqual(['category-ungrouped-active']);
   });
 
@@ -234,6 +261,27 @@ describe('TransactionsPageComponent', () => {
       bubbles: true,
     });
     document.dispatchEvent(event);
+
+    expect(component.createFormOpen()).toBe(true);
+  });
+
+  it('opens the create transaction form with Alt+N from an input', () => {
+    const fixture = TestBed.createComponent(TransactionsPageComponent);
+    fixture.detectChanges();
+    const component = fixture.componentInstance as unknown as {
+      createFormOpen(): boolean;
+    };
+
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    input.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'n',
+        altKey: true,
+        bubbles: true,
+      })
+    );
+    input.remove();
 
     expect(component.createFormOpen()).toBe(true);
   });
@@ -256,5 +304,28 @@ describe('TransactionsPageComponent', () => {
     input.remove();
 
     expect(component.createFormOpen()).toBe(false);
+  });
+
+  it('shows a transient toast after a transaction is saved', () => {
+    vi.useFakeTimers();
+    const fixture = TestBed.createComponent(TransactionsPageComponent);
+    fixture.detectChanges();
+    const component = fixture.componentInstance as unknown as {
+      handleFormSaved(result: 'created'): void;
+      transactionToasts(): readonly { readonly messageKey: string }[];
+    };
+
+    component.handleFormSaved('created');
+    fixture.detectChanges();
+
+    expect(component.transactionToasts().length).toBe(1);
+    expect(component.transactionToasts()[0]?.messageKey).toBe(
+      'transactions.toasts.created'
+    );
+
+    vi.advanceTimersByTime(3500);
+    fixture.detectChanges();
+
+    expect(component.transactionToasts().length).toBe(0);
   });
 });

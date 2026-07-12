@@ -1,468 +1,662 @@
-    <section class="mx-auto w-full max-w-6xl px-4 py-10 sm:py-12 lg:py-16">
-      <header class="space-y-2 text-center sm:text-left">
-        <p class="badge badge-primary badge-outline text-xs uppercase tracking-wide">
-          {{ 'transactions.badge' | transloco }}
-        </p>
-        <h1 class="text-3xl font-semibold sm:text-4xl">
-          {{ 'transactions.title' | transloco }}
-        </h1>
-      </header>
+<section class="mx-auto w-full max-w-6xl px-4 py-10 sm:py-12 lg:py-16">
+  <header class="space-y-2 text-center sm:text-left">
+    <p
+      class="badge badge-primary badge-outline text-xs uppercase tracking-wide"
+    >
+      {{ 'transactions.badge' | transloco }}
+    </p>
+    <h1 class="text-3xl font-semibold sm:text-4xl">
+      {{ 'transactions.title' | transloco }}
+    </h1>
+  </header>
 
-      <div
-        class="mt-10 grid gap-6 lg:grid-cols-[minmax(300px,340px)_minmax(0,1fr)] xl:grid-cols-[minmax(340px,380px)_minmax(0,1fr)]"
-      >
-        @let filtersVm = filters();
-        @let transactionsVm = store.filteredTransactions();
-        <aside class="rounded-2xl border border-base-300 bg-base-100/80 shadow-sm backdrop-blur-sm">
-          <div class="flex flex-col gap-4 p-4 sm:p-5">
-            <div class="flex items-center justify-between gap-3">
-              <h2 class="text-sm font-semibold uppercase tracking-wide text-base-content/60">
-                {{ 'transactions.filters.categoriesTitle' | transloco }}
-              </h2>
+  <div
+    class="mt-10 grid gap-6 lg:grid-cols-[minmax(300px,340px)_minmax(0,1fr)] xl:grid-cols-[minmax(340px,380px)_minmax(0,1fr)]"
+  >
+    @let filtersVm = filters(); @let transactionsVm =
+    store.filteredTransactions();
+    <aside
+      class="rounded-2xl border border-base-300 bg-base-100/80 shadow-sm backdrop-blur-sm"
+    >
+      <div class="flex flex-col gap-4 p-4 sm:p-5">
+        <div class="flex items-center justify-between gap-3">
+          <h2
+            class="text-sm font-semibold uppercase tracking-wide text-base-content/60"
+          >
+            @if (sidebarTab() === 'categories') { {{
+            'transactions.filters.categoriesTitle' | transloco }} } @else { {{
+            'transactions.filters.tagsTitle' | transloco }} }
+          </h2>
+          @if (sidebarTab() === 'categories') {
+          <button
+            type="button"
+            class="btn btn-ghost btn-xs"
+            [disabled]="!store.hasActiveCategoryFilter()"
+            (click)="clearCategorySelectionAndScroll()"
+          >
+            {{ 'transactions.filters.clearCategories' | transloco }}
+          </button>
+          } @else {
+          <button
+            type="button"
+            class="btn btn-ghost btn-xs"
+            [disabled]="!store.hasActiveTagFilter()"
+            (click)="clearTagSelectionAndScroll()"
+          >
+            {{ 'transactions.filters.clearTags' | transloco }}
+          </button>
+          }
+        </div>
+
+        <div class="tabs tabs-boxed grid grid-cols-2" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            class="tab"
+            [class.tab-active]="sidebarTab() === 'categories'"
+            [attr.aria-selected]="sidebarTab() === 'categories'"
+            (click)="sidebarTab.set('categories')"
+          >
+            {{ 'transactions.filters.categoriesTab' | transloco }}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            class="tab"
+            [class.tab-active]="sidebarTab() === 'tags'"
+            [attr.aria-selected]="sidebarTab() === 'tags'"
+            (click)="sidebarTab.set('tags')"
+          >
+            {{ 'transactions.filters.tagsTab' | transloco }}
+          </button>
+        </div>
+
+        @if (sidebarTab() === 'categories') {
+        <button
+          type="button"
+          class="btn btn-outline min-h-11 w-full grid-cols-[auto_minmax(0,1fr)_auto] justify-start gap-3 px-3"
+          [class.btn-active]="!store.hasActiveCategoryFilter()"
+          (click)="clearCategorySelectionAndScroll()"
+        >
+          <span
+            class="size-2 rounded-full bg-base-content/20"
+            aria-hidden="true"
+          ></span>
+          <span class="truncate text-sm"
+            >{{ 'transactions.filters.allCategories' | transloco }}</span
+          >
+          <span
+            class="whitespace-nowrap text-sm font-semibold text-base-content/70"
+          >
+            {{ formatExpenseTotal(store.overallExpenseTotal()) }}
+          </span>
+        </button>
+
+        <label
+          class="flex items-center gap-3 rounded-xl border border-base-200 bg-base-100/70 px-3 py-2 text-sm"
+        >
+          <input
+            type="checkbox"
+            class="toggle toggle-primary toggle-sm"
+            [checked]="showOnlyCategoriesWithTransactions()"
+            (change)="onCategoryActivityFilterChange($event)"
+          />
+          <span class="min-w-0 flex-1 text-base-content/80">
+            {{ 'transactions.filters.onlyCategoriesWithTransactions' | transloco
+            }}
+          </span>
+        </label>
+
+        <nav class="space-y-5">
+          @for (group of visibleGroupedCategories(); track group.id) {
+          <section>
+            <header
+              class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3"
+            >
+              <div class="flex min-w-0 items-start gap-2">
+                <span
+                  class="mt-1.5 size-2 shrink-0 rounded-full"
+                  [style.backgroundColor]="group.color ?? '#CBD5F5'"
+                  aria-hidden="true"
+                ></span>
+                <div class="min-w-0">
+                  <h3 class="truncate text-sm font-semibold text-base-content">
+                    {{ group.name }}
+                  </h3>
+                  <p class="text-xs text-base-content/50">
+                    {{ 'transactions.filters.categoryCount' | transloco: {
+                    total: group.categories.length } }}
+                  </p>
+                </div>
+              </div>
+              <span
+                class="whitespace-nowrap text-right text-sm font-semibold text-base-content"
+              >
+                {{ formatExpenseTotal(store.groupExpenseTotal(group.id)) }}
+              </span>
+            </header>
+            <div class="mt-3 space-y-2">
+              @for (category of group.categories; track category.id) {
               <button
                 type="button"
-                class="btn btn-ghost btn-xs"
-                [disabled]="!store.hasActiveCategoryFilter()"
-                (click)="clearCategorySelectionAndScroll()"
+                class="grid min-h-11 w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition hover:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                [class.bg-base-200]="filtersVm.selectedCategoryIds.includes(category.id)"
+                [class.text-primary]="filtersVm.selectedCategoryIds.includes(category.id)"
+                (click)="toggleCategorySelectionAndScroll(category.id)"
               >
-                {{ 'transactions.filters.clearCategories' | transloco }}
+                <span
+                  class="size-2 shrink-0 rounded-full"
+                  [style.backgroundColor]="category.color ?? group.color ?? '#CBD5F5'"
+                  aria-hidden="true"
+                ></span>
+                <span class="min-w-0 truncate font-medium text-base-content"
+                  >{{ category.name }}</span
+                >
+                <span
+                  class="whitespace-nowrap text-right font-semibold text-base-content/70"
+                >
+                  {{ formatExpenseTotal(store.categoryExpenseTotal(category.id))
+                  }}
+                </span>
               </button>
+              }
             </div>
+          </section>
+          }
+        </nav>
+
+        @if (visibleUngroupedCategories().length > 0) {
+        <section class="rounded-xl border border-dashed border-base-200 p-3">
+          <div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+            <h3
+              class="truncate text-xs font-semibold uppercase tracking-wide text-base-content/50"
+            >
+              {{ 'transactions.filters.ungroupedTitle' | transloco }}
+            </h3>
+            <span
+              class="whitespace-nowrap text-xs font-semibold text-base-content/70"
+            >
+              {{ formatExpenseTotal(store.groupExpenseTotal(null)) }}
+            </span>
+          </div>
+          <div class="mt-2 space-y-2">
+            @for (category of visibleUngroupedCategories(); track category.id) {
+            <button
+              type="button"
+              class="grid min-h-10 w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition hover:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              [class.bg-base-200]="filtersVm.selectedCategoryIds.includes(category.id)"
+              (click)="toggleCategorySelectionAndScroll(category.id)"
+            >
+              <span
+                class="size-2 shrink-0 rounded-full bg-primary"
+                aria-hidden="true"
+              ></span>
+              <span class="min-w-0 truncate font-medium"
+                >{{ category.name }}</span
+              >
+              <span
+                class="whitespace-nowrap text-xs font-semibold text-base-content/70"
+              >
+                {{ formatExpenseTotal(store.categoryExpenseTotal(category.id))
+                }}
+              </span>
+            </button>
+            }
+          </div>
+        </section>
+        } } @else {
+        <button
+          type="button"
+          class="btn btn-outline min-h-11 w-full grid-cols-[auto_minmax(0,1fr)_auto] justify-start gap-3 px-3"
+          [class.btn-active]="!store.hasActiveTagFilter()"
+          (click)="clearTagSelectionAndScroll()"
+        >
+          <span
+            class="size-2 rounded-full bg-base-content/20"
+            aria-hidden="true"
+          ></span>
+          <span class="truncate text-sm"
+            >{{ 'transactions.filters.allTags' | transloco }}</span
+          >
+          <span
+            class="whitespace-nowrap text-sm font-semibold text-base-content/70"
+          >
+            {{ visibleTags().length }}
+          </span>
+        </button>
+
+        @if (visibleTags().length === 0) {
+        <div
+          class="rounded-xl border border-dashed border-base-200 p-4 text-sm text-base-content/60"
+        >
+          {{ 'transactions.filters.noVisibleTags' | transloco }}
+        </div>
+        } @else {
+        <nav class="space-y-2">
+          @for (tag of visibleTags(); track tag.id) {
+          <button
+            type="button"
+            class="grid min-h-11 w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition hover:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+            [class.bg-base-200]="filtersVm.selectedTagIds.includes(tag.id)"
+            [class.text-primary]="filtersVm.selectedTagIds.includes(tag.id)"
+            (click)="toggleTagSelectionAndScroll(tag.id)"
+          >
+            <span
+              class="size-2 shrink-0 rounded-full"
+              [style.backgroundColor]="tag.color ?? '#0EA5A5'"
+              aria-hidden="true"
+            ></span>
+            <span class="min-w-0 truncate font-medium text-base-content"
+              >{{ tag.name }}</span
+            >
+            <span
+              class="whitespace-nowrap text-right font-semibold text-base-content/70"
+            >
+              {{ formatExpenseTotal(tag.totalAmount) }}
+            </span>
+          </button>
+          }
+        </nav>
+        } }
+      </div>
+    </aside>
+
+    <div class="flex flex-col gap-6">
+      <section
+        class="rounded-2xl border border-base-300 bg-base-100/80 p-4 shadow-sm sm:p-6"
+      >
+        <div class="flex flex-col gap-4">
+          <div class="flex flex-wrap items-center gap-2">
+            @for (preset of presetButtons; track preset.id) {
+            <button
+              type="button"
+              class="btn btn-sm"
+              [class.btn-primary]="filtersVm.preset === preset.id"
+              [class.btn-ghost]="filtersVm.preset !== preset.id"
+              (click)="onPresetClick(preset.id)"
+            >
+              {{ preset.labelKey | transloco }}
+            </button>
+            }
 
             <button
               type="button"
-              class="btn btn-outline min-h-11 w-full grid-cols-[auto_minmax(0,1fr)_auto] justify-start gap-3 px-3"
-              [class.btn-active]="!store.hasActiveCategoryFilter()"
-              (click)="clearCategorySelectionAndScroll()"
+              class="btn btn-link btn-sm ml-auto px-0"
+              (click)="store.resetFilters()"
             >
-              <span class="size-2 rounded-full bg-base-content/20" aria-hidden="true"></span>
-              <span class="truncate text-sm">{{ 'transactions.filters.allCategories' | transloco }}</span>
-              <span class="whitespace-nowrap text-sm font-semibold text-base-content/70">
-                {{ formatExpenseTotal(store.overallExpenseTotal()) }}
-              </span>
+              {{ 'transactions.filters.reset' | transloco }}
             </button>
+          </div>
 
-            <label
-              class="flex items-center gap-3 rounded-xl border border-base-200 bg-base-100/70 px-3 py-2 text-sm"
-            >
-              <input
-                type="checkbox"
-                class="toggle toggle-primary toggle-sm"
-                [checked]="showOnlyCategoriesWithTransactions()"
-                (change)="onCategoryActivityFilterChange($event)"
-              />
-              <span class="min-w-0 flex-1 text-base-content/80">
-                {{ 'transactions.filters.onlyCategoriesWithTransactions' | transloco }}
+          <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <label class="form-control">
+              <span
+                class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60"
+              >
+                {{ 'transactions.filters.searchLabel' | transloco }}
               </span>
+              <input
+                type="search"
+                class="input input-bordered"
+                [value]="filtersVm.searchTerm"
+                (input)="onSearchInput($event)"
+                [placeholder]="'transactions.filters.searchPlaceholder' | transloco"
+                autocomplete="off"
+              />
             </label>
 
-            <nav class="space-y-5">
-              @for (group of visibleGroupedCategories(); track group.id) {
-                <section>
-                  <header class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-                    <div class="flex min-w-0 items-start gap-2">
-                      <span
-                        class="mt-1.5 size-2 shrink-0 rounded-full"
-                        [style.backgroundColor]="group.color ?? '#CBD5F5'"
-                        aria-hidden="true"
-                      ></span>
-                      <div class="min-w-0">
-                        <h3 class="truncate text-sm font-semibold text-base-content">{{ group.name }}</h3>
-                        <p class="text-xs text-base-content/50">
-                          {{ 'transactions.filters.categoryCount' | transloco: { total: group.categories.length } }}
-                        </p>
-                      </div>
-                    </div>
-                    <span class="whitespace-nowrap text-right text-sm font-semibold text-base-content">
-                      {{ formatExpenseTotal(store.groupExpenseTotal(group.id)) }}
-                    </span>
-                  </header>
-                  <div class="mt-3 space-y-2">
-                    @for (category of group.categories; track category.id) {
-                      <button
-                        type="button"
-                        class="grid min-h-11 w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition hover:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-                        [class.bg-base-200]="filtersVm.selectedCategoryIds.includes(category.id)"
-                        [class.text-primary]="filtersVm.selectedCategoryIds.includes(category.id)"
-                        (click)="toggleCategorySelectionAndScroll(category.id)"
-                      >
-                        <span
-                          class="size-2 shrink-0 rounded-full"
-                          [style.backgroundColor]="category.color ?? group.color ?? '#CBD5F5'"
-                          aria-hidden="true"
-                        ></span>
-                        <span class="min-w-0 truncate font-medium text-base-content">{{ category.name }}</span>
-                        <span class="whitespace-nowrap text-right font-semibold text-base-content/70">
-                          {{ formatExpenseTotal(store.categoryExpenseTotal(category.id)) }}
-                        </span>
-                      </button>
-                    }
-                  </div>
-                </section>
-              }
-            </nav>
+            <label class="form-control">
+              <span
+                class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60"
+              >
+                {{ 'transactions.filters.fromLabel' | transloco }}
+              </span>
+              <input
+                type="date"
+                class="input input-bordered"
+                [value]="formatDateInput(filtersVm.from)"
+                (change)="onDateChange('from', $event)"
+                [attr.max]="formatDateInput(filtersVm.to) || null"
+              />
+            </label>
 
-            @if (visibleUngroupedCategories().length > 0) {
-              <section class="rounded-xl border border-dashed border-base-200 p-3">
-                <div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-                  <h3 class="truncate text-xs font-semibold uppercase tracking-wide text-base-content/50">
-                    {{ 'transactions.filters.ungroupedTitle' | transloco }}
-                  </h3>
-                  <span class="whitespace-nowrap text-xs font-semibold text-base-content/70">
-                    {{ formatExpenseTotal(store.groupExpenseTotal(null)) }}
+            <label class="form-control">
+              <span
+                class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60"
+              >
+                {{ 'transactions.filters.toLabel' | transloco }}
+              </span>
+              <input
+                type="date"
+                class="input input-bordered"
+                [value]="formatDateInput(filtersVm.to)"
+                (change)="onDateChange('to', $event)"
+                [attr.min]="formatDateInput(filtersVm.from) || null"
+              />
+            </label>
+
+            <label class="form-control">
+              <span
+                class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60"
+              >
+                {{ 'transactions.filters.monthLabel' | transloco }}
+              </span>
+              <select
+                class="select select-bordered"
+                [value]="selectedMonthValue()"
+                (change)="onMonthSelect($event)"
+              >
+                <option value="">
+                  {{ 'transactions.filters.monthPlaceholder' | transloco }}
+                </option>
+                @for (option of monthYearOptions(); track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+                }
+              </select>
+            </label>
+          </div>
+
+          <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <label class="form-control">
+              <span
+                class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60"
+              >
+                {{ 'transactions.filters.yearLabel' | transloco }}
+              </span>
+              <select
+                class="select select-bordered"
+                [value]="selectedYearValue()"
+                (change)="onYearSelect($event)"
+              >
+                <option value="">
+                  {{ 'transactions.filters.yearPlaceholder' | transloco }}
+                </option>
+                @for (year of store.availableYears(); track year) {
+                <option [value]="year">{{ year }}</option>
+                }
+              </select>
+            </label>
+
+            <div class="form-control md:col-span-1 xl:col-span-3">
+              <span
+                class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60"
+              >
+                {{ 'transactions.filters.summaryLabel' | transloco }}
+              </span>
+              <p
+                class="rounded-xl border border-dashed border-base-200 bg-base-100 px-4 py-3 text-sm text-base-content/70"
+              >
+                {{ 'transactions.filters.summaryText' | transloco: { loaded:
+                store.loadedTransactionCount(), total:
+                store.totalMatchingTransactions() } }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="transactions-results" class="space-y-4">
+        @if (store.error(); as error) {
+        <div
+          class="alert alert-error flex-col items-start gap-2 rounded-2xl border border-error/20 bg-error/10 p-4 text-sm text-error"
+        >
+          <div class="font-semibold">
+            {{ 'transactions.list.errorTitle' | transloco }}
+          </div>
+          <p>{{ error }}</p>
+          <button
+            type="button"
+            class="btn btn-ghost btn-xs text-error"
+            (click)="store.refresh()"
+          >
+            {{ 'transactions.list.retry' | transloco }}
+          </button>
+        </div>
+        } @if (store.loading()) {
+        <div class="space-y-3">
+          @for (skeleton of skeletonPlaceholders; track skeleton) {
+          <div class="skeleton h-28 rounded-2xl"></div>
+          }
+        </div>
+        } @else { @if (transactionsVm.length === 0) {
+        <div
+          class="rounded-3xl border border-dashed border-base-300 bg-base-100/70 px-6 py-16 text-center text-base-content/60"
+        >
+          <h3 class="text-lg font-semibold">
+            {{ 'transactions.list.emptyTitle' | transloco }}
+          </h3>
+          <p class="mt-2 text-sm">
+            {{ 'transactions.list.emptyBody' | transloco }}
+          </p>
+        </div>
+        } @else {
+        <ul class="space-y-3">
+          @for (transaction of transactionsVm; track trackTransaction($index,
+          transaction)) {
+          <li
+            class="border-l-4 rounded-2xl border border-base-300 bg-base-100/90 p-4 shadow-sm sm:p-5"
+            [style.borderLeftColor]="transaction.category?.color ?? '#CBD5F5'"
+          >
+            <div
+              class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div class="flex flex-1 items-start gap-4">
+                <div
+                  class="flex size-12 items-center justify-center rounded-xl bg-base-200"
+                >
+                  @if (transaction.category?.icon; as iconKeyword) { @if
+                  (heroIconSvg(iconKeyword); as iconSvg) {
+                  <ng-icon
+                    [svg]="iconSvg"
+                    size="22"
+                    [style.color]="transaction.category?.color ?? '#0EA5A5'"
+                    aria-hidden="true"
+                  ></ng-icon>
+                  <span class="sr-only">
+                    {{ 'transactions.list.categoryIconSr' | transloco: { label:
+                    formatHeroIconLabel(iconKeyword) } }}
                   </span>
-                </div>
-                <div class="mt-2 space-y-2">
-                  @for (category of visibleUngroupedCategories(); track category.id) {
-                    <button
-                      type="button"
-                      class="grid min-h-10 w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition hover:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-                      [class.bg-base-200]="filtersVm.selectedCategoryIds.includes(category.id)"
-                      (click)="toggleCategorySelectionAndScroll(category.id)"
-                    >
-                      <span class="size-2 shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
-                      <span class="min-w-0 truncate font-medium">{{ category.name }}</span>
-                      <span class="whitespace-nowrap text-xs font-semibold text-base-content/70">
-                        {{ formatExpenseTotal(store.categoryExpenseTotal(category.id)) }}
-                      </span>
-                    </button>
+                  } @else {
+                  <span class="text-lg font-semibold text-base-content">
+                    {{ transaction.category?.name?.charAt(0) ?? '•' }}
+                  </span>
+                  } } @else {
+                  <span class="text-lg font-semibold text-base-content">
+                    {{ transaction.category?.name?.charAt(0) ?? '•' }}
+                  </span>
                   }
                 </div>
-              </section>
-            }
-          </div>
-        </aside>
 
-        <div class="flex flex-col gap-6">
-          <section class="rounded-2xl border border-base-300 bg-base-100/80 p-4 shadow-sm sm:p-6">
-            <div class="flex flex-col gap-4">
-              <div class="flex flex-wrap items-center gap-2">
-                @for (preset of presetButtons; track preset.id) {
+                <div class="flex flex-1 flex-col gap-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h3 class="text-base font-semibold text-base-content">
+                      {{ transaction.description ||
+                      ('transactions.list.noDescription' | transloco) }}
+                    </h3>
+                    @if (transaction.isAutomatic) {
+                    <span class="badge badge-ghost badge-sm text-xs">
+                      {{ 'transactions.list.automatic' | transloco }}
+                    </span>
+                    } @if (transaction.recurringTransactionId) {
+                    <span
+                      class="badge badge-primary badge-outline badge-sm max-w-full text-xs"
+                      [title]="transaction.recurringTransactionId"
+                    >
+                      {{ 'transactions.list.recurringSource' | transloco }}:
+                      <code class="font-mono"
+                        >{{ transaction.recurringTransactionId.slice(0, 8)
+                        }}</code
+                      >
+                    </span>
+                    }
+                  </div>
+                  <p class="text-sm text-base-content/70">
+                    {{ formatDate(transaction.occurredAt) }} · {{
+                    transaction.category?.name ??
+                    ('transactions.list.uncategorized' | transloco) }} @if
+                    (transaction.group; as group) { · {{ group.name }} }
+                  </p>
+                  @if (transaction.place; as place) {
+                  <p class="text-sm text-base-content/60">
+                    {{ 'transactions.list.place' | transloco }}: {{ place.name
+                    }} @if (place.city) { · {{ place.city }} }
+                  </p>
+                  }
+                  <p
+                    class="text-xs uppercase tracking-wide text-base-content/40"
+                  >
+                    {{ ('transactions.list.direction.' + transaction.direction)
+                    | transloco }}
+                  </p>
+                </div>
+              </div>
+
+              <div class="flex shrink-0 flex-col items-end gap-2 text-right">
+                <div class="flex items-center gap-2">
                   <button
                     type="button"
-                    class="btn btn-sm"
-                    [class.btn-primary]="filtersVm.preset === preset.id"
-                    [class.btn-ghost]="filtersVm.preset !== preset.id"
-                    (click)="onPresetClick(preset.id)"
+                    class="btn btn-ghost btn-square btn-xs tooltip"
+                    [attr.aria-label]="'transactions.list.actions.edit' | transloco"
+                    [attr.title]="'transactions.list.actions.edit' | transloco"
+                    [attr.data-tip]="'transactions.list.actions.edit' | transloco"
+                    (click)="openEditForm(transaction)"
                   >
-                    {{ preset.labelKey | transloco }}
+                    <ng-icon
+                      [svg]="editIcon"
+                      size="16"
+                      aria-hidden="true"
+                    ></ng-icon>
                   </button>
-                }
-
-                <button
-                  type="button"
-                  class="btn btn-link btn-sm ml-auto px-0"
-                  (click)="store.resetFilters()"
-                >
-                  {{ 'transactions.filters.reset' | transloco }}
-                </button>
-              </div>
-
-              <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <label class="form-control">
-                  <span class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60">
-                    {{ 'transactions.filters.searchLabel' | transloco }}
-                  </span>
-                  <input
-                    type="search"
-                    class="input input-bordered"
-                    [value]="filtersVm.searchTerm"
-                    (input)="onSearchInput($event)"
-                    [placeholder]="'transactions.filters.searchPlaceholder' | transloco"
-                    autocomplete="off"
-                  />
-                </label>
-
-                <label class="form-control">
-                  <span class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60">
-                    {{ 'transactions.filters.fromLabel' | transloco }}
-                  </span>
-                  <input
-                    type="date"
-                    class="input input-bordered"
-                    [value]="formatDateInput(filtersVm.from)"
-                    (change)="onDateChange('from', $event)"
-                    [attr.max]="formatDateInput(filtersVm.to) || null"
-                  />
-                </label>
-
-                <label class="form-control">
-                  <span class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60">
-                    {{ 'transactions.filters.toLabel' | transloco }}
-                  </span>
-                  <input
-                    type="date"
-                    class="input input-bordered"
-                    [value]="formatDateInput(filtersVm.to)"
-                    (change)="onDateChange('to', $event)"
-                    [attr.min]="formatDateInput(filtersVm.from) || null"
-                  />
-                </label>
-
-                <label class="form-control">
-                  <span class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60">
-                    {{ 'transactions.filters.monthLabel' | transloco }}
-                  </span>
-                  <select
-                    class="select select-bordered"
-                    [value]="selectedMonthValue()"
-                    (change)="onMonthSelect($event)"
+                  <button
+                    type="button"
+                    class="btn btn-ghost btn-square btn-xs tooltip"
+                    [attr.aria-label]="'transactions.list.actions.duplicate' | transloco"
+                    [attr.title]="'transactions.list.actions.duplicate' | transloco"
+                    [attr.data-tip]="'transactions.list.actions.duplicate' | transloco"
+                    (click)="openDuplicate(transaction)"
                   >
-                    <option value="">
-                      {{ 'transactions.filters.monthPlaceholder' | transloco }}
-                    </option>
-                    @for (option of monthYearOptions(); track option.value) {
-                      <option [value]="option.value">
-                        {{ option.label }}
-                      </option>
-                    }
-                  </select>
-                </label>
-              </div>
-
-              <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <label class="form-control">
-                  <span class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60">
-                    {{ 'transactions.filters.yearLabel' | transloco }}
-                  </span>
-                  <select
-                    class="select select-bordered"
-                    [value]="selectedYearValue()"
-                    (change)="onYearSelect($event)"
+                    <ng-icon
+                      [svg]="duplicateIcon"
+                      size="16"
+                      aria-hidden="true"
+                    ></ng-icon>
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-ghost btn-square btn-xs tooltip text-error"
+                    [attr.aria-label]="'transactions.list.actions.delete' | transloco"
+                    [attr.title]="'transactions.list.actions.delete' | transloco"
+                    [attr.data-tip]="'transactions.list.actions.delete' | transloco"
+                    [disabled]="store.transactionMutationPending()"
+                    (click)="confirmDelete(transaction)"
                   >
-                    <option value="">
-                      {{ 'transactions.filters.yearPlaceholder' | transloco }}
-                    </option>
-                    @for (year of store.availableYears(); track year) {
-                      <option [value]="year">
-                        {{ year }}
-                      </option>
-                    }
-                  </select>
-                </label>
-
-                <div class="form-control md:col-span-1 xl:col-span-3">
-                  <span class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60">
-                    {{ 'transactions.filters.summaryLabel' | transloco }}
+                    <ng-icon
+                      [svg]="deleteIcon"
+                      size="16"
+                      aria-hidden="true"
+                    ></ng-icon>
+                  </button>
+                </div>
+                <div class="flex flex-col items-end gap-1">
+                  <span
+                    class="text-lg font-semibold"
+                    [class.text-success]="transaction.direction === 'income'"
+                    [class.text-error]="transaction.direction === 'expense'"
+                  >
+                    {{ formatAmount(transaction) }}
                   </span>
-                  <p class="rounded-xl border border-dashed border-base-200 bg-base-100 px-4 py-3 text-sm text-base-content/70">
-                    {{
-                      'transactions.filters.summaryText' | transloco:
-                        { loaded: store.loadedTransactionCount(), total: store.totalMatchingTransactions() }
-                    }}
-                  </p>
+                  @if (shouldShowDefaultAmount(transaction)) {
+                  <span class="text-xs text-base-content/50">
+                    <span class="block text-[0.65rem] text-base-content/60">
+                      ≈ {{ formatDefaultCurrencyAmount(transaction) }}
+                    </span>
+                  </span>
+                  }
                 </div>
               </div>
             </div>
-          </section>
-
-          <section id="transactions-results" class="space-y-4">
-            @if (store.error(); as error) {
-              <div
-                class="alert alert-error flex-col items-start gap-2 rounded-2xl border border-error/20 bg-error/10 p-4 text-sm text-error"
-              >
-                <div class="font-semibold">
-                  {{ 'transactions.list.errorTitle' | transloco }}
-                </div>
-                <p>{{ error }}</p>
-                <button type="button" class="btn btn-ghost btn-xs text-error" (click)="store.refresh()">
-                  {{ 'transactions.list.retry' | transloco }}
-                </button>
-              </div>
-            }
-
-            @if (store.loading()) {
-              <div class="space-y-3">
-                @for (skeleton of skeletonPlaceholders; track skeleton) {
-                  <div class="skeleton h-28 rounded-2xl"></div>
-                }
-              </div>
-            } @else {
-              @if (transactionsVm.length === 0) {
-                <div
-                  class="rounded-3xl border border-dashed border-base-300 bg-base-100/70 px-6 py-16 text-center text-base-content/60"
-                >
-                  <h3 class="text-lg font-semibold">
-                    {{ 'transactions.list.emptyTitle' | transloco }}
-                  </h3>
-                  <p class="mt-2 text-sm">
-                    {{ 'transactions.list.emptyBody' | transloco }}
-                  </p>
-                </div>
-              } @else {
-                <ul class="space-y-3">
-                  @for (transaction of transactionsVm; track trackTransaction($index, transaction)) {
-                    <li
-                      class="border-l-4 rounded-2xl border border-base-300 bg-base-100/90 p-4 shadow-sm sm:p-5"
-                      [style.borderLeftColor]="transaction.category?.color ?? '#CBD5F5'"
-                    >
-                      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div class="flex flex-1 items-start gap-4">
-                          <div class="flex size-12 items-center justify-center rounded-xl bg-base-200">
-                            @if (transaction.category?.icon; as iconKeyword) {
-                              @if (heroIconSvg(iconKeyword); as iconSvg) {
-                                <ng-icon
-                                  [svg]="iconSvg"
-                                  size="22"
-                                  [style.color]="transaction.category?.color ?? '#0EA5A5'"
-                                  aria-hidden="true"
-                                ></ng-icon>
-                                <span class="sr-only">
-                                  {{
-                                    'transactions.list.categoryIconSr' | transloco:
-                                      { label: formatHeroIconLabel(iconKeyword) }
-                                  }}
-                                </span>
-                              } @else {
-                                <span class="text-lg font-semibold text-base-content">
-                                  {{ transaction.category?.name?.charAt(0) ?? '•' }}
-                                </span>
-                              }
-                            } @else {
-                              <span class="text-lg font-semibold text-base-content">
-                                {{ transaction.category?.name?.charAt(0) ?? '•' }}
-                              </span>
-                            }
-                          </div>
-
-                          <div class="flex flex-1 flex-col gap-1">
-                            <div class="flex flex-wrap items-center gap-2">
-                              <h3 class="text-base font-semibold text-base-content">
-                                {{ transaction.description || ('transactions.list.noDescription' | transloco) }}
-                              </h3>
-                              @if (transaction.isAutomatic) {
-                                <span class="badge badge-ghost badge-sm text-xs">
-                                  {{ 'transactions.list.automatic' | transloco }}
-                                </span>
-                              }
-                              @if (transaction.recurringTransactionId) {
-                                <span
-                                  class="badge badge-primary badge-outline badge-sm max-w-full text-xs"
-                                  [title]="transaction.recurringTransactionId"
-                                >
-                                  {{ 'transactions.list.recurringSource' | transloco }}:
-                                  <code class="font-mono">{{ transaction.recurringTransactionId.slice(0, 8) }}</code>
-                                </span>
-                              }
-                            </div>
-                            <p class="text-sm text-base-content/70">
-                              {{ formatDate(transaction.occurredAt) }} ·
-                              {{ transaction.category?.name ?? ('transactions.list.uncategorized' | transloco) }}
-                              @if (transaction.group; as group) {
-                                · {{ group.name }}
-                              }
-                            </p>
-                            @if (transaction.place; as place) {
-                              <p class="text-sm text-base-content/60">
-                                {{ 'transactions.list.place' | transloco }}: {{ place.name }}
-                                @if (place.city) {
-                                  · {{ place.city }}
-                                }
-                              </p>
-                            }
-                            <p class="text-xs uppercase tracking-wide text-base-content/40">
-                              {{ ('transactions.list.direction.' + transaction.direction) | transloco }}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div class="flex shrink-0 flex-col items-end gap-2 text-right">
-                          <div class="flex items-center gap-2">
-                            <button
-                              type="button"
-                              class="btn btn-ghost btn-square btn-xs tooltip"
-                              [attr.aria-label]="'transactions.list.actions.edit' | transloco"
-                              [attr.title]="'transactions.list.actions.edit' | transloco"
-                              [attr.data-tip]="'transactions.list.actions.edit' | transloco"
-                              (click)="openEditForm(transaction)"
-                            >
-                              <ng-icon [svg]="editIcon" size="16" aria-hidden="true"></ng-icon>
-                            </button>
-                            <button
-                              type="button"
-                              class="btn btn-ghost btn-square btn-xs tooltip"
-                              [attr.aria-label]="'transactions.list.actions.duplicate' | transloco"
-                              [attr.title]="'transactions.list.actions.duplicate' | transloco"
-                              [attr.data-tip]="'transactions.list.actions.duplicate' | transloco"
-                              (click)="openDuplicate(transaction)"
-                            >
-                              <ng-icon [svg]="duplicateIcon" size="16" aria-hidden="true"></ng-icon>
-                            </button>
-                            <button
-                              type="button"
-                              class="btn btn-ghost btn-square btn-xs tooltip text-error"
-                              [attr.aria-label]="'transactions.list.actions.delete' | transloco"
-                              [attr.title]="'transactions.list.actions.delete' | transloco"
-                              [attr.data-tip]="'transactions.list.actions.delete' | transloco"
-                              [disabled]="store.transactionMutationPending()"
-                              (click)="confirmDelete(transaction)"
-                            >
-                              <ng-icon [svg]="deleteIcon" size="16" aria-hidden="true"></ng-icon>
-                            </button>
-                          </div>
-                          <div class="flex flex-col items-end gap-1">
-                            <span
-                              class="text-lg font-semibold"
-                              [class.text-success]="transaction.direction === 'income'"
-                              [class.text-error]="transaction.direction === 'expense'"
-                            >
-                              {{ formatAmount(transaction) }}
-                            </span>
-                            @if (shouldShowDefaultAmount(transaction)) {
-                              <span class="text-xs text-base-content/50">
-                                <span class="block text-[0.65rem] text-base-content/60">
-                                  ≈ {{ formatDefaultCurrencyAmount(transaction) }}
-                                </span>
-                              </span>
-                            }
-                          </div>
-                        </div>
-                      </div>
-                    </li>
-                  }
-                </ul>
-                @if (store.hasMoreTransactions()) {
-                  <div class="flex justify-center pt-2">
-                    <button
-                      type="button"
-                      class="btn btn-outline"
-                      [disabled]="store.loadingMoreTransactions()"
-                      (click)="store.loadMoreTransactions()"
-                    >
-                      @if (store.loadingMoreTransactions()) {
-                        <span class="loading loading-spinner loading-sm"></span>
-                      }
-                      {{ 'transactions.actions.loadMore' | transloco }}
-                    </button>
-                  </div>
-                }
-              }
-            }
-          </section>
+          </li>
+          }
+        </ul>
+        @if (store.hasMoreTransactions()) {
+        <div class="flex justify-center pt-2">
+          <button
+            type="button"
+            class="btn btn-outline"
+            [disabled]="store.loadingMoreTransactions()"
+            (click)="store.loadMoreTransactions()"
+          >
+            @if (store.loadingMoreTransactions()) {
+            <span class="loading loading-spinner loading-sm"></span>
+            } {{ 'transactions.actions.loadMore' | transloco }}
+          </button>
         </div>
-      </div>
-    </section>
+        } } }
+      </section>
+    </div>
+  </div>
+</section>
 
+@if (transactionToasts().length > 0) {
+<div class="toast toast-top toast-end top-20 z-50 w-full max-w-sm px-4">
+  @for (toast of transactionToasts(); track toast.id) {
+  <div
+    class="alert alert-success flex items-start gap-3 rounded-lg border border-success/20 bg-success text-success-content shadow-lg"
+    role="status"
+    aria-live="polite"
+  >
+    <span class="min-w-0 flex-1 text-sm font-medium">
+      {{ toast.messageKey | transloco: toast.params }}
+    </span>
     <button
       type="button"
-      class="btn btn-primary btn-circle fixed bottom-6 right-6 z-20 shadow-lg sm:bottom-8 sm:right-8"
-      aria-label="{{ 'transactions.actions.add' | transloco }}"
-      aria-keyshortcuts="N"
-      (click)="openCreateForm()"
+      class="btn btn-ghost btn-xs text-success-content"
+      [attr.aria-label]="'common.actions.dismiss' | transloco"
+      (click)="dismissToast(toast.id)"
     >
-      <span aria-hidden="true" class="text-2xl leading-none">+</span>
-      <span class="sr-only">{{ 'transactions.actions.add' | transloco }}</span>
+      {{ 'common.actions.dismiss' | transloco }}
     </button>
+  </div>
+  }
+</div>
+}
 
-    @if (createFormOpen()) {
-      @let mode = formMode();
-      @let editing = activeTransaction();
-      @let duplicate = duplicateSource();
-      <app-transaction-create-form
-        [mode]="mode"
-        [transaction]="editing"
-        [prefill]="duplicate"
-        (closed)="handleFormClosed()"
-      ></app-transaction-create-form>
-    }
-  
+<button
+  type="button"
+  class="btn btn-secondary fixed bottom-6 right-24 z-20 shadow-lg sm:bottom-8 sm:right-28"
+  aria-label="{{ 'transactions.actions.addBulk' | transloco }}"
+  [attr.title]="'transactions.actions.addBulk' | transloco"
+  (click)="openBulkCreateForm()"
+>
+  {{ 'transactions.actions.addBulkShort' | transloco }}
+</button>
+
+<button
+  type="button"
+  class="btn btn-primary btn-circle fixed bottom-6 right-6 z-20 shadow-lg sm:bottom-8 sm:right-8"
+  aria-label="{{ 'transactions.actions.add' | transloco }}"
+  [attr.title]="'transactions.actions.addShortcutHint' | transloco"
+  aria-keyshortcuts="Alt+N N"
+  (click)="openCreateForm()"
+>
+  <span aria-hidden="true" class="text-2xl leading-none">+</span>
+  <span class="sr-only">{{ 'transactions.actions.add' | transloco }}</span>
+</button>
+
+@if (createFormOpen()) { @let mode = formMode(); @let editing =
+activeTransaction(); @let duplicate = duplicateSource();
+<app-transaction-create-form
+  [mode]="mode"
+  [transaction]="editing"
+  [prefill]="duplicate"
+  (closed)="handleFormClosed()"
+  (saved)="handleFormSaved($event)"
+></app-transaction-create-form>
+}
+
+@if (bulkFormOpen()) {
+<app-transaction-bulk-create-form
+  (closed)="handleBulkFormClosed()"
+  (saved)="handleBulkFormSaved($event)"
+></app-transaction-bulk-create-form>
+}

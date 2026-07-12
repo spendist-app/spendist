@@ -125,7 +125,7 @@ async function selectFirstRealOption(select: Locator): Promise<string> {
   throw new Error('Missing selectable option value.');
 }
 
-async function selectFirstTransactionCategory(page: Page): Promise<string> {
+async function selectFirstCategoryOption(page: Page): Promise<string> {
   const dialog = page.getByRole('dialog');
   await dialog.getByRole('button', { name: 'Category', exact: true }).click();
 
@@ -136,11 +136,15 @@ async function selectFirstTransactionCategory(page: Page): Promise<string> {
   await expect(option).toBeVisible({ timeout: 15000 });
   const label = (await option.textContent())?.trim() ?? '';
   if (!label) {
-    throw new Error('Missing selectable transaction category.');
+    throw new Error('Missing selectable category.');
   }
 
   await option.click();
   return label;
+}
+
+async function selectFirstTransactionCategory(page: Page): Promise<string> {
+  return selectFirstCategoryOption(page);
 }
 
 async function selectTransactionPlace(page: Page, name: string): Promise<void> {
@@ -233,6 +237,34 @@ async function openSettingsPanel(
   }
 }
 
+async function expectDefaultCategoryGroups(page: Page): Promise<void> {
+  await page.getByRole('tab', { name: 'Category groups' }).click();
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const groupsPanel = page.locator('#settings-categories-panel-groups');
+    const essentials = groupsPanel.locator('article').filter({
+      has: page.getByRole('heading', { name: 'Essentials', exact: true }),
+    });
+    const income = groupsPanel.locator('article').filter({
+      has: page.getByRole('heading', { name: 'Income', exact: true }),
+    });
+
+    try {
+      await expect(essentials).toBeVisible({ timeout: 3000 });
+      await expect(income).toBeVisible({ timeout: 3000 });
+      return;
+    } catch (error) {
+      if (attempt === 4) {
+        throw error;
+      }
+
+      await page.reload();
+      await openSettingsPanel(page, 'Categories');
+      await page.getByRole('tab', { name: 'Category groups' }).click();
+    }
+  }
+}
+
 async function openDashboard(page: Page): Promise<void> {
   await page.getByRole('link', { name: 'Dashboard' }).click();
   await expect(page).toHaveURL(/\/dashboard$/, { timeout: 15000 });
@@ -257,7 +289,9 @@ async function openModule(
   await page.getByRole('button', { name: 'Modules' }).click();
   await page.getByRole('link', { name: linkName }).click();
   await expect(page).toHaveURL(
-    linkName === 'Places' ? /\/modules\/places$/ : /\/modules\/recurring-payments$/,
+    linkName === 'Places'
+      ? /\/modules\/places$/
+      : /\/modules\/recurring-payments$/,
     { timeout: 15000 }
   );
   await expect(
@@ -284,6 +318,40 @@ test('logs in with the shared e2e account', async ({ page }) => {
   await expect(
     page.getByRole('heading', { name: DASHBOARD_HEADING })
   ).toBeVisible();
+});
+
+test('signs out and blocks protected routes afterwards', async ({ page }) => {
+  await ensureAuthenticated(page);
+
+  await page.getByRole('button', { name: 'Settings' }).click();
+  await page.getByRole('menuitem', { name: 'Sign out' }).click();
+
+  await expect(page).toHaveURL(/\/$/, { timeout: 15000 });
+  await expect(page.getByRole('link', { name: 'Log in' })).toBeVisible();
+
+  await page.goto('/dashboard');
+
+  await expect(page).toHaveURL(/\/$/, { timeout: 15000 });
+  await expect(page.getByRole('link', { name: 'Log in' })).toBeVisible();
+});
+
+test('shows password change validation in settings', async ({ page }) => {
+  await ensureAuthenticated(page);
+  await openSettings(page);
+
+  await page.getByRole('button', { name: 'Security options' }).click();
+
+  await expect(page.getByRole('heading', { name: 'Password' })).toBeVisible();
+  await page.getByRole('button', { name: 'Change password' }).click();
+  await expect(page.getByText('Current password is required.')).toBeVisible();
+
+  await fillStableInput(page.locator('#current-password'), DEFAULT_PASSWORD);
+  await fillStableInput(page.locator('#new-password'), 'Next1234');
+  await fillStableInput(page.locator('#confirm-new-password'), 'Different123');
+
+  await page.getByRole('button', { name: 'Change password' }).click();
+
+  await expect(page.getByText('Passwords must match.')).toBeVisible();
 });
 
 test('registers a new account and opens dashboard', async ({
@@ -323,9 +391,7 @@ test('registers a new account and opens dashboard', async ({
   await expect(page.getByText('Groceries').first()).toBeVisible();
   await expect(page.getByText('Biedronka').first()).toBeVisible();
 
-  await page.getByRole('tab', { name: 'Category groups' }).click();
-  await expect(page.locator('article').filter({ hasText: 'Essentials' })).toBeVisible();
-  await expect(page.locator('article').filter({ hasText: 'Income' })).toBeVisible();
+  await expectDefaultCategoryGroups(page);
 });
 
 test('adds transaction and keeps it after reload', async ({
@@ -355,6 +421,106 @@ test('adds transaction and keeps it after reload', async ({
   await page.reload();
   await openTransactions(page);
   await expect(page.getByText(description)).toBeVisible();
+});
+
+test('shows transaction tags on the dashboard', async ({ page }, testInfo) => {
+  const suffix = uniqueSuffix(testInfo);
+  const description = `E2E tagged expense ${suffix}`;
+  const tagName = `e2e-tag-${suffix}`;
+
+  await ensureAuthenticated(page);
+  await openTransactions(page);
+
+  await page.getByRole('button', { name: 'Add transaction' }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(
+    dialog.getByRole('heading', { name: 'Add transaction' })
+  ).toBeVisible();
+
+  await dialog
+    .locator('input[formcontrolname="description"]')
+    .fill(description);
+  await selectFirstTransactionCategory(page);
+  await dialog.locator('input[formcontrolname="amount"]').fill('42.24');
+  await dialog
+    .locator('select[formcontrolname="currency"]')
+    .selectOption('PLN');
+  await dialog.getByLabel('Tags').fill(tagName);
+  await dialog.getByLabel('Tags').press('Enter');
+  await expect(
+    dialog.locator('.badge').filter({ hasText: tagName })
+  ).toBeVisible();
+  await dialog.getByRole('button', { name: 'Save transaction' }).click();
+
+  await expect(
+    dialog.getByRole('heading', { name: 'Add transaction' })
+  ).toHaveCount(0);
+  await expect(page.getByText(description)).toBeVisible();
+
+  await openDashboard(page);
+  const expenseTagsCard = page
+    .locator('article')
+    .filter({ has: page.getByRole('heading', { name: 'Expense tags' }) });
+  await expect(expenseTagsCard).toBeVisible({ timeout: 15000 });
+  await expect(expenseTagsCard).toContainText(tagName, { timeout: 15000 });
+  await expect(expenseTagsCard).toContainText('42.24');
+});
+
+test('filters transactions from the sidebar tags tab', async ({
+  page,
+}, testInfo) => {
+  const suffix = uniqueSuffix(testInfo);
+  const currentDescription = `E2E current tagged expense ${suffix}`;
+  const previousDescription = `E2E previous tagged expense ${suffix}`;
+  const currentTagName = `e2e-current-tag-${suffix}`;
+  const previousTagName = `e2e-previous-tag-${suffix}`;
+
+  await ensureAuthenticated(page);
+  await openTransactions(page);
+
+  await page.getByRole('button', { name: 'Add transaction' }).click();
+  let dialog = page.getByRole('dialog');
+  await dialog
+    .locator('input[formcontrolname="description"]')
+    .fill(currentDescription);
+  await selectFirstTransactionCategory(page);
+  await dialog.locator('input[formcontrolname="amount"]').fill('11.11');
+  await dialog
+    .locator('select[formcontrolname="currency"]')
+    .selectOption('PLN');
+  await dialog.getByLabel('Tags').fill(currentTagName);
+  await dialog.getByLabel('Tags').press('Enter');
+  await dialog.getByRole('button', { name: 'Save transaction' }).click();
+  await expect(page.getByText(currentDescription)).toBeVisible();
+
+  await page.getByRole('button', { name: 'Add transaction' }).click();
+  dialog = page.getByRole('dialog');
+  await dialog
+    .locator('input[formcontrolname="description"]')
+    .fill(previousDescription);
+  await dialog
+    .locator('input[formcontrolname="occurredOn"]')
+    .fill(previousMonthStartInput());
+  await selectFirstTransactionCategory(page);
+  await dialog.locator('input[formcontrolname="amount"]').fill('22.22');
+  await dialog
+    .locator('select[formcontrolname="currency"]')
+    .selectOption('PLN');
+  await dialog.getByLabel('Tags').fill(previousTagName);
+  await dialog.getByLabel('Tags').press('Enter');
+  await dialog.getByRole('button', { name: 'Save transaction' }).click();
+
+  const sidebar = page.locator('aside');
+  await sidebar.getByRole('tab', { name: 'Tags' }).click();
+  await expect(sidebar.getByRole('button', { name: /All tags/ })).toBeVisible();
+  await expect(sidebar).toContainText(currentTagName, { timeout: 15000 });
+  await expect(sidebar).not.toContainText(previousTagName);
+
+  await sidebar
+    .getByRole('button', { name: new RegExp(currentTagName) })
+    .click();
+  await expect(page.getByText(currentDescription)).toBeVisible();
+  await expect(page.getByText(previousDescription)).toHaveCount(0);
 });
 
 test('uses transaction quick-entry controls', async ({ page }, testInfo) => {
@@ -416,7 +582,9 @@ test('creates place and assigns it to a transaction', async ({
   await placeForm.locator('input[formcontrolname="city"]').fill('Zebrzydowice');
   await placeForm.getByRole('button', { name: 'Save place' }).click();
 
-  await expect(page.locator('article').filter({ hasText: placeName })).toBeVisible();
+  await expect(
+    page.locator('article').filter({ hasText: placeName })
+  ).toBeVisible();
   await expect(page.getByText('Zebrzydowice').first()).toBeVisible();
 
   await openTransactions(page);
@@ -432,7 +600,9 @@ test('creates place and assigns it to a transaction', async ({
   await expect(transactionRow).toContainText(placeName);
 
   await openDashboard(page);
-  await expect(page.getByRole('heading', { name: 'Spending by place' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Spending by place' })
+  ).toBeVisible();
   const placeSummary = page.locator('article').filter({ hasText: placeName });
   await expect(placeSummary).toBeVisible();
   await expect(placeSummary).toContainText('55');
@@ -463,9 +633,7 @@ test('updates transaction exchange rate in edit form', async ({
   const initialDefaultAmount = page.locator(
     'input[formcontrolname="foreignAmount"]'
   );
-  await expect
-    .poll(() => initialDefaultAmount.inputValue())
-    .toBe('36.39');
+  await expect.poll(() => initialDefaultAmount.inputValue()).toBe('36.39');
   await page.getByRole('button', { name: 'Save transaction' }).click();
   await expect(page.getByText(description)).toBeVisible();
 
@@ -529,7 +697,7 @@ test('adds recurring payment with selected currency', async ({
   ).toBeVisible();
 
   await page.locator('#recurring-name').fill(name);
-  await selectFirstRealOption(page.locator('#recurring-category'));
+  await selectFirstCategoryOption(page);
   await selectFirstRealOption(page.locator('#recurring-wallet'));
   await page.locator('#recurring-amount').fill('29.99');
   await page.locator('select[formcontrolname="currency"]').selectOption('USD');
@@ -564,7 +732,7 @@ test('backfills transactions for a recurring payment started in the past', async
     .click();
 
   await page.locator('#recurring-name').fill(name);
-  await selectFirstRealOption(page.locator('#recurring-category'));
+  await selectFirstCategoryOption(page);
   await selectFirstRealOption(page.locator('#recurring-wallet'));
   await page.locator('#recurring-amount').fill('12');
   await page.locator('select[formcontrolname="currency"]').selectOption('PLN');

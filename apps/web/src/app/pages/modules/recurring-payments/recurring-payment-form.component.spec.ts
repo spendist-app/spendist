@@ -112,18 +112,41 @@ describe('RecurringPaymentFormComponent', () => {
     }).compileComponents();
   });
 
-  it('groups categories like the transaction form', () => {
+  it('uses the shared searchable category dropdown', async () => {
     const fixture = TestBed.createComponent(RecurringPaymentFormComponent);
     fixture.componentRef.setInput('open', true);
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    const groups = Array.from(compiled.querySelectorAll('#recurring-category optgroup'));
-    const options = Array.from(compiled.querySelectorAll('#recurring-category option'));
+    const dropdown = compiled.querySelector<HTMLButtonElement>(
+      'app-category-select button[aria-haspopup="listbox"]',
+    );
+    dropdown?.click();
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    fixture.detectChanges();
 
-    expect(groups.map((group) => group.getAttribute('label'))).toEqual(['Expenses', 'Income']);
-    expect(options.some((option) => option.textContent?.trim() === 'Food / Groceries / Biedronka')).toBe(true);
-    expect(options.some((option) => option.textContent?.trim() === 'Misc')).toBe(true);
+    const searchInput = compiled.querySelector<HTMLInputElement>(
+      'app-category-select input[type="search"]',
+    );
+    if (!searchInput) {
+      throw new Error('Category search input was not rendered.');
+    }
+    expect(document.activeElement).toBe(searchInput);
+
+    searchInput.value = 'biedronka';
+    searchInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    const listbox = compiled.querySelector('app-category-select [role="listbox"]') as HTMLElement;
+    expect(listbox.textContent).toContain('Food / Groceries / Biedronka');
+    expect(listbox.textContent).not.toContain('Salary');
+
+    const option = listbox.querySelector<HTMLButtonElement>('button[role="option"]');
+    option?.click();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.form.controls.categoryId.value).toBe('biedronka');
   });
 
   it('builds cron from user-friendly schedule controls', () => {

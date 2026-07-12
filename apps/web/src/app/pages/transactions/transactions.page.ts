@@ -1,13 +1,36 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, OnDestroy, PLATFORM_ID, computed, effect, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  OnDestroy,
+  PLATFORM_ID,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { TranslocoPipe, TranslocoService } from '@ngneat/transloco';
 import { NgIcon } from '@ng-icons/core';
-import { heroDocumentDuplicate, heroPencilSquare, heroTrash } from '@ng-icons/heroicons/outline';
-import { TransactionsStore, TransactionPresetId, TransactionViewModel } from './transactions.store';
-import { heroIconSvg as heroIconSvgFn, formatHeroIconLabel as formatHeroIconLabelFn } from '../../shared/icons/heroicons';
+import {
+  heroDocumentDuplicate,
+  heroPencilSquare,
+  heroTrash,
+} from '@ng-icons/heroicons/outline';
+import {
+  TransactionsStore,
+  TransactionPresetId,
+  TransactionViewModel,
+} from './transactions.store';
+import {
+  heroIconSvg as heroIconSvgFn,
+  formatHeroIconLabel as formatHeroIconLabelFn,
+} from '../../shared/icons/heroicons';
 import { LanguageService } from '../../core/language.service';
 import type { LanguageCode } from '../../i18n/languages';
 import { TransactionCreateFormComponent } from './transaction-create-form.component';
+import type { TransactionFormSaveResult } from './transaction-create-form.component';
+import { TransactionBulkCreateFormComponent } from './transaction-bulk-create-form.component';
 
 interface MonthYearOption {
   readonly value: string;
@@ -16,11 +39,22 @@ interface MonthYearOption {
   readonly label: string;
 }
 
+interface TransactionToast {
+  readonly id: number;
+  readonly messageKey: string;
+  readonly params?: Record<string, unknown>;
+}
+
 @Component({
   standalone: true,
   selector: 'app-transactions-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TranslocoPipe, NgIcon, TransactionCreateFormComponent],
+  imports: [
+    TranslocoPipe,
+    NgIcon,
+    TransactionCreateFormComponent,
+    TransactionBulkCreateFormComponent,
+  ],
   providers: [TransactionsStore],
   templateUrl: './transactions.page.html',
 })
@@ -28,15 +62,29 @@ export class TransactionsPageComponent implements OnDestroy {
   private readonly languageService = inject(LanguageService);
   protected readonly store = inject(TransactionsStore);
   protected readonly createFormOpen = signal(false);
+  protected readonly bulkFormOpen = signal(false);
   protected readonly formMode = signal<'create' | 'edit'>('create');
-  protected readonly editingTransaction = signal<TransactionViewModel | null>(null);
-  protected readonly duplicateTransaction = signal<TransactionViewModel | null>(null);
-  protected readonly activeTransaction = computed(() => this.editingTransaction());
-  protected readonly duplicateSource = computed(() => this.duplicateTransaction());
+  protected readonly editingTransaction = signal<TransactionViewModel | null>(
+    null
+  );
+  protected readonly duplicateTransaction = signal<TransactionViewModel | null>(
+    null
+  );
+  protected readonly transactionToasts = signal<readonly TransactionToast[]>(
+    []
+  );
+  protected readonly activeTransaction = computed(() =>
+    this.editingTransaction()
+  );
+  protected readonly duplicateSource = computed(() =>
+    this.duplicateTransaction()
+  );
   private readonly platformId = inject(PLATFORM_ID);
   private readonly document = inject(DOCUMENT);
   private readonly transloco = inject(TranslocoService);
   private readonly destroyRef = inject(DestroyRef);
+  private toastId = 0;
+  private readonly toastTimers = new Map<number, ReturnType<typeof setTimeout>>();
 
   protected readonly heroIconSvg = heroIconSvgFn;
   protected readonly formatHeroIconLabel = formatHeroIconLabelFn;
@@ -45,27 +93,45 @@ export class TransactionsPageComponent implements OnDestroy {
   protected readonly deleteIcon = heroTrash;
 
   protected readonly filters = computed(() => this.store.activeFilters());
-  protected readonly locale = computed(() => this.resolveLocale(this.languageService.currentLanguage()));
+  protected readonly locale = computed(() =>
+    this.resolveLocale(this.languageService.currentLanguage())
+  );
   protected readonly dateFormatter = computed(
     () =>
       new Intl.DateTimeFormat(this.locale(), {
         year: 'numeric',
         month: 'short',
         day: '2-digit',
-      }),
+      })
   );
 
-  protected readonly presetButtons: readonly { id: TransactionPresetId; labelKey: string }[] = [
-    { id: 'currentMonth', labelKey: 'transactions.filters.presets.currentMonth' },
-    { id: 'previousMonth', labelKey: 'transactions.filters.presets.previousMonth' },
+  protected readonly presetButtons: readonly {
+    id: TransactionPresetId;
+    labelKey: string;
+  }[] = [
+    {
+      id: 'currentMonth',
+      labelKey: 'transactions.filters.presets.currentMonth',
+    },
+    {
+      id: 'previousMonth',
+      labelKey: 'transactions.filters.presets.previousMonth',
+    },
     { id: 'thisYear', labelKey: 'transactions.filters.presets.thisYear' },
     { id: 'lastYear', labelKey: 'transactions.filters.presets.lastYear' },
   ];
 
-  protected readonly monthYearOptions = computed(() => this.buildMonthYearOptions());
-  protected readonly selectedMonthValue = computed(() => this.computeSelectedMonthValue());
-  protected readonly selectedYearValue = computed(() => this.computeSelectedYearValue());
+  protected readonly monthYearOptions = computed(() =>
+    this.buildMonthYearOptions()
+  );
+  protected readonly selectedMonthValue = computed(() =>
+    this.computeSelectedMonthValue()
+  );
+  protected readonly selectedYearValue = computed(() =>
+    this.computeSelectedYearValue()
+  );
   protected readonly showOnlyCategoriesWithTransactions = signal(false);
+  protected readonly sidebarTab = signal<'categories' | 'tags'>('categories');
   protected readonly visibleGroupedCategories = computed(() =>
     this.store
       .groupedCategories()
@@ -89,8 +155,14 @@ export class TransactionsPageComponent implements OnDestroy {
       this.categoryHasTransactions(category.id)
     );
   });
+  protected readonly visibleTags = computed(() =>
+    this.store.visibleTagSummaries()
+  );
 
-  protected readonly skeletonPlaceholders = Array.from({ length: 4 }, (_, index) => index);
+  protected readonly skeletonPlaceholders = Array.from(
+    { length: 4 },
+    (_, index) => index
+  );
   private readonly scrollLockEffect = effect(() => {
     if (!isPlatformBrowser(this.platformId)) {
       return;
@@ -99,7 +171,10 @@ export class TransactionsPageComponent implements OnDestroy {
     if (!body) {
       return;
     }
-    body.classList.toggle('overflow-hidden', this.createFormOpen());
+    body.classList.toggle(
+      'overflow-hidden',
+      this.createFormOpen() || this.bulkFormOpen()
+    );
   });
 
   constructor() {
@@ -130,7 +205,10 @@ export class TransactionsPageComponent implements OnDestroy {
 
   protected formatAmount(transaction: TransactionViewModel): string {
     const locale = this.locale();
-    const value = transaction.direction === 'expense' ? -transaction.amount : transaction.amount;
+    const value =
+      transaction.direction === 'expense'
+        ? -transaction.amount
+        : transaction.amount;
     return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency: transaction.currency,
@@ -140,7 +218,9 @@ export class TransactionsPageComponent implements OnDestroy {
     }).format(value);
   }
 
-  protected shouldShowDefaultAmount(transaction: TransactionViewModel): boolean {
+  protected shouldShowDefaultAmount(
+    transaction: TransactionViewModel
+  ): boolean {
     const defaultCurrency = this.store.defaultCurrency();
     return (
       transaction.currency.toUpperCase() !== defaultCurrency.toUpperCase() &&
@@ -149,7 +229,9 @@ export class TransactionsPageComponent implements OnDestroy {
     );
   }
 
-  protected formatDefaultCurrencyAmount(transaction: TransactionViewModel): string {
+  protected formatDefaultCurrencyAmount(
+    transaction: TransactionViewModel
+  ): string {
     const defaultCurrency = this.store.defaultCurrency();
     const locale = this.locale();
 
@@ -206,7 +288,12 @@ export class TransactionsPageComponent implements OnDestroy {
     const [yearSegment, monthSegment] = rawValue.split('-');
     const year = Number(yearSegment);
     const month = Number(monthSegment) - 1;
-    if (Number.isInteger(year) && Number.isInteger(month) && month >= 0 && month <= 11) {
+    if (
+      Number.isInteger(year) &&
+      Number.isInteger(month) &&
+      month >= 0 &&
+      month <= 11
+    ) {
       this.store.setSelectedMonth(year, month);
     }
   }
@@ -239,6 +326,16 @@ export class TransactionsPageComponent implements OnDestroy {
     this.scrollToTransactionsResults();
   }
 
+  protected toggleTagSelectionAndScroll(tagId: string): void {
+    this.store.toggleTagSelection(tagId);
+    this.scrollToTransactionsResults();
+  }
+
+  protected clearTagSelectionAndScroll(): void {
+    this.store.clearTagSelection();
+    this.scrollToTransactionsResults();
+  }
+
   protected categoryHasTransactions(categoryId: string): boolean {
     return (
       this.store.categoryTransactionCount(categoryId) > 0 ||
@@ -246,12 +343,16 @@ export class TransactionsPageComponent implements OnDestroy {
     );
   }
 
-  protected trackTransaction(_index: number, transaction: TransactionViewModel): string {
+  protected trackTransaction(
+    _index: number,
+    transaction: TransactionViewModel
+  ): string {
     return transaction.id;
   }
 
   protected openCreateForm(): void {
     this.store.dismissMutationError();
+    this.bulkFormOpen.set(false);
     this.formMode.set('create');
     this.editingTransaction.set(null);
     this.duplicateTransaction.set(null);
@@ -259,15 +360,18 @@ export class TransactionsPageComponent implements OnDestroy {
   }
 
   protected handleKeyboardShortcut(event: KeyboardEvent): void {
+    const isAddShortcut =
+      event.key.toLowerCase() === 'n' &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.shiftKey &&
+      (event.altKey || !this.isEditableShortcutTarget(event.target));
+
     if (
       event.defaultPrevented ||
-      event.altKey ||
-      event.ctrlKey ||
-      event.metaKey ||
-      event.shiftKey ||
-      event.key.toLowerCase() !== 'n' ||
+      !isAddShortcut ||
       this.createFormOpen() ||
-      this.isEditableShortcutTarget(event.target)
+      this.bulkFormOpen()
     ) {
       return;
     }
@@ -278,6 +382,7 @@ export class TransactionsPageComponent implements OnDestroy {
 
   protected openEditForm(transaction: TransactionViewModel): void {
     this.store.dismissMutationError();
+    this.bulkFormOpen.set(false);
     this.formMode.set('edit');
     this.editingTransaction.set(transaction);
     this.duplicateTransaction.set(null);
@@ -286,6 +391,7 @@ export class TransactionsPageComponent implements OnDestroy {
 
   protected openDuplicate(transaction: TransactionViewModel): void {
     this.store.dismissMutationError();
+    this.bulkFormOpen.set(false);
     this.formMode.set('create');
     this.editingTransaction.set(null);
     this.duplicateTransaction.set(transaction);
@@ -300,14 +406,73 @@ export class TransactionsPageComponent implements OnDestroy {
     this.store.dismissMutationError();
   }
 
-  protected async confirmDelete(transaction: TransactionViewModel): Promise<void> {
+  protected openBulkCreateForm(): void {
+    this.handleFormClosed();
+    this.store.dismissMutationError();
+    this.bulkFormOpen.set(true);
+  }
+
+  protected handleBulkFormClosed(): void {
+    this.bulkFormOpen.set(false);
+    this.store.dismissMutationError();
+  }
+
+  protected handleFormSaved(result: TransactionFormSaveResult): void {
+    this.showToast(
+      result === 'created'
+        ? 'transactions.toasts.created'
+        : 'transactions.toasts.updated'
+    );
+  }
+
+  protected handleBulkFormSaved(count: number): void {
+    this.showToast('transactions.toasts.bulkCreated', { count });
+  }
+
+  private showToast(
+    messageKey: string,
+    params?: Record<string, unknown>
+  ): void {
+    const id = ++this.toastId;
+
+    this.transactionToasts.update((toasts) => [
+      ...toasts,
+      {
+        id,
+        messageKey,
+        params,
+      },
+    ]);
+
+    const timer = setTimeout(() => {
+      this.dismissToast(id);
+    }, 3500);
+    this.toastTimers.set(id, timer);
+  }
+
+  protected dismissToast(id: number): void {
+    const timer = this.toastTimers.get(id);
+    if (timer) {
+      clearTimeout(timer);
+      this.toastTimers.delete(id);
+    }
+    this.transactionToasts.update((toasts) =>
+      toasts.filter((toast) => toast.id !== id)
+    );
+  }
+
+  protected async confirmDelete(
+    transaction: TransactionViewModel
+  ): Promise<void> {
     if (this.store.transactionMutationPending()) {
       return;
     }
 
     let confirmed = true;
     if (isPlatformBrowser(this.platformId)) {
-      confirmed = window.confirm(this.transloco.translate('transactions.list.actions.deleteConfirm'));
+      confirmed = window.confirm(
+        this.transloco.translate('transactions.list.actions.deleteConfirm')
+      );
     }
 
     if (!confirmed) {
@@ -318,7 +483,10 @@ export class TransactionsPageComponent implements OnDestroy {
     if (result.success) {
       const active = this.editingTransaction();
       const duplicate = this.duplicateTransaction();
-      if ((active && active.id === transaction.id) || (duplicate && duplicate.id === transaction.id)) {
+      if (
+        (active && active.id === transaction.id) ||
+        (duplicate && duplicate.id === transaction.id)
+      ) {
         this.handleFormClosed();
       }
     }
@@ -328,11 +496,18 @@ export class TransactionsPageComponent implements OnDestroy {
     if (isPlatformBrowser(this.platformId)) {
       this.document?.body?.classList.remove('overflow-hidden');
     }
+    for (const timer of this.toastTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.toastTimers.clear();
   }
 
   private buildMonthYearOptions(): readonly MonthYearOption[] {
     const locale = this.locale();
-    const formatter = new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' });
+    const formatter = new Intl.DateTimeFormat(locale, {
+      month: 'long',
+      year: 'numeric',
+    });
     const transactions = this.store.transactions();
     const seen = new Set<string>();
     const options: MonthYearOption[] = [];
@@ -350,7 +525,9 @@ export class TransactionsPageComponent implements OnDestroy {
         value: `${year}-${(month + 1).toString().padStart(2, '0')}`,
         year,
         month,
-        label: this.capitalize(formatter.format(new Date(Date.UTC(year, month, 1)))),
+        label: this.capitalize(
+          formatter.format(new Date(Date.UTC(year, month, 1)))
+        ),
       });
     }
 
@@ -359,10 +536,14 @@ export class TransactionsPageComponent implements OnDestroy {
       const fallbackYear = today.getUTCFullYear();
       const fallbackMonth = today.getUTCMonth();
       options.push({
-        value: `${fallbackYear}-${(fallbackMonth + 1).toString().padStart(2, '0')}`,
+        value: `${fallbackYear}-${(fallbackMonth + 1)
+          .toString()
+          .padStart(2, '0')}`,
         year: fallbackYear,
         month: fallbackMonth,
-        label: this.capitalize(formatter.format(new Date(Date.UTC(fallbackYear, fallbackMonth, 1)))),
+        label: this.capitalize(
+          formatter.format(new Date(Date.UTC(fallbackYear, fallbackMonth, 1)))
+        ),
       });
     }
 
@@ -423,7 +604,11 @@ export class TransactionsPageComponent implements OnDestroy {
     }
 
     const [year, month, day] = segments;
-    if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
+    if (
+      !Number.isInteger(year) ||
+      !Number.isInteger(month) ||
+      !Number.isInteger(day)
+    ) {
       return null;
     }
 
@@ -455,11 +640,26 @@ export class TransactionsPageComponent implements OnDestroy {
   }
 
   private isStartOfMonth(date: Date): boolean {
-    return date.getUTCDate() === 1 && date.getUTCHours() === 0 && date.getUTCMinutes() === 0 && date.getUTCSeconds() === 0;
+    return (
+      date.getUTCDate() === 1 &&
+      date.getUTCHours() === 0 &&
+      date.getUTCMinutes() === 0 &&
+      date.getUTCSeconds() === 0
+    );
   }
 
   private isEndOfMonth(date: Date): boolean {
-    const test = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0, 23, 59, 59, 999));
+    const test = new Date(
+      Date.UTC(
+        date.getUTCFullYear(),
+        date.getUTCMonth() + 1,
+        0,
+        23,
+        59,
+        59,
+        999
+      )
+    );
     return date.getTime() === test.getTime();
   }
 
@@ -474,7 +674,9 @@ export class TransactionsPageComponent implements OnDestroy {
   }
 
   private isEndOfYear(date: Date): boolean {
-    const test = new Date(Date.UTC(date.getUTCFullYear(), 11, 31, 23, 59, 59, 999));
+    const test = new Date(
+      Date.UTC(date.getUTCFullYear(), 11, 31, 23, 59, 59, 999)
+    );
     return date.getTime() === test.getTime();
   }
 
