@@ -921,6 +921,11 @@ const pl = {
           caption:
             'Automatyczne transakcje wydatkowe utworzone z płatności cyklicznych od stycznia.',
         },
+        planned: {
+          label: 'Łącznie w tym miesiącu',
+          caption:
+            'Wygenerowane: {{ generated }} {{ currency }}. Do wygenerowania: {{ scheduled }} {{ currency }} (liczba zaplanowanych: {{ count }}).',
+        },
       },
       actions: {
         add: 'Dodaj płatność cykliczną',

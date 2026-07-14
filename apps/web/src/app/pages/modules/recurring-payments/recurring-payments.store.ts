@@ -8,6 +8,10 @@ import {
 import { AuthService } from '../../../core/auth.service';
 import { logError } from '../../../core/logger';
 import { SUPABASE_CLIENT } from '../../../core/supabase';
+import {
+  calculateRecurringMonthlyPlan,
+  type RecurringMonthlyPlan,
+} from './recurring-monthly-plan';
 import type {
   CategoryGroupRow,
   CategoryRow,
@@ -192,6 +196,15 @@ export class RecurringPaymentsStore {
   readonly mutationPending = computed(() => this.state().mutationPending);
   readonly mutationError = computed(() => this.state().mutationError);
   readonly stats = computed(() => this.state().stats);
+  readonly monthlyPlan = computed<RecurringMonthlyPlan>(() => {
+    const state = this.state();
+    return calculateRecurringMonthlyPlan(
+      state.recurringTransactions,
+      state.stats.monthlyExpense,
+      state.defaultCurrency,
+      new Date(),
+    );
+  });
   readonly recurringTransactions = computed(() => this.state().recurringTransactions);
   readonly recurringPaymentsFilter = computed(() => this.listFilter());
   readonly filteredRecurringTransactions = computed(() => {

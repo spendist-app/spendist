@@ -920,6 +920,11 @@ const en = {
           caption:
             'Automatic expense transactions created from recurring payments since January.',
         },
+        planned: {
+          label: 'Total for this month',
+          caption:
+            'Generated: {{ generated }} {{ currency }}. Still scheduled: {{ scheduled }} {{ currency }} (scheduled occurrences: {{ count }}).',
+        },
       },
       actions: {
         add: 'Add recurring payment',
