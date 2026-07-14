@@ -17,6 +17,9 @@ class TransactionsStoreStub {
   readonly activeFilters = signal({
     selectedCategoryIds: [],
     selectedTagIds: [],
+    selectedPlaceId: null,
+    minimumAmount: null,
+    maximumAmount: null,
     searchTerm: '',
     from: null,
     to: null,
@@ -86,6 +89,19 @@ class TransactionsStoreStub {
       transactionCount: 1,
     },
   ]);
+  readonly places = signal([
+    {
+      id: 'place-1',
+      ownerId: 'user-1',
+      name: 'Market',
+      street: null,
+      city: null,
+      postalCode: null,
+      country: null,
+      note: null,
+    },
+  ]);
+  readonly selectedCategoryFilterValue = signal('');
   readonly loading = signal(false);
   readonly error = signal(null);
   readonly transactionMutationPending = signal(false);
@@ -130,6 +146,30 @@ class TransactionsStoreStub {
     return;
   }
 
+  toggleCategoryGroupSelection(): void {
+    return;
+  }
+
+  isCategoryGroupSelected(): boolean {
+    return false;
+  }
+
+  setCategorySelection(): void {
+    return;
+  }
+
+  setCategoryGroupSelection(): void {
+    return;
+  }
+
+  setPlaceFilter(): void {
+    return;
+  }
+
+  setAmountRange(): void {
+    return;
+  }
+
   clearTagSelection(): void {
     return;
   }
@@ -139,6 +179,10 @@ class TransactionsStoreStub {
   }
 
   dismissMutationError(): void {
+    return;
+  }
+
+  resetFilters(): void {
     return;
   }
 }
@@ -170,6 +214,23 @@ describe('TransactionsPageComponent', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it('uses the category and tag tabs as the only filter heading', () => {
+    const fixture = TestBed.createComponent(TransactionsPageComponent);
+    fixture.detectChanges();
+
+    const sidebar = fixture.nativeElement.querySelector('aside') as HTMLElement;
+    const tabs = Array.from(
+      sidebar.querySelectorAll<HTMLElement>('[role="tab"]')
+    );
+
+    expect(sidebar.querySelector('h2')).toBeNull();
+    expect(tabs).toHaveLength(2);
+    expect(tabs.map((tab) => tab.getAttribute('aria-selected'))).toEqual([
+      'true',
+      'false',
+    ]);
   });
 
   it('formats transaction amounts with the standard locale currency placement from Intl', () => {
@@ -249,6 +310,81 @@ describe('TransactionsPageComponent', () => {
     ).toEqual(['category-ungrouped-active']);
   });
 
+  it('renders explicit category, place, and amount filters with a wide search field', () => {
+    const fixture = TestBed.createComponent(TransactionsPageComponent);
+    fixture.detectChanges();
+
+    const search = fixture.nativeElement.querySelector(
+      '[data-testid="transaction-search-filter"]'
+    ) as HTMLInputElement;
+
+    expect(search.closest('label')?.classList.contains('xl:col-span-6')).toBe(
+      true
+    );
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="transaction-category-filter"]'
+      )
+    ).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="transaction-place-filter"]'
+      )
+    ).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="transaction-minimum-amount-filter"]'
+      )
+    ).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="transaction-maximum-amount-filter"]'
+      )
+    ).not.toBeNull();
+  });
+
+  it('applies a whole category group immediately from the sidebar', () => {
+    const fixture = TestBed.createComponent(TransactionsPageComponent);
+    fixture.detectChanges();
+    const store = fixture.debugElement.injector.get(
+      TransactionsStore
+    ) as unknown as TransactionsStoreStub;
+    const toggleGroup = vi.spyOn(store, 'toggleCategoryGroupSelection');
+    const groupButton = Array.from(
+      fixture.nativeElement.querySelectorAll<HTMLButtonElement>(
+        'aside button[aria-pressed]'
+      )
+    ).find((button) => button.textContent?.includes('Daily'));
+
+    groupButton?.click();
+
+    expect(toggleGroup).toHaveBeenCalledWith('group-1');
+  });
+
+  it('passes place and amount range changes to the store', () => {
+    const fixture = TestBed.createComponent(TransactionsPageComponent);
+    fixture.detectChanges();
+    const store = fixture.debugElement.injector.get(
+      TransactionsStore
+    ) as unknown as TransactionsStoreStub;
+    const setPlace = vi.spyOn(store, 'setPlaceFilter');
+    const setAmountRange = vi.spyOn(store, 'setAmountRange');
+    const place = fixture.nativeElement.querySelector(
+      '[data-testid="transaction-place-filter"]'
+    ) as HTMLSelectElement;
+    const minimumAmount = fixture.nativeElement.querySelector(
+      '[data-testid="transaction-minimum-amount-filter"]'
+    ) as HTMLInputElement;
+
+    place.value = 'place-1';
+    place.dispatchEvent(new Event('change'));
+    minimumAmount.value = '12.5';
+    minimumAmount.dispatchEvent(new Event('change'));
+
+    expect(setPlace).toHaveBeenCalledWith('place-1');
+    expect(setAmountRange).toHaveBeenCalledWith(12.5, null);
+  });
+
   it('opens the create transaction form with the N keyboard shortcut', () => {
     const fixture = TestBed.createComponent(TransactionsPageComponent);
     fixture.detectChanges();
@@ -304,6 +440,43 @@ describe('TransactionsPageComponent', () => {
     input.remove();
 
     expect(component.createFormOpen()).toBe(false);
+  });
+
+  it('opens bulk entry from the add speed dial', () => {
+    const fixture = TestBed.createComponent(TransactionsPageComponent);
+    fixture.detectChanges();
+    const component = fixture.componentInstance as unknown as {
+      bulkFormOpen(): boolean;
+    };
+    const bulkButton = fixture.nativeElement.querySelector(
+      '#transaction-add-actions button:last-child'
+    ) as HTMLButtonElement;
+
+    bulkButton.click();
+
+    expect(component.bulkFormOpen()).toBe(true);
+  });
+
+  it('closes the add speed dial with Escape', () => {
+    const fixture = TestBed.createComponent(TransactionsPageComponent);
+    fixture.detectChanges();
+    const component = fixture.componentInstance as unknown as {
+      addMenuOpen(): boolean;
+      syncAddMenuState(menu: HTMLDetailsElement): void;
+    };
+    const menu = fixture.nativeElement.querySelector(
+      'details[aria-controls], details.dropdown'
+    ) as HTMLDetailsElement;
+    menu.open = true;
+    component.syncAddMenuState(menu);
+
+    document.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
+    );
+    fixture.detectChanges();
+
+    expect(component.addMenuOpen()).toBe(false);
+    expect(menu.open).toBe(false);
   });
 
   it('shows a transient toast after a transaction is saved', () => {

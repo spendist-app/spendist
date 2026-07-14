@@ -2,19 +2,24 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  ElementRef,
   OnDestroy,
   PLATFORM_ID,
   computed,
   effect,
   inject,
   signal,
+  viewChild,
 } from '@angular/core';
 import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { TranslocoPipe, TranslocoService } from '@ngneat/transloco';
 import { NgIcon } from '@ng-icons/core';
 import {
   heroDocumentDuplicate,
+  heroDocumentPlus,
   heroPencilSquare,
+  heroPlus,
+  heroTableCells,
   heroTrash,
 } from '@ng-icons/heroicons/outline';
 import {
@@ -63,6 +68,9 @@ export class TransactionsPageComponent implements OnDestroy {
   protected readonly store = inject(TransactionsStore);
   protected readonly createFormOpen = signal(false);
   protected readonly bulkFormOpen = signal(false);
+  protected readonly addMenuOpen = signal(false);
+  private readonly addMenu =
+    viewChild<ElementRef<HTMLDetailsElement>>('addMenu');
   protected readonly formMode = signal<'create' | 'edit'>('create');
   protected readonly editingTransaction = signal<TransactionViewModel | null>(
     null
@@ -84,13 +92,19 @@ export class TransactionsPageComponent implements OnDestroy {
   private readonly transloco = inject(TranslocoService);
   private readonly destroyRef = inject(DestroyRef);
   private toastId = 0;
-  private readonly toastTimers = new Map<number, ReturnType<typeof setTimeout>>();
+  private readonly toastTimers = new Map<
+    number,
+    ReturnType<typeof setTimeout>
+  >();
 
   protected readonly heroIconSvg = heroIconSvgFn;
   protected readonly formatHeroIconLabel = formatHeroIconLabelFn;
   protected readonly editIcon = heroPencilSquare;
   protected readonly duplicateIcon = heroDocumentDuplicate;
   protected readonly deleteIcon = heroTrash;
+  protected readonly addIcon = heroPlus;
+  protected readonly addSingleIcon = heroDocumentPlus;
+  protected readonly addBulkIcon = heroTableCells;
 
   protected readonly filters = computed(() => this.store.activeFilters());
   protected readonly locale = computed(() =>
@@ -158,6 +172,11 @@ export class TransactionsPageComponent implements OnDestroy {
   protected readonly visibleTags = computed(() =>
     this.store.visibleTagSummaries()
   );
+  protected readonly sortedPlaces = computed(() =>
+    [...this.store.places()].sort((left, right) =>
+      left.name.localeCompare(right.name, this.locale())
+    )
+  );
 
   protected readonly skeletonPlaceholders = Array.from(
     { length: 4 },
@@ -185,9 +204,17 @@ export class TransactionsPageComponent implements OnDestroy {
     const handleKeydown = (event: KeyboardEvent) => {
       this.handleKeyboardShortcut(event);
     };
+    const handleClick = (event: MouseEvent) => {
+      const menu = this.addMenu()?.nativeElement;
+      if (menu?.open && !menu.contains(event.target as Node)) {
+        this.closeAddMenu();
+      }
+    };
     this.document.addEventListener('keydown', handleKeydown);
+    this.document.addEventListener('click', handleClick);
     this.destroyRef.onDestroy(() => {
       this.document.removeEventListener('keydown', handleKeydown);
+      this.document.removeEventListener('click', handleClick);
     });
   }
 
@@ -264,6 +291,36 @@ export class TransactionsPageComponent implements OnDestroy {
     this.store.setSearchTerm(target?.value ?? '');
   }
 
+  protected onCategoryFilterChange(event: Event): void {
+    const select = event.target as HTMLSelectElement | null;
+    const value = select?.value ?? '';
+    if (value.startsWith('group:')) {
+      this.store.setCategoryGroupSelection(value.slice('group:'.length));
+    } else if (value.startsWith('category:')) {
+      this.store.setCategorySelection(value.slice('category:'.length));
+    } else if (!value) {
+      this.store.setCategorySelection(null);
+    }
+    this.scrollToTransactionsResults();
+  }
+
+  protected onPlaceFilterChange(event: Event): void {
+    const select = event.target as HTMLSelectElement | null;
+    this.store.setPlaceFilter(select?.value || null);
+  }
+
+  protected onAmountChange(kind: 'minimum' | 'maximum', event: Event): void {
+    const input = event.target as HTMLInputElement | null;
+    const parsedValue = input && Number.isFinite(input.valueAsNumber)
+      ? input.valueAsNumber
+      : null;
+    const filters = this.filters();
+    this.store.setAmountRange(
+      kind === 'minimum' ? parsedValue : filters.minimumAmount,
+      kind === 'maximum' ? parsedValue : filters.maximumAmount
+    );
+  }
+
   protected onDateChange(kind: 'from' | 'to', event: Event): void {
     const input = event.target as HTMLInputElement | null;
     const rawValue = input?.value ?? '';
@@ -321,6 +378,11 @@ export class TransactionsPageComponent implements OnDestroy {
     this.scrollToTransactionsResults();
   }
 
+  protected toggleCategoryGroupSelectionAndScroll(groupId: string): void {
+    this.store.toggleCategoryGroupSelection(groupId);
+    this.scrollToTransactionsResults();
+  }
+
   protected clearCategorySelectionAndScroll(): void {
     this.store.clearCategorySelection();
     this.scrollToTransactionsResults();
@@ -351,6 +413,7 @@ export class TransactionsPageComponent implements OnDestroy {
   }
 
   protected openCreateForm(): void {
+    this.closeAddMenu();
     this.store.dismissMutationError();
     this.bulkFormOpen.set(false);
     this.formMode.set('create');
@@ -360,6 +423,12 @@ export class TransactionsPageComponent implements OnDestroy {
   }
 
   protected handleKeyboardShortcut(event: KeyboardEvent): void {
+    if (event.key === 'Escape' && this.addMenuOpen()) {
+      event.preventDefault();
+      this.closeAddMenu();
+      return;
+    }
+
     const isAddShortcut =
       event.key.toLowerCase() === 'n' &&
       !event.ctrlKey &&
@@ -407,9 +476,22 @@ export class TransactionsPageComponent implements OnDestroy {
   }
 
   protected openBulkCreateForm(): void {
+    this.closeAddMenu();
     this.handleFormClosed();
     this.store.dismissMutationError();
     this.bulkFormOpen.set(true);
+  }
+
+  protected syncAddMenuState(menu: HTMLDetailsElement): void {
+    this.addMenuOpen.set(menu.open);
+  }
+
+  protected closeAddMenu(): void {
+    const menu = this.addMenu()?.nativeElement;
+    if (menu) {
+      menu.open = false;
+    }
+    this.addMenuOpen.set(false);
   }
 
   protected handleBulkFormClosed(): void {
@@ -620,9 +702,8 @@ export class TransactionsPageComponent implements OnDestroy {
       return;
     }
 
-    this.document
-      ?.getElementById('transactions-results')
-      ?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    const results = this.document?.getElementById('transactions-results');
+    results?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
   }
 
   private isEditableShortcutTarget(target: EventTarget | null): boolean {

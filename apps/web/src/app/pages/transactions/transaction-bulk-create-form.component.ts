@@ -2,12 +2,21 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   output,
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TranslocoPipe } from '@ngneat/transloco';
+import { NgIcon } from '@ng-icons/core';
+import {
+  heroArrowDown,
+  heroArrowUp,
+  heroEllipsisVertical,
+  heroTrash,
+  heroXMark,
+} from '@ng-icons/heroicons/outline';
 import type { TransactionDirection } from '@spendist/data-access/supabase-types';
 import {
   CategorySelectComponent,
@@ -27,11 +36,10 @@ interface BulkTransactionDraftRow {
   readonly description: string;
   readonly amount: string;
   readonly currency: string;
-  readonly direction: TransactionDirection;
   readonly categoryId: string;
-  readonly walletId: string;
   readonly tags: string;
   readonly placeId: string;
+  readonly quantity: number | null;
   readonly touched: boolean;
 }
 
@@ -49,13 +57,21 @@ interface PreparedBulkTransaction {
   readonly wallet: WalletEntity;
 }
 
-type BulkTransactionField = keyof Omit<BulkTransactionDraftRow, 'id'>;
+type BulkTransactionField = Exclude<
+  keyof BulkTransactionDraftRow,
+  'id' | 'touched'
+>;
+type CopyableBulkTransactionField = Extract<
+  BulkTransactionField,
+  'occurredOn' | 'currency' | 'categoryId' | 'tags' | 'placeId'
+>;
+type CopyDirection = 'up' | 'down';
 
 @Component({
   standalone: true,
   selector: 'app-transaction-bulk-create-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, TranslocoPipe, CategorySelectComponent],
+  imports: [FormsModule, TranslocoPipe, NgIcon, CategorySelectComponent],
   templateUrl: './transaction-bulk-create-form.component.html',
 })
 export class TransactionBulkCreateFormComponent {
@@ -64,25 +80,60 @@ export class TransactionBulkCreateFormComponent {
   private nextRowId = 0;
 
   protected readonly store = inject(TransactionsStore);
+  protected readonly batchWalletId = signal(this.defaultWalletId());
+  protected readonly batchDirection = signal<TransactionDirection>('expense');
   protected readonly rows = signal<readonly BulkTransactionDraftRow[]>(
     this.createRows(TransactionBulkCreateFormComponent.INITIAL_ROW_COUNT)
   );
   protected readonly submitted = signal(false);
   protected readonly asyncIssues = signal<readonly BulkTransactionIssue[]>([]);
   protected readonly focusedRowIndex = signal(0);
+  private readonly batchWalletSyncEffect = effect(() => {
+    const wallets = this.store.wallets();
+    if (wallets.length === 0) {
+      return;
+    }
+
+    const currentWalletId = this.batchWalletId();
+    if (wallets.some((wallet) => wallet.id === currentWalletId)) {
+      return;
+    }
+
+    const walletId = this.defaultWalletId();
+    const currency =
+      wallets
+        .find((wallet) => wallet.id === walletId)
+        ?.currency.toUpperCase() ?? this.store.defaultCurrency();
+    this.batchWalletId.set(walletId);
+    this.rows.update((rows) =>
+      rows.map((row) => (!row.touched ? { ...row, currency } : row))
+    );
+  });
 
   readonly closed = output<void>();
   readonly saved = output<number>();
+
+  protected readonly closeIcon = heroXMark;
+  protected readonly clearIcon = heroTrash;
+  protected readonly copyMenuIcon = heroEllipsisVertical;
+  protected readonly copyUpIcon = heroArrowUp;
+  protected readonly copyDownIcon = heroArrowDown;
 
   protected readonly categoryView = computed(() => this.buildCategoryView());
   protected readonly currencyOptions = computed(() => {
     const currencies = this.store.currencies();
     return currencies.length > 0
       ? currencies
-      : [{ id: -1, symbol: this.defaultCurrency() }];
+      : [{ id: -1, symbol: this.selectedWalletCurrency() }];
   });
   protected readonly activeRows = computed(() =>
     this.rows().filter((row) => this.rowHasInput(row))
+  );
+  protected readonly transactionCount = computed(() =>
+    this.activeRows().reduce(
+      (total, row) => total + (this.validQuantity(row.quantity) ?? 0),
+      0
+    )
   );
   protected readonly validationIssues = computed(() => [
     ...this.validateRows(),
@@ -94,7 +145,9 @@ export class TransactionBulkCreateFormComponent {
   protected readonly canSubmit = computed(
     () =>
       this.activeRows().length > 0 &&
+      this.transactionCount() > 0 &&
       this.validationIssues().length === 0 &&
+      this.selectedWallet() !== null &&
       !this.store.transactionMutationPending()
   );
 
@@ -102,14 +155,16 @@ export class TransactionBulkCreateFormComponent {
     this.closed.emit();
   }
 
-  protected addRows(count = TransactionBulkCreateFormComponent.EXTRA_ROW_COUNT): void {
+  protected addRows(
+    count = TransactionBulkCreateFormComponent.EXTRA_ROW_COUNT
+  ): void {
     this.rows.update((rows) => [...rows, ...this.createRows(count)]);
   }
 
   protected updateRow(
     rowId: number,
     field: BulkTransactionField,
-    value: string | TransactionDirection | boolean
+    value: string | number | null
   ): void {
     this.asyncIssues.set([]);
     this.rows.update((rows) =>
@@ -119,12 +174,51 @@ export class TransactionBulkCreateFormComponent {
     );
   }
 
+  protected updateBatchWallet(walletId: string): void {
+    const previousCurrency = this.selectedWallet()?.currency.toUpperCase();
+    this.batchWalletId.set(walletId);
+    const nextCurrency = this.selectedWallet()?.currency.toUpperCase();
+    if (!nextCurrency || nextCurrency === previousCurrency) {
+      return;
+    }
+
+    this.rows.update((rows) =>
+      rows.map((row) =>
+        !row.touched ? { ...row, currency: nextCurrency } : row
+      )
+    );
+  }
+
+  protected updateBatchDirection(direction: TransactionDirection): void {
+    this.batchDirection.set(direction);
+  }
+
+  protected copyField(
+    rowId: number,
+    field: CopyableBulkTransactionField,
+    direction: CopyDirection
+  ): void {
+    const rows = this.rows();
+    const sourceIndex = rows.findIndex((row) => row.id === rowId);
+    const source = rows[sourceIndex];
+    if (!source || sourceIndex < 0) {
+      return;
+    }
+
+    this.asyncIssues.set([]);
+    this.rows.set(
+      rows.map((row, index) => {
+        const shouldCopy =
+          direction === 'up' ? index < sourceIndex : index > sourceIndex;
+        return shouldCopy ? { ...row, [field]: source[field] } : row;
+      })
+    );
+  }
+
   protected clearRow(rowId: number): void {
     this.asyncIssues.set([]);
     this.rows.update((rows) =>
-      rows.map((row) =>
-        row.id === rowId ? this.createRow(row.id) : row
-      )
+      rows.map((row) => (row.id === rowId ? this.createRow(row.id) : row))
     );
   }
 
@@ -170,7 +264,9 @@ export class TransactionBulkCreateFormComponent {
     return row.id;
   }
 
-  protected rowIssue(row: BulkTransactionDraftRow): BulkTransactionIssue | null {
+  protected rowIssue(
+    row: BulkTransactionDraftRow
+  ): BulkTransactionIssue | null {
     return (
       this.validationIssues().find((issue) => issue.rowId === row.id) ?? null
     );
@@ -189,9 +285,7 @@ export class TransactionBulkCreateFormComponent {
     }
 
     const tagNames = Array.from(
-      new Set(
-        prepared.flatMap((item) => this.parseTagNames(item.row.tags))
-      )
+      new Set(prepared.flatMap((item) => this.parseTagNames(item.row.tags)))
     );
 
     try {
@@ -218,19 +312,23 @@ export class TransactionBulkCreateFormComponent {
           continue;
         }
 
-        payload.push({
+        const transaction: CreateTransactionBatchItem = {
           description: item.row.description.trim() || null,
           categoryId: item.row.categoryId,
           occurredAt: item.occurredAt,
           amount: item.amount,
           currency: item.currency,
-          direction: item.row.direction,
+          direction: this.batchDirection(),
           tagIds: this.resolveTagIds(item.row.tags),
           foreignAmount: amountInDefault,
           foreignCurrency: targetCurrency,
           walletId: item.wallet.id,
           placeId: item.row.placeId || null,
-        });
+        };
+        const quantity = this.validQuantity(item.row.quantity) ?? 0;
+        for (let index = 0; index < quantity; index += 1) {
+          payload.push({ ...transaction });
+        }
       }
 
       if (exchangeIssues.length > 0) {
@@ -259,13 +357,22 @@ export class TransactionBulkCreateFormComponent {
       return null;
     }
 
+    const wallet = this.selectedWallet();
+    if (!wallet) {
+      return null;
+    }
+
     return this.activeRows()
       .map((row): PreparedBulkTransaction | null => {
         const amount = parseAmountInput(row.amount);
         const occurredAt = this.parseDate(row.occurredOn);
-        const wallet = this.store.wallets().find((item) => item.id === row.walletId);
         const currency = row.currency.trim().toUpperCase();
-        if (!amount || !occurredAt || !wallet || !/^[A-Z]{3}$/.test(currency)) {
+        if (
+          !amount ||
+          !occurredAt ||
+          !/^[A-Z]{3}$/.test(currency) ||
+          this.validQuantity(row.quantity) === null
+        ) {
           return null;
         }
 
@@ -301,12 +408,12 @@ export class TransactionBulkCreateFormComponent {
         issues.push(this.issueForRow(row, 'category', index));
       }
 
-      if (!this.store.wallets().some((wallet) => wallet.id === row.walletId)) {
-        issues.push(this.issueForRow(row, 'wallet', index));
-      }
-
       if (!/^[A-Z]{3}$/.test(row.currency.trim().toUpperCase())) {
         issues.push(this.issueForRow(row, 'currency', index));
+      }
+
+      if (this.validQuantity(row.quantity) === null) {
+        issues.push(this.issueForRow(row, 'quantity', index));
       }
     });
 
@@ -334,7 +441,6 @@ export class TransactionBulkCreateFormComponent {
         row.tags,
         row.placeId,
         row.categoryId,
-        row.walletId,
         row.currency,
       ].some((value) => value.trim().length > 0)
     );
@@ -354,9 +460,9 @@ export class TransactionBulkCreateFormComponent {
         row.description.trim().toLowerCase(),
         amount.toFixed(2),
         row.currency.trim().toUpperCase(),
-        row.direction,
+        this.batchDirection(),
         row.categoryId,
-        row.walletId,
+        this.batchWalletId(),
       ].join('|');
       if (seen.has(signature)) {
         duplicates += 1;
@@ -379,43 +485,29 @@ export class TransactionBulkCreateFormComponent {
   }
 
   private parsePastedLine(line: string): Partial<BulkTransactionDraftRow> {
-    const cells = line.includes('\t')
-      ? line.split('\t')
-      : line.split(/[;,]/);
-    const [
-      occurredOn,
-      description,
-      amount,
-      currency,
-      direction,
-      category,
-      wallet,
-      tags,
-      place,
-    ] = cells.map((cell) => cell.trim());
+    const cells = line.includes('\t') ? line.split('\t') : line.split(/[;,]/);
+    const normalizedCells = cells.map((cell) => cell.trim());
+    const legacyFormat = normalizedCells.length >= 9;
+    const occurredOn = normalizedCells[0];
+    const description = normalizedCells[1];
+    const amount = normalizedCells[2];
+    const currency = normalizedCells[3];
+    const category = normalizedCells[legacyFormat ? 5 : 4];
+    const tags = normalizedCells[legacyFormat ? 7 : 5];
+    const place = normalizedCells[legacyFormat ? 8 : 6];
+    const quantity = normalizedCells[legacyFormat ? 9 : 7];
 
-    const walletMatch = this.resolveWallet(wallet);
     return {
       occurredOn: this.normalizeDateInput(occurredOn) || this.todayIsoString(),
       description: description ?? '',
       amount: amount ?? '',
       currency:
-        this.normalizeCurrency(currency) ||
-        walletMatch?.currency ||
-        this.defaultCurrency(),
-      direction: this.resolveDirection(direction),
+        this.normalizeCurrency(currency) || this.selectedWalletCurrency(),
       categoryId: this.resolveCategory(category) || this.defaultCategoryId(),
-      walletId: walletMatch?.id ?? this.defaultWalletId(),
       tags: tags ?? '',
       placeId: this.resolvePlace(place) ?? '',
+      quantity: this.parsePastedQuantity(quantity),
     };
-  }
-
-  private resolveDirection(value: string | undefined): TransactionDirection {
-    const normalized = (value ?? '').trim().toLowerCase();
-    return ['income', 'przychód', 'przychod', '+'].includes(normalized)
-      ? 'income'
-      : 'expense';
   }
 
   private resolveCategory(value: string | undefined): string | null {
@@ -436,23 +528,6 @@ export class TransactionBulkCreateFormComponent {
     }
 
     return null;
-  }
-
-  private resolveWallet(value: string | undefined): WalletEntity | null {
-    const normalized = this.normalizeLookup(value);
-    if (!normalized) {
-      return this.store.wallets().find((wallet) => wallet.id === this.defaultWalletId()) ?? null;
-    }
-
-    return (
-      this.store
-        .wallets()
-        .find(
-          (wallet) =>
-            this.normalizeLookup(wallet.name) === normalized ||
-            this.normalizeLookup(wallet.currency) === normalized
-        ) ?? null
-    );
   }
 
   private resolvePlace(value: string | undefined): string | null {
@@ -521,7 +596,11 @@ export class TransactionBulkCreateFormComponent {
       );
       return rate === null ? null : amount * rate;
     } catch (error) {
-      logError('TransactionBulkCreateForm', 'Failed to load exchange rate', error);
+      logError(
+        'TransactionBulkCreateForm',
+        'Failed to load exchange rate',
+        error
+      );
       return null;
     }
   }
@@ -538,20 +617,25 @@ export class TransactionBulkCreateFormComponent {
       occurredOn: this.todayIsoString(),
       description: '',
       amount: '',
-      currency: this.defaultCurrency(),
-      direction: 'expense',
+      currency: this.selectedWalletCurrency(),
       categoryId: this.defaultCategoryId(),
-      walletId: this.defaultWalletId(),
       tags: '',
       placeId: '',
+      quantity: 1,
       touched: false,
     };
   }
 
-  private defaultCurrency(): string {
-    const wallet = this.store
-      .wallets()
-      .find((item) => item.id === this.defaultWalletId());
+  private selectedWallet(): WalletEntity | null {
+    return (
+      this.store
+        .wallets()
+        .find((wallet) => wallet.id === this.batchWalletId()) ?? null
+    );
+  }
+
+  private selectedWalletCurrency(): string {
+    const wallet = this.selectedWallet();
     return wallet?.currency ?? this.store.defaultCurrency();
   }
 
@@ -561,6 +645,24 @@ export class TransactionBulkCreateFormComponent {
 
   private defaultCategoryId(): string {
     return this.store.categories()[0]?.id ?? '';
+  }
+
+  private validQuantity(value: number | null): number | null {
+    return typeof value === 'number' &&
+      Number.isInteger(value) &&
+      value >= 1 &&
+      value <= 100
+      ? value
+      : null;
+  }
+
+  private parsePastedQuantity(value: string | undefined): number {
+    if (!value?.trim()) {
+      return 1;
+    }
+
+    const quantity = Number(value);
+    return Number.isFinite(quantity) ? quantity : 0;
   }
 
   private parseDate(value: string): Date | null {

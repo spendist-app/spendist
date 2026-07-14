@@ -25,7 +25,21 @@ class TransactionsStoreStub {
   ]);
   readonly groupedCategories = signal([]);
   readonly ungroupedCategories = signal(this.categories());
-  readonly tags = signal([]);
+  readonly tags = signal<
+    readonly {
+      readonly id: string;
+      readonly ownerId: string;
+      readonly name: string;
+      readonly color: string | null;
+      readonly icon: string | null;
+    }[]
+  >([]);
+  readonly transactionsView = signal<
+    readonly {
+      readonly occurredAt: Date;
+      readonly tagIds: readonly string[];
+    }[]
+  >([]);
   readonly wallets = signal([
     {
       id: 'wallet-1',
@@ -251,6 +265,52 @@ describe('TransactionCreateFormComponent', () => {
     expect(fixture.componentInstance['form'].controls.placeId.value).toBe(
       'place-1'
     );
+  });
+
+  it('shows seven recently used tags and adds one with a click', () => {
+    const fixture = TestBed.createComponent(TransactionCreateFormComponent);
+    const store = TestBed.inject(
+      TransactionsStore
+    ) as unknown as TransactionsStoreStub;
+    const tags = Array.from({ length: 8 }, (_, index) => ({
+      id: `tag-${index + 1}`,
+      ownerId: 'user-1',
+      name: `Tag ${index + 1}`,
+      color: index === 0 ? '#0EA5A5' : null,
+      icon: null,
+    }));
+    store.tags.set(tags);
+    store.transactionsView.set(
+      tags.map((tag, index) => ({
+        occurredAt: new Date(Date.UTC(2026, 6, 15 - index)),
+        tagIds: [tag.id],
+      }))
+    );
+    fixture.detectChanges();
+
+    const recentTagButtons = Array.from(
+      fixture.nativeElement.querySelectorAll<HTMLButtonElement>(
+        '[data-testid="recent-tag"]'
+      )
+    );
+    expect(recentTagButtons).toHaveLength(7);
+    expect(
+      recentTagButtons.map((button) => button.textContent?.trim())
+    ).toEqual(tags.slice(0, 7).map((tag) => tag.name));
+
+    recentTagButtons[0]?.click();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance['form'].controls.tags.value).toEqual([
+      { id: 'tag-1', name: 'Tag 1' },
+    ]);
+    expect(
+      Array.from(
+        fixture.nativeElement.querySelectorAll<HTMLButtonElement>(
+          '[data-testid="recent-tag"]'
+        )
+      ).map((button) => button.textContent?.trim())
+    ).toEqual(tags.slice(1, 8).map((tag) => tag.name));
   });
 
   it('remembers create date and category after saving', async () => {
