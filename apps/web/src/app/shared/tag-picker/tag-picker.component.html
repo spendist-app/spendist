@@ -1,0 +1,115 @@
+<section class="space-y-2">
+  <label class="form-control">
+    <span class="label-text text-sm font-semibold text-base-content">
+      {{ 'transactions.form.fields.tags' | transloco }}
+    </span>
+    <div
+      class="flex flex-wrap items-center gap-2 rounded-2xl border border-base-300 bg-base-100/80 p-3"
+    >
+      @for (selection of value(); track trackTagSelection($index, selection)) {
+      <span class="badge badge-primary gap-2">
+        <span>{{ selection.name }}</span>
+        <button
+          type="button"
+          class="btn btn-ghost btn-xs p-0"
+          (click)="removeTag(selection)"
+        >
+          <span aria-hidden="true">×</span>
+          <span class="sr-only">
+            {{
+              'transactions.form.actions.removeTag'
+                | transloco : { name: selection.name }
+            }}
+          </span>
+        </button>
+      </span>
+      }
+      <div class="relative min-w-[160px] flex-1">
+        <input
+          type="text"
+          class="input input-ghost w-full border-none bg-transparent focus:outline-none"
+          [value]="tagInput()"
+          (focus)="onTagInputFocus()"
+          (blur)="onTagInputBlur()"
+          (input)="onTagInput($event)"
+          (keydown)="onTagInputKeydown($event)"
+          [placeholder]="'transactions.form.placeholders.tagInput' | transloco"
+          [attr.aria-label]="'transactions.form.fields.tags' | transloco"
+          autocomplete="off"
+        />
+        @if (suggestionPanelOpen()) {
+        <ul
+          class="absolute left-0 right-0 top-full z-20 mt-2 max-h-48 overflow-y-auto rounded-xl border border-base-300 bg-base-100 shadow-lg"
+          role="listbox"
+        >
+          @for (suggestion of suggestedTags(); track suggestion.id; let i =
+          $index) {
+          <li>
+            <button
+              type="button"
+              role="option"
+              class="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm transition hover:bg-base-200"
+              [class.bg-base-200]="highlightedSuggestion() === i"
+              [attr.aria-selected]="highlightedSuggestion() === i"
+              (mousedown)="onSuggestionClick($event, suggestion)"
+              (mouseenter)="onSuggestionHover(i)"
+            >
+              <span>{{ suggestion.name }}</span>
+              @if (suggestion.color) {
+              <span
+                class="size-2 rounded-full"
+                [style.background-color]="suggestion.color"
+                aria-hidden="true"
+              ></span>
+              }
+            </button>
+          </li>
+          }
+        </ul>
+        }
+      </div>
+      <button
+        type="button"
+        class="btn btn-ghost btn-xs"
+        [disabled]="value().length === 0"
+        (click)="clearTags()"
+      >
+        {{ 'transactions.form.actions.clearTags' | transloco }}
+      </button>
+    </div>
+  </label>
+
+  @if (visibleRecentTags().length > 0) {
+  <div class="space-y-2" aria-labelledby="recent-tags-label">
+    <p
+      id="recent-tags-label"
+      class="text-xs font-semibold uppercase tracking-wide text-base-content/50"
+    >
+      {{ 'transactions.form.recentTags' | transloco }}
+    </p>
+    <div class="flex flex-wrap gap-2">
+      @for (tag of visibleRecentTags(); track tag.id) {
+      <button
+        type="button"
+        class="btn btn-ghost btn-xs h-auto min-h-8 rounded-full border border-base-300 px-3 font-medium"
+        data-testid="recent-tag"
+        (click)="addExistingTag(tag)"
+      >
+        @if (tag.color) {
+        <span
+          class="size-2 rounded-full"
+          [style.background-color]="tag.color"
+          aria-hidden="true"
+        ></span>
+        }
+        {{ tag.name }}
+      </button>
+      }
+    </div>
+  </div>
+  } @if (value().length === 0 && tags().length === 0) {
+  <p class="text-xs text-base-content/60">
+    {{ 'transactions.form.emptyTags' | transloco }}
+  </p>
+  }
+</section>

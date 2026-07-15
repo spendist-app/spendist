@@ -32,11 +32,10 @@ import {
   CategorySelectComponent,
   CategorySelectOption,
 } from '../../shared/category-select/category-select.component';
-
-interface TagSelection {
-  readonly id: string | null;
-  readonly name: string;
-}
+import {
+  TagPickerComponent,
+  TagPickerSelection,
+} from '../../shared/tag-picker/tag-picker.component';
 
 interface CurrencyOptionView {
   readonly id: number;
@@ -54,6 +53,7 @@ export type TransactionFormSaveResult = 'created' | 'updated';
     TranslocoPipe,
     NgIcon,
     CategorySelectComponent,
+    TagPickerComponent,
   ],
   templateUrl: './transaction-create-form.component.html',
 })
@@ -71,7 +71,6 @@ export class TransactionCreateFormComponent {
     viewChild<ElementRef<HTMLInputElement>>('descriptionInput');
   protected readonly placeSearchInput =
     viewChild<ElementRef<HTMLInputElement>>('placeSearchInput');
-  private suggestionBlurTimer: ReturnType<typeof setTimeout> | null = null;
   private exchangeRateRequestToken = 0;
 
   readonly mode = input<'create' | 'edit'>('create');
@@ -153,7 +152,7 @@ export class TransactionCreateFormComponent {
       ],
       nonNullable: true,
     }),
-    tags: this.formBuilder.control<TagSelection[]>([], {
+    tags: this.formBuilder.control<TagPickerSelection[]>([], {
       nonNullable: true,
     }),
     foreignAmount: this.formBuilder.control<string>(''),
@@ -361,19 +360,6 @@ export class TransactionCreateFormComponent {
       }
     });
 
-    effect(() => {
-      const suggestions = this.suggestedTags();
-      if (suggestions.length === 0) {
-        this.highlightedSuggestion.set(-1);
-        return;
-      }
-
-      const current = this.highlightedSuggestion();
-      if (current >= suggestions.length) {
-        this.highlightedSuggestion.set(-1);
-      }
-    });
-
     this.form.controls.amount.valueChanges
       .pipe(takeUntilDestroyed())
       .subscribe(() => {
@@ -450,229 +436,10 @@ export class TransactionCreateFormComponent {
     return place.city ? `${place.name} · ${place.city}` : place.name;
   }
 
-  protected clearTags(): void {
-    this.form.controls.tags.setValue([] as TagSelection[]);
-    this.tagInput.set('');
-    this.closeSuggestionList();
-  }
-
-  protected readonly tagInput = signal('');
-  protected readonly showSuggestions = signal(false);
-  protected readonly highlightedSuggestion = signal(-1);
-  protected readonly suggestedTags = computed(() => {
-    const query = this.tagInput().trim().toLowerCase();
-    const selections = this.form.controls.tags.value;
-    const selectedIds = new Set(
-      selections
-        .filter((selection) => selection.id)
-        .map((selection) => selection.id as string)
-    );
-    const selectedNames = new Set(
-      selections.map((selection) => selection.name.toLowerCase())
-    );
-
-    return this.tags()
-      .filter((tag) => {
-        if (selectedIds.has(tag.id)) {
-          return false;
-        }
-
-        if (selectedNames.has(tag.name.toLowerCase())) {
-          return false;
-        }
-
-        if (!query) {
-          return true;
-        }
-
-        return tag.name.toLowerCase().includes(query);
-      })
-      .slice(0, 8);
-  });
-  protected readonly suggestionPanelOpen = computed(
-    () => this.showSuggestions() && this.suggestedTags().length > 0
-  );
-
-  protected onTagInput(event: Event): void {
-    const input = event.target as HTMLInputElement | null;
-    const value = input?.value ?? '';
-    this.tagInput.set(value);
-    this.showSuggestions.set(true);
-    this.highlightedSuggestion.set(-1);
-    this.clearSuggestionTimer();
-  }
-
-  protected onTagInputFocus(): void {
-    this.clearSuggestionTimer();
-    if (this.suggestedTags().length > 0) {
-      this.showSuggestions.set(true);
-      this.highlightedSuggestion.set(-1);
-    }
-  }
-
-  protected onTagInputBlur(): void {
-    this.clearSuggestionTimer();
-    this.suggestionBlurTimer = setTimeout(() => {
-      this.closeSuggestionList();
-    }, 120);
-  }
-
-  protected onTagInputKeydown(event: KeyboardEvent): void {
-    if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      this.moveSuggestionHighlight(1);
-      return;
-    }
-
-    if (event.key === 'ArrowUp') {
-      event.preventDefault();
-      this.moveSuggestionHighlight(-1);
-      return;
-    }
-
-    if (event.key === 'Escape') {
-      this.closeSuggestionList();
-      return;
-    }
-
-    if (event.key === 'Enter' || event.key === ',' || event.key === 'Tab') {
-      if (
-        event.key !== 'Tab' ||
-        this.tagInput().trim() ||
-        this.highlightedSuggestion() >= 0
-      ) {
-        event.preventDefault();
-        this.commitTagInput();
-      }
-      return;
-    }
-
-    if (event.key === 'Backspace' && !this.tagInput()) {
-      this.removeLastTag();
-    }
-  }
-
-  protected addExistingTag(tag: TagEntity): void {
-    this.clearSuggestionTimer();
-    this.addTagSelection({ id: tag.id, name: tag.name });
-  }
-
-  protected removeTag(selection: TagSelection): void {
-    const updated = this.form.controls.tags.value.filter(
-      (item) => !(item.id === selection.id && item.name === selection.name)
-    );
-    this.form.controls.tags.setValue(updated as TagSelection[]);
-  }
-
-  protected trackTagSelection(_index: number, selection: TagSelection): string {
-    return selection.id ?? `new-${selection.name.toLowerCase()}`;
-  }
-
-  protected onSuggestionClick(event: MouseEvent, suggestion: TagEntity): void {
-    event.preventDefault();
-    this.addExistingTag(suggestion);
-  }
-
-  protected onSuggestionHover(index: number): void {
-    this.highlightedSuggestion.set(index);
-  }
-
-  private commitTagInput(): void {
-    const suggestions = this.suggestedTags();
-    const highlighted = this.highlightedSuggestion();
-    if (highlighted >= 0 && highlighted < suggestions.length) {
-      this.addExistingTag(suggestions[highlighted]);
-      return;
-    }
-
-    const value = this.tagInput().trim();
-    if (!value) {
-      this.closeSuggestionList();
-      return;
-    }
-
-    this.addTagByName(value);
-  }
-
-  private addTagByName(name: string): void {
-    const normalized = this.sanitizeTagName(name);
-    if (!normalized) {
-      return;
-    }
-
-    const existingTag = this.tags().find(
-      (tag) => tag.name.toLowerCase() === normalized.toLowerCase()
-    );
-    if (existingTag) {
-      this.addTagSelection({ id: existingTag.id, name: existingTag.name });
-      return;
-    }
-
-    this.addTagSelection({ id: null, name: normalized });
-  }
-
-  private addTagSelection(selection: TagSelection): void {
-    const selections = this.form.controls.tags.value;
-    const duplicate = selections.some((item) => {
-      if (selection.id && item.id) {
-        return item.id === selection.id;
-      }
-
-      return item.name.toLowerCase() === selection.name.toLowerCase();
-    });
-
-    if (duplicate) {
-      return;
-    }
-
-    this.form.controls.tags.setValue([
-      ...selections,
-      selection,
-    ] as TagSelection[]);
-    this.tagInput.set('');
-    this.closeSuggestionList();
-  }
-
-  private removeLastTag(): void {
-    const selections = this.form.controls.tags.value;
-    if (selections.length === 0) {
-      return;
-    }
-
-    this.form.controls.tags.setValue(selections.slice(0, -1) as TagSelection[]);
-  }
-
-  private moveSuggestionHighlight(direction: 1 | -1): void {
-    const suggestions = this.suggestedTags();
-    if (suggestions.length === 0) {
-      this.closeSuggestionList();
-      return;
-    }
-
-    this.showSuggestions.set(true);
-    this.clearSuggestionTimer();
-
-    let index = this.highlightedSuggestion();
-    if (index < 0) {
-      index = direction > 0 ? 0 : suggestions.length - 1;
-    } else {
-      index = (index + direction + suggestions.length) % suggestions.length;
-    }
-
-    this.highlightedSuggestion.set(index);
-  }
-
-  private closeSuggestionList(): void {
-    this.clearSuggestionTimer();
-    this.showSuggestions.set(false);
-    this.highlightedSuggestion.set(-1);
-  }
-
-  private clearSuggestionTimer(): void {
-    if (this.suggestionBlurTimer !== null) {
-      clearTimeout(this.suggestionBlurTimer);
-      this.suggestionBlurTimer = null;
-    }
+  protected updateTagSelections(
+    selections: readonly TagPickerSelection[]
+  ): void {
+    this.form.controls.tags.setValue([...selections]);
   }
 
   protected toggleAdvanced(): void {
@@ -900,7 +667,7 @@ export class TransactionCreateFormComponent {
       currency: this.store.defaultCurrency(),
       direction: 'expense',
       quantity: 1,
-      tags: [] as TagSelection[],
+      tags: [] as TagPickerSelection[],
       foreignAmount: '',
       walletId: this.store.defaultWalletId() ?? '',
     });
@@ -910,7 +677,6 @@ export class TransactionCreateFormComponent {
     this.closeFormDropdowns();
     this.currencyFollowsWallet.set(true);
     this.store.dismissMutationError();
-    this.tagInput.set('');
     this.syncWalletCurrency(this.form.controls.walletId.value, true);
     this.syncAmountInDefault();
   }
@@ -1021,7 +787,6 @@ export class TransactionCreateFormComponent {
     this.showAdvanced.set(false);
     this.closeFormDropdowns();
     this.store.dismissMutationError();
-    this.tagInput.set('');
     this.syncWalletCurrency(transaction.walletId);
     this.syncAmountInDefault();
   }
@@ -1053,7 +818,6 @@ export class TransactionCreateFormComponent {
     this.showAdvanced.set(false);
     this.closeFormDropdowns();
     this.store.dismissMutationError();
-    this.tagInput.set('');
     this.syncWalletCurrency(transaction.walletId);
     this.syncAmountInDefault();
   }
@@ -1084,7 +848,6 @@ export class TransactionCreateFormComponent {
 
   private replaceNewTagsWithIds(tags: readonly TagEntity[]): void {
     if (tags.length === 0) {
-      this.closeSuggestionList();
       return;
     }
 
@@ -1100,12 +863,10 @@ export class TransactionCreateFormComponent {
       return match ? { id: match.id, name: match.name } : selection;
     });
 
-    this.form.controls.tags.setValue(updated as TagSelection[]);
-    this.closeSuggestionList();
-    this.tagInput.set('');
+    this.form.controls.tags.setValue(updated as TagPickerSelection[]);
   }
 
-  private mapTagIdsToSelections(ids: readonly string[]): TagSelection[] {
+  private mapTagIdsToSelections(ids: readonly string[]): TagPickerSelection[] {
     const tagLookup = new Map(this.store.tags().map((tag) => [tag.id, tag]));
     return ids.map((id) => {
       const tag = tagLookup.get(id);

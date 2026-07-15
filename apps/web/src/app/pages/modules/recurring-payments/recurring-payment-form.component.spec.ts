@@ -53,18 +53,42 @@ class RecurringPaymentsStoreStub {
       name: 'Expenses',
       color: null,
       icon: null,
-      categories: this.categories().filter((category) => category.groupId === 'expenses'),
+      categories: this.categories().filter(
+        (category) => category.groupId === 'expenses'
+      ),
     },
     {
       id: 'income',
       name: 'Income',
       color: null,
       icon: null,
-      categories: this.categories().filter((category) => category.groupId === 'income'),
+      categories: this.categories().filter(
+        (category) => category.groupId === 'income'
+      ),
     },
   ]);
-  readonly ungroupedCategories = signal(this.categories().filter((category) => !category.groupId));
-  readonly tags = signal([]);
+  readonly ungroupedCategories = signal(
+    this.categories().filter((category) => !category.groupId)
+  );
+  readonly tags = signal<
+    Array<{
+      id: string;
+      name: string;
+      color: string | null;
+      icon: string | null;
+    }>
+  >([]);
+  readonly recurringTransactions = signal<
+    Array<{
+      startDate: Date;
+      tags: Array<{
+        id: string;
+        name: string;
+        color: string | null;
+        icon: string | null;
+      }>;
+    }>
+  >([]);
   readonly wallets = signal([
     {
       id: 'wallet-1',
@@ -93,8 +117,22 @@ class RecurringPaymentsStoreStub {
     this.lastCreatePayload = payload;
   }
 
-  async updateRecurringTransaction(_id: string, payload: unknown): Promise<void> {
+  async updateRecurringTransaction(
+    _id: string,
+    payload: unknown
+  ): Promise<void> {
     this.lastUpdatePayload = payload;
+  }
+
+  async ensureTags(names: readonly string[]) {
+    const created = names.map((name, index) => ({
+      id: `created-${index}`,
+      name,
+      color: null,
+      icon: null,
+    }));
+    this.tags.update((tags) => [...tags, ...created]);
+    return created;
   }
 }
 
@@ -119,7 +157,7 @@ describe('RecurringPaymentFormComponent', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
     const dropdown = compiled.querySelector<HTMLButtonElement>(
-      'app-category-select button[aria-haspopup="listbox"]',
+      'app-category-select button[aria-haspopup="listbox"]'
     );
     dropdown?.click();
     fixture.detectChanges();
@@ -127,7 +165,7 @@ describe('RecurringPaymentFormComponent', () => {
     fixture.detectChanges();
 
     const searchInput = compiled.querySelector<HTMLInputElement>(
-      'app-category-select input[type="search"]',
+      'app-category-select input[type="search"]'
     );
     if (!searchInput) {
       throw new Error('Category search input was not rendered.');
@@ -138,15 +176,55 @@ describe('RecurringPaymentFormComponent', () => {
     searchInput.dispatchEvent(new Event('input'));
     fixture.detectChanges();
 
-    const listbox = compiled.querySelector('app-category-select [role="listbox"]') as HTMLElement;
+    const listbox = compiled.querySelector(
+      'app-category-select [role="listbox"]'
+    ) as HTMLElement;
     expect(listbox.textContent).toContain('Food / Groceries / Biedronka');
     expect(listbox.textContent).not.toContain('Salary');
 
-    const option = listbox.querySelector<HTMLButtonElement>('button[role="option"]');
+    const option = listbox.querySelector<HTMLButtonElement>(
+      'button[role="option"]'
+    );
     option?.click();
     fixture.detectChanges();
 
-    expect(fixture.componentInstance.form.controls.categoryId.value).toBe('biedronka');
+    expect(fixture.componentInstance.form.controls.categoryId.value).toBe(
+      'biedronka'
+    );
+  });
+
+  it('uses the shared compact tag picker with seven recent tags', () => {
+    const fixture = TestBed.createComponent(RecurringPaymentFormComponent);
+    const store = TestBed.inject(
+      RecurringPaymentsStore
+    ) as unknown as RecurringPaymentsStoreStub;
+    const tags = Array.from({ length: 8 }, (_, index) => ({
+      id: `tag-${index + 1}`,
+      name: `Tag ${index + 1}`,
+      color: null,
+      icon: null,
+    }));
+    store.tags.set(tags);
+    store.recurringTransactions.set([
+      {
+        startDate: new Date(Date.UTC(2026, 6, 15)),
+        tags,
+      },
+    ]);
+    fixture.componentRef.setInput('open', true);
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('app-tag-picker')
+    ).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelectorAll('[data-testid="recent-tag"]')
+    ).toHaveLength(7);
+    expect(
+      fixture.nativeElement.querySelectorAll(
+        'app-tag-picker input[type="checkbox"]'
+      )
+    ).toHaveLength(0);
   });
 
   it('builds cron from user-friendly schedule controls', () => {
@@ -155,7 +233,9 @@ describe('RecurringPaymentFormComponent', () => {
     fixture.detectChanges();
 
     const component = fixture.componentInstance;
-    expect(component.form.controls.schedule.value).toBe(monthlyCronForLocalTime(1, '12:00'));
+    expect(component.form.controls.schedule.value).toBe(
+      monthlyCronForLocalTime(1, '12:00')
+    );
 
     component.updateScheduleFrequency({
       target: { value: 'weekly' },
@@ -167,7 +247,9 @@ describe('RecurringPaymentFormComponent', () => {
       target: { value: '5' },
     } as unknown as Event);
 
-    expect(component.form.controls.schedule.value).toBe(weeklyCronForLocalTime(5, '09:30'));
+    expect(component.form.controls.schedule.value).toBe(
+      weeklyCronForLocalTime(5, '09:30')
+    );
   });
 
   it('keeps schedule state in sync when the frequency select changes in the DOM', () => {
@@ -177,14 +259,18 @@ describe('RecurringPaymentFormComponent', () => {
 
     const component = fixture.componentInstance;
     const compiled = fixture.nativeElement as HTMLElement;
-    const frequency = compiled.querySelector('#recurring-schedule-frequency') as HTMLSelectElement;
+    const frequency = compiled.querySelector(
+      '#recurring-schedule-frequency'
+    ) as HTMLSelectElement;
 
     frequency.value = 'daily';
     frequency.dispatchEvent(new Event('change', { bubbles: true }));
     fixture.detectChanges();
 
     expect(component.form.controls.scheduleFrequency.value).toBe('daily');
-    expect(component.form.controls.schedule.value).toBe(dailyCronForLocalTime('12:00'));
+    expect(component.form.controls.schedule.value).toBe(
+      dailyCronForLocalTime('12:00')
+    );
     expect(compiled.textContent).not.toContain('Day 1');
   });
 
@@ -194,8 +280,12 @@ describe('RecurringPaymentFormComponent', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    const currencySelect = compiled.querySelector('select[formControlName="currency"]') as HTMLSelectElement;
-    const options = Array.from(currencySelect?.options ?? []).map((option) => option.value);
+    const currencySelect = compiled.querySelector(
+      'select[formControlName="currency"]'
+    ) as HTMLSelectElement;
+    const options = Array.from(currencySelect?.options ?? []).map(
+      (option) => option.value
+    );
 
     expect(options).toEqual(['PLN', 'EUR', 'USD']);
   });
@@ -206,7 +296,9 @@ describe('RecurringPaymentFormComponent', () => {
     fixture.detectChanges();
 
     const component = fixture.componentInstance;
-    const store = TestBed.inject(RecurringPaymentsStore) as unknown as RecurringPaymentsStoreStub;
+    const store = TestBed.inject(
+      RecurringPaymentsStore
+    ) as unknown as RecurringPaymentsStoreStub;
     component.form.patchValue({
       name: 'Old rent',
       categoryId: 'food',
@@ -227,7 +319,7 @@ describe('RecurringPaymentFormComponent', () => {
         amountMode: 'fixed',
         startDate: '2023-01-01',
         endDate: '2024-12-31',
-      }),
+      })
     );
   });
 
@@ -237,7 +329,9 @@ describe('RecurringPaymentFormComponent', () => {
     fixture.detectChanges();
 
     const component = fixture.componentInstance;
-    const store = TestBed.inject(RecurringPaymentsStore) as unknown as RecurringPaymentsStoreStub;
+    const store = TestBed.inject(
+      RecurringPaymentsStore
+    ) as unknown as RecurringPaymentsStoreStub;
     component.form.patchValue({
       name: 'Electricity',
       categoryId: 'food',
@@ -253,13 +347,15 @@ describe('RecurringPaymentFormComponent', () => {
       expect.objectContaining({
         amount: 0,
         amountMode: 'variable',
-      }),
+      })
     );
   });
 
   it('updates edited recurring payments after schedule and date changes', async () => {
     const fixture = TestBed.createComponent(RecurringPaymentFormComponent);
-    const store = TestBed.inject(RecurringPaymentsStore) as unknown as RecurringPaymentsStoreStub;
+    const store = TestBed.inject(
+      RecurringPaymentsStore
+    ) as unknown as RecurringPaymentsStoreStub;
     store.isEditing.set(true);
     store.editingRecurring.set({
       id: 'recurring-1',
@@ -301,7 +397,7 @@ describe('RecurringPaymentFormComponent', () => {
         currency: 'USD',
         startDate: '2026-06-10',
         schedule: dailyCronForLocalTime('12:30'),
-      }),
+      })
     );
   });
 
@@ -311,12 +407,16 @@ describe('RecurringPaymentFormComponent', () => {
     fixture.detectChanges();
 
     const component = fixture.componentInstance;
-    const store = TestBed.inject(RecurringPaymentsStore) as unknown as RecurringPaymentsStoreStub;
+    const store = TestBed.inject(
+      RecurringPaymentsStore
+    ) as unknown as RecurringPaymentsStoreStub;
     component.form.controls.name.setValue('');
     await component.onSubmit();
 
     expect(store.lastCreatePayload).toBeNull();
-    expect(component.submissionError()).toBe('modules.recurringPayments.form.notifications.invalid');
+    expect(component.submissionError()).toBe(
+      'modules.recurringPayments.form.notifications.invalid'
+    );
   });
 });
 
@@ -331,26 +431,59 @@ function weeklyCronForLocalTime(dayOfWeek: number, time: string): string {
 }
 
 function monthlyCronForLocalTime(dayOfMonth: number, time: string): string {
-  const { hour, minute, utcDayOfMonth } = utcPartsForLocalTime(time, undefined, dayOfMonth);
+  const { hour, minute, utcDayOfMonth } = utcPartsForLocalTime(
+    time,
+    undefined,
+    dayOfMonth
+  );
   return `${minute} ${hour} ${utcDayOfMonth} * *`;
 }
 
 function utcPartsForLocalTime(
   time: string,
   dayOfWeek?: number,
-  dayOfMonth?: number,
-): { readonly hour: number; readonly minute: number; readonly utcDayOfWeek: number; readonly utcDayOfMonth: number } {
+  dayOfMonth?: number
+): {
+  readonly hour: number;
+  readonly minute: number;
+  readonly utcDayOfWeek: number;
+  readonly utcDayOfMonth: number;
+} {
   const [hour, minute] = time.split(':').map(Number);
   const now = new Date();
   let date: Date;
 
   if (dayOfWeek !== undefined) {
     const daysUntilTarget = (dayOfWeek - now.getDay() + 7) % 7;
-    date = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysUntilTarget, hour, minute, 0, 0);
+    date = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() + daysUntilTarget,
+      hour,
+      minute,
+      0,
+      0
+    );
   } else if (dayOfMonth !== undefined) {
-    date = new Date(now.getFullYear(), now.getMonth(), dayOfMonth, hour, minute, 0, 0);
+    date = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      dayOfMonth,
+      hour,
+      minute,
+      0,
+      0
+    );
   } else {
-    date = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, minute, 0, 0);
+    date = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      hour,
+      minute,
+      0,
+      0
+    );
   }
 
   return {

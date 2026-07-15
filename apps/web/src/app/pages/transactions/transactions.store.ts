@@ -1126,7 +1126,7 @@ export class TransactionsStore {
     void this.reloadTransactionsAfterFilterChange();
   }
 
-  setCategoryGroupSelection(groupId: string): void {
+  setCategoryGroupSelection(groupId: string | null): void {
     this.filters.update((filters) => ({
       ...filters,
       selectedCategoryIds: this.categoryIdsForGroup(groupId),
@@ -1153,7 +1153,7 @@ export class TransactionsStore {
     void this.reloadTransactionsAfterFilterChange();
   }
 
-  toggleCategoryGroupSelection(groupId: string): void {
+  toggleCategoryGroupSelection(groupId: string | null): void {
     this.filters.update((filters) => {
       const set = new Set(filters.selectedCategoryIds);
       const groupIds = this.categoryIdsForGroup(groupId);
@@ -1172,10 +1172,20 @@ export class TransactionsStore {
     void this.reloadTransactionsAfterFilterChange();
   }
 
-  isCategoryGroupSelected(groupId: string): boolean {
+  isCategoryGroupSelected(groupId: string | null): boolean {
     const selectedIds = new Set(this.filters().selectedCategoryIds);
     const groupIds = this.categoryIdsForGroup(groupId);
     return groupIds.length > 0 && groupIds.every((id) => selectedIds.has(id));
+  }
+
+  selectAllCategories(): void {
+    this.filters.update((filters) => ({
+      ...filters,
+      selectedCategoryIds: this.state().categories.map(
+        (category) => category.id
+      ),
+    }));
+    void this.reloadTransactionsAfterFilterChange();
   }
 
   toggleTagSelection(tagId: string): void {
@@ -1695,9 +1705,11 @@ export class TransactionsStore {
     };
   }
 
-  private categoryIdsForGroup(groupId: string): readonly string[] {
+  private categoryIdsForGroup(groupId: string | null): readonly string[] {
     return this.state()
-      .categories.filter((category) => category.groupId === groupId)
+      .categories.filter((category) =>
+        groupId ? category.groupId === groupId : !category.groupId
+      )
       .map((category) => category.id);
   }
 
