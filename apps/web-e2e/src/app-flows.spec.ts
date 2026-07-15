@@ -281,6 +281,14 @@ async function openTransactions(page: Page): Promise<void> {
   ).toBeVisible();
 }
 
+async function openTransactionCreateForm(page: Page): Promise<void> {
+  await page.getByTestId('transaction-add-menu-trigger').click();
+  await page
+    .getByRole('menu')
+    .getByRole('menuitem', { name: 'Add transaction' })
+    .click();
+}
+
 async function openModule(
   page: Page,
   linkName: 'Places' | 'Recurring payments',
@@ -402,7 +410,7 @@ test('adds transaction and keeps it after reload', async ({
   await ensureAuthenticated(page);
   await openTransactions(page);
 
-  await page.getByRole('button', { name: 'Add transaction' }).click();
+  await openTransactionCreateForm(page);
   await expect(
     page.getByRole('heading', { name: 'Add transaction' })
   ).toBeVisible();
@@ -423,6 +431,79 @@ test('adds transaction and keeps it after reload', async ({
   await expect(page.getByText(description)).toBeVisible();
 });
 
+test('exposes bulk entry and applies year, month, and amount sorting', async ({
+  page,
+}, testInfo) => {
+  const suffix = uniqueSuffix(testInfo);
+  const lowerAmountDescription = `E2E lower amount ${suffix}`;
+  const higherAmountDescription = `E2E higher amount ${suffix}`;
+
+  await ensureAuthenticated(page);
+  await openTransactions(page);
+
+  const addTrigger = page.getByTestId('transaction-add-menu-trigger');
+  await addTrigger.hover();
+  const bulkAction = page.getByRole('menuitem', { name: 'Add in bulk' });
+  await expect(bulkAction).toBeVisible();
+  await bulkAction.click();
+  const bulkDialog = page.getByRole('dialog');
+  await expect(
+    bulkDialog.getByRole('heading', { name: 'Add transactions in bulk' })
+  ).toBeVisible();
+  await bulkDialog.getByRole('button', { name: 'Cancel' }).click();
+
+  for (const transaction of [
+    { description: lowerAmountDescription, amount: '10' },
+    { description: higherAmountDescription, amount: '90' },
+  ]) {
+    await openTransactionCreateForm(page);
+    const dialog = page.getByRole('dialog');
+    await dialog
+      .locator('input[formcontrolname="description"]')
+      .fill(transaction.description);
+    await dialog
+      .locator('input[formcontrolname="occurredOn"]')
+      .fill('2026-07-10');
+    await selectFirstTransactionCategory(page);
+    await dialog
+      .locator('input[formcontrolname="amount"]')
+      .fill(transaction.amount);
+    await dialog
+      .locator('select[formcontrolname="currency"]')
+      .selectOption('PLN');
+    await dialog.getByRole('button', { name: 'Save transaction' }).click();
+    await expect(page.getByText(transaction.description)).toBeVisible();
+  }
+
+  const year = page.getByTestId('transaction-year-filter');
+  const month = page.getByTestId('transaction-month-filter');
+  await year.selectOption('2026');
+  await expect(month).toBeEnabled();
+  await expect(month.locator('option')).toHaveCount(13);
+  await expect(page.getByLabel('Date from', { exact: true })).toHaveValue(
+    '2026-01-01'
+  );
+  await expect(page.getByLabel('Date to', { exact: true })).toHaveValue(
+    '2026-12-31'
+  );
+
+  await month.selectOption('6');
+  await expect(page.getByLabel('Date from', { exact: true })).toHaveValue(
+    '2026-07-01'
+  );
+  await expect(page.getByLabel('Date to', { exact: true })).toHaveValue(
+    '2026-07-31'
+  );
+
+  await page.getByTestId('transaction-sort-filter').selectOption('amountDesc');
+  const rows = page
+    .locator('#transactions-results ul > li')
+    .filter({ hasText: suffix });
+  await expect(rows.nth(1)).toBeVisible({ timeout: 15000 });
+  await expect(rows.nth(0)).toContainText(higherAmountDescription);
+  await expect(rows.nth(1)).toContainText(lowerAmountDescription);
+});
+
 test('shows transaction tags on the dashboard', async ({ page }, testInfo) => {
   const suffix = uniqueSuffix(testInfo);
   const description = `E2E tagged expense ${suffix}`;
@@ -431,7 +512,7 @@ test('shows transaction tags on the dashboard', async ({ page }, testInfo) => {
   await ensureAuthenticated(page);
   await openTransactions(page);
 
-  await page.getByRole('button', { name: 'Add transaction' }).click();
+  await openTransactionCreateForm(page);
   const dialog = page.getByRole('dialog');
   await expect(
     dialog.getByRole('heading', { name: 'Add transaction' })
@@ -478,7 +559,7 @@ test('filters transactions from the sidebar tags tab', async ({
   await ensureAuthenticated(page);
   await openTransactions(page);
 
-  await page.getByRole('button', { name: 'Add transaction' }).click();
+  await openTransactionCreateForm(page);
   let dialog = page.getByRole('dialog');
   await dialog
     .locator('input[formcontrolname="description"]')
@@ -493,7 +574,7 @@ test('filters transactions from the sidebar tags tab', async ({
   await dialog.getByRole('button', { name: 'Save transaction' }).click();
   await expect(page.getByText(currentDescription)).toBeVisible();
 
-  await page.getByRole('button', { name: 'Add transaction' }).click();
+  await openTransactionCreateForm(page);
   dialog = page.getByRole('dialog');
   await dialog
     .locator('input[formcontrolname="description"]')
@@ -588,7 +669,7 @@ test('creates place and assigns it to a transaction', async ({
   await expect(page.getByText('Zebrzydowice').first()).toBeVisible();
 
   await openTransactions(page);
-  await page.getByRole('button', { name: 'Add transaction' }).click();
+  await openTransactionCreateForm(page);
   await page.locator('input[formcontrolname="description"]').fill(description);
   await selectFirstTransactionCategory(page);
   await selectTransactionPlace(page, placeName);
@@ -616,7 +697,7 @@ test('updates transaction exchange rate in edit form', async ({
   await ensureAuthenticated(page);
   await openTransactions(page);
   await filterTransactionsByDate(page, '2026-05-29');
-  await page.getByRole('button', { name: 'Add transaction' }).click();
+  await openTransactionCreateForm(page);
 
   await page.locator('input[formcontrolname="description"]').fill(description);
   await page.locator('input[formcontrolname="occurredOn"]').fill('2026-05-29');

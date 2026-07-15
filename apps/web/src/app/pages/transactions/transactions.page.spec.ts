@@ -24,6 +24,7 @@ class TransactionsStoreStub {
     from: null,
     to: null,
     preset: 'allTime',
+    sort: 'dateDesc',
   });
   readonly transactions = signal([]);
   readonly filteredTransactions = signal([]);
@@ -170,6 +171,18 @@ class TransactionsStoreStub {
     return;
   }
 
+  setSelectedYear(): void {
+    return;
+  }
+
+  setSelectedMonth(): void {
+    return;
+  }
+
+  setSort(): void {
+    return;
+  }
+
   clearTagSelection(): void {
     return;
   }
@@ -310,7 +323,7 @@ describe('TransactionsPageComponent', () => {
     ).toEqual(['category-ungrouped-active']);
   });
 
-  it('renders explicit category, place, and amount filters with a wide search field', () => {
+  it('renders readable two-column filters including date and sorting controls', () => {
     const fixture = TestBed.createComponent(TransactionsPageComponent);
     fixture.detectChanges();
 
@@ -318,7 +331,7 @@ describe('TransactionsPageComponent', () => {
       '[data-testid="transaction-search-filter"]'
     ) as HTMLInputElement;
 
-    expect(search.closest('label')?.classList.contains('xl:col-span-6')).toBe(
+    expect(search.closest('label')?.classList.contains('sm:col-span-2')).toBe(
       true
     );
     expect(
@@ -341,6 +354,77 @@ describe('TransactionsPageComponent', () => {
         '[data-testid="transaction-maximum-amount-filter"]'
       )
     ).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="transaction-year-filter"]'
+      )
+    ).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="transaction-month-filter"]'
+      )
+    ).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="transaction-sort-filter"]'
+      )
+    ).not.toBeNull();
+  });
+
+  it('requires a year before exposing all twelve months', () => {
+    const fixture = TestBed.createComponent(TransactionsPageComponent);
+    fixture.detectChanges();
+    const store = fixture.debugElement.injector.get(
+      TransactionsStore
+    ) as unknown as TransactionsStoreStub;
+    let month = fixture.nativeElement.querySelector(
+      '[data-testid="transaction-month-filter"]'
+    ) as HTMLSelectElement;
+
+    expect(month.disabled).toBe(true);
+
+    store.activeFilters.update((filters) => ({
+      ...filters,
+      from: new Date(Date.UTC(2026, 0, 1)),
+      to: new Date(Date.UTC(2026, 11, 31, 23, 59, 59, 999)),
+      preset: 'custom',
+    }));
+    fixture.detectChanges();
+    month = fixture.nativeElement.querySelector(
+      '[data-testid="transaction-month-filter"]'
+    ) as HTMLSelectElement;
+
+    expect(month.disabled).toBe(false);
+    expect(month.options).toHaveLength(13);
+  });
+
+  it('passes year, month, and sort selections to the store', () => {
+    const fixture = TestBed.createComponent(TransactionsPageComponent);
+    fixture.detectChanges();
+    const store = fixture.debugElement.injector.get(
+      TransactionsStore
+    ) as unknown as TransactionsStoreStub;
+    const setYear = vi.spyOn(store, 'setSelectedYear');
+    const setMonth = vi.spyOn(store, 'setSelectedMonth');
+    const setSort = vi.spyOn(store, 'setSort');
+    const component = fixture.componentInstance as unknown as {
+      onYearSelect(event: Event): void;
+      onMonthSelect(event: Event): void;
+      onSortSelect(event: Event): void;
+    };
+
+    component.onYearSelect(eventWithSelectValue('2026'));
+    store.activeFilters.update((filters) => ({
+      ...filters,
+      from: new Date(Date.UTC(2026, 0, 1)),
+      to: new Date(Date.UTC(2026, 11, 31, 23, 59, 59, 999)),
+    }));
+    component.onMonthSelect(eventWithSelectValue('5'));
+    component.onSortSelect(eventWithSelectValue('amountDesc'));
+
+    expect(setYear).toHaveBeenCalledWith(2026);
+    expect(setMonth).toHaveBeenCalledWith(2026, 5);
+    expect(setSort).toHaveBeenCalledWith('amountDesc');
   });
 
   it('applies a whole category group immediately from the sidebar', () => {
@@ -442,17 +526,39 @@ describe('TransactionsPageComponent', () => {
     expect(component.createFormOpen()).toBe(false);
   });
 
-  it('opens single entry directly from the main add button', () => {
+  it('opens the add action menu from the main add button', () => {
+    const fixture = TestBed.createComponent(TransactionsPageComponent);
+    fixture.detectChanges();
+    const component = fixture.componentInstance as unknown as {
+      addMenuOpen(): boolean;
+      createFormOpen(): boolean;
+    };
+    const addButton = fixture.nativeElement.querySelector(
+      '[data-testid="transaction-add-menu-trigger"]'
+    ) as HTMLElement;
+
+    addButton.click();
+
+    expect(component.addMenuOpen()).toBe(true);
+    expect(component.createFormOpen()).toBe(false);
+  });
+
+  it('opens single entry from the add action menu', () => {
     const fixture = TestBed.createComponent(TransactionsPageComponent);
     fixture.detectChanges();
     const component = fixture.componentInstance as unknown as {
       createFormOpen(): boolean;
     };
     const addButton = fixture.nativeElement.querySelector(
-      'summary[role="button"]'
-    ) as HTMLElement;
+      '[data-testid="transaction-add-menu-trigger"]'
+    ) as HTMLButtonElement;
 
     addButton.click();
+    fixture.detectChanges();
+    const singleButton = fixture.nativeElement.querySelector(
+      '#transaction-add-actions button:first-child'
+    ) as HTMLButtonElement;
+    singleButton.click();
 
     expect(component.createFormOpen()).toBe(true);
   });
@@ -463,6 +569,11 @@ describe('TransactionsPageComponent', () => {
     const component = fixture.componentInstance as unknown as {
       bulkFormOpen(): boolean;
     };
+    const addButton = fixture.nativeElement.querySelector(
+      '[data-testid="transaction-add-menu-trigger"]'
+    ) as HTMLButtonElement;
+    addButton.click();
+    fixture.detectChanges();
     const bulkButton = fixture.nativeElement.querySelector(
       '#transaction-add-actions button:last-child'
     ) as HTMLButtonElement;
@@ -477,13 +588,10 @@ describe('TransactionsPageComponent', () => {
     fixture.detectChanges();
     const component = fixture.componentInstance as unknown as {
       addMenuOpen(): boolean;
-      syncAddMenuState(menu: HTMLDetailsElement): void;
+      openAddMenu(): void;
     };
-    const menu = fixture.nativeElement.querySelector(
-      'details[aria-controls], details.dropdown'
-    ) as HTMLDetailsElement;
-    menu.open = true;
-    component.syncAddMenuState(menu);
+    component.openAddMenu();
+    fixture.detectChanges();
 
     document.dispatchEvent(
       new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
@@ -491,7 +599,9 @@ describe('TransactionsPageComponent', () => {
     fixture.detectChanges();
 
     expect(component.addMenuOpen()).toBe(false);
-    expect(menu.open).toBe(false);
+    expect(
+      fixture.nativeElement.querySelector('#transaction-add-actions')
+    ).toBeNull();
   });
 
   it('shows a transient toast after a transaction is saved', () => {
@@ -517,3 +627,14 @@ describe('TransactionsPageComponent', () => {
     expect(component.transactionToasts().length).toBe(0);
   });
 });
+
+function eventWithSelectValue(value: string): Event {
+  const select = document.createElement('select');
+  const option = document.createElement('option');
+  option.value = value;
+  select.append(option);
+  select.value = value;
+  const event = new Event('change');
+  Object.defineProperty(event, 'target', { value: select });
+  return event;
+}

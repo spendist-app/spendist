@@ -105,6 +105,14 @@ export type TransactionPresetId =
   | 'allTime'
   | 'custom';
 
+export type TransactionSortId =
+  | 'dateDesc'
+  | 'dateAsc'
+  | 'amountDesc'
+  | 'amountAsc'
+  | 'descriptionAsc'
+  | 'descriptionDesc';
+
 interface TransactionsFilters {
   readonly selectedCategoryIds: readonly string[];
   readonly selectedTagIds: readonly string[];
@@ -115,6 +123,7 @@ interface TransactionsFilters {
   readonly from: Date | null;
   readonly to: Date | null;
   readonly preset: TransactionPresetId;
+  readonly sort: TransactionSortId;
 }
 
 interface GroupWithCategories extends CategoryGroupEntity {
@@ -411,11 +420,7 @@ export class TransactionsStore {
     });
   });
 
-  readonly filteredTransactions = computed(() => {
-    return [...this.transactionsView()].sort(
-      (a, b) => b.occurredAt.getTime() - a.occurredAt.getTime()
-    );
-  });
+  readonly filteredTransactions = computed(() => this.transactionsView());
 
   readonly availableYears = computed(() => {
     const years = this.state().availableYears;
@@ -788,9 +793,7 @@ export class TransactionsStore {
     let query = this.supabase
       .from('transactions')
       .select('*', { count: 'exact' })
-      .eq('owner_id', userId)
-      .order('occurred_at', { ascending: false })
-      .range(from, to);
+      .eq('owner_id', userId);
 
     if (filters.from) {
       query = query.gte(
@@ -840,6 +843,38 @@ export class TransactionsStore {
     if (searchFilter) {
       query = query.or(searchFilter);
     }
+
+    switch (filters.sort) {
+      case 'dateAsc':
+        query = query.order('occurred_at', { ascending: true });
+        break;
+      case 'amountDesc':
+        query = query
+          .order('amount_in_default', { ascending: false })
+          .order('occurred_at', { ascending: false });
+        break;
+      case 'amountAsc':
+        query = query
+          .order('amount_in_default', { ascending: true })
+          .order('occurred_at', { ascending: false });
+        break;
+      case 'descriptionAsc':
+        query = query
+          .order('description', { ascending: true, nullsFirst: false })
+          .order('occurred_at', { ascending: false });
+        break;
+      case 'descriptionDesc':
+        query = query
+          .order('description', { ascending: false, nullsFirst: false })
+          .order('occurred_at', { ascending: false });
+        break;
+      case 'dateDesc':
+      default:
+        query = query.order('occurred_at', { ascending: false });
+        break;
+    }
+
+    query = query.range(from, to);
 
     const { data, error, count } = await query;
     if (error) {
@@ -1061,11 +1096,22 @@ export class TransactionsStore {
     void this.reloadTransactionsAfterFilterChange();
   }
 
-  setAmountRange(minimumAmount: number | null, maximumAmount: number | null): void {
+  setAmountRange(
+    minimumAmount: number | null,
+    maximumAmount: number | null
+  ): void {
     this.filters.update((filters) => ({
       ...filters,
       minimumAmount: this.normalizeFilterAmount(minimumAmount),
       maximumAmount: this.normalizeFilterAmount(maximumAmount),
+    }));
+    void this.reloadTransactionsAfterFilterChange();
+  }
+
+  setSort(sort: TransactionSortId): void {
+    this.filters.update((filters) => ({
+      ...filters,
+      sort,
     }));
     void this.reloadTransactionsAfterFilterChange();
   }
@@ -1480,7 +1526,11 @@ export class TransactionsStore {
       return { success: true, created: transactionRows.length };
     } catch (error) {
       const message = this.describeError(error);
-      logError('TransactionsStore', 'Failed to create transaction batch', error);
+      logError(
+        'TransactionsStore',
+        'Failed to create transaction batch',
+        error
+      );
       this.state.update((state) => ({
         ...state,
         transactionMutationPending: false,
@@ -1639,6 +1689,7 @@ export class TransactionsStore {
       maximumAmount: null,
       searchTerm: '',
       preset: 'currentMonth',
+      sort: 'dateDesc',
       from,
       to,
     };
