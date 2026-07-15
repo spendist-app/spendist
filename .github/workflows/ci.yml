@@ -100,6 +100,41 @@ jobs:
             exit 1
           fi
 
+      - name: Wait for recurring payments Edge Function
+        run: |
+          set -a
+          source "$E2E_ENV_FILE"
+          set +a
+
+          edge_runtime_container="supabase_edge_runtime_spendist-app"
+          if docker inspect "$edge_runtime_container" >/dev/null 2>&1 && \
+            [ "$(docker inspect --format '{{.State.Running}}' "$edge_runtime_container")" != "true" ]; then
+            docker start "$edge_runtime_container"
+          fi
+
+          function_url="${SUPABASE_URL%/}/functions/v1/process-recurring-payments"
+          for attempt in $(seq 1 60); do
+            http_status="$(curl --silent --show-error \
+              --output /tmp/process-recurring-payments-health.txt \
+              --write-out '%{http_code}' \
+              --header "apikey: $SUPABASE_ANON_KEY" \
+              "$function_url" || true)"
+
+            if [ "$http_status" = "405" ]; then
+              echo "Recurring payments Edge Function is ready."
+              break
+            fi
+
+            if [ "$attempt" = "60" ]; then
+              echo "Edge Function did not become ready (last HTTP status: $http_status)." >&2
+              docker ps -a --filter "name=$edge_runtime_container" >&2
+              docker logs --tail=200 "$edge_runtime_container" >&2 || true
+              exit 1
+            fi
+
+            sleep 2
+          done
+
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
 
