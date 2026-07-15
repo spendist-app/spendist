@@ -119,7 +119,10 @@ export interface WalletEntity {
 }
 
 type RecurringOverviewRow = Readonly<
-  Omit<RecurringTransactionsOverviewRow, 'monthly_expense' | 'yearly_expense' | 'recurring_transactions'> & {
+  Omit<
+    RecurringTransactionsOverviewRow,
+    'monthly_expense' | 'yearly_expense' | 'recurring_transactions'
+  > & {
     monthly_expense: number | string | null;
     yearly_expense: number | string | null;
   }
@@ -142,7 +145,8 @@ export interface CreateRecurringTransactionPayload {
   readonly walletId: string | null;
 }
 
-export type UpdateRecurringTransactionPayload = CreateRecurringTransactionPayload;
+export type UpdateRecurringTransactionPayload =
+  CreateRecurringTransactionPayload;
 
 class RecurringPaymentsStoreError extends Error {
   constructor(message: string) {
@@ -202,10 +206,12 @@ export class RecurringPaymentsStore {
       state.recurringTransactions,
       state.stats.monthlyExpense,
       state.defaultCurrency,
-      new Date(),
+      new Date()
     );
   });
-  readonly recurringTransactions = computed(() => this.state().recurringTransactions);
+  readonly recurringTransactions = computed(
+    () => this.state().recurringTransactions
+  );
   readonly recurringPaymentsFilter = computed(() => this.listFilter());
   readonly filteredRecurringTransactions = computed(() => {
     const filter = this.listFilter();
@@ -230,7 +236,9 @@ export class RecurringPaymentsStore {
     this.state()
       .groups.map((group) => ({
         ...group,
-        categories: this.state().categories.filter((category) => category.groupId === group.id),
+        categories: this.state().categories.filter(
+          (category) => category.groupId === group.id
+        ),
       }))
       .filter((group) => group.categories.length > 0)
   );
@@ -246,15 +254,25 @@ export class RecurringPaymentsStore {
     const preferred = wallets.find((wallet) => wallet.isDefault);
     return preferred?.id ?? wallets[0]?.id ?? null;
   });
-  readonly empty = computed(() => this.state().recurringTransactions.length === 0);
-  readonly filteredEmpty = computed(() => this.filteredRecurringTransactions().length === 0);
-  readonly editingRecurring = computed<RecurringTransactionEntity | null>(() => {
-    const id = this.editingId();
-    if (!id) {
-      return null;
+  readonly empty = computed(
+    () => this.state().recurringTransactions.length === 0
+  );
+  readonly filteredEmpty = computed(
+    () => this.filteredRecurringTransactions().length === 0
+  );
+  readonly editingRecurring = computed<RecurringTransactionEntity | null>(
+    () => {
+      const id = this.editingId();
+      if (!id) {
+        return null;
+      }
+      return (
+        this.state().recurringTransactions.find(
+          (transaction) => transaction.id === id
+        ) ?? null
+      );
     }
-    return this.state().recurringTransactions.find((transaction) => transaction.id === id) ?? null;
-  });
+  );
   readonly isEditing = computed(() => this.editingId() !== null);
 
   constructor() {
@@ -309,7 +327,9 @@ export class RecurringPaymentsStore {
         return;
       }
 
-      const exists = currentState.recurringTransactions.some((transaction) => transaction.id === editingId);
+      const exists = currentState.recurringTransactions.some(
+        (transaction) => transaction.id === editingId
+      );
       if (!exists) {
         this.editingId.set(null);
       }
@@ -357,13 +377,12 @@ export class RecurringPaymentsStore {
         recurringTagsResult,
         walletsResult,
         currenciesResult,
-      ] =
-        await Promise.all([
-          this.supabase
-            .from('recurring_transactions_overview')
-            .select('*')
-            .eq('owner_id', userId)
-            .maybeSingle(),
+      ] = await Promise.all([
+        this.supabase
+          .from('recurring_transactions_overview')
+          .select('*')
+          .eq('owner_id', userId)
+          .maybeSingle(),
         this.supabase
           .from('recurring_transactions')
           .select('*')
@@ -386,11 +405,11 @@ export class RecurringPaymentsStore {
           .select('*')
           .eq('owner_id', userId)
           .order('name', { ascending: true }),
-          this.supabase
-            .from('tags')
-            .select('*')
-            .eq('owner_id', userId)
-            .order('name', { ascending: true }),
+        this.supabase
+          .from('tags')
+          .select('*')
+          .eq('owner_id', userId)
+          .order('name', { ascending: true }),
         this.supabase
           .from('recurring_transaction_tags')
           .select('*')
@@ -405,45 +424,63 @@ export class RecurringPaymentsStore {
           .from('currencies')
           .select('*')
           .order('symbol', { ascending: true }),
-        ]);
+      ]);
 
-      const overviewRow = this.ensureNoErrorMaybeSingle<RecurringOverviewRow>(overviewResult);
-      const transactionRows = this.ensureNoErrorArray<RecurringTransactionRow>(transactionsResult);
-      const occurrenceRows = this.ensureNoErrorArray<RecurringOccurrenceRow>(occurrencesResult);
-      const groups = this.ensureNoErrorArray<CategoryGroupRow>(groupsResult).map((group) =>
-        this.mapGroupRow(group),
+      const overviewRow =
+        this.ensureNoErrorMaybeSingle<RecurringOverviewRow>(overviewResult);
+      const transactionRows =
+        this.ensureNoErrorArray<RecurringTransactionRow>(transactionsResult);
+      const occurrenceRows =
+        this.ensureNoErrorArray<RecurringOccurrenceRow>(occurrencesResult);
+      const groups = this.ensureNoErrorArray<CategoryGroupRow>(
+        groupsResult
+      ).map((group) => this.mapGroupRow(group));
+      const categories = this.ensureNoErrorArray<CategoryRow>(
+        categoriesResult
+      ).map((category) => this.mapCategoryRow(category));
+      const tags = this.ensureNoErrorArray<TagRow>(tagsResult).map((tag) =>
+        this.mapTagRow(tag)
       );
-      const categories = this.ensureNoErrorArray<CategoryRow>(categoriesResult).map((category) =>
-        this.mapCategoryRow(category),
-      );
-      const tags = this.ensureNoErrorArray<TagRow>(tagsResult).map((tag) => this.mapTagRow(tag));
-      const recurringTagRows = this.ensureNoErrorArray<RecurringTransactionTagRow>(recurringTagsResult);
-      const currencyRows = this.ensureNoErrorArray<CurrencyRow>(currenciesResult).map((row) => this.mapCurrencyRow(row));
+      const recurringTagRows =
+        this.ensureNoErrorArray<RecurringTransactionTagRow>(
+          recurringTagsResult
+        );
+      const currencyRows = this.ensureNoErrorArray<CurrencyRow>(
+        currenciesResult
+      ).map((row) => this.mapCurrencyRow(row));
       const currencies = this.sortCurrencies(currencyRows);
-      const currencyLookup = new Map(currencyRows.map((currency) => [currency.id, currency.symbol]));
+      const currencyLookup = new Map(
+        currencyRows.map((currency) => [currency.id, currency.symbol])
+      );
       const walletRows = this.ensureNoErrorArray<WalletRow>(walletsResult);
       const wallets = this.sortWallets(
-        walletRows.map((wallet) => this.mapWalletRow(wallet, currencyLookup)),
+        walletRows.map((wallet) => this.mapWalletRow(wallet, currencyLookup))
       );
-      const walletLookup = new Map(wallets.map((wallet) => [wallet.id, wallet]));
-      const categoryLookup = new Map(categories.map((category) => [category.id, category]));
+      const walletLookup = new Map(
+        wallets.map((wallet) => [wallet.id, wallet])
+      );
+      const categoryLookup = new Map(
+        categories.map((category) => [category.id, category])
+      );
       const tagLookup = new Map(tags.map((tag) => [tag.id, tag]));
-      const recurringTags = this.buildRecurringTagMap(recurringTagRows, tagLookup);
-      const transactions = transactionRows.map((row) =>
-        this.mapTransactionRow(row, walletLookup, categoryLookup, recurringTags),
+      const recurringTags = this.buildRecurringTagMap(
+        recurringTagRows,
+        tagLookup
       );
-      const transactionLookup = new Map(transactions.map((transaction) => [transaction.id, transaction]));
+      const transactions = transactionRows.map((row) =>
+        this.mapTransactionRow(row, walletLookup, categoryLookup, recurringTags)
+      );
+      const transactionLookup = new Map(
+        transactions.map((transaction) => [transaction.id, transaction])
+      );
       const pendingOccurrences = occurrenceRows.map((row) =>
-        this.mapOccurrenceRow(row, transactionLookup),
+        this.mapOccurrenceRow(row, transactionLookup)
       );
       const defaultWallet =
-        wallets.find((wallet) => wallet.isDefault) ??
-        wallets[0] ??
-        null;
+        wallets.find((wallet) => wallet.isDefault) ?? wallets[0] ?? null;
 
       const stats = this.mapOverviewStats(overviewRow);
-      const defaultCurrency =
-        defaultWallet?.currency ?? DEFAULT_CURRENCY;
+      const defaultCurrency = defaultWallet?.currency ?? DEFAULT_CURRENCY;
 
       this.state.set({
         loading: false,
@@ -473,7 +510,9 @@ export class RecurringPaymentsStore {
   }
 
   startEditing(recurringId: string): void {
-    const transaction = this.state().recurringTransactions.find((item) => item.id === recurringId);
+    const transaction = this.state().recurringTransactions.find(
+      (item) => item.id === recurringId
+    );
     if (!transaction) {
       return;
     }
@@ -501,7 +540,53 @@ export class RecurringPaymentsStore {
     this.listFilter.set(filter);
   }
 
-  async createRecurringTransaction(payload: CreateRecurringTransactionPayload): Promise<void> {
+  async ensureTags(
+    names: readonly string[]
+  ): Promise<readonly RecurringTagSummary[]> {
+    const userId = this.requireUserId();
+    const sanitized = Array.from(
+      new Set(
+        names
+          .map((name) => name.trim().replace(/\s+/g, ' ').slice(0, 60))
+          .filter(Boolean)
+      )
+    );
+    const existingByName = new Map(
+      this.state().tags.map((tag) => [tag.name.toLowerCase(), tag])
+    );
+    const missing = sanitized.filter(
+      (name) => !existingByName.has(name.toLowerCase())
+    );
+
+    if (missing.length > 0) {
+      const { data, error } = await this.supabase
+        .from('tags')
+        .insert(missing.map((name) => ({ owner_id: userId, name })))
+        .select('*');
+      if (error) {
+        throw error;
+      }
+
+      const created = (data ?? []).map((row) => this.mapTagRow(row as TagRow));
+      this.state.update((state) => ({
+        ...state,
+        tags: [...state.tags, ...created].sort((left, right) =>
+          left.name.localeCompare(right.name)
+        ),
+      }));
+    }
+
+    const tagsByName = new Map(
+      this.state().tags.map((tag) => [tag.name.toLowerCase(), tag])
+    );
+    return sanitized
+      .map((name) => tagsByName.get(name.toLowerCase()))
+      .filter((tag): tag is RecurringTagSummary => Boolean(tag));
+  }
+
+  async createRecurringTransaction(
+    payload: CreateRecurringTransactionPayload
+  ): Promise<void> {
     const userId = this.requireUserId();
     this.state.update((state) => ({
       ...state,
@@ -513,9 +598,12 @@ export class RecurringPaymentsStore {
     const trimmedName = payload.name.trim();
     const wallet = this.resolveWallet(payload.walletId);
     if (!wallet) {
-      throw new RecurringPaymentsStoreError('modules.recurringPayments.form.fields.wallet.error');
+      throw new RecurringPaymentsStoreError(
+        'modules.recurringPayments.form.fields.wallet.error'
+      );
     }
-    const currency = this.normalizeCurrency(payload.currency) ?? wallet.currency;
+    const currency =
+      this.normalizeCurrency(payload.currency) ?? wallet.currency;
 
     try {
       const insertResult = await this.supabase
@@ -537,7 +625,10 @@ export class RecurringPaymentsStore {
         .select('id')
         .single();
 
-      const inserted = this.ensureNoErrorSingle<Pick<RecurringTransactionRow, 'id'>>(insertResult);
+      const inserted =
+        this.ensureNoErrorSingle<Pick<RecurringTransactionRow, 'id'>>(
+          insertResult
+        );
 
       if (payload.tagIds.length > 0) {
         const tagRows = payload.tagIds.map((tagId) => ({
@@ -558,7 +649,11 @@ export class RecurringPaymentsStore {
       await this.refresh();
     } catch (error) {
       const message = this.describeError(error);
-      logError('RecurringPaymentsStore', 'Failed to create recurring transaction:', error);
+      logError(
+        'RecurringPaymentsStore',
+        'Failed to create recurring transaction:',
+        error
+      );
       this.state.update((state) => ({
         ...state,
         mutationPending: false,
@@ -575,7 +670,7 @@ export class RecurringPaymentsStore {
 
   async updateRecurringTransaction(
     recurringId: string,
-    payload: UpdateRecurringTransactionPayload,
+    payload: UpdateRecurringTransactionPayload
   ): Promise<void> {
     const userId = this.requireUserId();
     this.state.update((state) => ({
@@ -588,9 +683,12 @@ export class RecurringPaymentsStore {
     const trimmedName = payload.name.trim();
     const wallet = this.resolveWallet(payload.walletId);
     if (!wallet) {
-      throw new RecurringPaymentsStoreError('modules.recurringPayments.form.fields.wallet.error');
+      throw new RecurringPaymentsStoreError(
+        'modules.recurringPayments.form.fields.wallet.error'
+      );
     }
-    const currency = this.normalizeCurrency(payload.currency) ?? wallet.currency;
+    const currency =
+      this.normalizeCurrency(payload.currency) ?? wallet.currency;
 
     try {
       const updateResult = await this.supabase
@@ -645,7 +743,11 @@ export class RecurringPaymentsStore {
       await this.refresh();
     } catch (error) {
       const message = this.describeError(error);
-      logError('RecurringPaymentsStore', 'Failed to update recurring transaction:', error);
+      logError(
+        'RecurringPaymentsStore',
+        'Failed to update recurring transaction:',
+        error
+      );
       this.state.update((state) => ({
         ...state,
         mutationPending: false,
@@ -684,7 +786,11 @@ export class RecurringPaymentsStore {
       await this.refresh();
     } catch (error) {
       const message = this.describeError(error);
-      logError('RecurringPaymentsStore', 'Failed to delete recurring transaction:', error);
+      logError(
+        'RecurringPaymentsStore',
+        'Failed to delete recurring transaction:',
+        error
+      );
       this.state.update((state) => ({
         ...state,
         mutationPending: false,
@@ -727,7 +833,11 @@ export class RecurringPaymentsStore {
       await this.refresh();
     } catch (error) {
       const message = this.describeError(error);
-      logError('RecurringPaymentsStore', 'Failed to stop recurring transaction:', error);
+      logError(
+        'RecurringPaymentsStore',
+        'Failed to stop recurring transaction:',
+        error
+      );
       this.state.update((state) => ({
         ...state,
         mutationPending: false,
@@ -767,7 +877,11 @@ export class RecurringPaymentsStore {
       await this.refresh();
     } catch (error) {
       const message = this.describeError(error);
-      logError('RecurringPaymentsStore', 'Failed to resume recurring transaction:', error);
+      logError(
+        'RecurringPaymentsStore',
+        'Failed to resume recurring transaction:',
+        error
+      );
       this.state.update((state) => ({
         ...state,
         mutationPending: false,
@@ -782,7 +896,10 @@ export class RecurringPaymentsStore {
     }
   }
 
-  async completePendingOccurrence(occurrenceId: string, amount: number): Promise<void> {
+  async completePendingOccurrence(
+    occurrenceId: string,
+    amount: number
+  ): Promise<void> {
     this.requireUserId();
     this.state.update((state) => ({
       ...state,
@@ -791,10 +908,13 @@ export class RecurringPaymentsStore {
     }));
 
     try {
-      const result = await this.supabase.rpc('complete_recurring_transaction_occurrence', {
-        p_occurrence_id: occurrenceId,
-        p_amount: amount,
-      });
+      const result = await this.supabase.rpc(
+        'complete_recurring_transaction_occurrence',
+        {
+          p_occurrence_id: occurrenceId,
+          p_amount: amount,
+        }
+      );
 
       if (result.error) {
         throw result.error;
@@ -803,7 +923,11 @@ export class RecurringPaymentsStore {
       await this.refresh();
     } catch (error) {
       const message = this.describeError(error);
-      logError('RecurringPaymentsStore', 'Failed to complete recurring occurrence:', error);
+      logError(
+        'RecurringPaymentsStore',
+        'Failed to complete recurring occurrence:',
+        error
+      );
       this.state.update((state) => ({
         ...state,
         mutationPending: false,
@@ -822,7 +946,7 @@ export class RecurringPaymentsStore {
     row: RecurringTransactionRow,
     walletLookup: ReadonlyMap<string, WalletEntity>,
     categoryLookup: ReadonlyMap<string, RecurringCategorySummary>,
-    recurringTags: ReadonlyMap<string, readonly RecurringTagSummary[]>,
+    recurringTags: ReadonlyMap<string, readonly RecurringTagSummary[]>
   ): RecurringTransactionEntity {
     const wallet = walletLookup.get(row.wallet_id ?? '');
 
@@ -837,7 +961,8 @@ export class RecurringPaymentsStore {
       amount: parseNumber(row.amount),
       amountMode: (row.amount_mode ?? 'fixed') as RecurringAmountMode,
       currency: row.currency,
-      exchangeRate: row.exchange_rate != null ? parseNumber(row.exchange_rate) : null,
+      exchangeRate:
+        row.exchange_rate != null ? parseNumber(row.exchange_rate) : null,
       direction: row.direction,
       category: categoryLookup.get(row.category_id) ?? null,
       tags: recurringTags.get(row.id) ?? [],
@@ -848,7 +973,10 @@ export class RecurringPaymentsStore {
     };
   }
 
-  private isNaturallyEnded(transaction: RecurringTransactionEntity, now: Date): boolean {
+  private isNaturallyEnded(
+    transaction: RecurringTransactionEntity,
+    now: Date
+  ): boolean {
     if (!transaction.endDate) {
       return false;
     }
@@ -860,7 +988,7 @@ export class RecurringPaymentsStore {
 
   private mapOccurrenceRow(
     row: RecurringOccurrenceRow,
-    transactionLookup: ReadonlyMap<string, RecurringTransactionEntity>,
+    transactionLookup: ReadonlyMap<string, RecurringTransactionEntity>
   ): RecurringOccurrenceEntity {
     const recurring = transactionLookup.get(row.recurring_transaction_id);
 
@@ -877,7 +1005,7 @@ export class RecurringPaymentsStore {
 
   private buildRecurringTagMap(
     rows: readonly RecurringTransactionTagRow[],
-    tagLookup: ReadonlyMap<string, RecurringTagSummary>,
+    tagLookup: ReadonlyMap<string, RecurringTagSummary>
   ): ReadonlyMap<string, readonly RecurringTagSummary[]> {
     const map = new Map<string, RecurringTagSummary[]>();
 
@@ -898,14 +1026,16 @@ export class RecurringPaymentsStore {
     for (const [recurringId, tags] of map.entries()) {
       map.set(
         recurringId,
-        [...tags].sort((a, b) => a.name.localeCompare(b.name)),
+        [...tags].sort((a, b) => a.name.localeCompare(b.name))
       );
     }
 
     return map;
   }
 
-  private mapOverviewStats(overviewRow: RecurringOverviewRow | null): RecurringPaymentsStats {
+  private mapOverviewStats(
+    overviewRow: RecurringOverviewRow | null
+  ): RecurringPaymentsStats {
     if (!overviewRow) {
       return {
         monthlyExpense: 0,
@@ -948,7 +1078,10 @@ export class RecurringPaymentsStore {
     };
   }
 
-  private mapWalletRow(row: WalletRow, currencyLookup: ReadonlyMap<number, string>): WalletEntity {
+  private mapWalletRow(
+    row: WalletRow,
+    currencyLookup: ReadonlyMap<number, string>
+  ): WalletEntity {
     const currencyId = row.currency_id ?? 1;
     return {
       id: row.id,
@@ -972,7 +1105,9 @@ export class RecurringPaymentsStore {
     });
   }
 
-  private resolveWallet(candidate: string | null | undefined): WalletEntity | null {
+  private resolveWallet(
+    candidate: string | null | undefined
+  ): WalletEntity | null {
     const wallets = this.state().wallets;
     if (wallets.length === 0) {
       return null;
@@ -995,11 +1130,15 @@ export class RecurringPaymentsStore {
     return wallets[0] ?? null;
   }
 
-  private sortCurrencies(currencies: readonly CurrencyOption[]): CurrencyOption[] {
+  private sortCurrencies(
+    currencies: readonly CurrencyOption[]
+  ): CurrencyOption[] {
     return [...currencies].sort((a, b) => a.symbol.localeCompare(b.symbol));
   }
 
-  private normalizeCurrency(candidate: string | null | undefined): string | null {
+  private normalizeCurrency(
+    candidate: string | null | undefined
+  ): string | null {
     const normalized = candidate?.trim().toUpperCase() ?? '';
     if (!/^[A-Z]{3}$/.test(normalized)) {
       return null;
@@ -1010,7 +1149,9 @@ export class RecurringPaymentsStore {
       return normalized;
     }
 
-    return currencies.some((currency) => currency.symbol === normalized) ? normalized : null;
+    return currencies.some((currency) => currency.symbol === normalized)
+      ? normalized
+      : null;
   }
 
   private mapCurrencyRow(row: CurrencyRow): CurrencyOption {
@@ -1021,20 +1162,27 @@ export class RecurringPaymentsStore {
   }
 
   private async runBackfill(recurringId: string): Promise<void> {
-    const result = await this.supabase.functions.invoke('process-recurring-payments', {
-      body: {
-        recurringId,
-        backfill: true,
-      },
-    });
+    const result = await this.supabase.functions.invoke(
+      'process-recurring-payments',
+      {
+        body: {
+          recurringId,
+          backfill: true,
+        },
+      }
+    );
 
     if (result.error) {
-      throw new RecurringPaymentsStoreError('modules.recurringPayments.form.notifications.backfillError');
+      throw new RecurringPaymentsStoreError(
+        'modules.recurringPayments.form.notifications.backfillError'
+      );
     }
 
     const data = result.data as { skippedCount?: number } | null;
     if ((data?.skippedCount ?? 0) > 0) {
-      throw new RecurringPaymentsStoreError('modules.recurringPayments.form.notifications.backfillError');
+      throw new RecurringPaymentsStoreError(
+        'modules.recurringPayments.form.notifications.backfillError'
+      );
     }
   }
 
@@ -1048,7 +1196,9 @@ export class RecurringPaymentsStore {
     return result.data;
   }
 
-  private ensureNoErrorMaybeSingle<T>(result: PostgrestSingleResponse<T | null>): T | null {
+  private ensureNoErrorMaybeSingle<T>(
+    result: PostgrestSingleResponse<T | null>
+  ): T | null {
     if (result.error) {
       throw result.error;
     }

@@ -504,6 +504,46 @@ test('exposes bulk entry and applies year, month, and amount sorting', async ({
   await expect(rows.nth(1)).toContainText(lowerAmountDescription);
 });
 
+test('filters categories from the sidebar with group checkboxes', async ({
+  page,
+}) => {
+  await ensureAuthenticated(page);
+  await openTransactions(page);
+
+  await expect(page.getByTestId('transaction-category-filter')).toHaveCount(0);
+  await expect(page.getByTestId('category-filter-checkbox')).toHaveCount(0);
+
+  await page.getByTestId('category-filter-mode-toggle').check();
+
+  const firstGroup = page
+    .locator('nav section')
+    .filter({
+      has: page.getByTestId('category-group-filter-checkbox'),
+    })
+    .first();
+  const groupCheckbox = firstGroup.getByTestId(
+    'category-group-filter-checkbox'
+  );
+  const categoryCheckboxes = firstGroup.getByTestId('category-filter-checkbox');
+
+  await expect(groupCheckbox).toBeVisible();
+  await expect(categoryCheckboxes.first()).toBeVisible();
+  await groupCheckbox.check();
+  await expect(groupCheckbox).toBeChecked();
+
+  for (const categoryCheckbox of await categoryCheckboxes.all()) {
+    await expect(categoryCheckbox).toBeChecked();
+  }
+
+  await page.getByTestId('category-filter-clear-all').click();
+  await expect(groupCheckbox).not.toBeChecked();
+  await expect(categoryCheckboxes.first()).not.toBeChecked();
+
+  await page.getByTestId('category-filter-select-all').click();
+  await expect(groupCheckbox).toBeChecked();
+  await expect(categoryCheckboxes.first()).toBeChecked();
+});
+
 test('shows transaction tags on the dashboard', async ({ page }, testInfo) => {
   const suffix = uniqueSuffix(testInfo);
   const description = `E2E tagged expense ${suffix}`;
@@ -703,7 +743,7 @@ test('updates transaction exchange rate in edit form', async ({
   await page.locator('input[formcontrolname="occurredOn"]').fill('2026-05-29');
   const categoryLabel = await selectFirstTransactionCategory(page);
   const categoryFilter = page
-    .locator('aside nav button')
+    .getByTestId('category-filter-row')
     .filter({ hasText: categoryLabel });
   const categoryAmount = categoryFilter.locator('span').last();
   const categoryTotalBefore = Math.abs(await currencyAmount(categoryAmount));

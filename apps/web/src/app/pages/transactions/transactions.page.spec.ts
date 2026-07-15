@@ -183,6 +183,10 @@ class TransactionsStoreStub {
     return;
   }
 
+  selectAllCategories(): void {
+    return;
+  }
+
   clearTagSelection(): void {
     return;
   }
@@ -338,7 +342,7 @@ describe('TransactionsPageComponent', () => {
       fixture.nativeElement.querySelector(
         '[data-testid="transaction-category-filter"]'
       )
-    ).not.toBeNull();
+    ).toBeNull();
     expect(
       fixture.nativeElement.querySelector(
         '[data-testid="transaction-place-filter"]'
@@ -427,22 +431,65 @@ describe('TransactionsPageComponent', () => {
     expect(setSort).toHaveBeenCalledWith('amountDesc');
   });
 
-  it('applies a whole category group immediately from the sidebar', () => {
+  it('shows category checkboxes only in filter mode and applies a whole group', () => {
     const fixture = TestBed.createComponent(TransactionsPageComponent);
     fixture.detectChanges();
     const store = fixture.debugElement.injector.get(
       TransactionsStore
     ) as unknown as TransactionsStoreStub;
     const toggleGroup = vi.spyOn(store, 'toggleCategoryGroupSelection');
-    const groupButton = Array.from(
-      fixture.nativeElement.querySelectorAll<HTMLButtonElement>(
-        'aside button[aria-pressed]'
-      )
-    ).find((button) => button.textContent?.includes('Daily'));
+    const modeToggle = fixture.nativeElement.querySelector(
+      '[data-testid="category-filter-mode-toggle"]'
+    ) as HTMLInputElement;
 
-    groupButton?.click();
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="category-group-filter-checkbox"]'
+      )
+    ).toBeNull();
+
+    modeToggle.checked = true;
+    modeToggle.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    const groupCheckbox = fixture.nativeElement.querySelector(
+      '[data-testid="category-group-filter-checkbox"]'
+    ) as HTMLInputElement;
+    groupCheckbox.checked = true;
+    groupCheckbox.dispatchEvent(new Event('change'));
 
     expect(toggleGroup).toHaveBeenCalledWith('group-1');
+  });
+
+  it('selects and deselects all categories from filter mode actions', () => {
+    const fixture = TestBed.createComponent(TransactionsPageComponent);
+    fixture.detectChanges();
+    const store = fixture.debugElement.injector.get(
+      TransactionsStore
+    ) as unknown as TransactionsStoreStub;
+    const selectAll = vi.spyOn(store, 'selectAllCategories');
+    const clearAll = vi.spyOn(store, 'clearCategorySelection');
+    const modeToggle = fixture.nativeElement.querySelector(
+      '[data-testid="category-filter-mode-toggle"]'
+    ) as HTMLInputElement;
+
+    modeToggle.checked = true;
+    modeToggle.dispatchEvent(new Event('change'));
+    store.hasActiveCategoryFilter.set(true);
+    fixture.detectChanges();
+
+    (
+      fixture.nativeElement.querySelector(
+        '[data-testid="category-filter-select-all"]'
+      ) as HTMLButtonElement
+    ).click();
+    (
+      fixture.nativeElement.querySelector(
+        '[data-testid="category-filter-clear-all"]'
+      ) as HTMLButtonElement
+    ).click();
+
+    expect(selectAll).toHaveBeenCalledOnce();
+    expect(clearAll).toHaveBeenCalledOnce();
   });
 
   it('passes place and amount range changes to the store', () => {

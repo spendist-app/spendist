@@ -162,6 +162,7 @@ export class TransactionsPageComponent implements OnDestroy {
     },
   ];
   protected readonly showOnlyCategoriesWithTransactions = signal(false);
+  protected readonly categoryFilterMode = signal(false);
   protected readonly sidebarTab = signal<'categories' | 'tags'>('categories');
   protected readonly visibleGroupedCategories = computed(() =>
     this.store
@@ -308,19 +309,6 @@ export class TransactionsPageComponent implements OnDestroy {
     this.store.setSearchTerm(target?.value ?? '');
   }
 
-  protected onCategoryFilterChange(event: Event): void {
-    const select = event.target as HTMLSelectElement | null;
-    const value = select?.value ?? '';
-    if (value.startsWith('group:')) {
-      this.store.setCategoryGroupSelection(value.slice('group:'.length));
-    } else if (value.startsWith('category:')) {
-      this.store.setCategorySelection(value.slice('category:'.length));
-    } else if (!value) {
-      this.store.setCategorySelection(null);
-    }
-    this.scrollToTransactionsResults();
-  }
-
   protected onPlaceFilterChange(event: Event): void {
     const select = event.target as HTMLSelectElement | null;
     this.store.setPlaceFilter(select?.value || null);
@@ -402,12 +390,28 @@ export class TransactionsPageComponent implements OnDestroy {
     this.showOnlyCategoriesWithTransactions.set(!!input?.checked);
   }
 
+  protected onCategoryFilterModeChange(event: Event): void {
+    const input = event.target as HTMLInputElement | null;
+    const enabled = Boolean(input?.checked);
+    this.categoryFilterMode.set(enabled);
+    if (!enabled && this.store.hasActiveCategoryFilter()) {
+      this.clearCategorySelectionAndScroll();
+    }
+  }
+
+  protected selectAllCategoriesAndScroll(): void {
+    this.store.selectAllCategories();
+    this.scrollToTransactionsResults();
+  }
+
   protected toggleCategorySelectionAndScroll(categoryId: string): void {
     this.store.toggleCategorySelection(categoryId);
     this.scrollToTransactionsResults();
   }
 
-  protected toggleCategoryGroupSelectionAndScroll(groupId: string): void {
+  protected toggleCategoryGroupSelectionAndScroll(
+    groupId: string | null
+  ): void {
     this.store.toggleCategoryGroupSelection(groupId);
     this.scrollToTransactionsResults();
   }
