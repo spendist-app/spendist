@@ -25,6 +25,7 @@ import {
 import {
   TransactionsStore,
   TransactionPresetId,
+  TransactionSortId,
   TransactionViewModel,
 } from './transactions.store';
 import {
@@ -37,10 +38,8 @@ import { TransactionCreateFormComponent } from './transaction-create-form.compon
 import type { TransactionFormSaveResult } from './transaction-create-form.component';
 import { TransactionBulkCreateFormComponent } from './transaction-bulk-create-form.component';
 
-interface MonthYearOption {
+interface MonthOption {
   readonly value: string;
-  readonly year: number;
-  readonly month: number;
   readonly label: string;
 }
 
@@ -69,8 +68,7 @@ export class TransactionsPageComponent implements OnDestroy {
   protected readonly createFormOpen = signal(false);
   protected readonly bulkFormOpen = signal(false);
   protected readonly addMenuOpen = signal(false);
-  private readonly addMenu =
-    viewChild<ElementRef<HTMLDetailsElement>>('addMenu');
+  private readonly addMenu = viewChild<ElementRef<HTMLElement>>('addMenu');
   protected readonly formMode = signal<'create' | 'edit'>('create');
   protected readonly editingTransaction = signal<TransactionViewModel | null>(
     null
@@ -135,15 +133,34 @@ export class TransactionsPageComponent implements OnDestroy {
     { id: 'lastYear', labelKey: 'transactions.filters.presets.lastYear' },
   ];
 
-  protected readonly monthYearOptions = computed(() =>
-    this.buildMonthYearOptions()
-  );
+  protected readonly monthOptions = computed(() => this.buildMonthOptions());
+  protected readonly yearOptions = computed(() => this.buildYearOptions());
   protected readonly selectedMonthValue = computed(() =>
     this.computeSelectedMonthValue()
   );
   protected readonly selectedYearValue = computed(() =>
     this.computeSelectedYearValue()
   );
+  protected readonly monthSelectionDisabled = computed(
+    () => !this.selectedYearValue()
+  );
+  protected readonly sortOptions: readonly {
+    readonly id: TransactionSortId;
+    readonly labelKey: string;
+  }[] = [
+    { id: 'dateDesc', labelKey: 'transactions.filters.sort.dateDesc' },
+    { id: 'dateAsc', labelKey: 'transactions.filters.sort.dateAsc' },
+    { id: 'amountDesc', labelKey: 'transactions.filters.sort.amountDesc' },
+    { id: 'amountAsc', labelKey: 'transactions.filters.sort.amountAsc' },
+    {
+      id: 'descriptionAsc',
+      labelKey: 'transactions.filters.sort.descriptionAsc',
+    },
+    {
+      id: 'descriptionDesc',
+      labelKey: 'transactions.filters.sort.descriptionDesc',
+    },
+  ];
   protected readonly showOnlyCategoriesWithTransactions = signal(false);
   protected readonly sidebarTab = signal<'categories' | 'tags'>('categories');
   protected readonly visibleGroupedCategories = computed(() =>
@@ -206,7 +223,7 @@ export class TransactionsPageComponent implements OnDestroy {
     };
     const handleClick = (event: MouseEvent) => {
       const menu = this.addMenu()?.nativeElement;
-      if (menu?.open && !menu.contains(event.target as Node)) {
+      if (this.addMenuOpen() && menu && !menu.contains(event.target as Node)) {
         this.closeAddMenu();
       }
     };
@@ -311,9 +328,10 @@ export class TransactionsPageComponent implements OnDestroy {
 
   protected onAmountChange(kind: 'minimum' | 'maximum', event: Event): void {
     const input = event.target as HTMLInputElement | null;
-    const parsedValue = input && Number.isFinite(input.valueAsNumber)
-      ? input.valueAsNumber
-      : null;
+    const parsedValue =
+      input && Number.isFinite(input.valueAsNumber)
+        ? input.valueAsNumber
+        : null;
     const filters = this.filters();
     this.store.setAmountRange(
       kind === 'minimum' ? parsedValue : filters.minimumAmount,
@@ -338,21 +356,20 @@ export class TransactionsPageComponent implements OnDestroy {
   protected onMonthSelect(event: Event): void {
     const select = event.target as HTMLSelectElement | null;
     const rawValue = select?.value ?? '';
-    if (!rawValue) {
+    const year = Number(this.selectedYearValue());
+    const month = Number(rawValue);
+    if (
+      rawValue === '' ||
+      !Number.isInteger(year) ||
+      !Number.isInteger(month) ||
+      month < 0 ||
+      month > 11
+    ) {
       return;
     }
 
-    const [yearSegment, monthSegment] = rawValue.split('-');
-    const year = Number(yearSegment);
-    const month = Number(monthSegment) - 1;
-    if (
-      Number.isInteger(year) &&
-      Number.isInteger(month) &&
-      month >= 0 &&
-      month <= 11
-    ) {
-      this.store.setSelectedMonth(year, month);
-    }
+    this.store.setSelectedMonth(year, month);
+    this.scrollToTransactionsResults();
   }
 
   protected onYearSelect(event: Event): void {
@@ -365,7 +382,19 @@ export class TransactionsPageComponent implements OnDestroy {
     const year = Number(rawValue);
     if (Number.isInteger(year)) {
       this.store.setSelectedYear(year);
+      this.scrollToTransactionsResults();
     }
+  }
+
+  protected onSortSelect(event: Event): void {
+    const select = event.target as HTMLSelectElement | null;
+    const sort = select?.value as TransactionSortId | undefined;
+    if (!sort || !this.sortOptions.some((option) => option.id === sort)) {
+      return;
+    }
+
+    this.store.setSort(sort);
+    this.scrollToTransactionsResults();
   }
 
   protected onCategoryActivityFilterChange(event: Event): void {
@@ -482,15 +511,28 @@ export class TransactionsPageComponent implements OnDestroy {
     this.bulkFormOpen.set(true);
   }
 
-  protected syncAddMenuState(menu: HTMLDetailsElement): void {
-    this.addMenuOpen.set(menu.open);
+  protected openAddMenu(): void {
+    this.addMenuOpen.set(true);
+  }
+
+  protected handleAddMenuPointerLeave(): void {
+    const menu = this.addMenu()?.nativeElement;
+    if (menu?.contains(this.document.activeElement)) {
+      return;
+    }
+    this.closeAddMenu();
+  }
+
+  protected handleAddMenuFocusOut(event: FocusEvent): void {
+    const menu = this.addMenu()?.nativeElement;
+    const nextTarget = event.relatedTarget;
+    if (menu && nextTarget instanceof Node && menu.contains(nextTarget)) {
+      return;
+    }
+    this.closeAddMenu();
   }
 
   protected closeAddMenu(): void {
-    const menu = this.addMenu()?.nativeElement;
-    if (menu) {
-      menu.open = false;
-    }
     this.addMenuOpen.set(false);
   }
 
@@ -584,57 +626,30 @@ export class TransactionsPageComponent implements OnDestroy {
     this.toastTimers.clear();
   }
 
-  private buildMonthYearOptions(): readonly MonthYearOption[] {
+  private buildMonthOptions(): readonly MonthOption[] {
     const locale = this.locale();
     const formatter = new Intl.DateTimeFormat(locale, {
       month: 'long',
-      year: 'numeric',
     });
-    const transactions = this.store.transactions();
-    const seen = new Set<string>();
-    const options: MonthYearOption[] = [];
+    return Array.from({ length: 12 }, (_, month) => ({
+      value: `${month}`,
+      label: this.capitalize(
+        formatter.format(new Date(Date.UTC(2020, month, 1)))
+      ),
+    }));
+  }
 
-    for (const transaction of transactions) {
-      const year = transaction.occurredAt.getUTCFullYear();
-      const month = transaction.occurredAt.getUTCMonth();
-      const key = `${year}-${month}`;
-      if (seen.has(key)) {
-        continue;
-      }
-
-      seen.add(key);
-      options.push({
-        value: `${year}-${(month + 1).toString().padStart(2, '0')}`,
-        year,
-        month,
-        label: this.capitalize(
-          formatter.format(new Date(Date.UTC(year, month, 1)))
-        ),
-      });
+  private buildYearOptions(): readonly number[] {
+    const years = new Set(this.store.availableYears());
+    years.add(new Date().getUTCFullYear());
+    const { from, to } = this.filters();
+    if (from) {
+      years.add(from.getUTCFullYear());
     }
-
-    if (options.length === 0) {
-      const today = new Date();
-      const fallbackYear = today.getUTCFullYear();
-      const fallbackMonth = today.getUTCMonth();
-      options.push({
-        value: `${fallbackYear}-${(fallbackMonth + 1)
-          .toString()
-          .padStart(2, '0')}`,
-        year: fallbackYear,
-        month: fallbackMonth,
-        label: this.capitalize(
-          formatter.format(new Date(Date.UTC(fallbackYear, fallbackMonth, 1)))
-        ),
-      });
+    if (to) {
+      years.add(to.getUTCFullYear());
     }
-
-    return options.sort((a, b) => {
-      if (a.year === b.year) {
-        return b.month - a.month;
-      }
-      return b.year - a.year;
-    });
+    return [...years].sort((a, b) => b - a);
   }
 
   private computeSelectedMonthValue(): string {
@@ -647,9 +662,14 @@ export class TransactionsPageComponent implements OnDestroy {
       return '';
     }
 
-    const year = from.getUTCFullYear();
-    const month = from.getUTCMonth() + 1;
-    return `${year}-${month.toString().padStart(2, '0')}`;
+    if (
+      from.getUTCFullYear() !== to.getUTCFullYear() ||
+      from.getUTCMonth() !== to.getUTCMonth()
+    ) {
+      return '';
+    }
+
+    return `${from.getUTCMonth()}`;
   }
 
   private computeSelectedYearValue(): string {
@@ -658,7 +678,7 @@ export class TransactionsPageComponent implements OnDestroy {
       return '';
     }
 
-    if (!this.isStartOfYear(from) || !this.isEndOfYear(to)) {
+    if (from.getUTCFullYear() !== to.getUTCFullYear()) {
       return '';
     }
 
@@ -740,23 +760,6 @@ export class TransactionsPageComponent implements OnDestroy {
         59,
         999
       )
-    );
-    return date.getTime() === test.getTime();
-  }
-
-  private isStartOfYear(date: Date): boolean {
-    return (
-      date.getUTCMonth() === 0 &&
-      date.getUTCDate() === 1 &&
-      date.getUTCHours() === 0 &&
-      date.getUTCMinutes() === 0 &&
-      date.getUTCSeconds() === 0
-    );
-  }
-
-  private isEndOfYear(date: Date): boolean {
-    const test = new Date(
-      Date.UTC(date.getUTCFullYear(), 11, 31, 23, 59, 59, 999)
     );
     return date.getTime() === test.getTime();
   }

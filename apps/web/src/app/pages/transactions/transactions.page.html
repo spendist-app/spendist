@@ -265,15 +265,27 @@
       <section
         class="rounded-2xl border border-base-300 bg-base-100/80 p-4 shadow-sm sm:p-6"
       >
-        <div class="flex flex-col gap-5">
-          <div class="border-b border-base-200 pb-4">
-            <h2 class="text-lg font-semibold text-base-content">
-              {{ 'transactions.filters.title' | transloco }}
-            </h2>
-            <p class="mt-1 text-sm text-base-content/60">
-              {{ 'transactions.filters.description' | transloco }}
-            </p>
+        <div class="flex flex-col gap-6">
+          <div
+            class="flex flex-col gap-3 border-b border-base-200 pb-4 sm:flex-row sm:items-start sm:justify-between"
+          >
+            <div>
+              <h2 class="text-lg font-semibold text-base-content">
+                {{ 'transactions.filters.title' | transloco }}
+              </h2>
+              <p class="mt-1 text-sm text-base-content/60">
+                {{ 'transactions.filters.description' | transloco }}
+              </p>
+            </div>
+            <button
+              type="button"
+              class="btn btn-link btn-sm self-start px-0 sm:shrink-0"
+              (click)="store.resetFilters()"
+            >
+              {{ 'transactions.filters.reset' | transloco }}
+            </button>
           </div>
+
           <div class="flex flex-wrap items-center gap-2">
             @for (preset of presetButtons; track preset.id) {
             <button
@@ -286,18 +298,10 @@
               {{ preset.labelKey | transloco }}
             </button>
             }
-
-            <button
-              type="button"
-              class="btn btn-link btn-sm ml-auto px-0"
-              (click)="store.resetFilters()"
-            >
-              {{ 'transactions.filters.reset' | transloco }}
-            </button>
           </div>
 
-          <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-12">
-            <label class="form-control md:col-span-2 xl:col-span-6">
+          <div class="grid gap-4 sm:grid-cols-2">
+            <label class="form-control sm:col-span-2">
               <span
                 class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60"
               >
@@ -314,7 +318,7 @@
               />
             </label>
 
-            <label class="form-control xl:col-span-3">
+            <label class="form-control">
               <span
                 class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60"
               >
@@ -358,7 +362,7 @@
               </select>
             </label>
 
-            <label class="form-control xl:col-span-3">
+            <label class="form-control">
               <span
                 class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60"
               >
@@ -378,80 +382,98 @@
                 }
               </select>
             </label>
-
-            <label class="form-control xl:col-span-3">
-              <span
-                class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60"
-              >
-                {{ 'transactions.filters.fromLabel' | transloco }}
-              </span>
-              <input
-                type="date"
-                class="input input-bordered"
-                [value]="formatDateInput(filtersVm.from)"
-                (change)="onDateChange('from', $event)"
-                [attr.max]="formatDateInput(filtersVm.to) || null"
-              />
-            </label>
-
-            <label class="form-control xl:col-span-3">
-              <span
-                class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60"
-              >
-                {{ 'transactions.filters.toLabel' | transloco }}
-              </span>
-              <input
-                type="date"
-                class="input input-bordered"
-                [value]="formatDateInput(filtersVm.to)"
-                (change)="onDateChange('to', $event)"
-                [attr.min]="formatDateInput(filtersVm.from) || null"
-              />
-            </label>
-
-            <label class="form-control xl:col-span-3">
-              <span
-                class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60"
-              >
-                {{ 'transactions.filters.monthLabel' | transloco }}
-              </span>
-              <select
-                class="select select-bordered"
-                [value]="selectedMonthValue()"
-                (change)="onMonthSelect($event)"
-              >
-                <option value="">
-                  {{ 'transactions.filters.monthPlaceholder' | transloco }}
-                </option>
-                @for (option of monthYearOptions(); track option.value) {
-                <option [value]="option.value">{{ option.label }}</option>
-                }
-              </select>
-            </label>
           </div>
 
-          <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-12">
-            <label class="form-control xl:col-span-3">
-              <span
-                class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60"
-              >
-                {{ 'transactions.filters.yearLabel' | transloco }}
-              </span>
-              <select
-                class="select select-bordered"
-                [value]="selectedYearValue()"
-                (change)="onYearSelect($event)"
-              >
-                <option value="">
-                  {{ 'transactions.filters.yearPlaceholder' | transloco }}
-                </option>
-                @for (year of store.availableYears(); track year) {
-                <option [value]="year">{{ year }}</option>
-                }
-              </select>
-            </label>
+          <fieldset
+            class="rounded-2xl border border-base-200 bg-base-200/30 p-4"
+          >
+            <legend
+              class="px-2 text-sm font-semibold text-base-content"
+            >
+              {{ 'transactions.filters.periodTitle' | transloco }}
+            </legend>
+            <p class="mb-4 text-sm text-base-content/60">
+              {{ 'transactions.filters.periodDescription' | transloco }}
+            </p>
 
-            <label class="form-control xl:col-span-2">
+            <div class="grid gap-4 sm:grid-cols-2">
+              <label class="form-control">
+                <span
+                  class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60"
+                >
+                  {{ 'transactions.filters.yearLabel' | transloco }}
+                </span>
+                <select
+                  data-testid="transaction-year-filter"
+                  class="select select-bordered w-full"
+                  [value]="selectedYearValue()"
+                  (change)="onYearSelect($event)"
+                >
+                  <option value="">
+                    {{ 'transactions.filters.yearPlaceholder' | transloco }}
+                  </option>
+                  @for (year of yearOptions(); track year) {
+                  <option [value]="year">{{ year }}</option>
+                  }
+                </select>
+              </label>
+
+              <label class="form-control">
+                <span
+                  class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60"
+                >
+                  {{ 'transactions.filters.monthLabel' | transloco }}
+                </span>
+                <select
+                  data-testid="transaction-month-filter"
+                  class="select select-bordered w-full"
+                  [value]="selectedMonthValue()"
+                  [disabled]="monthSelectionDisabled()"
+                  (change)="onMonthSelect($event)"
+                >
+                  <option value="">
+                    {{ 'transactions.filters.monthPlaceholder' | transloco }}
+                  </option>
+                  @for (option of monthOptions(); track option.value) {
+                  <option [value]="option.value">{{ option.label }}</option>
+                  }
+                </select>
+              </label>
+
+              <label class="form-control">
+                <span
+                  class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60"
+                >
+                  {{ 'transactions.filters.fromLabel' | transloco }}
+                </span>
+                <input
+                  type="date"
+                  class="input input-bordered w-full"
+                  [value]="formatDateInput(filtersVm.from)"
+                  (change)="onDateChange('from', $event)"
+                  [attr.max]="formatDateInput(filtersVm.to) || null"
+                />
+              </label>
+
+              <label class="form-control">
+                <span
+                  class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60"
+                >
+                  {{ 'transactions.filters.toLabel' | transloco }}
+                </span>
+                <input
+                  type="date"
+                  class="input input-bordered w-full"
+                  [value]="formatDateInput(filtersVm.to)"
+                  (change)="onDateChange('to', $event)"
+                  [attr.min]="formatDateInput(filtersVm.from) || null"
+                />
+              </label>
+            </div>
+          </fieldset>
+
+          <div class="grid gap-4 sm:grid-cols-2">
+            <label class="form-control">
               <span
                 class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60"
               >
@@ -470,7 +492,7 @@
               />
             </label>
 
-            <label class="form-control xl:col-span-2">
+            <label class="form-control">
               <span
                 class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60"
               >
@@ -489,14 +511,34 @@
               />
             </label>
 
-            <div class="form-control md:col-span-2 xl:col-span-5">
+            <label class="form-control">
+              <span
+                class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60"
+              >
+                {{ 'transactions.filters.sortLabel' | transloco }}
+              </span>
+              <select
+                data-testid="transaction-sort-filter"
+                class="select select-bordered w-full"
+                [value]="filtersVm.sort"
+                (change)="onSortSelect($event)"
+              >
+                @for (option of sortOptions; track option.id) {
+                <option [value]="option.id">
+                  {{ option.labelKey | transloco }}
+                </option>
+                }
+              </select>
+            </label>
+
+            <div class="form-control">
               <span
                 class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60"
               >
                 {{ 'transactions.filters.summaryLabel' | transloco }}
               </span>
               <p
-                class="rounded-xl border border-dashed border-base-200 bg-base-100 px-4 py-3 text-sm text-base-content/70"
+                class="flex min-h-12 items-center rounded-xl border border-dashed border-base-200 bg-base-100 px-4 py-3 text-sm text-base-content/70"
               >
                 {{ 'transactions.filters.summaryText' | transloco: { loaded:
                 store.loadedTransactionCount(), total:
@@ -733,33 +775,25 @@
 </div>
 }
 
-<details
+<div
   #addMenu
-  class="dropdown dropdown-end dropdown-top dropdown-hover fixed bottom-6 right-6 z-20 sm:bottom-8 sm:right-8"
   tabindex="-1"
-  (toggle)="syncAddMenuState(addMenu)"
+  class="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-3 sm:bottom-8 sm:right-8"
+  (pointerenter)="openAddMenu()"
+  (pointerleave)="handleAddMenuPointerLeave()"
+  (focusin)="openAddMenu()"
+  (focusout)="handleAddMenuFocusOut($event)"
   (keydown.escape)="closeAddMenu(); $event.stopPropagation()"
 >
-  <summary
-    role="button"
-    class="btn btn-primary btn-circle list-none shadow-lg transition-transform hover:scale-105 [&::-webkit-details-marker]:hidden"
-    aria-label="{{ 'transactions.actions.add' | transloco }}"
-    [attr.title]="'transactions.actions.addShortcutHint' | transloco"
-    [attr.aria-expanded]="addMenuOpen()"
-    aria-controls="transaction-add-actions"
-    aria-keyshortcuts="Alt+N N"
-    (click)="$event.preventDefault(); openCreateForm()"
-  >
-    <ng-icon [svg]="addIcon" size="24" aria-hidden="true"></ng-icon>
-    <span class="sr-only">{{ 'transactions.actions.add' | transloco }}</span>
-  </summary>
-
+  @if (addMenuOpen()) {
   <div
     id="transaction-add-actions"
-    class="dropdown-content mb-3 flex w-max flex-col items-end gap-2"
+    role="menu"
+    class="flex w-max flex-col items-end gap-2"
   >
     <button
       type="button"
+      role="menuitem"
       class="btn btn-primary min-w-52 justify-start shadow-lg"
       (click)="openCreateForm()"
     >
@@ -768,6 +802,7 @@
     </button>
     <button
       type="button"
+      role="menuitem"
       class="btn btn-secondary min-w-52 justify-start shadow-lg"
       (click)="openBulkCreateForm()"
     >
@@ -775,7 +810,26 @@
       {{ 'transactions.actions.addBulk' | transloco }}
     </button>
   </div>
-</details>
+  }
+
+  <button
+    type="button"
+    data-testid="transaction-add-menu-trigger"
+    class="btn btn-primary btn-circle shadow-lg transition-transform hover:scale-105"
+    [attr.aria-label]="'transactions.actions.openMenu' | transloco"
+    [attr.title]="'transactions.actions.openMenuShortcutHint' | transloco"
+    [attr.aria-expanded]="addMenuOpen()"
+    aria-haspopup="menu"
+    aria-controls="transaction-add-actions"
+    aria-keyshortcuts="Alt+N N"
+    (click)="openAddMenu()"
+  >
+    <ng-icon [svg]="addIcon" size="24" aria-hidden="true"></ng-icon>
+    <span class="sr-only"
+      >{{ 'transactions.actions.openMenu' | transloco }}</span
+    >
+  </button>
+</div>
 
 @if (createFormOpen()) { @let mode = formMode(); @let editing =
 activeTransaction(); @let duplicate = duplicateSource();
