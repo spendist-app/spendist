@@ -108,6 +108,9 @@ export type TransactionPresetId =
 interface TransactionsFilters {
   readonly selectedCategoryIds: readonly string[];
   readonly selectedTagIds: readonly string[];
+  readonly selectedPlaceId: string | null;
+  readonly minimumAmount: number | null;
+  readonly maximumAmount: number | null;
   readonly searchTerm: string;
   readonly from: Date | null;
   readonly to: Date | null;
@@ -335,6 +338,28 @@ export class TransactionsStore {
   readonly hasActiveTagFilter = computed(
     () => this.filters().selectedTagIds.length > 0
   );
+  readonly selectedCategoryFilterValue = computed(() => {
+    const selectedIds = this.filters().selectedCategoryIds;
+    if (selectedIds.length === 0) {
+      return '';
+    }
+
+    for (const group of this.state().groups) {
+      const groupIds = this.categoryIdsForGroup(group.id);
+      if (this.hasExactlySelectedCategoryIds(selectedIds, groupIds)) {
+        return `group:${group.id}`;
+      }
+    }
+
+    for (const category of this.state().categories) {
+      const categoryIds = this.categoryIdsWithDescendants(category.id);
+      if (this.hasExactlySelectedCategoryIds(selectedIds, categoryIds)) {
+        return `category:${category.id}`;
+      }
+    }
+
+    return 'mixed';
+  });
   readonly visibleTagSummaries = computed<readonly TagExpenseSummary[]>(() =>
     [...this.state().tagSummaries.values()].filter(
       (tag) => tag.transactionCount > 0 && Math.abs(tag.totalAmount) > 0
@@ -782,6 +807,18 @@ export class TransactionsStore {
       query = query.in('category_id', [...filters.selectedCategoryIds]);
     }
 
+    if (filters.selectedPlaceId) {
+      query = query.eq('place_id', filters.selectedPlaceId);
+    }
+
+    if (filters.minimumAmount !== null) {
+      query = query.gte('amount_in_default', filters.minimumAmount);
+    }
+
+    if (filters.maximumAmount !== null) {
+      query = query.lte('amount_in_default', filters.maximumAmount);
+    }
+
     if (filters.selectedTagIds.length > 0) {
       const transactionIds = await this.loadTransactionIdsForTags(
         userId,
@@ -1016,13 +1053,50 @@ export class TransactionsStore {
     void this.reloadTransactionsAfterFilterChange();
   }
 
+  setPlaceFilter(placeId: string | null): void {
+    this.filters.update((filters) => ({
+      ...filters,
+      selectedPlaceId: placeId || null,
+    }));
+    void this.reloadTransactionsAfterFilterChange();
+  }
+
+  setAmountRange(minimumAmount: number | null, maximumAmount: number | null): void {
+    this.filters.update((filters) => ({
+      ...filters,
+      minimumAmount: this.normalizeFilterAmount(minimumAmount),
+      maximumAmount: this.normalizeFilterAmount(maximumAmount),
+    }));
+    void this.reloadTransactionsAfterFilterChange();
+  }
+
+  setCategorySelection(categoryId: string | null): void {
+    this.filters.update((filters) => ({
+      ...filters,
+      selectedCategoryIds: categoryId
+        ? this.categoryIdsWithDescendants(categoryId)
+        : [],
+    }));
+    void this.reloadTransactionsAfterFilterChange();
+  }
+
+  setCategoryGroupSelection(groupId: string): void {
+    this.filters.update((filters) => ({
+      ...filters,
+      selectedCategoryIds: this.categoryIdsForGroup(groupId),
+    }));
+    void this.reloadTransactionsAfterFilterChange();
+  }
+
   toggleCategorySelection(categoryId: string): void {
     this.filters.update((filters) => {
       const set = new Set(filters.selectedCategoryIds);
-      if (set.has(categoryId)) {
-        set.delete(categoryId);
+      const categoryIds = this.categoryIdsWithDescendants(categoryId);
+      const allSelected = categoryIds.every((id) => set.has(id));
+      if (allSelected) {
+        categoryIds.forEach((id) => set.delete(id));
       } else {
-        set.add(categoryId);
+        categoryIds.forEach((id) => set.add(id));
       }
 
       return {
@@ -1031,6 +1105,31 @@ export class TransactionsStore {
       };
     });
     void this.reloadTransactionsAfterFilterChange();
+  }
+
+  toggleCategoryGroupSelection(groupId: string): void {
+    this.filters.update((filters) => {
+      const set = new Set(filters.selectedCategoryIds);
+      const groupIds = this.categoryIdsForGroup(groupId);
+      const allSelected = groupIds.every((id) => set.has(id));
+      if (allSelected) {
+        groupIds.forEach((id) => set.delete(id));
+      } else {
+        groupIds.forEach((id) => set.add(id));
+      }
+
+      return {
+        ...filters,
+        selectedCategoryIds: Array.from(set),
+      };
+    });
+    void this.reloadTransactionsAfterFilterChange();
+  }
+
+  isCategoryGroupSelected(groupId: string): boolean {
+    const selectedIds = new Set(this.filters().selectedCategoryIds);
+    const groupIds = this.categoryIdsForGroup(groupId);
+    return groupIds.length > 0 && groupIds.every((id) => selectedIds.has(id));
   }
 
   toggleTagSelection(tagId: string): void {
@@ -1535,11 +1634,60 @@ export class TransactionsStore {
     return {
       selectedCategoryIds: [],
       selectedTagIds: [],
+      selectedPlaceId: null,
+      minimumAmount: null,
+      maximumAmount: null,
       searchTerm: '',
       preset: 'currentMonth',
       from,
       to,
     };
+  }
+
+  private categoryIdsForGroup(groupId: string): readonly string[] {
+    return this.state()
+      .categories.filter((category) => category.groupId === groupId)
+      .map((category) => category.id);
+  }
+
+  private categoryIdsWithDescendants(categoryId: string): readonly string[] {
+    const categories = this.state().categories;
+    const selectedIds = new Set<string>([categoryId]);
+    let foundDescendant = true;
+
+    while (foundDescendant) {
+      foundDescendant = false;
+      for (const category of categories) {
+        if (
+          category.parentId &&
+          selectedIds.has(category.parentId) &&
+          !selectedIds.has(category.id)
+        ) {
+          selectedIds.add(category.id);
+          foundDescendant = true;
+        }
+      }
+    }
+
+    return categories
+      .filter((category) => selectedIds.has(category.id))
+      .map((category) => category.id);
+  }
+
+  private hasExactlySelectedCategoryIds(
+    selectedIds: readonly string[],
+    expectedIds: readonly string[]
+  ): boolean {
+    if (selectedIds.length !== expectedIds.length || expectedIds.length === 0) {
+      return false;
+    }
+
+    const selected = new Set(selectedIds);
+    return expectedIds.every((id) => selected.has(id));
+  }
+
+  private normalizeFilterAmount(value: number | null): number | null {
+    return value !== null && Number.isFinite(value) ? Math.max(0, value) : null;
   }
 
   private resolvePresetRange(preset: TransactionPresetId): {

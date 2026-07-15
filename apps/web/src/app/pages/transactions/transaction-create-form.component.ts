@@ -58,6 +58,7 @@ export type TransactionFormSaveResult = 'created' | 'updated';
   templateUrl: './transaction-create-form.component.html',
 })
 export class TransactionCreateFormComponent {
+  private static readonly RECENT_TAG_LIMIT = 7;
   private static readonly MAX_QUANTITY = 50;
   private static readonly RECENT_DEFAULTS_STORAGE_KEY =
     'spendist.transactionForm.recentDefaults';
@@ -163,6 +164,52 @@ export class TransactionCreateFormComponent {
   });
 
   protected readonly controls = this.form.controls;
+  private readonly selectedTagSelections = toSignal(
+    this.form.controls.tags.valueChanges,
+    { initialValue: this.form.controls.tags.value }
+  );
+  protected readonly recentTags = computed<readonly TagEntity[]>(() => {
+    const selected = this.selectedTagSelections();
+    const selectedIds = new Set(
+      selected
+        .map((selection) => selection.id)
+        .filter((id): id is string => Boolean(id))
+    );
+    const selectedNames = new Set(
+      selected.map((selection) => selection.name.toLowerCase())
+    );
+    const tagsById = new Map(this.tags().map((tag) => [tag.id, tag]));
+    const seen = new Set<string>();
+    const recent: TagEntity[] = [];
+    const transactions = [...this.store.transactionsView()].sort(
+      (a, b) => b.occurredAt.getTime() - a.occurredAt.getTime()
+    );
+
+    for (const transaction of transactions) {
+      for (const tagId of transaction.tagIds) {
+        if (seen.has(tagId)) {
+          continue;
+        }
+        seen.add(tagId);
+
+        const tag = tagsById.get(tagId);
+        if (
+          !tag ||
+          selectedIds.has(tag.id) ||
+          selectedNames.has(tag.name.toLowerCase())
+        ) {
+          continue;
+        }
+
+        recent.push(tag);
+        if (recent.length === TransactionCreateFormComponent.RECENT_TAG_LIMIT) {
+          return recent;
+        }
+      }
+    }
+
+    return recent;
+  });
   protected readonly selectedPlaceId = toSignal(
     this.form.controls.placeId.valueChanges,
     { initialValue: this.form.controls.placeId.value }
@@ -701,7 +748,9 @@ export class TransactionCreateFormComponent {
     this.closed.emit();
   }
 
-  protected async submit(afterCreate: 'close' | 'continue' = 'close'): Promise<void> {
+  protected async submit(
+    afterCreate: 'close' | 'continue' = 'close'
+  ): Promise<void> {
     if (this.store.transactionMutationPending()) {
       return;
     }
@@ -875,10 +924,9 @@ export class TransactionCreateFormComponent {
 
     const current = this.recentDefaults();
     const next = {
-      occurredOn:
-        this.isDateInputValue(patch.occurredOn ?? current?.occurredOn)
-          ? patch.occurredOn ?? current?.occurredOn
-          : undefined,
+      occurredOn: this.isDateInputValue(patch.occurredOn ?? current?.occurredOn)
+        ? patch.occurredOn ?? current?.occurredOn
+        : undefined,
       categoryId:
         this.resolveCategoryId(patch.categoryId ?? current?.categoryId) ??
         undefined,
@@ -898,7 +946,10 @@ export class TransactionCreateFormComponent {
     }
   }
 
-  private recentDefaults(): { occurredOn?: string; categoryId?: string } | null {
+  private recentDefaults(): {
+    occurredOn?: string;
+    categoryId?: string;
+  } | null {
     try {
       const raw = sessionStorage.getItem(
         TransactionCreateFormComponent.RECENT_DEFAULTS_STORAGE_KEY
@@ -927,12 +978,16 @@ export class TransactionCreateFormComponent {
     }
   }
 
-  private resolveCategoryId(categoryId: string | null | undefined): string | null {
+  private resolveCategoryId(
+    categoryId: string | null | undefined
+  ): string | null {
     if (!categoryId) {
       return null;
     }
 
-    return this.store.categories().some((category) => category.id === categoryId)
+    return this.store
+      .categories()
+      .some((category) => category.id === categoryId)
       ? categoryId
       : null;
   }

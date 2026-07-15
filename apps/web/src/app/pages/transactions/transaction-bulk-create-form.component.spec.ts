@@ -19,6 +19,15 @@ class TransactionsStoreStub {
       groupId: null,
       parentId: null,
     },
+    {
+      id: 'category-household',
+      ownerId: 'user-1',
+      name: 'Household',
+      color: null,
+      icon: null,
+      groupId: null,
+      parentId: null,
+    },
   ]);
   readonly groupedCategories = signal([]);
   readonly ungroupedCategories = signal(this.categories());
@@ -39,6 +48,14 @@ class TransactionsStoreStub {
       isDefault: true,
       currencyId: 1,
       currency: 'PLN',
+    },
+    {
+      id: 'wallet-eur',
+      ownerId: 'user-1',
+      name: 'Euro Wallet',
+      isDefault: false,
+      currencyId: 2,
+      currency: 'EUR',
     },
   ]);
   readonly places = signal([
@@ -165,5 +182,169 @@ describe('TransactionBulkCreateFormComponent', () => {
     await component.submit();
 
     expect(store.createTransactionBatchPayload).toBeNull();
+  });
+
+  it('expands a row quantity and applies batch wallet and direction', async () => {
+    const fixture = TestBed.createComponent(TransactionBulkCreateFormComponent);
+    fixture.detectChanges();
+    const component = fixture.componentInstance as unknown as {
+      rows(): readonly { readonly id: number }[];
+      updateRow(rowId: number, field: string, value: string | number): void;
+      updateBatchWallet(walletId: string): void;
+      updateBatchDirection(direction: 'expense' | 'income'): void;
+      submit(): Promise<void>;
+    };
+    const store = TestBed.inject(
+      TransactionsStore
+    ) as unknown as TransactionsStoreStub;
+    const saved = vi.fn();
+    fixture.componentInstance.saved.subscribe(saved);
+    const firstRow = component.rows()[0];
+
+    component.updateBatchWallet('wallet-eur');
+    component.updateBatchDirection('income');
+    component.updateRow(firstRow.id, 'description', 'Refund');
+    component.updateRow(firstRow.id, 'amount', '12');
+    component.updateRow(firstRow.id, 'quantity', 2);
+    await component.submit();
+
+    expect(store.createTransactionBatchPayload?.transactions).toHaveLength(2);
+    expect(store.createTransactionBatchPayload?.transactions).toEqual([
+      expect.objectContaining({
+        description: 'Refund',
+        currency: 'EUR',
+        direction: 'income',
+        walletId: 'wallet-eur',
+      }),
+      expect.objectContaining({
+        description: 'Refund',
+        currency: 'EUR',
+        direction: 'income',
+        walletId: 'wallet-eur',
+      }),
+    ]);
+    expect(saved).toHaveBeenCalledWith(2);
+  });
+
+  it('accepts the upper quantity limit of 100', async () => {
+    const fixture = TestBed.createComponent(TransactionBulkCreateFormComponent);
+    fixture.detectChanges();
+    const component = fixture.componentInstance as unknown as {
+      rows(): readonly { readonly id: number }[];
+      updateRow(rowId: number, field: string, value: string | number): void;
+      submit(): Promise<void>;
+    };
+    const store = TestBed.inject(
+      TransactionsStore
+    ) as unknown as TransactionsStoreStub;
+    const firstRow = component.rows()[0];
+
+    component.updateRow(firstRow.id, 'amount', '12');
+    component.updateRow(firstRow.id, 'quantity', 100);
+    await component.submit();
+
+    expect(store.createTransactionBatchPayload?.transactions).toHaveLength(100);
+  });
+
+  it.each([0, -1, 1.5, 101])(
+    'blocks submit for invalid quantity %s',
+    async (quantity) => {
+      const fixture = TestBed.createComponent(
+        TransactionBulkCreateFormComponent
+      );
+      fixture.detectChanges();
+      const component = fixture.componentInstance as unknown as {
+        rows(): readonly { readonly id: number }[];
+        updateRow(rowId: number, field: string, value: string | number): void;
+        submit(): Promise<void>;
+      };
+      const store = TestBed.inject(
+        TransactionsStore
+      ) as unknown as TransactionsStoreStub;
+      const firstRow = component.rows()[0];
+
+      component.updateRow(firstRow.id, 'amount', '12');
+      component.updateRow(firstRow.id, 'quantity', quantity);
+      await component.submit();
+
+      expect(store.createTransactionBatchPayload).toBeNull();
+    }
+  );
+
+  it('copies shared fields in both directions without activating empty rows', () => {
+    const fixture = TestBed.createComponent(TransactionBulkCreateFormComponent);
+    fixture.detectChanges();
+    const component = fixture.componentInstance as unknown as {
+      rows(): readonly {
+        readonly id: number;
+        readonly occurredOn: string;
+        readonly currency: string;
+        readonly categoryId: string;
+        readonly tags: string;
+        readonly placeId: string;
+        readonly touched: boolean;
+      }[];
+      activeRows(): readonly unknown[];
+      updateRow(rowId: number, field: string, value: string): void;
+      copyField(
+        rowId: number,
+        field: 'occurredOn' | 'currency' | 'categoryId' | 'tags' | 'placeId',
+        direction: 'up' | 'down'
+      ): void;
+    };
+    const source = component.rows()[1];
+
+    component.updateRow(source.id, 'occurredOn', '2026-07-10');
+    component.updateRow(source.id, 'currency', 'EUR');
+    component.updateRow(source.id, 'categoryId', 'category-household');
+    component.updateRow(source.id, 'tags', 'home');
+    component.updateRow(source.id, 'placeId', 'place-barber');
+    component.copyField(source.id, 'categoryId', 'up');
+    component.copyField(source.id, 'occurredOn', 'down');
+    component.copyField(source.id, 'currency', 'down');
+    component.copyField(source.id, 'tags', 'down');
+    component.copyField(source.id, 'placeId', 'down');
+
+    expect(component.rows()[0]).toMatchObject({
+      categoryId: 'category-household',
+      touched: false,
+    });
+    expect(component.rows()[2]).toMatchObject({
+      occurredOn: '2026-07-10',
+      currency: 'EUR',
+      tags: 'home',
+      placeId: 'place-barber',
+      touched: false,
+    });
+    expect(component.activeRows()).toHaveLength(1);
+  });
+
+  it('accepts the new pasted column order with quantity', async () => {
+    const fixture = TestBed.createComponent(TransactionBulkCreateFormComponent);
+    fixture.detectChanges();
+    const component = fixture.componentInstance as unknown as {
+      onPaste(event: ClipboardEvent): void;
+      submit(): Promise<void>;
+    };
+    const store = TestBed.inject(
+      TransactionsStore
+    ) as unknown as TransactionsStoreStub;
+    const event = {
+      clipboardData: {
+        getData: () =>
+          '2026-07-05\tToilet paper\t12\tPLN\tHousehold\thome\tBarber\t2',
+      },
+      preventDefault: vi.fn(),
+    } as unknown as ClipboardEvent;
+
+    component.onPaste(event);
+    await component.submit();
+
+    expect(store.createTransactionBatchPayload?.transactions).toHaveLength(2);
+    expect(store.createTransactionBatchPayload?.transactions[0]).toMatchObject({
+      description: 'Toilet paper',
+      categoryId: 'category-household',
+      placeId: 'place-barber',
+    });
   });
 });

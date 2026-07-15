@@ -167,13 +167,15 @@ const pl = {
       passwordLabel: 'Hasło',
       passwordError: 'Hasło jest wymagane.',
       forgotPasswordLink: 'Nie pamiętasz hasła?',
-      passwordResetSuccess: 'Hasło zostało zmienione. Zaloguj się nowym hasłem.',
+      passwordResetSuccess:
+        'Hasło zostało zmienione. Zaloguj się nowym hasłem.',
       submitIdle: 'Zaloguj się',
       submitBusy: 'Logowanie...',
     },
     forgotPassword: {
       title: 'Zresetuj hasło',
-      subtitle: 'Podaj adres e-mail, a wyślemy link do ustawienia nowego hasła.',
+      subtitle:
+        'Podaj adres e-mail, a wyślemy link do ustawienia nowego hasła.',
       emailLabel: 'Adres e-mail',
       emailError: 'Podaj poprawny adres e-mail.',
       success:
@@ -659,8 +661,9 @@ const pl = {
     badge: 'Transakcje',
     title: 'Transakcje',
     filters: {
-      categoriesTitle: 'Kategorie',
-      tagsTitle: 'Tagi',
+      title: 'Filtry transakcji',
+      description:
+        'Zawęź listę po opisie, kategorii, miejscu, kwocie lub okresie.',
       categoriesTab: 'Kategorie',
       tagsTab: 'Tagi',
       clearCategories: 'Wyczyść',
@@ -680,7 +683,16 @@ const pl = {
       },
       reset: 'Resetuj filtry',
       searchLabel: 'Wyszukiwanie',
-      searchPlaceholder: 'Szukaj po opisie, kategorii lub walucie…',
+      searchPlaceholder: 'Szukaj po opisie, kategorii, miejscu lub walucie…',
+      categoryLabel: 'Kategoria lub grupa',
+      categoryPlaceholder: 'Wszystkie kategorie',
+      categoryMixed: 'Wybrano kilka kategorii',
+      wholeGroup: 'Cała grupa: {{ name }}',
+      placeLabel: 'Miejsce',
+      placePlaceholder: 'Wszystkie miejsca',
+      minimumAmountLabel: 'Kwota od ({{ currency }})',
+      maximumAmountLabel: 'Kwota do ({{ currency }})',
+      amountPlaceholder: 'Bez limitu',
       fromLabel: 'Data od',
       toLabel: 'Data do',
       monthLabel: 'Przejdź do miesiąca',
@@ -716,7 +728,6 @@ const pl = {
     actions: {
       add: 'Dodaj transakcję',
       addBulk: 'Dodaj hurtowo',
-      addBulkShort: 'Hurtowo',
       addShortcutHint: 'Dodaj transakcję (Alt+N)',
       loadMore: 'Załaduj więcej',
     },
@@ -738,12 +749,20 @@ const pl = {
         wallet: 'Portfel',
         tags: 'Tagi',
         place: 'Miejsce',
+        quantity: 'Ilość',
       },
-      summary: 'Wiersze do zapisu: {{ count }}',
+      batchSettings: {
+        title: 'Ustawienia partii',
+        hint: 'Portfel i typ dotyczą wszystkich transakcji w tym zapisie.',
+      },
+      summary: 'Transakcje do zapisu: {{ count }}',
       duplicates: 'Wykryto {{ count }} możliwych duplikatów.',
       actions: {
         addRows: 'Dodaj 10 wierszy',
         clearRow: 'Wyczyść wiersz',
+        copyField: 'Kopiuj wartość',
+        copyAbove: 'Wypełnij wiersze powyżej',
+        copyBelow: 'Wypełnij wiersze poniżej',
         save: 'Zapisz {{ count }}',
       },
       validation: {
@@ -754,6 +773,7 @@ const pl = {
         category: 'wybierz kategorię',
         wallet: 'wybierz portfel',
         currency: 'podaj poprawną walutę',
+        quantity: 'ilość musi być liczbą całkowitą od 1 do 100',
         exchangeRate: 'brak kursu dla daty i waluty',
         save: 'nie udało się przygotować transakcji',
       },
@@ -826,6 +846,7 @@ const pl = {
       },
       emptyTags:
         'Zacznij pisać, aby dodać pierwszy tag lub wybierz z podpowiedzi.',
+      recentTags: 'Ostatnio używane',
       emptyCategories: 'Brak pasujących kategorii.',
       emptyPlaces: 'Brak pasujących miejsc.',
     },
@@ -899,6 +920,11 @@ const pl = {
           label: 'Wygenerowane od początku roku',
           caption:
             'Automatyczne transakcje wydatkowe utworzone z płatności cyklicznych od stycznia.',
+        },
+        planned: {
+          label: 'Łącznie w tym miesiącu',
+          caption:
+            'Wygenerowane: {{ generated }} {{ currency }}. Do wygenerowania: {{ scheduled }} {{ currency }} (liczba zaplanowanych: {{ count }}).',
         },
       },
       actions: {

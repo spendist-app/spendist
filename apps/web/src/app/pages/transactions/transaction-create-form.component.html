@@ -369,6 +369,36 @@
             </div>
           </label>
 
+          @if (recentTags().length > 0) {
+          <div class="space-y-2" aria-labelledby="recent-tags-label">
+            <p
+              id="recent-tags-label"
+              class="text-xs font-semibold uppercase tracking-wide text-base-content/50"
+            >
+              {{ 'transactions.form.recentTags' | transloco }}
+            </p>
+            <div class="flex flex-wrap gap-2">
+              @for (tag of recentTags(); track tag.id) {
+              <button
+                type="button"
+                class="btn btn-ghost btn-xs h-auto min-h-8 rounded-full border border-base-300 px-3 font-medium"
+                data-testid="recent-tag"
+                (click)="addExistingTag(tag)"
+              >
+                @if (tag.color) {
+                <span
+                  class="size-2 rounded-full"
+                  [style.background-color]="tag.color"
+                  aria-hidden="true"
+                ></span>
+                }
+                {{ tag.name }}
+              </button>
+              }
+            </div>
+          </div>
+          }
+
           @if (form.controls.tags.value.length === 0 && tags().length === 0) {
           <p class="text-xs text-base-content/60">
             {{ 'transactions.form.emptyTags' | transloco }}

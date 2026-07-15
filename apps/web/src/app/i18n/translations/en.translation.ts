@@ -167,13 +167,15 @@ const en = {
       passwordLabel: 'Password',
       passwordError: 'Password is required.',
       forgotPasswordLink: 'Forgot password?',
-      passwordResetSuccess: 'Your password was changed. Log in with the new password.',
+      passwordResetSuccess:
+        'Your password was changed. Log in with the new password.',
       submitIdle: 'Log in',
       submitBusy: 'Signing in...',
     },
     forgotPassword: {
       title: 'Reset your password',
-      subtitle: 'Enter your email address and we will send you a password reset link.',
+      subtitle:
+        'Enter your email address and we will send you a password reset link.',
       emailLabel: 'Email',
       emailError: 'Enter a valid email address.',
       success:
@@ -267,7 +269,8 @@ const en = {
             newPassword:
               'Use at least 8 characters, including uppercase, lowercase, and a number.',
             confirmPassword: 'Passwords must match.',
-            samePassword: 'New password must be different from the current one.',
+            samePassword:
+              'New password must be different from the current one.',
           },
         },
       },
@@ -656,8 +659,9 @@ const en = {
     badge: 'Transactions',
     title: 'Transactions',
     filters: {
-      categoriesTitle: 'Categories',
-      tagsTitle: 'Tags',
+      title: 'Transaction filters',
+      description:
+        'Narrow the list by description, category, place, amount, or period.',
       categoriesTab: 'Categories',
       tagsTab: 'Tags',
       clearCategories: 'Clear',
@@ -677,7 +681,16 @@ const en = {
       },
       reset: 'Reset filters',
       searchLabel: 'Search',
-      searchPlaceholder: 'Search description, category, or currency…',
+      searchPlaceholder: 'Search description, category, place, or currency…',
+      categoryLabel: 'Category or group',
+      categoryPlaceholder: 'All categories',
+      categoryMixed: 'Multiple categories selected',
+      wholeGroup: 'Whole group: {{ name }}',
+      placeLabel: 'Place',
+      placePlaceholder: 'All places',
+      minimumAmountLabel: 'Amount from ({{ currency }})',
+      maximumAmountLabel: 'Amount to ({{ currency }})',
+      amountPlaceholder: 'No limit',
       fromLabel: 'Date from',
       toLabel: 'Date to',
       monthLabel: 'Jump to month',
@@ -713,7 +726,6 @@ const en = {
     actions: {
       add: 'Add transaction',
       addBulk: 'Add in bulk',
-      addBulkShort: 'Bulk',
       addShortcutHint: 'Add transaction (Alt+N)',
       loadMore: 'Load more',
     },
@@ -735,12 +747,20 @@ const en = {
         wallet: 'Wallet',
         tags: 'Tags',
         place: 'Place',
+        quantity: 'Quantity',
       },
-      summary: 'Rows to save: {{ count }}',
+      batchSettings: {
+        title: 'Batch settings',
+        hint: 'Wallet and type apply to every transaction in this batch.',
+      },
+      summary: 'Transactions to save: {{ count }}',
       duplicates: '{{ count }} possible duplicates detected.',
       actions: {
         addRows: 'Add 10 rows',
         clearRow: 'Clear row',
+        copyField: 'Copy value',
+        copyAbove: 'Fill rows above',
+        copyBelow: 'Fill rows below',
         save: 'Save {{ count }}',
       },
       validation: {
@@ -751,6 +771,7 @@ const en = {
         category: 'select a category',
         wallet: 'select a wallet',
         currency: 'enter a valid currency',
+        quantity: 'quantity must be an integer from 1 to 100',
         exchangeRate: 'exchange rate is unavailable for this date and currency',
         save: 'transaction could not be prepared',
       },
@@ -824,6 +845,7 @@ const en = {
       },
       emptyTags:
         'Start typing to create your first tag or choose from suggestions.',
+      recentTags: 'Recently used',
       emptyCategories: 'No matching categories.',
       emptyPlaces: 'No matching places.',
     },
@@ -897,6 +919,11 @@ const en = {
           label: 'Generated year-to-date',
           caption:
             'Automatic expense transactions created from recurring payments since January.',
+        },
+        planned: {
+          label: 'Total for this month',
+          caption:
+            'Generated: {{ generated }} {{ currency }}. Still scheduled: {{ scheduled }} {{ currency }} (scheduled occurrences: {{ count }}).',
         },
       },
       actions: {
