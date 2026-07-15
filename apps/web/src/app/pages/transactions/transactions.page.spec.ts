@@ -442,6 +442,21 @@ describe('TransactionsPageComponent', () => {
     expect(component.createFormOpen()).toBe(false);
   });
 
+  it('opens single entry directly from the main add button', () => {
+    const fixture = TestBed.createComponent(TransactionsPageComponent);
+    fixture.detectChanges();
+    const component = fixture.componentInstance as unknown as {
+      createFormOpen(): boolean;
+    };
+    const addButton = fixture.nativeElement.querySelector(
+      'summary[role="button"]'
+    ) as HTMLElement;
+
+    addButton.click();
+
+    expect(component.createFormOpen()).toBe(true);
+  });
+
   it('opens bulk entry from the add speed dial', () => {
     const fixture = TestBed.createComponent(TransactionsPageComponent);
     fixture.detectChanges();

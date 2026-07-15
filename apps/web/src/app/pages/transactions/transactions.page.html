@@ -741,12 +741,14 @@
   (keydown.escape)="closeAddMenu(); $event.stopPropagation()"
 >
   <summary
+    role="button"
     class="btn btn-primary btn-circle list-none shadow-lg transition-transform hover:scale-105 [&::-webkit-details-marker]:hidden"
     aria-label="{{ 'transactions.actions.add' | transloco }}"
     [attr.title]="'transactions.actions.addShortcutHint' | transloco"
     [attr.aria-expanded]="addMenuOpen()"
     aria-controls="transaction-add-actions"
     aria-keyshortcuts="Alt+N N"
+    (click)="$event.preventDefault(); openCreateForm()"
   >
     <ng-icon [svg]="addIcon" size="24" aria-hidden="true"></ng-icon>
     <span class="sr-only">{{ 'transactions.actions.add' | transloco }}</span>
