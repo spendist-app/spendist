@@ -165,6 +165,32 @@ describe('TransactionBulkCreateFormComponent', () => {
     });
   });
 
+  it('captures paste events from anywhere while the modal is open', () => {
+    const fixture = TestBed.createComponent(TransactionBulkCreateFormComponent);
+    fixture.detectChanges();
+    const component = fixture.componentInstance as unknown as {
+      rows(): readonly {
+        readonly description: string;
+        readonly amount: string;
+      }[];
+    };
+    const event = new Event('paste', { bubbles: true });
+    Object.defineProperty(event, 'clipboardData', {
+      value: {
+        getData: () =>
+          '2026-07-10\tPasted from clipboard\t49.90\tPLN\tFood\tmeal\tBarber\t1',
+      },
+    });
+
+    document.dispatchEvent(event);
+    fixture.detectChanges();
+
+    expect(component.rows()[0]).toMatchObject({
+      description: 'Pasted from clipboard',
+      amount: '49.90',
+    });
+  });
+
   it('blocks submit when an active row has an invalid amount', async () => {
     const fixture = TestBed.createComponent(TransactionBulkCreateFormComponent);
     fixture.detectChanges();

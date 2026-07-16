@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  HostListener,
   computed,
   effect,
   inject,
@@ -233,6 +234,7 @@ export class TransactionBulkCreateFormComponent {
     );
   }
 
+  @HostListener('document:paste', ['$event'])
   protected onPaste(event: ClipboardEvent): void {
     const text = event.clipboardData?.getData('text/plain') ?? '';
     if (!text.trim()) {

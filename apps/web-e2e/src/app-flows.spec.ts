@@ -453,16 +453,14 @@ test('exposes bulk entry and applies year, month, and amount sorting', async ({
 
   const firstDateInput = bulkDialog.locator('input[type="date"]').first();
   await expect(firstDateInput).toBeVisible();
-  expect((await firstDateInput.boundingBox())?.width ?? 0).toBeGreaterThanOrEqual(
-    128
-  );
+  expect(
+    (await firstDateInput.boundingBox())?.width ?? 0
+  ).toBeGreaterThanOrEqual(128);
 
   const firstCopyMenu = bulkDialog.locator('details').first();
   await firstCopyMenu.locator('summary').click();
   await expect(firstCopyMenu).toHaveAttribute('open', '');
-  await firstCopyMenu
-    .getByRole('button', { name: 'Fill rows below' })
-    .click();
+  await firstCopyMenu.getByRole('button', { name: 'Fill rows below' }).click();
   await expect(firstCopyMenu).not.toHaveAttribute('open', '');
 
   await bulkDialog
@@ -478,6 +476,20 @@ test('exposes bulk entry and applies year, month, and amount sorting', async ({
       )
     )
     .toBe('absolute');
+
+  await page.evaluate(() => {
+    const clipboardData = new DataTransfer();
+    clipboardData.setData(
+      'text/plain',
+      '2026-07-10\tPasted with Ctrl+V\t25.50\tPLN\tGroceries\tclipboard\t\t1'
+    );
+    document.dispatchEvent(
+      new ClipboardEvent('paste', { bubbles: true, clipboardData })
+    );
+  });
+  await expect(
+    bulkDialog.locator('input[placeholder="Description"]').first()
+  ).toHaveValue('Pasted with Ctrl+V');
 
   await bulkDialog.getByRole('button', { name: 'Cancel' }).click();
 
