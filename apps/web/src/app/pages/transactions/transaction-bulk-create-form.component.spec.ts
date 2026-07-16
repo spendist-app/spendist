@@ -319,6 +319,23 @@ describe('TransactionBulkCreateFormComponent', () => {
     expect(component.activeRows()).toHaveLength(1);
   });
 
+  it('closes the copy menu after applying an action', () => {
+    const fixture = TestBed.createComponent(TransactionBulkCreateFormComponent);
+    fixture.detectChanges();
+    const firstMenu = fixture.nativeElement.querySelector(
+      'details'
+    ) as HTMLDetailsElement;
+    const copyBelow = firstMenu.querySelector(
+      'ul li:last-child button'
+    ) as HTMLButtonElement;
+
+    firstMenu.open = true;
+    copyBelow.click();
+    fixture.detectChanges();
+
+    expect(firstMenu.open).toBe(false);
+  });
+
   it('accepts the new pasted column order with quantity', async () => {
     const fixture = TestBed.createComponent(TransactionBulkCreateFormComponent);
     fixture.detectChanges();

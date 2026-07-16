@@ -450,6 +450,35 @@ test('exposes bulk entry and applies year, month, and amount sorting', async ({
   await expect(
     bulkDialog.getByRole('heading', { name: 'Add transactions in bulk' })
   ).toBeVisible();
+
+  const firstDateInput = bulkDialog.locator('input[type="date"]').first();
+  await expect(firstDateInput).toBeVisible();
+  expect((await firstDateInput.boundingBox())?.width ?? 0).toBeGreaterThanOrEqual(
+    128
+  );
+
+  const firstCopyMenu = bulkDialog.locator('details').first();
+  await firstCopyMenu.locator('summary').click();
+  await expect(firstCopyMenu).toHaveAttribute('open', '');
+  await firstCopyMenu
+    .getByRole('button', { name: 'Fill rows below' })
+    .click();
+  await expect(firstCopyMenu).not.toHaveAttribute('open', '');
+
+  await bulkDialog
+    .getByRole('button', { name: 'Category', exact: true })
+    .first()
+    .click();
+  const categorySearch = bulkDialog.getByPlaceholder('Search categories...');
+  await expect(categorySearch).toBeVisible();
+  await expect
+    .poll(() =>
+      categorySearch.evaluate(
+        (element) => getComputedStyle(element.parentElement!).position
+      )
+    )
+    .toBe('absolute');
+
   await bulkDialog.getByRole('button', { name: 'Cancel' }).click();
 
   for (const transaction of [
