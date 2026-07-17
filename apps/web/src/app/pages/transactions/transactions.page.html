@@ -387,8 +387,28 @@
                 autocomplete="off"
               />
             </label>
+          </div>
 
-            <label class="form-control sm:col-span-2">
+          <button
+            type="button"
+            data-testid="transaction-advanced-filters-toggle"
+            class="btn btn-ghost btn-sm w-fit"
+            [attr.aria-expanded]="advancedFiltersExpanded()"
+            aria-controls="transaction-advanced-filters"
+            (click)="toggleAdvancedFilters()"
+          >
+            {{
+              (advancedFiltersExpanded()
+                ? 'transactions.filters.showLess'
+                : 'transactions.filters.showMore') | transloco
+            }}
+          </button>
+
+          @if (advancedFiltersExpanded()) {
+          <div id="transaction-advanced-filters" class="flex flex-col gap-4">
+            <div class="grid gap-4 sm:grid-cols-2">
+
+              <label class="form-control sm:col-span-2">
               <span
                 class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60"
               >
@@ -407,8 +427,8 @@
                 <option [value]="place.id">{{ place.name }}</option>
                 }
               </select>
-            </label>
-          </div>
+              </label>
+            </div>
 
           <fieldset
             class="rounded-2xl border border-base-200 bg-base-200/30 p-4"
@@ -498,7 +518,7 @@
             </div>
           </fieldset>
 
-          <div class="grid gap-4 sm:grid-cols-2">
+            <div class="grid gap-4 sm:grid-cols-2">
             <label class="form-control">
               <span
                 class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60"
@@ -571,7 +591,9 @@
                 store.totalMatchingTransactions() } }}
               </p>
             </div>
+            </div>
           </div>
+          }
         </div>
       </section>
 

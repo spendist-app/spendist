@@ -767,6 +767,8 @@ const pl = {
         allTime: 'Cały okres',
       },
       reset: 'Resetuj filtry',
+      showMore: 'Pokaż więcej filtrów',
+      showLess: 'Ukryj dodatkowe filtry',
       searchLabel: 'Wyszukiwanie',
       searchPlaceholder: 'Szukaj po opisie, kategorii, miejscu lub walucie…',
       categoryLabel: 'Kategoria lub grupa',

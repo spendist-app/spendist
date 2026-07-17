@@ -765,6 +765,8 @@ const en = {
         allTime: 'All time',
       },
       reset: 'Reset filters',
+      showMore: 'Show more filters',
+      showLess: 'Hide additional filters',
       searchLabel: 'Search',
       searchPlaceholder: 'Search description, category, place, or currency…',
       categoryLabel: 'Category or group',
