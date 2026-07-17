@@ -167,11 +167,23 @@ async function filterTransactionsByDate(
   await filterTransactionsByRange(page, occurredOn, occurredOn);
 }
 
+async function expandAdvancedTransactionFilters(page: Page): Promise<void> {
+  const toggle = page.getByTestId('transaction-advanced-filters-toggle');
+  await expect(toggle).toBeVisible({ timeout: 15000 });
+
+  if ((await toggle.getAttribute('aria-expanded')) !== 'true') {
+    await toggle.click();
+  }
+
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+}
+
 async function filterTransactionsByRange(
   page: Page,
   from: string,
   to: string
 ): Promise<void> {
+  await expandAdvancedTransactionFilters(page);
   const fromInput = page.getByLabel('Date from', { exact: true });
   const toInput = page.getByLabel('Date to', { exact: true });
 
@@ -450,6 +462,47 @@ test('exposes bulk entry and applies year, month, and amount sorting', async ({
   await expect(
     bulkDialog.getByRole('heading', { name: 'Add transactions in bulk' })
   ).toBeVisible();
+
+  const firstDateInput = bulkDialog.locator('input[type="date"]').first();
+  await expect(firstDateInput).toBeVisible();
+  expect(
+    (await firstDateInput.boundingBox())?.width ?? 0
+  ).toBeGreaterThanOrEqual(128);
+
+  const firstCopyMenu = bulkDialog.locator('details').first();
+  await firstCopyMenu.locator('summary').click();
+  await expect(firstCopyMenu).toHaveAttribute('open', '');
+  await firstCopyMenu.getByRole('button', { name: 'Fill rows below' }).click();
+  await expect(firstCopyMenu).not.toHaveAttribute('open', '');
+
+  await bulkDialog
+    .getByRole('button', { name: 'Category', exact: true })
+    .first()
+    .click();
+  const categorySearch = bulkDialog.getByPlaceholder('Search categories...');
+  await expect(categorySearch).toBeVisible();
+  await expect
+    .poll(() =>
+      categorySearch.evaluate(
+        (element) => getComputedStyle(element.parentElement!).position
+      )
+    )
+    .toBe('absolute');
+
+  await page.evaluate(() => {
+    const clipboardData = new DataTransfer();
+    clipboardData.setData(
+      'text/plain',
+      '2026-07-10\tPasted with Ctrl+V\t25.50\tPLN\tGroceries\tclipboard\t\t1'
+    );
+    document.dispatchEvent(
+      new ClipboardEvent('paste', { bubbles: true, clipboardData })
+    );
+  });
+  await expect(
+    bulkDialog.locator('input[placeholder="Description"]').first()
+  ).toHaveValue('Pasted with Ctrl+V');
+
   await bulkDialog.getByRole('button', { name: 'Cancel' }).click();
 
   for (const transaction of [
@@ -475,6 +528,7 @@ test('exposes bulk entry and applies year, month, and amount sorting', async ({
     await expect(page.getByText(transaction.description)).toBeVisible();
   }
 
+  await expandAdvancedTransactionFilters(page);
   const year = page.getByTestId('transaction-year-filter');
   const month = page.getByTestId('transaction-month-filter');
   await year.selectOption('2026');

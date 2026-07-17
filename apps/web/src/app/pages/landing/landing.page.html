@@ -1,224 +1,326 @@
-<!-- ═══════════════════════════ HERO ═══════════════════════════ -->
-<section id="hero" class="landing-hero">
-  @if (auth.loading()) {
-    <span
-      class="loading loading-spinner loading-lg text-primary"
-      [attr.aria-label]="'common.status.checkingSession' | transloco"
-    ></span>
-  } @else {
-    <!-- Animated background blobs -->
-    <div class="hero-blob hero-blob--1" aria-hidden="true"></div>
-    <div class="hero-blob hero-blob--2" aria-hidden="true"></div>
-    <div class="hero-blob hero-blob--3" aria-hidden="true"></div>
+@if (auth.loading()) {
+<div class="landing-loading">
+  <span
+    class="loading loading-spinner loading-lg text-primary"
+    [attr.aria-label]="'common.status.checkingSession' | transloco"
+  ></span>
+</div>
+} @else {
+<div class="landing-shell">
+  <section class="hero-section" aria-labelledby="landing-title">
+    <div class="hero-orb hero-orb--teal" aria-hidden="true"></div>
+    <div class="hero-orb hero-orb--amber" aria-hidden="true"></div>
 
-    <div class="hero-content animate-fade-up">
-      <span class="hero-badge">
-        <span class="hero-badge__dot" aria-hidden="true"></span>
+    <div class="hero-copy">
+      <a
+        class="brand-lockup"
+        routerLink="/"
+        [attr.aria-label]="'common.appName' | transloco"
+      >
+        <img src="/brand/spendist-mark.svg" alt="" width="54" height="54" />
+        <span>{{ 'common.appName' | transloco }}</span>
+      </a>
+
+      <span class="eyebrow">
+        <ng-icon [svg]="sparklesIcon" size="17" aria-hidden="true"></ng-icon>
         {{ 'landing.hero.badge' | transloco }}
       </span>
 
-      <h1 class="hero-title">
+      <h1 id="landing-title">
         {{ 'landing.hero.title' | transloco }}
-        <span class="hero-title__highlight">{{ 'landing.hero.titleHighlight' | transloco }}</span>
+        <span>{{ 'landing.hero.titleHighlight' | transloco }}</span>
       </h1>
 
-      <p class="hero-subtitle">
-        {{ 'landing.hero.subtitle' | transloco }}
-      </p>
+      <p class="hero-lead">{{ 'landing.hero.subtitle' | transloco }}</p>
 
       <div class="hero-actions">
-        <a class="btn btn-primary btn-lg hero-cta" routerLink="/signup">
+        <a class="btn btn-primary btn-lg" routerLink="/signup">
           {{ 'landing.hero.cta' | transloco }}
-          <span class="hero-cta__arrow" aria-hidden="true">→</span>
+          <span aria-hidden="true">→</span>
         </a>
-        <a class="btn btn-ghost btn-lg" href="#features">
-          {{ 'landing.hero.ctaSecondary' | transloco }}
+        <a class="btn btn-ghost btn-lg" routerLink="/login">
+          {{ 'landing.hero.login' | transloco }}
         </a>
       </div>
+
+      <ul
+        class="hero-proof"
+        [attr.aria-label]="'landing.proof.label' | transloco"
+      >
+        <li>
+          <ng-icon [svg]="checkIcon" size="18" aria-hidden="true"></ng-icon>
+          {{ 'landing.proof.openSource' | transloco }}
+        </li>
+        <li>
+          <ng-icon [svg]="checkIcon" size="18" aria-hidden="true"></ng-icon>
+          {{ 'landing.proof.noAds' | transloco }}
+        </li>
+        <li>
+          <ng-icon [svg]="checkIcon" size="18" aria-hidden="true"></ng-icon>
+          {{ 'landing.proof.bilingual' | transloco }}
+        </li>
+      </ul>
     </div>
 
-    <!-- Floating dashboard preview card -->
-    <div class="hero-preview animate-fade-up-delayed">
-      <div class="preview-card">
-        <div class="preview-card__header">
-          <div class="preview-dots" aria-hidden="true">
-            <span class="dot dot--red"></span>
-            <span class="dot dot--yellow"></span>
-            <span class="dot dot--green"></span>
+    <div
+      class="product-preview"
+      [attr.aria-label]="'landing.preview.ariaLabel' | transloco"
+    >
+      <div class="preview-glow" aria-hidden="true"></div>
+      <div class="preview-window">
+        <div class="preview-toolbar">
+          <div class="preview-brand">
+            <img src="/brand/spendist-mark.svg" alt="" width="30" height="30" />
+            <span>Spendist</span>
           </div>
-          <span class="preview-card__title">Spendist Dashboard</span>
+          <span class="preview-month"
+            >{{ 'landing.preview.month' | transloco }}</span
+          >
         </div>
-        <div class="preview-card__body">
-          <div class="preview-row">
-            <div class="preview-stat preview-stat--income">
-              <span class="preview-stat__label">Income</span>
-              <span class="preview-stat__value preview-stat__value--positive">+12,450.00</span>
+
+        <div class="preview-content">
+          <div class="preview-heading">
+            <div>
+              <p>{{ 'landing.preview.balanceLabel' | transloco }}</p>
+              <strong>8 420,75 PLN</strong>
             </div>
-            <div class="preview-stat preview-stat--expense">
-              <span class="preview-stat__label">Expenses</span>
-              <span class="preview-stat__value preview-stat__value--negative">-8,320.50</span>
+            <span class="trend">+12,4%</span>
+          </div>
+
+          <div class="preview-totals">
+            <div>
+              <span>{{ 'landing.preview.income' | transloco }}</span>
+              <strong class="positive">+12 850 PLN</strong>
             </div>
-            <div class="preview-stat preview-stat--net">
-              <span class="preview-stat__label">Net</span>
-              <span class="preview-stat__value preview-stat__value--positive">+4,129.50</span>
+            <div>
+              <span>{{ 'landing.preview.expenses' | transloco }}</span>
+              <strong class="negative">−4 429,25 PLN</strong>
             </div>
           </div>
+
           <div class="preview-chart" aria-hidden="true">
-            <div class="chart-bar" style="--bar-height: 65%"></div>
-            <div class="chart-bar chart-bar--accent" style="--bar-height: 45%"></div>
-            <div class="chart-bar" style="--bar-height: 80%"></div>
-            <div class="chart-bar chart-bar--accent" style="--bar-height: 55%"></div>
-            <div class="chart-bar" style="--bar-height: 70%"></div>
-            <div class="chart-bar chart-bar--accent" style="--bar-height: 40%"></div>
-            <div class="chart-bar" style="--bar-height: 90%"></div>
-            <div class="chart-bar chart-bar--accent" style="--bar-height: 60%"></div>
-            <div class="chart-bar" style="--bar-height: 75%"></div>
-            <div class="chart-bar chart-bar--accent" style="--bar-height: 50%"></div>
-            <div class="chart-bar" style="--bar-height: 85%"></div>
-            <div class="chart-bar chart-bar--accent" style="--bar-height: 35%"></div>
+            <span style="--height: 42%"></span>
+            <span style="--height: 58%"></span>
+            <span style="--height: 48%"></span>
+            <span style="--height: 72%"></span>
+            <span style="--height: 64%"></span>
+            <span style="--height: 88%"></span>
+            <span class="active" style="--height: 76%"></span>
+          </div>
+
+          <div class="preview-categories">
+            <div>
+              <span class="category-dot category-dot--teal"></span>
+              <span>{{ 'landing.preview.home' | transloco }}</span>
+              <strong>1 860 PLN</strong>
+            </div>
+            <div>
+              <span class="category-dot category-dot--amber"></span>
+              <span>{{ 'landing.preview.food' | transloco }}</span>
+              <strong>980 PLN</strong>
+            </div>
+            <div>
+              <span class="category-dot category-dot--orange"></span>
+              <span>{{ 'landing.preview.transport' | transloco }}</span>
+              <strong>540 PLN</strong>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  }
-</section>
+  </section>
 
-<!-- ═══════════════════════ STATS STRIP ═══════════════════════ -->
-@if (!auth.loading()) {
-<section id="stats" class="landing-stats">
-  <div class="stats-grid">
-    <div class="stat-item">
-      <span class="stat-item__number">50K+</span>
-      <span class="stat-item__label">{{ 'landing.stats.transactions' | transloco }}</span>
-    </div>
-    <div class="stat-item">
-      <span class="stat-item__number">200+</span>
-      <span class="stat-item__label">{{ 'landing.stats.categories' | transloco }}</span>
-    </div>
-    <div class="stat-item">
-      <span class="stat-item__number">∞</span>
-      <span class="stat-item__label">{{ 'landing.stats.wallets' | transloco }}</span>
-    </div>
-    <div class="stat-item">
-      <span class="stat-item__number">99.9%</span>
-      <span class="stat-item__label">{{ 'landing.stats.uptime' | transloco }}</span>
-    </div>
-  </div>
-</section>
-
-<!-- ═══════════════════════ FEATURES ═══════════════════════ -->
-<section id="features" class="landing-features">
-  <div class="section-header">
-    <span class="section-badge">{{ 'landing.features.badge' | transloco }}</span>
-    <h2 class="section-title">{{ 'landing.features.title' | transloco }}</h2>
-    <p class="section-subtitle">{{ 'landing.features.subtitle' | transloco }}</p>
-  </div>
-
-  <div class="features-grid">
-    <div class="feature-card feature-card--primary">
-      <div class="feature-card__icon" aria-hidden="true">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" /></svg>
-      </div>
-      <h3 class="feature-card__title">{{ 'landing.features.dashboard.title' | transloco }}</h3>
-      <p class="feature-card__desc">{{ 'landing.features.dashboard.description' | transloco }}</p>
+  <section id="features" class="section-block" aria-labelledby="features-title">
+    <div class="section-heading">
+      <span class="eyebrow">{{ 'landing.features.badge' | transloco }}</span>
+      <h2 id="features-title">{{ 'landing.features.title' | transloco }}</h2>
+      <p>{{ 'landing.features.subtitle' | transloco }}</p>
     </div>
 
-    <div class="feature-card">
-      <div class="feature-card__icon" aria-hidden="true">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z" /></svg>
-      </div>
-      <h3 class="feature-card__title">{{ 'landing.features.transactions.title' | transloco }}</h3>
-      <p class="feature-card__desc">{{ 'landing.features.transactions.description' | transloco }}</p>
+    <div class="feature-grid">
+      <article class="feature-card feature-card--wide feature-card--primary">
+        <span class="feature-icon">
+          <ng-icon [svg]="chartIcon" size="25" aria-hidden="true"></ng-icon>
+        </span>
+        <div>
+          <h3>{{ 'landing.features.dashboard.title' | transloco }}</h3>
+          <p>{{ 'landing.features.dashboard.description' | transloco }}</p>
+        </div>
+        <div class="mini-bars" aria-hidden="true">
+          <span style="--height: 45%"></span><span style="--height: 68%"></span
+          ><span style="--height: 52%"></span><span style="--height: 84%"></span
+          ><span style="--height: 72%"></span>
+        </div>
+      </article>
+
+      <article class="feature-card">
+        <span class="feature-icon feature-icon--amber">
+          <ng-icon [svg]="bulkIcon" size="25" aria-hidden="true"></ng-icon>
+        </span>
+        <h3>{{ 'landing.features.bulk.title' | transloco }}</h3>
+        <p>{{ 'landing.features.bulk.description' | transloco }}</p>
+      </article>
+
+      <article class="feature-card">
+        <span class="feature-icon feature-icon--orange">
+          <ng-icon [svg]="recurringIcon" size="25" aria-hidden="true"></ng-icon>
+        </span>
+        <h3>{{ 'landing.features.recurring.title' | transloco }}</h3>
+        <p>{{ 'landing.features.recurring.description' | transloco }}</p>
+      </article>
+
+      <article class="feature-card">
+        <span class="feature-icon">
+          <ng-icon [svg]="currencyIcon" size="25" aria-hidden="true"></ng-icon>
+        </span>
+        <h3>{{ 'landing.features.currency.title' | transloco }}</h3>
+        <p>{{ 'landing.features.currency.description' | transloco }}</p>
+      </article>
+
+      <article class="feature-card">
+        <span class="feature-icon feature-icon--amber">
+          <ng-icon [svg]="importIcon" size="25" aria-hidden="true"></ng-icon>
+        </span>
+        <h3>{{ 'landing.features.import.title' | transloco }}</h3>
+        <p>{{ 'landing.features.import.description' | transloco }}</p>
+      </article>
+
+      <article class="feature-card feature-card--wide feature-card--organize">
+        <span class="feature-icon feature-icon--orange">
+          <ng-icon [svg]="tagIcon" size="25" aria-hidden="true"></ng-icon>
+        </span>
+        <div>
+          <h3>{{ 'landing.features.organize.title' | transloco }}</h3>
+          <p>{{ 'landing.features.organize.description' | transloco }}</p>
+        </div>
+        <div class="organize-pills" aria-hidden="true">
+          <span
+            ><ng-icon [svg]="tagIcon" size="15"></ng-icon
+            >{{ 'landing.features.organize.tagExample' | transloco }}</span
+          >
+          <span
+            ><ng-icon [svg]="placeIcon" size="15"></ng-icon
+            >{{ 'landing.features.organize.placeExample' | transloco }}</span
+          >
+          <span
+            ><ng-icon [svg]="bellIcon" size="15"></ng-icon
+            >{{ 'landing.features.organize.recurringExample' | transloco }}</span
+          >
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="latest-section" aria-labelledby="latest-title">
+    <div class="latest-copy">
+      <span class="eyebrow">{{ 'landing.latest.badge' | transloco }}</span>
+      <h2 id="latest-title">{{ 'landing.latest.title' | transloco }}</h2>
+      <p>{{ 'landing.latest.subtitle' | transloco }}</p>
+      <a
+        class="text-link"
+        href="https://github.com/spendist-app/spendist"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <ng-icon [svg]="codeIcon" size="19" aria-hidden="true"></ng-icon>
+        {{ 'landing.latest.github' | transloco }}
+      </a>
     </div>
 
-    <div class="feature-card">
-      <div class="feature-card__icon" aria-hidden="true">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 0 0-3.7-3.7 48.678 48.678 0 0 0-7.324 0 4.006 4.006 0 0 0-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 0 0 3.7 3.7 48.656 48.656 0 0 0 7.324 0 4.006 4.006 0 0 0 3.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3-3 3" /></svg>
-      </div>
-      <h3 class="feature-card__title">{{ 'landing.features.recurring.title' | transloco }}</h3>
-      <p class="feature-card__desc">{{ 'landing.features.recurring.description' | transloco }}</p>
+    <ol class="latest-list">
+      <li>
+        <span>01</span>
+        <div>
+          <h3>{{ 'landing.latest.bulk.title' | transloco }}</h3>
+          <p>{{ 'landing.latest.bulk.description' | transloco }}</p>
+        </div>
+      </li>
+      <li>
+        <span>02</span>
+        <div>
+          <h3>{{ 'landing.latest.filters.title' | transloco }}</h3>
+          <p>{{ 'landing.latest.filters.description' | transloco }}</p>
+        </div>
+      </li>
+      <li>
+        <span>03</span>
+        <div>
+          <h3>{{ 'landing.latest.automation.title' | transloco }}</h3>
+          <p>{{ 'landing.latest.automation.description' | transloco }}</p>
+        </div>
+      </li>
+      <li>
+        <span>04</span>
+        <div>
+          <h3>{{ 'landing.latest.transfer.title' | transloco }}</h3>
+          <p>{{ 'landing.latest.transfer.description' | transloco }}</p>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <section class="trust-section" aria-labelledby="trust-title">
+    <div class="trust-mark" aria-hidden="true">
+      <ng-icon [svg]="shieldIcon" size="52"></ng-icon>
     </div>
-
-    <div class="feature-card">
-      <div class="feature-card__icon" aria-hidden="true">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6Z" /></svg>
-      </div>
-      <h3 class="feature-card__title">{{ 'landing.features.categories.title' | transloco }}</h3>
-      <p class="feature-card__desc">{{ 'landing.features.categories.description' | transloco }}</p>
+    <div class="trust-copy">
+      <span class="eyebrow">{{ 'landing.trust.badge' | transloco }}</span>
+      <h2 id="trust-title">{{ 'landing.trust.title' | transloco }}</h2>
+      <p>{{ 'landing.trust.description' | transloco }}</p>
     </div>
+    <ul class="trust-list">
+      <li>
+        <ng-icon [svg]="checkIcon" size="19" aria-hidden="true"></ng-icon>{{
+        'landing.trust.private' | transloco }}
+      </li>
+      <li>
+        <ng-icon [svg]="checkIcon" size="19" aria-hidden="true"></ng-icon>{{
+        'landing.trust.analytics' | transloco }}
+      </li>
+      <li>
+        <ng-icon [svg]="checkIcon" size="19" aria-hidden="true"></ng-icon>{{
+        'landing.trust.export' | transloco }}
+      </li>
+      <li>
+        <ng-icon [svg]="checkIcon" size="19" aria-hidden="true"></ng-icon>{{
+        'landing.trust.source' | transloco }}
+      </li>
+    </ul>
+  </section>
 
-    <div class="feature-card">
-      <div class="feature-card__icon" aria-hidden="true">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a2.25 2.25 0 0 0-2.25-2.25H15a3 3 0 1 1-6 0H5.25A2.25 2.25 0 0 0 3 12m18 0v6a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 9m18 0V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v3" /></svg>
-      </div>
-      <h3 class="feature-card__title">{{ 'landing.features.wallets.title' | transloco }}</h3>
-      <p class="feature-card__desc">{{ 'landing.features.wallets.description' | transloco }}</p>
+  <section class="cta-section" aria-labelledby="cta-title">
+    <div class="cta-orb" aria-hidden="true"></div>
+    <img src="/brand/spendist-mark.svg" alt="" width="64" height="64" />
+    <h2 id="cta-title">{{ 'landing.cta.title' | transloco }}</h2>
+    <p>{{ 'landing.cta.subtitle' | transloco }}</p>
+    <div class="hero-actions">
+      <a class="btn btn-primary btn-lg" routerLink="/signup"
+        >{{ 'landing.cta.button' | transloco }}</a
+      >
+      <a
+        class="btn btn-ghost btn-lg"
+        href="https://github.com/spendist-app/spendist"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {{ 'landing.cta.github' | transloco }}
+      </a>
     </div>
+  </section>
 
-    <div class="feature-card">
-      <div class="feature-card__icon" aria-hidden="true">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" /></svg>
-      </div>
-      <h3 class="feature-card__title">{{ 'landing.features.import.title' | transloco }}</h3>
-      <p class="feature-card__desc">{{ 'landing.features.import.description' | transloco }}</p>
-    </div>
-  </div>
-</section>
-
-<!-- ═══════════════════════ BENEFITS ═══════════════════════ -->
-<section id="benefits" class="landing-benefits">
-  <div class="section-header">
-    <span class="section-badge section-badge--alt">{{ 'landing.benefits.badge' | transloco }}</span>
-    <h2 class="section-title">{{ 'landing.benefits.title' | transloco }}</h2>
-    <p class="section-subtitle">{{ 'landing.benefits.subtitle' | transloco }}</p>
-  </div>
-
-  <div class="benefits-grid">
-    <div class="benefit-card">
-      <div class="benefit-card__icon" aria-hidden="true">🔒</div>
-      <h3 class="benefit-card__title">{{ 'landing.benefits.privacy.title' | transloco }}</h3>
-      <p class="benefit-card__desc">{{ 'landing.benefits.privacy.description' | transloco }}</p>
-    </div>
-
-    <div class="benefit-card">
-      <div class="benefit-card__icon" aria-hidden="true">⚡</div>
-      <h3 class="benefit-card__title">{{ 'landing.benefits.speed.title' | transloco }}</h3>
-      <p class="benefit-card__desc">{{ 'landing.benefits.speed.description' | transloco }}</p>
-    </div>
-
-    <div class="benefit-card">
-      <div class="benefit-card__icon" aria-hidden="true">🌍</div>
-      <h3 class="benefit-card__title">{{ 'landing.benefits.i18n.title' | transloco }}</h3>
-      <p class="benefit-card__desc">{{ 'landing.benefits.i18n.description' | transloco }}</p>
-    </div>
-
-    <div class="benefit-card">
-      <div class="benefit-card__icon" aria-hidden="true">🎨</div>
-      <h3 class="benefit-card__title">{{ 'landing.benefits.themes.title' | transloco }}</h3>
-      <p class="benefit-card__desc">{{ 'landing.benefits.themes.description' | transloco }}</p>
-    </div>
-  </div>
-</section>
-
-<!-- ═══════════════════════ FINAL CTA ═══════════════════════ -->
-<section id="cta" class="landing-cta">
-  <div class="cta-glow" aria-hidden="true"></div>
-  <div class="cta-content">
-    <h2 class="cta-title">{{ 'landing.cta.title' | transloco }}</h2>
-    <p class="cta-subtitle">{{ 'landing.cta.subtitle' | transloco }}</p>
-    <a class="btn btn-primary btn-lg cta-button" routerLink="/signup">
-      {{ 'landing.cta.button' | transloco }}
-      <span aria-hidden="true">→</span>
+  <footer class="landing-footer">
+    <a class="footer-brand" routerLink="/">
+      <img src="/brand/spendist-mark.svg" alt="" width="32" height="32" />
+      <span>Spendist</span>
     </a>
-  </div>
-</section>
-
-<!-- ═══════════════════════ FOOTER ═══════════════════════ -->
-<footer class="landing-footer">
-  <p>
-    {{ 'landing.footer.madeWith' | transloco }}
-    <span class="footer-heart" aria-hidden="true">♥</span>
-    {{ 'landing.footer.tagline' | transloco }}
-  </p>
-</footer>
+    <p>{{ 'landing.footer.tagline' | transloco }}</p>
+    <a
+      href="https://github.com/spendist-app/spendist"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      {{ 'landing.footer.github' | transloco }}
+    </a>
+  </footer>
+</div>
 }

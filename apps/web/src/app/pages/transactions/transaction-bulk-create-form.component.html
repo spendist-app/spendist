@@ -141,9 +141,9 @@
         </div>
       </section>
 
-      <div class="space-y-3 xl:space-y-0" (paste)="onPaste($event)">
+      <div class="space-y-3 xl:space-y-0">
         <div
-          class="sticky top-0 z-10 hidden grid-cols-[2.5rem_8rem_minmax(11rem,1fr)_7rem_6rem_14rem_10rem_9rem_5rem_3rem] border-y border-base-300 bg-base-200 text-xs font-semibold uppercase text-base-content/60 xl:grid"
+          class="sticky top-0 z-10 hidden grid-cols-[2.5rem_11rem_minmax(11rem,1fr)_7rem_6rem_14rem_10rem_9rem_5rem_3rem] border-y border-base-300 bg-base-200 text-xs font-semibold uppercase text-base-content/60 xl:grid"
         >
           <div class="px-2 py-2">#</div>
           <div class="px-2 py-2">{{ 'transactions.bulk.columns.date' | transloco }}</div>
@@ -160,7 +160,7 @@
         @for (row of rows(); track trackRow($index, row)) {
         @let issue = rowIssue(row);
         <div
-          class="grid gap-3 rounded-2xl border border-base-200 bg-base-100 p-3 shadow-sm sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-[2.5rem_8rem_minmax(11rem,1fr)_7rem_6rem_14rem_10rem_9rem_5rem_3rem] xl:items-start xl:gap-0 xl:rounded-none xl:border-x-0 xl:border-t-0 xl:p-0 xl:shadow-none"
+          class="grid gap-3 rounded-2xl border border-base-200 bg-base-100 p-3 shadow-sm sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-[2.5rem_11rem_minmax(11rem,1fr)_7rem_6rem_14rem_10rem_9rem_5rem_3rem] xl:items-start xl:gap-0 xl:rounded-none xl:border-x-0 xl:border-t-0 xl:p-0 xl:shadow-none"
           [class.bg-error/5]="submitted() && issue"
         >
           <div class="flex items-center justify-between sm:col-span-2 lg:col-span-4 xl:col-span-1 xl:block xl:px-2 xl:py-2">
@@ -180,7 +180,7 @@
             <div class="flex gap-1">
               <input
                 type="date"
-                class="input input-bordered input-sm min-w-0 flex-1"
+                class="input input-bordered input-sm min-w-32 flex-1"
                 [ngModel]="row.occurredOn"
                 (ngModelChange)="updateRow(row.id, 'occurredOn', $event)"
                 (focus)="setFocusedRow($index)"
@@ -190,8 +190,8 @@
                   <ng-icon [svg]="copyMenuIcon" size="18" aria-hidden="true"></ng-icon>
                 </summary>
                 <ul class="menu dropdown-content z-30 w-56 rounded-box border border-base-200 bg-base-100 p-2 shadow-xl">
-                  <li><button type="button" (click)="copyField(row.id, 'occurredOn', 'up')"><ng-icon [svg]="copyUpIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyAbove' | transloco }}</button></li>
-                  <li><button type="button" (click)="copyField(row.id, 'occurredOn', 'down')"><ng-icon [svg]="copyDownIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyBelow' | transloco }}</button></li>
+                  <li><button type="button" (click)="copyFieldAndClose(row.id, 'occurredOn', 'up', $event)"><ng-icon [svg]="copyUpIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyAbove' | transloco }}</button></li>
+                  <li><button type="button" (click)="copyFieldAndClose(row.id, 'occurredOn', 'down', $event)"><ng-icon [svg]="copyDownIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyBelow' | transloco }}</button></li>
                 </ul>
               </details>
             </div>
@@ -233,8 +233,8 @@
               <details class="dropdown dropdown-end">
                 <summary class="btn btn-ghost btn-square btn-sm list-none [&::-webkit-details-marker]:hidden" [attr.aria-label]="'transactions.bulk.actions.copyField' | transloco"><ng-icon [svg]="copyMenuIcon" size="18" aria-hidden="true"></ng-icon></summary>
                 <ul class="menu dropdown-content z-30 w-56 rounded-box border border-base-200 bg-base-100 p-2 shadow-xl">
-                  <li><button type="button" (click)="copyField(row.id, 'currency', 'up')"><ng-icon [svg]="copyUpIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyAbove' | transloco }}</button></li>
-                  <li><button type="button" (click)="copyField(row.id, 'currency', 'down')"><ng-icon [svg]="copyDownIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyBelow' | transloco }}</button></li>
+                  <li><button type="button" (click)="copyFieldAndClose(row.id, 'currency', 'up', $event)"><ng-icon [svg]="copyUpIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyAbove' | transloco }}</button></li>
+                  <li><button type="button" (click)="copyFieldAndClose(row.id, 'currency', 'down', $event)"><ng-icon [svg]="copyDownIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyBelow' | transloco }}</button></li>
                 </ul>
               </details>
             </div>
@@ -249,8 +249,8 @@
               <details class="dropdown dropdown-end">
                 <summary class="btn btn-ghost btn-square btn-sm list-none [&::-webkit-details-marker]:hidden" [attr.aria-label]="'transactions.bulk.actions.copyField' | transloco"><ng-icon [svg]="copyMenuIcon" size="18" aria-hidden="true"></ng-icon></summary>
                 <ul class="menu dropdown-content z-30 w-56 rounded-box border border-base-200 bg-base-100 p-2 shadow-xl">
-                  <li><button type="button" (click)="copyField(row.id, 'categoryId', 'up')"><ng-icon [svg]="copyUpIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyAbove' | transloco }}</button></li>
-                  <li><button type="button" (click)="copyField(row.id, 'categoryId', 'down')"><ng-icon [svg]="copyDownIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyBelow' | transloco }}</button></li>
+                  <li><button type="button" (click)="copyFieldAndClose(row.id, 'categoryId', 'up', $event)"><ng-icon [svg]="copyUpIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyAbove' | transloco }}</button></li>
+                  <li><button type="button" (click)="copyFieldAndClose(row.id, 'categoryId', 'down', $event)"><ng-icon [svg]="copyDownIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyBelow' | transloco }}</button></li>
                 </ul>
               </details>
             </div>
@@ -263,8 +263,8 @@
               <details class="dropdown dropdown-end">
                 <summary class="btn btn-ghost btn-square btn-sm list-none [&::-webkit-details-marker]:hidden" [attr.aria-label]="'transactions.bulk.actions.copyField' | transloco"><ng-icon [svg]="copyMenuIcon" size="18" aria-hidden="true"></ng-icon></summary>
                 <ul class="menu dropdown-content z-30 w-56 rounded-box border border-base-200 bg-base-100 p-2 shadow-xl">
-                  <li><button type="button" (click)="copyField(row.id, 'tags', 'up')"><ng-icon [svg]="copyUpIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyAbove' | transloco }}</button></li>
-                  <li><button type="button" (click)="copyField(row.id, 'tags', 'down')"><ng-icon [svg]="copyDownIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyBelow' | transloco }}</button></li>
+                  <li><button type="button" (click)="copyFieldAndClose(row.id, 'tags', 'up', $event)"><ng-icon [svg]="copyUpIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyAbove' | transloco }}</button></li>
+                  <li><button type="button" (click)="copyFieldAndClose(row.id, 'tags', 'down', $event)"><ng-icon [svg]="copyDownIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyBelow' | transloco }}</button></li>
                 </ul>
               </details>
             </div>
@@ -282,8 +282,8 @@
               <details class="dropdown dropdown-end">
                 <summary class="btn btn-ghost btn-square btn-sm list-none [&::-webkit-details-marker]:hidden" [attr.aria-label]="'transactions.bulk.actions.copyField' | transloco"><ng-icon [svg]="copyMenuIcon" size="18" aria-hidden="true"></ng-icon></summary>
                 <ul class="menu dropdown-content z-30 w-56 rounded-box border border-base-200 bg-base-100 p-2 shadow-xl">
-                  <li><button type="button" (click)="copyField(row.id, 'placeId', 'up')"><ng-icon [svg]="copyUpIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyAbove' | transloco }}</button></li>
-                  <li><button type="button" (click)="copyField(row.id, 'placeId', 'down')"><ng-icon [svg]="copyDownIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyBelow' | transloco }}</button></li>
+                  <li><button type="button" (click)="copyFieldAndClose(row.id, 'placeId', 'up', $event)"><ng-icon [svg]="copyUpIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyAbove' | transloco }}</button></li>
+                  <li><button type="button" (click)="copyFieldAndClose(row.id, 'placeId', 'down', $event)"><ng-icon [svg]="copyDownIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyBelow' | transloco }}</button></li>
                 </ul>
               </details>
             </div>

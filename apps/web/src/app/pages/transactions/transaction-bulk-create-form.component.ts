@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  HostListener,
   computed,
   effect,
   inject,
@@ -215,6 +216,17 @@ export class TransactionBulkCreateFormComponent {
     );
   }
 
+  protected copyFieldAndClose(
+    rowId: number,
+    field: CopyableBulkTransactionField,
+    direction: CopyDirection,
+    event: Event
+  ): void {
+    this.copyField(rowId, field, direction);
+    const trigger = event.currentTarget as HTMLElement | null;
+    trigger?.closest('details')?.removeAttribute('open');
+  }
+
   protected clearRow(rowId: number): void {
     this.asyncIssues.set([]);
     this.rows.update((rows) =>
@@ -222,6 +234,7 @@ export class TransactionBulkCreateFormComponent {
     );
   }
 
+  @HostListener('document:paste', ['$event'])
   protected onPaste(event: ClipboardEvent): void {
     const text = event.clipboardData?.getData('text/plain') ?? '';
     if (!text.trim()) {

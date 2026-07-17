@@ -1,4 +1,10 @@
 const en = {
+  appUpdate: {
+    title: 'A new version is available',
+    description: 'Refresh the page to load the latest Spendist improvements.',
+    refresh: 'Refresh now',
+    dismiss: 'Dismiss update notification',
+  },
   common: {
     appName: 'Spendist',
     language: {
@@ -66,23 +72,45 @@ const en = {
     loginCta: 'Log in',
     signupCta: 'Sign up',
     hero: {
-      badge: 'Smart personal finance',
-      title: 'Take control of your',
-      titleHighlight: 'finances',
+      badge: 'Open-source personal finance',
+      title: 'See where your money',
+      titleHighlight: 'really goes',
       subtitle:
-        'Track every expense, automate recurring payments, and gain real insights into your spending habits — all in one beautiful app.',
+        'Track transactions, paste entries in bulk, automate recurring costs, and understand your cash flow across wallets and currencies.',
       cta: "Get started — it's free",
+      login: 'I already have an account',
       ctaSecondary: 'See how it works',
     },
+    proof: {
+      label: 'Spendist highlights',
+      openSource: 'GPL-3.0 open source',
+      noAds: 'No ads or data sales',
+      bilingual: 'Polish and English',
+    },
+    preview: {
+      ariaLabel: 'Spendist dashboard preview',
+      month: 'This month',
+      balanceLabel: 'Monthly cash flow',
+      income: 'Income',
+      expenses: 'Expenses',
+      home: 'Home',
+      food: 'Food',
+      transport: 'Transport',
+    },
     features: {
-      badge: 'Features',
-      title: 'Everything you need to manage your money',
+      badge: 'Built for everyday money',
+      title: 'From one expense to the whole picture',
       subtitle:
-        'From daily tracking to automated payments, Spendist gives you the tools to stay on top of your finances.',
+        'Spendist keeps quick entry, deep filtering, automation, and portable data in one focused workspace.',
       dashboard: {
-        title: 'Interactive dashboard',
+        title: 'Cash flow at a glance',
         description:
-          'See your income vs. expenses at a glance, track cash flow month by month, and spot trends instantly.',
+          'Compare income and expenses, review categories, recurring commitments, recent activity, and places from one dashboard.',
+      },
+      bulk: {
+        title: 'Fast and bulk entry',
+        description:
+          'Add one transaction or paste many rows at once. Copy values between rows and validate everything before saving.',
       },
       transactions: {
         title: 'Smart transactions',
@@ -90,9 +118,14 @@ const en = {
           'Log expenses and income in seconds. Filter by category, wallet, date range, or tags — find anything fast.',
       },
       recurring: {
-        title: 'Recurring payments',
+        title: 'Recurring costs that keep up',
         description:
-          'Automate subscriptions, rent, and bills. Set the schedule once and let Spendist handle the rest.',
+          'Schedule fixed or variable payments, backfill history, pause plans, and receive notifications when activity is created.',
+      },
+      currency: {
+        title: 'Wallets and real exchange rates',
+        description:
+          'Use multiple currencies with wallet-aware conversion and automatically synchronized historical NBP exchange rates.',
       },
       categories: {
         title: 'Custom categories',
@@ -105,10 +138,55 @@ const en = {
           'Manage multiple accounts and currencies side by side. Set defaults and track balances independently.',
       },
       import: {
-        title: 'Import & export',
+        title: 'Your data stays portable',
         description:
-          'Bring data from Kontomierz or CSV files. Export any time — your data is always yours.',
+          'Import Kontomierz XLSX or Spendist CSV, review duplicates before saving, and export your transactions whenever you need.',
       },
+      organize: {
+        title: 'Categories, tags, and places',
+        description:
+          'Build nested category trees, add custom colors and Heroicons, tag transactions, and connect spending with places.',
+        tagExample: '#travel',
+        placeExample: 'Warsaw',
+        recurringExample: 'Subscriptions',
+      },
+    },
+    latest: {
+      badge: 'Recently added',
+      title: 'Spendist grows around real workflows',
+      subtitle:
+        'Recent releases focused on entering data faster, finding it later, and automating work without losing control.',
+      github: 'Follow development on GitHub',
+      bulk: {
+        title: 'Paste into bulk entry',
+        description:
+          'Turn tabular clipboard data into validated transaction rows.',
+      },
+      filters: {
+        title: 'Focused filters and sorting',
+        description:
+          'Filter by categories, tags, wallets, dates, amounts, and recurring source.',
+      },
+      automation: {
+        title: 'Recurring history and notifications',
+        description:
+          'Backfill past schedules and keep track of generated or pending activity.',
+      },
+      transfer: {
+        title: 'Safer CSV transfer',
+        description:
+          'Analyze duplicates and new reference data before importing anything.',
+      },
+    },
+    trust: {
+      badge: 'Privacy by boundary',
+      title: 'Your financial workspace is not an ad profile',
+      description:
+        'Authenticated data is used to provide and secure Spendist. It is not sold and does not flow into public-page analytics.',
+      private: 'Per-user database access policies',
+      analytics: 'No Google Analytics inside the signed-in app',
+      export: 'Export your transaction data',
+      source: 'Publicly auditable source code',
     },
     stats: {
       transactions: 'Transactions tracked',
@@ -124,7 +202,7 @@ const en = {
       privacy: {
         title: 'Privacy first',
         description:
-          'Your financial data stays yours. End-to-end encryption, no third-party analytics.',
+          'Your authenticated financial data is isolated per user and excluded from public-page analytics.',
       },
       speed: {
         title: 'Lightning fast',
@@ -143,14 +221,16 @@ const en = {
       },
     },
     cta: {
-      title: 'Ready to take control?',
+      title: 'Make your money easier to understand',
       subtitle:
-        'Join Spendist today and start building a clearer picture of your financial life.',
+        'Start with one transaction. Build a clear, portable view of your finances over time.',
       button: 'Create free account',
+      github: 'Explore the source',
     },
     footer: {
       madeWith: 'Made with',
       tagline: 'for mindful spenders',
+      github: 'View on GitHub',
     },
   },
   home: {
@@ -685,6 +765,8 @@ const en = {
         allTime: 'All time',
       },
       reset: 'Reset filters',
+      showMore: 'Show more filters',
+      showLess: 'Hide additional filters',
       searchLabel: 'Search',
       searchPlaceholder: 'Search description, category, place, or currency…',
       categoryLabel: 'Category or group',

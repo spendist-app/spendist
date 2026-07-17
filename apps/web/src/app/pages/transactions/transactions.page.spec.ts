@@ -327,22 +327,61 @@ describe('TransactionsPageComponent', () => {
     ).toEqual(['category-ungrouped-active']);
   });
 
-  it('renders readable two-column filters including date and sorting controls', () => {
+  it('keeps advanced filters collapsed until requested', () => {
     const fixture = TestBed.createComponent(TransactionsPageComponent);
     fixture.detectChanges();
 
     const search = fixture.nativeElement.querySelector(
       '[data-testid="transaction-search-filter"]'
     ) as HTMLInputElement;
+    const toggle = fixture.nativeElement.querySelector(
+      '[data-testid="transaction-advanced-filters-toggle"]'
+    ) as HTMLButtonElement;
 
     expect(search.closest('label')?.classList.contains('sm:col-span-2')).toBe(
       true
     );
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
     expect(
       fixture.nativeElement.querySelector(
         '[data-testid="transaction-category-filter"]'
       )
     ).toBeNull();
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="transaction-place-filter"]'
+      )
+    ).toBeNull();
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="transaction-minimum-amount-filter"]'
+      )
+    ).toBeNull();
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="transaction-maximum-amount-filter"]'
+      )
+    ).toBeNull();
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="transaction-year-filter"]'
+      )
+    ).toBeNull();
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="transaction-month-filter"]'
+      )
+    ).toBeNull();
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="transaction-sort-filter"]'
+      )
+    ).toBeNull();
+
+    toggle.click();
+    fixture.detectChanges();
+
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
     expect(
       fixture.nativeElement.querySelector(
         '[data-testid="transaction-place-filter"]'
@@ -377,6 +416,12 @@ describe('TransactionsPageComponent', () => {
 
   it('requires a year before exposing all twelve months', () => {
     const fixture = TestBed.createComponent(TransactionsPageComponent);
+    fixture.detectChanges();
+    (
+      fixture.nativeElement.querySelector(
+        '[data-testid="transaction-advanced-filters-toggle"]'
+      ) as HTMLButtonElement
+    ).click();
     fixture.detectChanges();
     const store = fixture.debugElement.injector.get(
       TransactionsStore
@@ -494,6 +539,12 @@ describe('TransactionsPageComponent', () => {
 
   it('passes place and amount range changes to the store', () => {
     const fixture = TestBed.createComponent(TransactionsPageComponent);
+    fixture.detectChanges();
+    (
+      fixture.nativeElement.querySelector(
+        '[data-testid="transaction-advanced-filters-toggle"]'
+      ) as HTMLButtonElement
+    ).click();
     fixture.detectChanges();
     const store = fixture.debugElement.injector.get(
       TransactionsStore

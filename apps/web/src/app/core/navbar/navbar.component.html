@@ -1,278 +1,326 @@
-    <nav class="navbar flex-wrap gap-3 bg-base-100/85 px-4 py-3 backdrop-blur shadow-sm">
-      <div class="flex items-center gap-3">
-        @if (!auth.loading() && auth.isAuthenticated()) {
-          <div class="dropdown dropdown-bottom md:hidden">
-            <button
-              type="button"
-              tabindex="0"
-              class="btn btn-ghost btn-square"
-              [attr.aria-label]="'navbar.menuToggle' | transloco"
-            >
-              <span class="text-2xl leading-none">☰</span>
-            </button>
-            <ul
-              tabindex="0"
-              class="menu dropdown-content z-[1] mt-3 w-64 space-y-1 rounded-2xl border border-base-200 bg-base-100/95 p-3 shadow-xl"
-            >
-              <li>
-                <a class="rounded-lg px-3 py-2 text-sm font-medium" routerLink="/dashboard">
-                  {{ 'navbar.dashboard' | transloco }}
-                </a>
-              </li>
-              <li>
-                <a class="rounded-lg px-3 py-2 text-sm font-medium" routerLink="/transactions">
-                  {{ 'navbar.transactions' | transloco }}
-                </a>
-              </li>
-              <li tabindex="0">
-                <a class="flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium">
-                  <span>{{ 'navbar.modules' | transloco }}</span>
-                  <span aria-hidden="true">▾</span>
-                </a>
-                <ul class="menu menu-sm mt-1 rounded-xl border border-base-200 bg-base-100 p-2 shadow">
-                  <li>
-                    <a class="rounded-lg px-3 py-2 text-sm" routerLink="/modules/recurring-payments">
-                      {{ 'navbar.modulesRecurring' | transloco }}
-                    </a>
-                  </li>
-                  <li>
-                    <a class="rounded-lg px-3 py-2 text-sm" routerLink="/modules/places">
-                      {{ 'navbar.modulesPlaces' | transloco }}
-                    </a>
-                  </li>
-                </ul>
-              </li>
-            </ul>
-          </div>
-        }
+<nav
+  class="navbar flex-wrap gap-3 bg-base-100/85 px-4 py-3 backdrop-blur shadow-sm"
+>
+  <div class="flex items-center gap-3">
+    @if (!auth.loading() && auth.isAuthenticated()) {
+    <div class="dropdown dropdown-bottom md:hidden">
+      <button
+        type="button"
+        tabindex="0"
+        class="btn btn-ghost btn-square"
+        [attr.aria-label]="'navbar.menuToggle' | transloco"
+      >
+        <span class="text-2xl leading-none">☰</span>
+      </button>
+      <ul
+        tabindex="0"
+        class="menu dropdown-content z-[1] mt-3 w-64 space-y-1 rounded-2xl border border-base-200 bg-base-100/95 p-3 shadow-xl"
+      >
+        <li>
+          <a
+            class="rounded-lg px-3 py-2 text-sm font-medium"
+            routerLink="/dashboard"
+          >
+            {{ 'navbar.dashboard' | transloco }}
+          </a>
+        </li>
+        <li>
+          <a
+            class="rounded-lg px-3 py-2 text-sm font-medium"
+            routerLink="/transactions"
+          >
+            {{ 'navbar.transactions' | transloco }}
+          </a>
+        </li>
+        <li tabindex="0">
+          <a
+            class="flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium"
+          >
+            <span>{{ 'navbar.modules' | transloco }}</span>
+            <span aria-hidden="true">▾</span>
+          </a>
+          <ul
+            class="menu menu-sm mt-1 rounded-xl border border-base-200 bg-base-100 p-2 shadow"
+          >
+            <li>
+              <a
+                class="rounded-lg px-3 py-2 text-sm"
+                routerLink="/modules/recurring-payments"
+              >
+                {{ 'navbar.modulesRecurring' | transloco }}
+              </a>
+            </li>
+            <li>
+              <a
+                class="rounded-lg px-3 py-2 text-sm"
+                routerLink="/modules/places"
+              >
+                {{ 'navbar.modulesPlaces' | transloco }}
+              </a>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+    }
 
-        <a class="btn btn-ghost text-xl normal-case" routerLink="/">
-          {{ 'common.appName' | transloco }}
+    <a class="btn btn-ghost gap-2 px-2 text-xl normal-case" routerLink="/">
+      <img
+        class="size-8"
+        src="/brand/spendist-mark.svg"
+        alt=""
+        width="32"
+        height="32"
+      />
+      <span>{{ 'common.appName' | transloco }}</span>
+    </a>
+  </div>
+
+  @if (!auth.loading() && auth.isAuthenticated()) {
+  <div class="hidden flex-1 justify-center md:flex">
+    <ul
+      class="menu menu-horizontal items-center gap-2 rounded-2xl border border-base-200 bg-base-100/90 px-3 text-sm shadow-sm"
+    >
+      <li>
+        <a
+          class="px-4 py-2 font-medium"
+          routerLink="/dashboard"
+          routerLinkActive="active"
+        >
+          {{ 'navbar.dashboard' | transloco }}
         </a>
-      </div>
-
-      @if (!auth.loading() && auth.isAuthenticated()) {
-      <div class="hidden flex-1 justify-center md:flex">
-        <ul class="menu menu-horizontal items-center gap-2 rounded-2xl border border-base-200 bg-base-100/90 px-3 text-sm shadow-sm">
-          <li>
-            <a class="px-4 py-2 font-medium" routerLink="/dashboard" routerLinkActive="active">
-              {{ 'navbar.dashboard' | transloco }}
-            </a>
-          </li>
-          <li>
-            <a class="px-4 py-2 font-medium" routerLink="/transactions" routerLinkActive="active">
-              {{ 'navbar.transactions' | transloco }}
-            </a>
-          </li>
-          <li
-            class="dropdown"
-            [class.dropdown-open]="modulesMenuOpen()"
-            (mouseenter)="openModulesMenu()"
-            (mouseleave)="scheduleCloseModulesMenu()"
-            (focusin)="openModulesMenu()"
-            (focusout)="handleModulesFocusOut($event)"
-          >
-            <button
-              type="button"
-              class="flex items-center gap-1 rounded-xl px-4 py-2 font-medium"
-              (click)="toggleModulesMenu()"
-              (keydown.escape)="closeModulesMenu()"
-              [attr.aria-haspopup]="'menu'"
-              [attr.aria-expanded]="modulesMenuOpen()"
-            >
-              <span>{{ 'navbar.modules' | transloco }}</span>
-              <span aria-hidden="true">▾</span>
-            </button>
-            <ul
-              tabindex="0"
-              class="dropdown-content menu menu-sm z-[1] w-60 space-y-1 rounded-2xl border border-base-200 bg-base-100/95 p-3 shadow-xl"
-              (mouseenter)="openModulesMenu()"
-              (mouseleave)="scheduleCloseModulesMenu()"
-            >
-              <li>
-                <a
-                  class="rounded-lg px-3 py-2 text-sm"
-                  routerLink="/modules/recurring-payments"
-                  routerLinkActive="active"
-                  (click)="closeModulesMenu()"
-                >
-                  {{ 'navbar.modulesRecurring' | transloco }}
-                </a>
-              </li>
-              <li>
-                <a
-                  class="rounded-lg px-3 py-2 text-sm"
-                  routerLink="/modules/places"
-                  routerLinkActive="active"
-                  (click)="closeModulesMenu()"
-                >
-                  {{ 'navbar.modulesPlaces' | transloco }}
-                </a>
-              </li>
-            </ul>
-          </li>
-        </ul>
-      </div>
-      }
-
-      <div class="ms-auto flex items-center gap-3">
-        @if (!auth.loading() && !auth.isAuthenticated()) {
-          <label class="sr-only" for="language-selector">
-            {{ 'common.language.label' | transloco }}
-          </label>
-          <select
-            id="language-selector"
-            class="select select-bordered select-sm"
-            [value]="activeLanguage()"
-            (change)="onLanguageChange($event)"
-          >
-            @for (language of languages; track language.code) {
-              <option [value]="language.code">
-                {{ language.labelKey | transloco }}
-              </option>
-            }
-          </select>
-        }
-
-        <div class="flex-none">
-          @if (auth.loading()) {
-            <span
-              class="loading loading-spinner loading-md text-primary"
-              [attr.aria-label]="'common.status.checkingSession' | transloco"
-            ></span>
-          } @else {
-            @if (auth.isAuthenticated()) {
-              <div class="flex items-center gap-1">
-                <app-notifications-menu></app-notifications-menu>
-                <div
-                  class="dropdown dropdown-end"
-                  [class.dropdown-open]="accountMenuOpen()"
-                  (focusout)="handleAccountFocusOut($event)"
-                >
-                  <button
-                    tabindex="0"
-                    type="button"
-                    aria-haspopup="menu"
-                    [attr.aria-expanded]="accountMenuOpen()"
-                    class="btn btn-ghost btn-circle avatar placeholder"
-                    [attr.aria-label]="'navbar.settings' | transloco"
-                    (click)="toggleAccountMenu()"
-                  >
-                    @if (avatarUrl(); as avatar) {
-                    <div class="w-10 rounded-full">
-                      <img
-                        [src]="avatar"
-                        [alt]="'settings.panels.profile.avatar.alt' | transloco"
-                        class="object-cover"
-                      />
-                    </div>
-                    } @else {
-                    <div class="bg-neutral text-neutral-content w-10 rounded-full">
-                      <span class="text-lg font-semibold uppercase">{{ initials() }}</span>
-                    </div>
-                    }
-                  </button>
-                  <ul
-                    tabindex="0"
-                    role="menu"
-                    class="menu menu-sm dropdown-content z-[1] mt-3 w-56 rounded-2xl border border-base-200 bg-base-100/95 p-2 shadow-xl"
-                  >
-                    <li>
-                      <button type="button" (click)="toggleTheme()" role="menuitem">
-                        <span class="flex items-center justify-between">
-                          <span>{{ themeToggleLabel() | transloco }}</span>
-                          <span class="badge badge-ghost text-xs">
-                            {{ currentThemeLabel() | transloco }}
-                          </span>
-                        </span>
-                      </button>
-                    </li>
-                    <li>
-                      <a routerLink="/settings" role="menuitem" (click)="closeAccountMenu()">
-                        {{ 'navbar.settings' | transloco }}
-                      </a>
-                    </li>
-                    <li>
-                      <button type="button" (click)="openAboutModal()" role="menuitem">
-                        {{ 'navbar.about.menuItem' | transloco }}
-                      </button>
-                    </li>
-                    <li>
-                      <button type="button" (click)="signOut()" role="menuitem">
-                        {{ 'navbar.signOut' | transloco }}
-                      </button>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            } @else {
-              <div class="flex items-center gap-2">
-                <a class="btn btn-ghost" routerLink="/login">{{ 'common.actions.login' | transloco }}</a>
-                <a class="btn btn-primary" routerLink="/signup">{{ 'common.actions.signup' | transloco }}</a>
-              </div>
-            }
-          }
-        </div>
-      </div>
-    </nav>
-
-    @if (aboutModalOpen()) {
-      <div
-        class="fixed inset-0 z-50 flex items-center justify-center px-4 py-6"
-        tabindex="-1"
-        (keydown.escape)="closeAboutModal()"
+      </li>
+      <li>
+        <a
+          class="px-4 py-2 font-medium"
+          routerLink="/transactions"
+          routerLinkActive="active"
+        >
+          {{ 'navbar.transactions' | transloco }}
+        </a>
+      </li>
+      <li
+        class="dropdown"
+        [class.dropdown-open]="modulesMenuOpen()"
+        (mouseenter)="openModulesMenu()"
+        (mouseleave)="scheduleCloseModulesMenu()"
+        (focusin)="openModulesMenu()"
+        (focusout)="handleModulesFocusOut($event)"
       >
         <button
           type="button"
-          class="absolute inset-0 bg-black/60"
-          [attr.aria-label]="'navbar.about.close' | transloco"
-          (click)="closeAboutModal()"
-        ></button>
-        <section
-          class="relative w-full max-w-md rounded-2xl border border-base-300 bg-base-100 p-6 shadow-2xl"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="about-dialog-title"
-          tabindex="-1"
+          class="flex items-center gap-1 rounded-xl px-4 py-2 font-medium"
+          (click)="toggleModulesMenu()"
+          (keydown.escape)="closeModulesMenu()"
+          [attr.aria-haspopup]="'menu'"
+          [attr.aria-expanded]="modulesMenuOpen()"
         >
-          <div class="flex items-start justify-between gap-4">
-            <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.3em] text-base-content/50">
-                {{ 'common.appName' | transloco }}
-              </p>
-              <h2 id="about-dialog-title" class="mt-1 text-xl font-semibold">
-                {{ 'navbar.about.title' | transloco }}
-              </h2>
-            </div>
-            <button
-              type="button"
-              class="btn btn-ghost btn-sm btn-circle"
-              [attr.aria-label]="'navbar.about.close' | transloco"
-              (click)="closeAboutModal()"
+          <span>{{ 'navbar.modules' | transloco }}</span>
+          <span aria-hidden="true">▾</span>
+        </button>
+        <ul
+          tabindex="0"
+          class="dropdown-content menu menu-sm z-[1] w-60 space-y-1 rounded-2xl border border-base-200 bg-base-100/95 p-3 shadow-xl"
+          (mouseenter)="openModulesMenu()"
+          (mouseleave)="scheduleCloseModulesMenu()"
+        >
+          <li>
+            <a
+              class="rounded-lg px-3 py-2 text-sm"
+              routerLink="/modules/recurring-payments"
+              routerLinkActive="active"
+              (click)="closeModulesMenu()"
             >
-              <span aria-hidden="true">✕</span>
-            </button>
-          </div>
+              {{ 'navbar.modulesRecurring' | transloco }}
+            </a>
+          </li>
+          <li>
+            <a
+              class="rounded-lg px-3 py-2 text-sm"
+              routerLink="/modules/places"
+              routerLinkActive="active"
+              (click)="closeModulesMenu()"
+            >
+              {{ 'navbar.modulesPlaces' | transloco }}
+            </a>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </div>
+  }
 
-          <dl class="mt-6 space-y-4">
-            <div>
-              <dt class="text-xs font-semibold uppercase tracking-[0.25em] text-base-content/50">
-                {{ 'navbar.about.buildCommit' | transloco }}
-              </dt>
-              <dd class="mt-2 font-mono text-sm text-base-content">
-                {{ buildCommitShort }}
-              </dd>
-            </div>
-            <div>
-              <dt class="text-xs font-semibold uppercase tracking-[0.25em] text-base-content/50">
-                {{ 'navbar.about.fullCommit' | transloco }}
-              </dt>
-              <dd class="mt-2 break-all font-mono text-xs text-base-content/70">
-                {{ buildCommit }}
-              </dd>
-            </div>
-          </dl>
-        </section>
-      </div>
+  <div class="ms-auto flex items-center gap-3">
+    @if (!auth.loading() && !auth.isAuthenticated()) {
+    <label class="sr-only" for="language-selector">
+      {{ 'common.language.label' | transloco }}
+    </label>
+    <select
+      id="language-selector"
+      class="select select-bordered select-sm"
+      [value]="activeLanguage()"
+      (change)="onLanguageChange($event)"
+    >
+      @for (language of languages; track language.code) {
+      <option [value]="language.code">
+        {{ language.labelKey | transloco }}
+      </option>
+      }
+    </select>
     }
-  
+
+    <div class="flex-none">
+      @if (auth.loading()) {
+      <span
+        class="loading loading-spinner loading-md text-primary"
+        [attr.aria-label]="'common.status.checkingSession' | transloco"
+      ></span>
+      } @else { @if (auth.isAuthenticated()) {
+      <div class="flex items-center gap-1">
+        <app-notifications-menu></app-notifications-menu>
+        <div
+          class="dropdown dropdown-end"
+          [class.dropdown-open]="accountMenuOpen()"
+          (focusout)="handleAccountFocusOut($event)"
+        >
+          <button
+            tabindex="0"
+            type="button"
+            aria-haspopup="menu"
+            [attr.aria-expanded]="accountMenuOpen()"
+            class="btn btn-ghost btn-circle avatar placeholder"
+            [attr.aria-label]="'navbar.settings' | transloco"
+            (click)="toggleAccountMenu()"
+          >
+            @if (avatarUrl(); as avatar) {
+            <div class="w-10 rounded-full">
+              <img
+                [src]="avatar"
+                [alt]="'settings.panels.profile.avatar.alt' | transloco"
+                class="object-cover"
+              />
+            </div>
+            } @else {
+            <div class="bg-neutral text-neutral-content w-10 rounded-full">
+              <span class="text-lg font-semibold uppercase">{{
+                initials()
+              }}</span>
+            </div>
+            }
+          </button>
+          <ul
+            tabindex="0"
+            role="menu"
+            class="menu menu-sm dropdown-content z-[1] mt-3 w-56 rounded-2xl border border-base-200 bg-base-100/95 p-2 shadow-xl"
+          >
+            <li>
+              <button type="button" (click)="toggleTheme()" role="menuitem">
+                <span class="flex items-center justify-between">
+                  <span>{{ themeToggleLabel() | transloco }}</span>
+                  <span class="badge badge-ghost text-xs">
+                    {{ currentThemeLabel() | transloco }}
+                  </span>
+                </span>
+              </button>
+            </li>
+            <li>
+              <a
+                routerLink="/settings"
+                role="menuitem"
+                (click)="closeAccountMenu()"
+              >
+                {{ 'navbar.settings' | transloco }}
+              </a>
+            </li>
+            <li>
+              <button type="button" (click)="openAboutModal()" role="menuitem">
+                {{ 'navbar.about.menuItem' | transloco }}
+              </button>
+            </li>
+            <li>
+              <button type="button" (click)="signOut()" role="menuitem">
+                {{ 'navbar.signOut' | transloco }}
+              </button>
+            </li>
+          </ul>
+        </div>
+      </div>
+      } @else {
+      <div class="flex items-center gap-2">
+        <a class="btn btn-ghost" routerLink="/login">{{
+          'common.actions.login' | transloco
+        }}</a>
+        <a class="btn btn-primary" routerLink="/signup">{{
+          'common.actions.signup' | transloco
+        }}</a>
+      </div>
+      } }
+    </div>
+  </div>
+</nav>
+
+@if (aboutModalOpen()) {
+<div
+  class="fixed inset-0 z-50 flex items-center justify-center px-4 py-6"
+  tabindex="-1"
+  (keydown.escape)="closeAboutModal()"
+>
+  <button
+    type="button"
+    class="absolute inset-0 bg-black/60"
+    [attr.aria-label]="'navbar.about.close' | transloco"
+    (click)="closeAboutModal()"
+  ></button>
+  <section
+    class="relative w-full max-w-md rounded-2xl border border-base-300 bg-base-100 p-6 shadow-2xl"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="about-dialog-title"
+    tabindex="-1"
+  >
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <p
+          class="text-xs font-semibold uppercase tracking-[0.3em] text-base-content/50"
+        >
+          {{ 'common.appName' | transloco }}
+        </p>
+        <h2 id="about-dialog-title" class="mt-1 text-xl font-semibold">
+          {{ 'navbar.about.title' | transloco }}
+        </h2>
+      </div>
+      <button
+        type="button"
+        class="btn btn-ghost btn-sm btn-circle"
+        [attr.aria-label]="'navbar.about.close' | transloco"
+        (click)="closeAboutModal()"
+      >
+        <span aria-hidden="true">✕</span>
+      </button>
+    </div>
+
+    <dl class="mt-6 space-y-4">
+      <div>
+        <dt
+          class="text-xs font-semibold uppercase tracking-[0.25em] text-base-content/50"
+        >
+          {{ 'navbar.about.buildCommit' | transloco }}
+        </dt>
+        <dd class="mt-2 font-mono text-sm text-base-content">
+          {{ buildCommitShort }}
+        </dd>
+      </div>
+      <div>
+        <dt
+          class="text-xs font-semibold uppercase tracking-[0.25em] text-base-content/50"
+        >
+          {{ 'navbar.about.fullCommit' | transloco }}
+        </dt>
+        <dd class="mt-2 break-all font-mono text-xs text-base-content/70">
+          {{ buildCommit }}
+        </dd>
+      </div>
+    </dl>
+  </section>
+</div>
+}

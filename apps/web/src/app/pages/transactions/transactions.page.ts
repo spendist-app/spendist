@@ -164,6 +164,7 @@ export class TransactionsPageComponent implements OnDestroy {
   protected readonly showOnlyCategoriesWithTransactions = signal(false);
   protected readonly categoryFilterMode = signal(false);
   protected readonly sidebarTab = signal<'categories' | 'tags'>('categories');
+  protected readonly advancedFiltersExpanded = signal(false);
   protected readonly visibleGroupedCategories = computed(() =>
     this.store
       .groupedCategories()
@@ -307,6 +308,10 @@ export class TransactionsPageComponent implements OnDestroy {
   protected onSearchInput(event: Event): void {
     const target = event.target as HTMLInputElement | null;
     this.store.setSearchTerm(target?.value ?? '');
+  }
+
+  protected toggleAdvancedFilters(): void {
+    this.advancedFiltersExpanded.update((expanded) => !expanded);
   }
 
   protected onPlaceFilterChange(event: Event): void {

@@ -1,5 +1,5 @@
 @config "../tailwind.config.js";
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /* You can add global styles to this file, and also import other style files */
 
@@ -16,7 +16,7 @@
     --color-base-300: #f3f4f6;
     --color-base-content: #111827;
     --color-primary: #0ea5a5;
-    --color-primary-content: #f8ffff;
+    --color-primary-content: #062824;
     --color-secondary: #f59e0b;
     --color-secondary-content: #422100;
     --color-accent: #ea580c;
@@ -30,7 +30,7 @@
     --color-warning: #d97706;
     --color-warning-content: #3d1c00;
     --color-error: #dc2626;
-    --color-error-content: #330404;
+    --color-error-content: #ffffff;
     --radius-selector: 0.5rem;
     --radius-field: 0.25rem;
     --radius-box: 0.5rem;
@@ -62,7 +62,7 @@
     --color-warning: #fbbf24;
     --color-warning-content: #3c2500;
     --color-error: #dc2626;
-    --color-error-content: #330404;
+    --color-error-content: #ffffff;
     --radius-selector: 0.5rem;
     --radius-field: 0.25rem;
     --radius-box: 0.5rem;

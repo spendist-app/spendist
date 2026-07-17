@@ -165,6 +165,32 @@ describe('TransactionBulkCreateFormComponent', () => {
     });
   });
 
+  it('captures paste events from anywhere while the modal is open', () => {
+    const fixture = TestBed.createComponent(TransactionBulkCreateFormComponent);
+    fixture.detectChanges();
+    const component = fixture.componentInstance as unknown as {
+      rows(): readonly {
+        readonly description: string;
+        readonly amount: string;
+      }[];
+    };
+    const event = new Event('paste', { bubbles: true });
+    Object.defineProperty(event, 'clipboardData', {
+      value: {
+        getData: () =>
+          '2026-07-10\tPasted from clipboard\t49.90\tPLN\tFood\tmeal\tBarber\t1',
+      },
+    });
+
+    document.dispatchEvent(event);
+    fixture.detectChanges();
+
+    expect(component.rows()[0]).toMatchObject({
+      description: 'Pasted from clipboard',
+      amount: '49.90',
+    });
+  });
+
   it('blocks submit when an active row has an invalid amount', async () => {
     const fixture = TestBed.createComponent(TransactionBulkCreateFormComponent);
     fixture.detectChanges();
@@ -317,6 +343,23 @@ describe('TransactionBulkCreateFormComponent', () => {
       touched: false,
     });
     expect(component.activeRows()).toHaveLength(1);
+  });
+
+  it('closes the copy menu after applying an action', () => {
+    const fixture = TestBed.createComponent(TransactionBulkCreateFormComponent);
+    fixture.detectChanges();
+    const firstMenu = fixture.nativeElement.querySelector(
+      'details'
+    ) as HTMLDetailsElement;
+    const copyBelow = firstMenu.querySelector(
+      'ul li:last-child button'
+    ) as HTMLButtonElement;
+
+    firstMenu.open = true;
+    copyBelow.click();
+    fixture.detectChanges();
+
+    expect(firstMenu.open).toBe(false);
   });
 
   it('accepts the new pasted column order with quantity', async () => {

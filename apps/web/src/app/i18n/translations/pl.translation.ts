@@ -1,4 +1,10 @@
 const pl = {
+  appUpdate: {
+    title: 'Nowa wersja jest dostępna',
+    description: 'Odśwież stronę, aby pobrać najnowszą wersję Spendist.',
+    refresh: 'Odśwież teraz',
+    dismiss: 'Zamknij powiadomienie o aktualizacji',
+  },
   common: {
     appName: 'Spendist',
     language: {
@@ -66,23 +72,45 @@ const pl = {
     loginCta: 'Zaloguj się',
     signupCta: 'Zarejestruj się',
     hero: {
-      badge: 'Inteligentne finanse osobiste',
-      title: 'Przejmij kontrolę nad swoimi',
-      titleHighlight: 'finansami',
+      badge: 'Finanse osobiste open source',
+      title: 'Zobacz, gdzie naprawdę',
+      titleHighlight: 'trafiają Twoje pieniądze',
       subtitle:
-        'Śledź każdy wydatek, automatyzuj płatności cykliczne i zyskaj prawdziwy wgląd w swoje nawyki — wszystko w jednej, pięknej aplikacji.',
+        'Śledź transakcje, wklejaj je zbiorczo, automatyzuj stałe koszty i analizuj przepływy między portfelami oraz walutami.',
       cta: 'Zacznij za darmo',
+      login: 'Mam już konto',
       ctaSecondary: 'Zobacz jak to działa',
     },
+    proof: {
+      label: 'Najważniejsze cechy Spendist',
+      openSource: 'Open source GPL-3.0',
+      noAds: 'Bez reklam i sprzedaży danych',
+      bilingual: 'Po polsku i angielsku',
+    },
+    preview: {
+      ariaLabel: 'Podgląd pulpitu Spendist',
+      month: 'Ten miesiąc',
+      balanceLabel: 'Przepływ w miesiącu',
+      income: 'Przychody',
+      expenses: 'Wydatki',
+      home: 'Dom',
+      food: 'Jedzenie',
+      transport: 'Transport',
+    },
     features: {
-      badge: 'Funkcje',
-      title: 'Wszystko czego potrzebujesz, by zarządzać pieniędzmi',
+      badge: 'Do codziennych finansów',
+      title: 'Od jednego wydatku do pełnego obrazu',
       subtitle:
-        'Od codziennego śledzenia po automatyczne płatności — Spendist daje ci narzędzia, by trzymać finanse w ryzach.',
+        'Spendist łączy szybkie wprowadzanie, dokładne filtrowanie, automatyzację i przenośne dane w jednym miejscu.',
       dashboard: {
-        title: 'Interaktywny pulpit',
+        title: 'Przepływy jednym rzutem oka',
         description:
-          'Przychody vs. wydatki jednym rzutem oka, miesięczny przepływ gotówki i natychmiastowe wychwytywanie trendów.',
+          'Porównuj przychody i wydatki, kategorie, płatności cykliczne, ostatnią aktywność oraz miejsca na jednym pulpicie.',
+      },
+      bulk: {
+        title: 'Szybkie i zbiorcze dodawanie',
+        description:
+          'Dodaj jedną transakcję albo wklej wiele wierszy naraz. Kopiuj wartości i sprawdź poprawność przed zapisem.',
       },
       transactions: {
         title: 'Inteligentne transakcje',
@@ -90,9 +118,14 @@ const pl = {
           'Zapisuj wydatki i przychody w sekundy. Filtruj po kategorii, portfelu, dacie lub tagach — znajdź wszystko błyskawicznie.',
       },
       recurring: {
-        title: 'Płatności cykliczne',
+        title: 'Płatności cykliczne pod kontrolą',
         description:
-          'Automatyzuj subskrypcje, czynsz i rachunki. Ustaw harmonogram raz, a Spendist zajmie się resztą.',
+          'Planuj stałe i zmienne kwoty, uzupełniaj historię, wstrzymuj harmonogramy i odbieraj powiadomienia.',
+      },
+      currency: {
+        title: 'Portfele i prawdziwe kursy',
+        description:
+          'Korzystaj z wielu walut, przeliczeń zależnych od portfela oraz automatycznie synchronizowanej historii kursów NBP.',
       },
       categories: {
         title: 'Własne kategorie',
@@ -105,10 +138,55 @@ const pl = {
           'Zarządzaj wieloma kontami i walutami obok siebie. Ustaw domyślny i śledź salda niezależnie.',
       },
       import: {
-        title: 'Import i eksport',
+        title: 'Dane, które możesz przenieść',
         description:
-          'Importuj dane z Kontomierza lub plików CSV. Eksportuj kiedy chcesz — Twoje dane zawsze należą do Ciebie.',
+          'Importuj XLSX z Kontomierza lub CSV Spendist, sprawdzaj duplikaty przed zapisem i eksportuj dane kiedy chcesz.',
       },
+      organize: {
+        title: 'Kategorie, tagi i miejsca',
+        description:
+          'Buduj drzewa kategorii, dobieraj kolory i Heroicons, oznaczaj transakcje tagami i łącz wydatki z miejscami.',
+        tagExample: '#wakacje',
+        placeExample: 'Warszawa',
+        recurringExample: 'Subskrypcje',
+      },
+    },
+    latest: {
+      badge: 'Ostatnio dodane',
+      title: 'Spendist rozwija się wokół prawdziwych potrzeb',
+      subtitle:
+        'Ostatnie wersje przyspieszają wprowadzanie danych, ułatwiają ich odnajdywanie i automatyzują pracę bez utraty kontroli.',
+      github: 'Śledź rozwój na GitHubie',
+      bulk: {
+        title: 'Wklejanie do formularza zbiorczego',
+        description:
+          'Zamieniaj dane ze schowka w sprawdzone wiersze transakcji.',
+      },
+      filters: {
+        title: 'Dokładne filtry i sortowanie',
+        description:
+          'Filtruj po kategoriach, tagach, portfelach, datach, kwotach i źródle cyklicznym.',
+      },
+      automation: {
+        title: 'Historia cykliczna i powiadomienia',
+        description:
+          'Uzupełniaj wcześniejsze harmonogramy i śledź utworzone lub oczekujące operacje.',
+      },
+      transfer: {
+        title: 'Bezpieczniejszy transfer CSV',
+        description:
+          'Sprawdź duplikaty i nowe dane słownikowe, zanim cokolwiek zaimportujesz.',
+      },
+    },
+    trust: {
+      badge: 'Prywatność przez wyraźną granicę',
+      title: 'Twoje finanse nie są profilem reklamowym',
+      description:
+        'Dane po zalogowaniu służą do działania i ochrony Spendist. Nie są sprzedawane ani wysyłane do analityki stron publicznych.',
+      private: 'Polityki dostępu osobne dla każdego użytkownika',
+      analytics: 'Brak Google Analytics po zalogowaniu',
+      export: 'Eksport danych transakcji',
+      source: 'Publicznie dostępny kod źródłowy',
     },
     stats: {
       transactions: 'Śledzonych transakcji',
@@ -124,7 +202,7 @@ const pl = {
       privacy: {
         title: 'Prywatność przede wszystkim',
         description:
-          'Twoje dane finansowe są Twoje. Szyfrowanie end-to-end, brak analityki firm trzecich.',
+          'Dane finansowe po zalogowaniu są odseparowane per użytkownik i wyłączone z analityki stron publicznych.',
       },
       speed: {
         title: 'Błyskawiczna szybkość',
@@ -143,14 +221,16 @@ const pl = {
       },
     },
     cta: {
-      title: 'Gotowy, by przejąć kontrolę?',
+      title: 'Spraw, by Twoje finanse były zrozumiałe',
       subtitle:
-        'Dołącz do Spendist już dziś i zacznij budować jaśniejszy obraz swoich finansów.',
+        'Zacznij od jednej transakcji i z czasem zbuduj czytelny, przenośny obraz swoich finansów.',
       button: 'Utwórz darmowe konto',
+      github: 'Zobacz kod źródłowy',
     },
     footer: {
       madeWith: 'Stworzone z',
       tagline: 'dla świadomych finansowo',
+      github: 'Zobacz na GitHubie',
     },
   },
   home: {
@@ -687,6 +767,8 @@ const pl = {
         allTime: 'Cały okres',
       },
       reset: 'Resetuj filtry',
+      showMore: 'Pokaż więcej filtrów',
+      showLess: 'Ukryj dodatkowe filtry',
       searchLabel: 'Wyszukiwanie',
       searchPlaceholder: 'Szukaj po opisie, kategorii, miejscu lub walucie…',
       categoryLabel: 'Kategoria lub grupa',
