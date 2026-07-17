@@ -6,29 +6,35 @@ test('shows the public landing page with core calls to action', async ({
   await page.goto('/');
 
   await expect(page).toHaveTitle(/Spendist/);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-    /Take control of your\s+finances/
-  );
-
-  await expect(page.getByText('Smart personal finance')).toBeVisible();
   await expect(
-    page.getByText('Everything you need to manage your money')
+    page.getByRole('heading', {
+      level: 1,
+      name: 'See where your money really goes',
+    })
   ).toBeVisible();
-  await expect(page.getByText('Transactions tracked')).toBeVisible();
-  await expect(page.getByText('Interactive dashboard')).toBeVisible();
-  await expect(page.getByText('Import & export')).toBeVisible();
 
-  await expect(page.getByRole('link', { name: /Log in/i })).toHaveAttribute(
-    'href',
-    '/login'
-  );
-  await expect(page.getByRole('link', { name: /Sign up/i })).toHaveAttribute(
+  await expect(page.getByText('Open-source personal finance')).toBeVisible();
+  await expect(
+    page.getByRole('heading', {
+      level: 2,
+      name: 'From one expense to the whole picture',
+    })
+  ).toBeVisible();
+  await expect(page.getByText('Cash flow at a glance')).toBeVisible();
+  await expect(page.getByText('Fast and bulk entry')).toBeVisible();
+  await expect(page.getByText('Recurring costs that keep up')).toBeVisible();
+  await expect(page.getByText('Your data stays portable')).toBeVisible();
+
+  await expect(
+    page.getByRole('link', { name: 'I already have an account' })
+  ).toHaveAttribute('href', '/login');
+  await expect(page.getByRole('link', { name: /Get started/ })).toHaveAttribute(
     'href',
     '/signup'
   );
   await expect(
-    page.getByRole('link', { name: /Get started/i })
-  ).toHaveAttribute('href', '/signup');
+    page.getByRole('link', { name: 'Follow development on GitHub' })
+  ).toHaveAttribute('href', 'https://github.com/spendist-app/spendist');
 });
 
 test('opens unauthenticated login and signup forms', async ({ page }) => {
@@ -105,8 +111,11 @@ test('redirects guests away from protected application routes', async ({
 
     await expect(page).toHaveURL(/\/$/);
     await expect(
-      page.getByRole('heading', { level: 1 })
-    ).toHaveText(/Take control of your\s+finances/);
+      page.getByRole('heading', {
+        level: 1,
+        name: 'See where your money really goes',
+      })
+    ).toBeVisible();
   }
 });
 

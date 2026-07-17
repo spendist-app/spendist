@@ -167,11 +167,23 @@ async function filterTransactionsByDate(
   await filterTransactionsByRange(page, occurredOn, occurredOn);
 }
 
+async function expandAdvancedTransactionFilters(page: Page): Promise<void> {
+  const toggle = page.getByTestId('transaction-advanced-filters-toggle');
+  await expect(toggle).toBeVisible({ timeout: 15000 });
+
+  if ((await toggle.getAttribute('aria-expanded')) !== 'true') {
+    await toggle.click();
+  }
+
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+}
+
 async function filterTransactionsByRange(
   page: Page,
   from: string,
   to: string
 ): Promise<void> {
+  await expandAdvancedTransactionFilters(page);
   const fromInput = page.getByLabel('Date from', { exact: true });
   const toInput = page.getByLabel('Date to', { exact: true });
 
@@ -516,6 +528,7 @@ test('exposes bulk entry and applies year, month, and amount sorting', async ({
     await expect(page.getByText(transaction.description)).toBeVisible();
   }
 
+  await expandAdvancedTransactionFilters(page);
   const year = page.getByTestId('transaction-year-filter');
   const month = page.getByTestId('transaction-month-filter');
   await year.selectOption('2026');
