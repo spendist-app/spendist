@@ -6,7 +6,8 @@ const daisyuiPlugin = daisyuiModule?.default ?? daisyuiModule;
 function readDaisyuiThemes() {
   try {
     const themesPath = require.resolve('daisyui/theme/object.js');
-    const raw = fs.readFileSync(themesPath, 'utf8')
+    const raw = fs
+      .readFileSync(themesPath, 'utf8')
       .replace(/export default\s*/, '')
       .replace(/;?\s*$/, '');
     return JSON.parse(raw);
@@ -23,23 +24,18 @@ const darkDefaults = daisyuiThemes.dark ?? {};
 
 /** @type {import('tailwindcss').Config} */
 const config = {
-  content: [
-    './src/**/*.{html,ts}',
-    './src/**/*.css',
-  ],
+  content: ['./src/**/*.{html,ts}', './src/**/*.css'],
   theme: {
     extend: {},
   },
-  plugins: [
-    daisyuiPlugin,
-  ],
+  plugins: [daisyuiPlugin],
   daisyui: {
     themes: [
       {
         spendistLight: {
           ...lightDefaults,
           '--color-primary': '#0EA5A5',
-          '--color-primary-content': '#F8FFFF',
+          '--color-primary-content': '#062824',
           '--color-secondary': '#F59E0B',
           '--color-secondary-content': '#422100',
           '--color-accent': '#EA580C',

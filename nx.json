@@ -52,6 +52,9 @@
       "linter": "eslint",
       "style": "css",
       "unitTestRunner": "vitest-analog"
+    },
+    "@nx/angular:component": {
+      "style": "css"
     }
   },
   "analytics": true

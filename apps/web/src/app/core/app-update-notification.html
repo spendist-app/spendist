@@ -1,0 +1,45 @@
+@if (updateAvailable()) {
+<aside
+  class="toast toast-top toast-end top-20 z-[70] w-full max-w-sm px-4"
+  aria-live="polite"
+  aria-atomic="true"
+>
+  <div
+    class="alert grid grid-cols-[auto_1fr_auto] items-start gap-3 rounded-2xl border border-primary/20 bg-base-100 text-base-content shadow-2xl"
+    role="status"
+  >
+    <span
+      class="flex size-10 items-center justify-center rounded-xl bg-primary/15 text-xl text-primary"
+      aria-hidden="true"
+      >↻</span
+    >
+    <div class="min-w-0">
+      <p class="font-semibold">{{ 'appUpdate.title' | transloco }}</p>
+      <p class="mt-1 text-sm text-base-content/70">
+        {{ 'appUpdate.description' | transloco }}
+      </p>
+      <button
+        type="button"
+        class="btn btn-primary btn-sm mt-3"
+        [disabled]="refreshing()"
+        (click)="refresh()"
+      >
+        @if (refreshing()) {
+        <span
+          class="loading loading-spinner loading-xs"
+          aria-hidden="true"
+        ></span>
+        } {{ 'appUpdate.refresh' | transloco }}
+      </button>
+    </div>
+    <button
+      type="button"
+      class="btn btn-ghost btn-xs btn-circle"
+      [attr.aria-label]="'appUpdate.dismiss' | transloco"
+      (click)="dismiss()"
+    >
+      ✕
+    </button>
+  </div>
+</aside>
+}
