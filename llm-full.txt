@@ -1,0 +1,61 @@
+# Spendist: full LLM reference
+
+## Identity and scope
+
+Spendist is a GPL-3.0 open-source personal-finance application for recording and understanding personal money. It stores financial records and produces summaries. It does not initiate bank payments, give tax/accounting/investment advice, or make financial decisions for the user.
+
+The hosted application is `https://spendist.app`. The source is an Nx workspace and the UI supports English and Polish.
+
+## Shipped user-facing capabilities
+
+- **Authentication and account security:** email/password sign-up and sign-in, password-recovery email, reset-link session handling, and authenticated password changes. New users receive default categories.
+- **Transactions:** create income/expense records with date, description, amount, currency, wallet, category, optional tags, and optional place. Users can edit, duplicate, delete, filter, sort, search, and create transactions in bulk from pasted rows. Default-currency conversion uses stored exchange rates where applicable.
+- **Financial organization:** profile/avatar, wallets with currencies/default status, category groups, nested categories, colors, Heroicons, and reusable tags.
+- **Recurring payments:** scheduled income/expense with fixed or variable amount, category, wallet, currency, tags, schedule, and optional end date. Scheduled Supabase work creates automatic transaction records; it never makes a real payment.
+- **Places:** reusable locations/merchants with optional address and note metadata. Users can attach them to transactions and inspect annual spending totals.
+- **Dashboard:** up to 12 calendar months of cash flow, selected-month category/tag totals, recurring-created transaction totals, and yearly place spending, scoped by wallet where relevant.
+- **Notifications:** user-scoped Realtime notifications for recurring activity and exchange-rate-sync failure; users can mark all visible unread items as read.
+- **Data portability:** Kontomierz XLSX import to a chosen wallet; readable, filtered Spendist CSV export; CSV analysis before import, valid reference-data creation, and duplicate skipping. Spendist CSV and Kontomierz flows are separate.
+- **Preferences:** persisted English/Polish choice and light/dark theme.
+
+Read `doc/features/` for feature-level details and deliberate limits.
+
+## Routes and visibility
+
+| Route | Purpose | Indexing |
+| --- | --- | --- |
+| `/` | Public landing page; authenticated users redirect to product home. | Indexable |
+| `/login`, `/signup` | Authentication entry points. | Not indexed |
+| `/forgot-password`, `/reset-password` | Password recovery utilities. | Not indexed |
+| `/dashboard`, `/home`, `/transactions`, `/settings` | Authenticated product pages. | Not indexed |
+| `/modules/recurring-payments`, `/modules/places` | Authenticated modules. | Not indexed |
+
+Routes live in `apps/web/src/app/app.routes.ts`. Public SEO files live in `apps/web/public/`. `sitemap.xml` has canonical indexable content only; `robots.txt` disallows private/utility routes.
+
+## Architecture
+
+- `apps/web/src/app/app.config.ts` enables hydration, zoneless change detection, routing, Supabase, Transloco, and the production service worker.
+- Standalone page components and page-local signal stores are colocated. Cross-cutting services, guards, Supabase setup, notifications, language, and theme are in `core/`.
+- `en.translation.ts` and `pl.translation.ts` are the translation sources. Every user-facing key needs both languages.
+- `apps/web/worker.ts` serves Cloudflare assets, exposes runtime `/env.js`, handles HTML fallback, and adds security headers. Do not judge production behavior from the development server alone.
+- Supabase provides Auth, Postgres, RLS, Storage, Realtime, Edge Functions, `pg_cron`, `pg_net`, and Vault. Migrations are under `supabase/migrations/`; generated types are in `libs/data-access/supabase-types/`.
+
+## Operational constraints
+
+- Preserve data ownership and portability. Do not add tracking, ads, data sales, or external financial access without explicit approval.
+- The production database is live. Prefer additive/backwards-compatible migrations; destructive changes need an approved migration/backfill plan.
+- Preserve RLS ownership checks and user-scoped notification queries.
+- Use Angular signals and zoneless-safe patterns. Do not assume `NgZone` patches arbitrary callbacks.
+- Validate with Nx targets and focused tests. E2E uses a dedicated local Supabase database URL, never production.
+
+## Documentation contract
+
+For each new or materially changed user-visible feature:
+
+1. Update the English page in `doc/features/`.
+2. Update this file and `llm.txt`.
+3. Update translations and tests when implementation requires them.
+4. For a public indexable route, update `apps/web/public/sitemap.xml` and `apps/web/public/robots.txt` in the same change.
+
+Never describe planned work as implemented; label it **Planned**.
+

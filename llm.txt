@@ -1,0 +1,23 @@
+# Spendist
+
+Spendist is a GPL-3.0, open-source personal-finance web application. It helps a person record and understand income, expenses, recurring commitments, wallets, categories, tags, places, and multiple currencies. It is not a bank, payment initiator, accounting office, tax adviser, or investment adviser.
+
+## Product facts
+
+- Hosted application: `https://spendist.app`.
+- Languages: English and Polish.
+- Core flows: password authentication, transaction entry/filtering, bulk transaction entry, wallets, category taxonomy, recurring payments, places, dashboard analysis, notifications, and data import/export.
+- Data portability: imports Kontomierz XLSX and Spendist CSV; exports filtered Spendist transactions as CSV.
+- Privacy boundary: authenticated financial data is isolated per user through Supabase/RLS. The product is designed without ads or data selling.
+
+## Technical facts
+
+- Frontend: Angular standalone components, signals, zoneless change detection, SSR/hydration, Transloco, Tailwind CSS, DaisyUI, and Heroicons.
+- Backend: Supabase Auth, Postgres, RLS, Storage, Realtime, Edge Functions, `pg_cron`, `pg_net`, and Vault.
+- Hosting: Cloudflare Worker in `apps/web/worker.ts`; public assets are in `apps/web/public/`.
+- Routes: `apps/web/src/app/app.routes.ts`. The public indexable page is `/`; authentication and application routes are not sitemap entries.
+
+## Knowledge sources
+
+Start with `doc/README.md`, then read `llm-full.txt` for detailed behavior, route ownership, and architecture. Keep `doc/`, both LLM files, `sitemap.xml`, and `robots.txt` current when product behavior or public routes change.
+

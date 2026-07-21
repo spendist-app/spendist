@@ -1,0 +1,18 @@
+# Indexable public content routes. Keep this list aligned with sitemap.xml.
+User-agent: *
+Allow: /
+
+# Authentication, account, and application-data routes are reachable only when
+# needed, but are not search content.
+Disallow: /login
+Disallow: /signup
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /dashboard
+Disallow: /home
+Disallow: /transactions
+Disallow: /settings
+Disallow: /modules/
+
+Sitemap: https://spendist.app/sitemap.xml
+
