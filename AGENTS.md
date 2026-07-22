@@ -18,7 +18,8 @@ Spendist is a GPL-3.0, open-source personal-finance application. It helps an aut
 - `doc/` — English, LLM-oriented feature knowledge base; start at `doc/README.md`.
 - `llm.txt` — concise English project map for LLMs.
 - `llm-full.txt` — detailed English LLM reference and feature index.
-- `apps/web/public/` — origin assets, including `robots.txt` and `sitemap.xml`.
+- `apps/web/content/blog/` — independent English and Polish Markdown blog collections and category catalogs.
+- `apps/web/public/` — origin assets, including generated blog RSS feeds, `robots.txt`, and `sitemap.xml`.
 
 ## Documentation, LLM knowledge, and public SEO
 
@@ -28,15 +29,25 @@ When adding, removing, or materially changing a user-visible feature:
 
 1. Update or add its English page in `doc/features/`. Cover current behavior, user-visible rules, data it owns, and deliberate limits.
 2. Update both `llm.txt` and `llm-full.txt`. Keep `llm.txt` concise; retain detailed behavior, route ownership, and architecture pointers in `llm-full.txt`.
-3. If the change adds or changes a public, indexable route, update `apps/web/public/sitemap.xml` and `apps/web/public/robots.txt` in the same PR. Add the canonical URL to the sitemap and add or adjust an explicit `Allow` rule in robots.
+3. If the change adds or changes a public, indexable route, update `apps/web/public/sitemap.xml` and `apps/web/public/robots.txt` in the same PR. For blog routes, run `npm run blog:generate`; do not hand-edit generated SEO or RSS files.
 4. Never add authenticated or utility-only routes (login, password recovery, dashboard, settings, transactions, or modules) to the sitemap. When a route changes visibility, review both SEO files and keep private/utility routes disallowed.
 
 All content in `doc/`, `llm.txt`, and `llm-full.txt` is English. Document current behavior only; label future work as **Planned**.
 
+### Blog authoring contract
+
+- Read `apps/web/content/blog/README.md` before adding an article.
+- Polish and English are separate collections. Never invent or require a translated counterpart, and never add article-level `hreflang` unless an explicit translation relationship is introduced later.
+- Add Markdown to `apps/web/content/blog/{pl|en}/{slug}.md`, categories to that locale's `categories.json`, and cover images to `apps/web/public/blog/`.
+- Keep drafts as `draft: true`; only `draft: false` enters public output. Run `npm run blog:generate` after every content, category, public-blog-route, or generator change.
+- Commit the source content and all generated outputs together: `blog-content.generated.ts`, `sitemap.xml`, `robots.txt`, and both locale RSS feeds. The Nx build must keep `blog-content-check` enabled.
+- Keep tags as query-string filters with `noindex,follow`; only published articles, valid pagination, and non-empty category archives belong in the sitemap.
+- There is no blog CMS, comment system, or database dependency. Do not add one without explicit product approval.
+
 ## Application architecture
 
 - Angular uses standalone components, signals, lazy routes, SSR/hydration, and zoneless change detection. Prefer signal-based state and native callbacks; do not rely on `NgZone`-patched behavior.
-- Routing lives in `apps/web/src/app/app.routes.ts`. Public content is currently the landing page at `/`; auth pages are reachable but deliberately not indexable. Authenticated product routes use `requireAuthGuard`.
+- Routing lives in `apps/web/src/app/app.routes.ts`. Public content includes `/`, `/pl/blog`, `/en/blog`, and generated localized blog routes; auth pages are reachable but deliberately not indexable. Authenticated product routes use `requireAuthGuard`.
 - Page-local data orchestration belongs beside its page in a store. Cross-cutting services, guards, Supabase setup, notifications, language, and theme belong in `core/`.
 - The backend is Supabase Auth, Postgres, RLS, Storage, Realtime, Edge Functions, `pg_cron`, `pg_net`, and Vault. Scheduled jobs belong in this Supabase ecosystem unless the user explicitly chooses another runtime.
 - Production runs through `apps/web/worker.ts` and `wrangler.toml`, not necessarily `apps/web/src/server.ts`. Verify Worker behavior when changing headers, assets, routing, or runtime configuration.

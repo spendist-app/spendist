@@ -195,16 +195,16 @@
         </div>
         <div class="organize-pills" aria-hidden="true">
           <span
-            ><ng-icon [svg]="tagIcon" size="15"></ng-icon
-            >{{ 'landing.features.organize.tagExample' | transloco }}</span
+            ><ng-icon [svg]="tagIcon" size="15"></ng-icon>{{
+            'landing.features.organize.tagExample' | transloco }}</span
           >
           <span
-            ><ng-icon [svg]="placeIcon" size="15"></ng-icon
-            >{{ 'landing.features.organize.placeExample' | transloco }}</span
+            ><ng-icon [svg]="placeIcon" size="15"></ng-icon>{{
+            'landing.features.organize.placeExample' | transloco }}</span
           >
           <span
-            ><ng-icon [svg]="bellIcon" size="15"></ng-icon
-            >{{ 'landing.features.organize.recurringExample' | transloco }}</span
+            ><ng-icon [svg]="bellIcon" size="15"></ng-icon>{{
+            'landing.features.organize.recurringExample' | transloco }}</span
           >
         </div>
       </article>
@@ -314,6 +314,7 @@
       <span>Spendist</span>
     </a>
     <p>{{ 'landing.footer.tagline' | transloco }}</p>
+    <a [routerLink]="blogLink()">{{ 'blog.common.badge' | transloco }}</a>
     <a
       href="https://github.com/spendist-app/spendist"
       target="_blank"

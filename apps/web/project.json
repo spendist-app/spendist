@@ -8,6 +8,7 @@
   "targets": {
     "build": {
       "executor": "@angular/build:application",
+      "dependsOn": ["blog-content-check"],
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/apps/web",
@@ -50,6 +51,12 @@
         }
       },
       "defaultConfiguration": "production"
+    },
+    "blog-content-check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm run blog:check"
+      }
     },
     "serve": {
       "continuous": true,

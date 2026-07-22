@@ -3,5 +3,10 @@
   <url>
     <loc>https://spendist.app/</loc>
   </url>
+  <url>
+    <loc>https://spendist.app/pl/blog</loc>
+  </url>
+  <url>
+    <loc>https://spendist.app/en/blog</loc>
+  </url>
 </urlset>
-

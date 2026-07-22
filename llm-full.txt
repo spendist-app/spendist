@@ -17,6 +17,7 @@ The hosted application is `https://spendist.app`. The source is an Nx workspace 
 - **Notifications:** user-scoped Realtime notifications for recurring activity and exchange-rate-sync failure; users can mark all visible unread items as read.
 - **Data portability:** Kontomierz XLSX import to a chosen wallet; readable, filtered Spendist CSV export; CSV analysis before import, valid reference-data creation, and duplicate skipping. Spendist CSV and Kontomierz flows are separate.
 - **Preferences:** persisted English/Polish choice and light/dark theme.
+- **Public blog:** separate Polish and English Markdown collections for signed-out readers. Each edition can publish unrelated articles, categories are indexable when non-empty, tags are filter-only and `noindex`, and sharing uses Web Share/copy/plain social links without embedded social SDKs. There are no comments, CMS, or admin panel.
 
 Read `doc/features/` for feature-level details and deliberate limits.
 
@@ -25,12 +26,27 @@ Read `doc/features/` for feature-level details and deliberate limits.
 | Route | Purpose | Indexing |
 | --- | --- | --- |
 | `/` | Public landing page; authenticated users redirect to product home. | Indexable |
+| `/pl/blog`, `/en/blog` | Independent Polish and English blog indexes. | Indexable, including the initial empty state |
+| `/{locale}/blog/{slug}` | Published locale-specific Markdown article. | Indexable and prerendered |
+| `/{locale}/blog/category/{categorySlug}` | Non-empty localized category archive. | Indexable and prerendered |
+| `/{locale}/blog/page/{page}` | Blog pagination, 12 posts per page. | Indexable and prerendered |
+| `/{locale}/blog?tag={tag}` | Client-visible tag filter. | `noindex,follow`; excluded from sitemap |
+| `/{locale}/blog/feed.xml` | Locale-specific RSS 2.0 feed. | Discovery file, not an HTML page |
 | `/login`, `/signup` | Authentication entry points. | Not indexed |
 | `/forgot-password`, `/reset-password` | Password recovery utilities. | Not indexed |
 | `/dashboard`, `/home`, `/transactions`, `/settings` | Authenticated product pages. | Not indexed |
 | `/modules/recurring-payments`, `/modules/places` | Authenticated modules. | Not indexed |
 
 Routes live in `apps/web/src/app/app.routes.ts`. Public SEO files live in `apps/web/public/`. `sitemap.xml` has canonical indexable content only; `robots.txt` disallows private/utility routes.
+
+## Blog publishing and SEO pipeline
+
+- Source content is in `apps/web/content/blog/pl/` and `apps/web/content/blog/en/`; the collections and category catalogs are independent and individual articles have no `hreflang` pairing.
+- Article front matter, image requirements, and the publishing checklist are documented in `apps/web/content/blog/README.md` and `doc/features/public-blog.md`.
+- `npm run blog:generate` validates front matter and local cover images, renders sanitized Markdown, calculates headings/reading time, and writes `blog-content.generated.ts`, both RSS feeds, `sitemap.xml`, and `robots.txt`.
+- The Nx build depends on `blog-content-check`, so stale generated artifacts fail the build. Commit source and generated files together.
+- Blog pages set canonical, robots, Open Graph, Twitter card, RSS discovery, and JSON-LD metadata. Blog homes use reciprocal PL/EN alternates; articles do not because they are editorially independent.
+- Public blog routes are statically prerendered. The Cloudflare Worker returns the localized branded blog fallback with HTTP 404 for unknown blog URLs.
 
 ## Architecture
 
@@ -58,4 +74,3 @@ For each new or materially changed user-visible feature:
 4. For a public indexable route, update `apps/web/public/sitemap.xml` and `apps/web/public/robots.txt` in the same change.
 
 Never describe planned work as implemented; label it **Planned**.
-

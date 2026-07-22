@@ -622,6 +622,64 @@ const pl = {
       },
     },
   },
+  blog: {
+    common: {
+      badge: 'Blog',
+      backToSpendist: 'Wróć do Spendist',
+    },
+    index: {
+      title: 'Pomysły na bardziej przejrzyste finanse',
+      seoTitle:
+        'Blog Spendist — finanse osobiste bez uzależnienia od platformy',
+      description:
+        'Praktyczne artykuły o finansach osobistych, świadomych wydatkach, własności danych i korzystaniu ze Spendist.',
+      articles: 'Artykuły na blogu',
+      emptyTitle: 'Pierwsze artykuły są w przygotowaniu',
+      emptyDescription:
+        'Polska edycja ma własny plan redakcyjny. Nowe artykuły pojawią się tutaj po publikacji z repozytorium Spendist.',
+      emptyFilteredTitle: 'Brak artykułów z tym tagiem',
+      emptyFilteredDescription:
+        'Wyczyść filtr tagu, aby zobaczyć wszystkie opublikowane artykuły.',
+    },
+    category: {
+      title: '{{category}}',
+      seoTitle: '{{category}} — Blog Spendist',
+      navigation: 'Kategorie bloga',
+      all: 'Wszystkie artykuły',
+    },
+    tags: {
+      label: 'Tagi artykułu',
+      filteredBy: 'Filtrowanie po #{{tag}}',
+      clear: 'Wyczyść filtr',
+    },
+    pagination: {
+      label: 'Strony bloga',
+      previous: 'Poprzednia',
+      next: 'Następna',
+      status: 'Strona {{page}} z {{pages}}',
+    },
+    article: {
+      breadcrumbs: 'Okruszki nawigacyjne',
+      readingTime: '{{minutes}} min czytania',
+      updated: 'Aktualizacja',
+      contents: 'W tym artykule',
+      back: 'Wróć do bloga',
+    },
+    share: {
+      label: 'Udostępnij artykuł',
+      shortLabel: 'Udostępnij',
+      native: 'Udostępnij',
+      copy: 'Kopiuj link',
+      copied: 'Skopiowano',
+    },
+    notFound: {
+      title: 'Ta strona bloga nie istnieje',
+      seoTitle: 'Nie znaleziono strony bloga | Spendist',
+      description:
+        'Artykuł, kategoria lub strona mogły zostać przeniesione albo nie zostały opublikowane.',
+      action: 'Przejdź do bloga',
+    },
+  },
   notifications: {
     open: 'Otwórz notyfikacje',
     title: 'Notyfikacje',

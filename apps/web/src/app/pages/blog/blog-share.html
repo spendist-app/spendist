@@ -1,0 +1,32 @@
+<section class="share" [attr.aria-label]="'blog.share.label' | transloco">
+  <span>{{ 'blog.share.shortLabel' | transloco }}</span>
+  @if (nativeShareAvailable) {
+  <button type="button" class="btn btn-sm btn-primary" (click)="share()">
+    {{ 'blog.share.native' | transloco }}
+  </button>
+  }
+  <button type="button" class="btn btn-sm btn-ghost" (click)="copy()">
+    {{ (copied() ? 'blog.share.copied' : 'blog.share.copy') | transloco }}
+  </button>
+  <a
+    class="btn btn-sm btn-ghost"
+    target="_blank"
+    rel="noopener noreferrer"
+    [href]="'https://www.facebook.com/sharer/sharer.php?u=' + encodedUrl()"
+    >Facebook</a
+  >
+  <a
+    class="btn btn-sm btn-ghost"
+    target="_blank"
+    rel="noopener noreferrer"
+    [href]="'https://www.linkedin.com/sharing/share-offsite/?url=' + encodedUrl()"
+    >LinkedIn</a
+  >
+  <a
+    class="btn btn-sm btn-ghost"
+    target="_blank"
+    rel="noopener noreferrer"
+    [href]="'https://twitter.com/intent/tweet?url=' + encodedUrl() + '&text=' + encodedTitle()"
+    >X</a
+  >
+</section>

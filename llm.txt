@@ -6,7 +6,7 @@ Spendist is a GPL-3.0, open-source personal-finance web application. It helps a 
 
 - Hosted application: `https://spendist.app`.
 - Languages: English and Polish.
-- Core flows: password authentication, transaction entry/filtering, bulk transaction entry, wallets, category taxonomy, recurring payments, places, dashboard analysis, notifications, and data import/export.
+- Core flows: password authentication, transaction entry/filtering, bulk transaction entry, wallets, category taxonomy, recurring payments, places, dashboard analysis, notifications, data import/export, and a public repository-backed blog.
 - Data portability: imports Kontomierz XLSX and Spendist CSV; exports filtered Spendist transactions as CSV.
 - Privacy boundary: authenticated financial data is isolated per user through Supabase/RLS. The product is designed without ads or data selling.
 
@@ -15,9 +15,9 @@ Spendist is a GPL-3.0, open-source personal-finance web application. It helps a 
 - Frontend: Angular standalone components, signals, zoneless change detection, SSR/hydration, Transloco, Tailwind CSS, DaisyUI, and Heroicons.
 - Backend: Supabase Auth, Postgres, RLS, Storage, Realtime, Edge Functions, `pg_cron`, `pg_net`, and Vault.
 - Hosting: Cloudflare Worker in `apps/web/worker.ts`; public assets are in `apps/web/public/`.
-- Routes: `apps/web/src/app/app.routes.ts`. The public indexable page is `/`; authentication and application routes are not sitemap entries.
+- Routes: `apps/web/src/app/app.routes.ts`. Public indexable routes are `/`, `/pl/blog`, `/en/blog`, published localized articles, pagination, and non-empty category archives. Authentication and application routes are not sitemap entries.
+- Blog content: independent Polish and English Markdown collections under `apps/web/content/blog/`. Articles are not translation pairs. `npm run blog:generate` validates content and generates the Angular content module, locale RSS feeds, sitemap, and robots file; `blog:check` protects builds from stale output.
 
 ## Knowledge sources
 
 Start with `doc/README.md`, then read `llm-full.txt` for detailed behavior, route ownership, and architecture. Keep `doc/`, both LLM files, `sitemap.xml`, and `robots.txt` current when product behavior or public routes change.
-

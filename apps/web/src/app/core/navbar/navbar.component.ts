@@ -11,7 +11,12 @@ import { appInfoConfig } from '../../config/app-info.config';
 @Component({
   standalone: true,
   selector: 'app-navbar',
-  imports: [RouterLink, RouterLinkActive, TranslocoPipe, NotificationsMenuComponent],
+  imports: [
+    RouterLink,
+    RouterLinkActive,
+    TranslocoPipe,
+    NotificationsMenuComponent,
+  ],
   templateUrl: './navbar.component.html',
 })
 export class NavbarComponent {
@@ -25,7 +30,10 @@ export class NavbarComponent {
   readonly accountMenuOpen = signal(false);
   readonly aboutModalOpen = signal(false);
   readonly languages = this.languageService.availableLanguages;
-  readonly activeLanguage = computed(() => this.languageService.currentLanguage());
+  readonly activeLanguage = computed(() =>
+    this.languageService.currentLanguage()
+  );
+  readonly blogLink = computed(() => `/${this.activeLanguage()}/blog`);
   readonly buildCommit = appInfoConfig.buildCommit;
   readonly buildCommitShort = shortCommit(appInfoConfig.buildCommit);
   readonly avatarUrl = computed(() => this.profileService.avatarUrl());
@@ -39,16 +47,24 @@ export class NavbarComponent {
     }
 
     const session = this.auth.session();
-    const metadata = (session?.user.user_metadata ?? {}) as Record<string, unknown>;
+    const metadata = (session?.user.user_metadata ?? {}) as Record<
+      string,
+      unknown
+    >;
     const rawFullName = metadata['full_name'];
-    const nameCandidate = typeof rawFullName === 'string' && rawFullName.trim().length
-      ? rawFullName
-      : session?.user.email ?? '';
+    const nameCandidate =
+      typeof rawFullName === 'string' && rawFullName.trim().length
+        ? rawFullName
+        : session?.user.email ?? '';
     return resolveInitials(nameCandidate);
   });
 
-  readonly isDark = computed(() => this.themeService.theme() === 'spendistDark');
-  readonly currentThemeLabel = computed(() => (this.isDark() ? 'common.theme.dark' : 'common.theme.light'));
+  readonly isDark = computed(
+    () => this.themeService.theme() === 'spendistDark'
+  );
+  readonly currentThemeLabel = computed(() =>
+    this.isDark() ? 'common.theme.dark' : 'common.theme.light'
+  );
   readonly themeToggleLabel = computed(() =>
     this.isDark() ? 'common.theme.useLight' : 'common.theme.useDark'
   );
@@ -161,9 +177,14 @@ export class NavbarComponent {
 
   onLanguageChange(event: Event): void {
     const target = event.target as HTMLSelectElement | null;
-    const next = (target?.value ?? '') as Parameters<LanguageService['setLanguage']>[0];
+    const next = (target?.value ?? '') as Parameters<
+      LanguageService['setLanguage']
+    >[0];
     if (next) {
       this.languageService.setLanguage(next);
+      if (/^\/(pl|en)\/blog(?:\/|$)/.test(this.router.url)) {
+        void this.router.navigateByUrl(`/${next}/blog`);
+      }
     }
   }
 }

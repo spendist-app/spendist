@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@ngneat/transloco';
 import { NgIcon } from '@ng-icons/core';
@@ -17,6 +17,7 @@ import {
   heroTag,
 } from '@ng-icons/heroicons/outline';
 import { AuthService } from '../../core/auth.service';
+import { LanguageService } from '../../core/language.service';
 
 @Component({
   standalone: true,
@@ -27,6 +28,10 @@ import { AuthService } from '../../core/auth.service';
 })
 export class LandingPageComponent {
   readonly auth = inject(AuthService);
+  private readonly language = inject(LanguageService);
+  protected readonly blogLink = computed(
+    () => `/${this.language.currentLanguage()}/blog`
+  );
   protected readonly sparklesIcon = heroSparkles;
   protected readonly checkIcon = heroCheckCircle;
   protected readonly chartIcon = heroChartBarSquare;

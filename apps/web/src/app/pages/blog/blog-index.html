@@ -1,0 +1,127 @@
+<div class="blog-shell">
+  <header class="blog-hero">
+    <a class="blog-brand" routerLink="/">
+      <img src="/brand/spendist-mark.svg" alt="" width="42" height="42" />
+      <span>Spendist</span>
+    </a>
+    <p class="eyebrow">{{ 'blog.common.badge' | transloco }}</p>
+    <h1>{{ titleKey | transloco: { category: category?.name ?? '' } }}</h1>
+    <p>{{ category?.description ?? ('blog.index.description' | transloco) }}</p>
+  </header>
+
+  @if (invalid()) {
+  <section class="empty-state">
+    <h2>{{ 'blog.notFound.title' | transloco }}</h2>
+    <p>{{ 'blog.notFound.description' | transloco }}</p>
+    <a class="btn btn-primary" [routerLink]="basePath"
+      >{{ 'blog.notFound.action' | transloco }}</a
+    >
+  </section>
+  } @else { @if (categories.length) {
+  <nav
+    class="taxonomy"
+    [attr.aria-label]="'blog.category.navigation' | transloco"
+  >
+    <a
+      [routerLink]="basePath"
+      routerLinkActive="active"
+      [routerLinkActiveOptions]="{ exact: true }"
+      >{{ 'blog.category.all' | transloco }}</a
+    >
+    @for (item of categories; track item.slug) {
+    <a
+      [routerLink]="basePath + '/category/' + item.slug"
+      routerLinkActive="active"
+      >{{ item.name }}</a
+    >
+    }
+  </nav>
+  } @if (activeTag()) {
+  <div class="active-filter">
+    <span>{{ 'blog.tags.filteredBy' | transloco: { tag: activeTag() } }}</span>
+    <a [routerLink]="pagePath(1)">{{ 'blog.tags.clear' | transloco }}</a>
+  </div>
+  } @if (articles().length) {
+  <section
+    class="article-grid"
+    [attr.aria-label]="'blog.index.articles' | transloco"
+  >
+    @for (article of articles(); track article.url) {
+    <article class="article-card">
+      <a
+        [routerLink]="article.url"
+        class="cover-link"
+        tabindex="-1"
+        aria-hidden="true"
+      >
+        <img
+          [ngSrc]="article.coverImage"
+          [alt]="article.coverImageAlt"
+          [width]="article.coverImageWidth"
+          [height]="article.coverImageHeight"
+        />
+      </a>
+      <div class="article-card-body">
+        <div class="article-meta">
+          <a [routerLink]="basePath + '/category/' + article.category"
+            >{{ categoryName(article.category) }}</a
+          >
+          <time [attr.datetime]="article.publishedAt"
+            >{{ article.publishedAt }}</time
+          >
+          <span
+            >{{ 'blog.article.readingTime' | transloco: { minutes:
+            article.readingMinutes } }}</span
+          >
+        </div>
+        <h2><a [routerLink]="article.url">{{ article.title }}</a></h2>
+        <p>{{ article.description }}</p>
+        @if (article.tags.length) {
+        <div class="tags" [attr.aria-label]="'blog.tags.label' | transloco">
+          @for (tag of article.tags; track tag) {
+          <a [routerLink]="basePath" [queryParams]="{ tag }">#{{ tag }}</a>
+          }
+        </div>
+        }
+      </div>
+    </article>
+    }
+  </section>
+  } @else {
+  <section class="empty-state">
+    <h2>
+      {{ (activeTag() ? 'blog.index.emptyFilteredTitle' :
+      'blog.index.emptyTitle') | transloco }}
+    </h2>
+    <p>
+      {{ (activeTag() ? 'blog.index.emptyFilteredDescription' :
+      'blog.index.emptyDescription') | transloco }}
+    </p>
+  </section>
+  } @if (pageCount() > 1) {
+  <nav
+    class="pagination"
+    [attr.aria-label]="'blog.pagination.label' | transloco"
+  >
+    @if (page > 1) {
+    <a class="btn btn-ghost" [routerLink]="pagePath(page - 1)"
+      >{{ 'blog.pagination.previous' | transloco }}</a
+    >
+    }
+    <span
+      >{{ 'blog.pagination.status' | transloco: { page, pages: pageCount() }
+      }}</span
+    >
+    @if (page < pageCount()) {
+    <a class="btn btn-ghost" [routerLink]="pagePath(page + 1)"
+      >{{ 'blog.pagination.next' | transloco }}</a
+    >
+    }
+  </nav>
+  } }
+
+  <footer class="blog-footer">
+    <a routerLink="/">{{ 'blog.common.backToSpendist' | transloco }}</a>
+    <a [href]="'/' + locale + '/blog/feed.xml'">RSS</a>
+  </footer>
+</div>
