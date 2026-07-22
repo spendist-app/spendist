@@ -46,7 +46,10 @@ test('serves separate, indexable English and Polish blog indexes', async ({
   await page.goto('/en/blog');
   await expect(page).toHaveTitle(/Spendist Blog/);
   await expect(
-    page.getByRole('heading', { level: 1, name: 'Spendist Blog' })
+    page.getByRole('heading', {
+      level: 1,
+      name: 'Ideas for clearer personal finances',
+    })
   ).toBeVisible();
   await expect(
     page.getByText('The first articles are on the way')
@@ -59,7 +62,10 @@ test('serves separate, indexable English and Polish blog indexes', async ({
 
   await page.goto('/pl/blog');
   await expect(
-    page.getByRole('heading', { level: 1, name: 'Blog Spendist' })
+    page.getByRole('heading', {
+      level: 1,
+      name: 'Pomysły na bardziej przejrzyste finanse',
+    })
   ).toBeVisible();
   await expect(
     page.getByText('Pierwsze artykuły są w przygotowaniu')
