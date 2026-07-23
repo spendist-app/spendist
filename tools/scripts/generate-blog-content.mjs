@@ -17,6 +17,15 @@ const LOCALES = ['pl', 'en'];
 const SITE_URL = 'https://spendist.app';
 const PAGE_SIZE = 12;
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const DRAFT_IMAGE = {
+  id: 'draft-placeholder',
+  source: 'draft-placeholder',
+  width: 1200,
+  height: 630,
+  fallback: { src: '/draft-placeholder.jpg', width: 1200, height: 630 },
+  avifSrcset: '/draft-placeholder.avif 1200w',
+  webpSrcset: '/draft-placeholder.webp 1200w',
+};
 
 export function slugifyHeading(value) {
   return value
@@ -40,6 +49,9 @@ function isoDate(data, field, file, optional = false) {
   const value = data[field];
   if (optional && (value === undefined || value === null || value === ''))
     return null;
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString().slice(0, 10);
+  }
   const normalized = requiredString(data, field, file);
   if (
     !/^\d{4}-\d{2}-\d{2}$/.test(normalized) ||
@@ -218,7 +230,6 @@ async function loadArticles(locale, categories, imageManifest) {
   for (const name of entries) {
     const file = path.join(directory, name);
     const parsed = matter(await readFile(file, 'utf8'));
-    if (parsed.data.draft !== false) continue;
     const title = requiredString(parsed.data, 'title', file);
     const slug = requiredString(parsed.data, 'slug', file);
     const description = requiredString(parsed.data, 'description', file);
@@ -254,6 +265,23 @@ async function loadArticles(locale, categories, imageManifest) {
         `${file}: coverImageId must be blog/${locale}/${slug}/cover.`
       );
     }
+    slugs.add(slug);
+    const headings = extractHeadings(parsed.content);
+    const words = parsed.content.trim().split(/\s+/).filter(Boolean).length;
+    const validateBodyImage = (assetName) => {
+      if (!SLUG_PATTERN.test(assetName) || assetName === 'cover') {
+        throw new Error(
+          `${file}: body image names must be lowercase kebab-case and cannot be cover.`
+        );
+      }
+    };
+    if (parsed.data.draft !== false) {
+      renderMarkdown(parsed.content, headings, (assetName) => {
+        validateBodyImage(assetName);
+        return DRAFT_IMAGE;
+      });
+      continue;
+    }
     const coverImage = publicWebImage(imageManifest, coverImageId, file);
     if (
       coverImage.width < 1200 ||
@@ -263,15 +291,8 @@ async function loadArticles(locale, categories, imageManifest) {
         `${file}: cover source must be at least 1200px wide with a 1200:630 aspect ratio.`
       );
     }
-    slugs.add(slug);
-    const headings = extractHeadings(parsed.content);
-    const words = parsed.content.trim().split(/\s+/).filter(Boolean).length;
     const resolveBodyImage = (assetName) => {
-      if (!SLUG_PATTERN.test(assetName) || assetName === 'cover') {
-        throw new Error(
-          `${file}: body image names must be lowercase kebab-case and cannot be cover.`
-        );
-      }
+      validateBodyImage(assetName);
       return publicWebImage(
         imageManifest,
         `blog/${locale}/${slug}/${assetName}`,

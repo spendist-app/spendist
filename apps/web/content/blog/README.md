@@ -64,8 +64,11 @@ selects an appropriate file through `srcset` and `sizes`. Do not edit or mix
 generated files with source files. `npm run images:check` detects stale or
 missing output.
 
-For a draft, run `npm run blog:generate` and keep `draft: true`. To publish,
-first add and convert all referenced images, set `draft: false`, then run
-`npm run blog:generate`. Review the generated registry, sitemap, robots, and
-feeds. Commit the Markdown, source images, generated image assets/manifests,
-and generated blog outputs together. CI runs `images:check` and `blog:check`.
+For a draft, run `npm run blog:generate` and keep `draft: true`. The generator
+validates its metadata, category, slug, description, and logical body-image
+syntax without requiring image files or adding the draft to public output. To
+publish, first add and convert all referenced images, set `draft: false`, then
+run `npm run blog:generate`. Review the generated registry, sitemap, robots,
+and feeds. Commit the Markdown, source images, generated image
+assets/manifests, and generated blog outputs together. CI runs `images:check`
+and `blog:check`.
