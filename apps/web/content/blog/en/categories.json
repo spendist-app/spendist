@@ -1,0 +1,12 @@
+[
+  {
+    "slug": "spendist",
+    "name": "Spendist",
+    "description": "Features, development, and the story of the open-source Spendist project."
+  },
+  {
+    "slug": "household-budget",
+    "name": "Household budget",
+    "description": "Practical ways to organise expenses, income, and recurring commitments."
+  }
+]

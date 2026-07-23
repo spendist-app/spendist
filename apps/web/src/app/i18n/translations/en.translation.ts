@@ -620,6 +620,63 @@ const en = {
       },
     },
   },
+  blog: {
+    common: {
+      badge: 'Blog',
+      backToSpendist: 'Back to Spendist',
+    },
+    index: {
+      title: 'Ideas for clearer personal finances',
+      seoTitle: 'Spendist Blog — Personal finance without lock-in',
+      description:
+        'Practical articles about personal finance, mindful spending, data ownership, and using Spendist.',
+      articles: 'Blog articles',
+      emptyTitle: 'The first articles are on the way',
+      emptyDescription:
+        'The English edition has its own editorial plan. New articles will appear here after they are published from the Spendist repository.',
+      emptyFilteredTitle: 'No articles match this tag',
+      emptyFilteredDescription:
+        'Clear the tag filter to browse all published articles.',
+    },
+    category: {
+      title: '{{category}}',
+      seoTitle: '{{category}} — Spendist Blog',
+      navigation: 'Blog categories',
+      all: 'All articles',
+    },
+    tags: {
+      label: 'Article tags',
+      filteredBy: 'Filtered by #{{tag}}',
+      clear: 'Clear filter',
+    },
+    pagination: {
+      label: 'Blog pages',
+      previous: 'Previous',
+      next: 'Next',
+      status: 'Page {{page}} of {{pages}}',
+    },
+    article: {
+      breadcrumbs: 'Breadcrumbs',
+      readingTime: '{{minutes}} min read',
+      updated: 'Updated',
+      contents: 'In this article',
+      back: 'Back to the blog',
+    },
+    share: {
+      label: 'Share article',
+      shortLabel: 'Share',
+      native: 'Share',
+      copy: 'Copy link',
+      copied: 'Copied',
+    },
+    notFound: {
+      title: 'This blog page does not exist',
+      seoTitle: 'Blog page not found | Spendist',
+      description:
+        'The article, category, or page may have moved or has not been published.',
+      action: 'Go to the blog',
+    },
+  },
   notifications: {
     open: 'Open notifications',
     title: 'Notifications',

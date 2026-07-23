@@ -152,6 +152,9 @@
 
   <div class="ms-auto flex items-center gap-3">
     @if (!auth.loading() && !auth.isAuthenticated()) {
+    <a class="btn btn-ghost btn-sm" [routerLink]="blogLink()">{{
+      'blog.common.badge' | transloco
+    }}</a>
     <label class="sr-only" for="language-selector">
       {{ 'common.language.label' | transloco }}
     </label>

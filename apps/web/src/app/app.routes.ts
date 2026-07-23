@@ -1,34 +1,51 @@
-import { Route } from '@angular/router';
-import { redirectAuthenticatedToHomeGuard, requireAuthGuard } from './core/auth.guard';
+import { inject } from '@angular/core';
+import { ResolveFn, Route } from '@angular/router';
+import { TranslocoService } from '@ngneat/transloco';
+import { firstValueFrom } from 'rxjs';
+import {
+  redirectAuthenticatedToHomeGuard,
+  requireAuthGuard,
+} from './core/auth.guard';
+import { LanguageService } from './core/language.service';
 
 export const appRoutes: Route[] = [
   {
     path: '',
     canActivate: [redirectAuthenticatedToHomeGuard],
     loadComponent: () =>
-      import('./pages/landing/landing.page').then((m) => m.LandingPageComponent),
+      import('./pages/landing/landing.page').then(
+        (m) => m.LandingPageComponent
+      ),
   },
+  ...blogRoutes('pl'),
+  ...blogRoutes('en'),
   {
     path: 'dashboard',
     canActivate: [requireAuthGuard],
     loadComponent: () =>
-      import('./pages/dashboard/dashboard.page').then((m) => m.DashboardPageComponent),
+      import('./pages/dashboard/dashboard.page').then(
+        (m) => m.DashboardPageComponent
+      ),
   },
   {
     path: 'home',
     canActivate: [requireAuthGuard],
-    loadComponent: () => import('./pages/home/home.page').then((m) => m.HomePageComponent),
+    loadComponent: () =>
+      import('./pages/home/home.page').then((m) => m.HomePageComponent),
   },
   {
     path: 'transactions',
     canActivate: [requireAuthGuard],
     loadComponent: () =>
-      import('./pages/transactions/transactions.page').then((m) => m.TransactionsPageComponent),
+      import('./pages/transactions/transactions.page').then(
+        (m) => m.TransactionsPageComponent
+      ),
   },
   {
     path: 'login',
     canActivate: [redirectAuthenticatedToHomeGuard],
-    loadComponent: () => import('./pages/login/login.page').then((m) => m.LoginPageComponent),
+    loadComponent: () =>
+      import('./pages/login/login.page').then((m) => m.LoginPageComponent),
   },
   {
     path: 'forgot-password',
@@ -48,30 +65,84 @@ export const appRoutes: Route[] = [
   {
     path: 'signup',
     canActivate: [redirectAuthenticatedToHomeGuard],
-    loadComponent: () => import('./pages/signup/signup.page').then((m) => m.SignupPageComponent),
+    loadComponent: () =>
+      import('./pages/signup/signup.page').then((m) => m.SignupPageComponent),
   },
   {
     path: 'settings',
     canActivate: [requireAuthGuard],
     loadComponent: () =>
-      import('./pages/settings/settings.page').then((m) => m.SettingsPageComponent),
+      import('./pages/settings/settings.page').then(
+        (m) => m.SettingsPageComponent
+      ),
   },
   {
     path: 'modules/recurring-payments',
     canActivate: [requireAuthGuard],
     loadComponent: () =>
       import('./pages/modules/recurring-payments/recurring-payments.page').then(
-        (m) => m.RecurringPaymentsPageComponent,
+        (m) => m.RecurringPaymentsPageComponent
       ),
   },
   {
     path: 'modules/places',
     canActivate: [requireAuthGuard],
     loadComponent: () =>
-      import('./pages/modules/places/places.page').then((m) => m.PlacesPageComponent),
+      import('./pages/modules/places/places.page').then(
+        (m) => m.PlacesPageComponent
+      ),
   },
   {
     path: '**',
     redirectTo: '',
   },
 ];
+
+function blogRoutes(locale: 'pl' | 'en'): Route[] {
+  const data = { blogLocale: locale } as const;
+  const resolve = { blogLanguage: resolveBlogLanguage(locale) };
+  const loadIndex = () =>
+    import('./pages/blog/blog-index').then((m) => m.BlogIndex);
+  const loadArticle = () =>
+    import('./pages/blog/blog-article').then((m) => m.BlogArticle);
+  const loadNotFound = () =>
+    import('./pages/blog/blog-not-found').then((m) => m.BlogNotFound);
+  return [
+    { path: `${locale}/blog`, data, resolve, loadComponent: loadIndex },
+    {
+      path: `${locale}/blog/page/:page`,
+      data,
+      resolve,
+      loadComponent: loadIndex,
+    },
+    {
+      path: `${locale}/blog/category/:categorySlug/page/:page`,
+      data,
+      resolve,
+      loadComponent: loadIndex,
+    },
+    {
+      path: `${locale}/blog/category/:categorySlug`,
+      data,
+      resolve,
+      loadComponent: loadIndex,
+    },
+    { path: `${locale}/blog/:slug`, data, resolve, loadComponent: loadArticle },
+    {
+      path: `${locale}/blog-not-found`,
+      data,
+      resolve,
+      loadComponent: loadNotFound,
+    },
+  ];
+}
+
+function resolveBlogLanguage(locale: 'pl' | 'en'): ResolveFn<boolean> {
+  return async () => {
+    const language = inject(LanguageService);
+    const transloco = inject(TranslocoService);
+    language.setLanguage(locale);
+    await firstValueFrom(transloco.load(locale));
+    return true;
+  };
+}

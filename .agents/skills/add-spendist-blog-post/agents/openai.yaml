@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Add Spendist Blog Post'
+  short_description: 'Create a localized Spendist Markdown draft'
+  default_prompt: 'Create a repository-backed Spendist blog draft from the provided Markdown, validate it, and report the image source paths. Do not generate images or publish the draft.'

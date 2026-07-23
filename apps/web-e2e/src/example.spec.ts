@@ -35,6 +35,61 @@ test('shows the public landing page with core calls to action', async ({
   await expect(
     page.getByRole('link', { name: 'Follow development on GitHub' })
   ).toHaveAttribute('href', 'https://github.com/spendist-app/spendist');
+  await expect(
+    page.getByRole('link', { name: 'Blog' }).first()
+  ).toHaveAttribute('href', '/en/blog');
+});
+
+test('serves separate, indexable English and Polish blog indexes', async ({
+  page,
+}) => {
+  await page.goto('/en/blog');
+  await expect(page).toHaveTitle(/Spendist Blog/);
+  await expect(
+    page.getByRole('heading', {
+      level: 1,
+      name: 'Ideas for clearer personal finances',
+    })
+  ).toBeVisible();
+  await expect(
+    page.getByText('The first articles are on the way')
+  ).toBeVisible();
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+    'href',
+    'https://spendist.app/en/blog'
+  );
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+
+  await page.goto('/pl/blog');
+  await expect(
+    page.getByRole('heading', {
+      level: 1,
+      name: 'Pomysły na bardziej przejrzyste finanse',
+    })
+  ).toBeVisible();
+  await expect(
+    page.getByText('Pierwsze artykuły są w przygotowaniu')
+  ).toBeVisible();
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+    'href',
+    'https://spendist.app/pl/blog'
+  );
+  await expect(page.locator('html')).toHaveAttribute('lang', 'pl');
+});
+
+test('publishes blog discovery files', async ({ page }) => {
+  const [sitemap, robots, englishFeed, polishFeed] = await Promise.all([
+    page.request.get('/sitemap.xml'),
+    page.request.get('/robots.txt'),
+    page.request.get('/en/blog/feed.xml'),
+    page.request.get('/pl/blog/feed.xml'),
+  ]);
+
+  expect(sitemap.ok()).toBe(true);
+  expect(await sitemap.text()).toContain('https://spendist.app/en/blog');
+  expect(await robots.text()).toContain('Allow: /pl/blog');
+  expect(await englishFeed.text()).toContain('<language>en</language>');
+  expect(await polishFeed.text()).toContain('<language>pl</language>');
 });
 
 test('opens unauthenticated login and signup forms', async ({ page }) => {
@@ -86,10 +141,9 @@ test('shows reset-password expired link state without a recovery token', async (
   await expect(
     page.getByRole('heading', { name: 'Set a new password' })
   ).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Request a new reset link' })).toHaveAttribute(
-    'href',
-    '/forgot-password'
-  );
+  await expect(
+    page.getByRole('link', { name: 'Request a new reset link' })
+  ).toHaveAttribute('href', '/forgot-password');
 });
 
 test('shows password reset success message on login callback', async ({

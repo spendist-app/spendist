@@ -26,6 +26,9 @@ jobs:
 
       - run: npm ci
 
+      - name: Blog content and SEO artifacts
+        run: npm run blog:check
+
       - name: Lint
         run: npx nx lint web
 

@@ -1,0 +1,82 @@
+@if (article; as post) {
+<article class="article-shell">
+  <nav
+    class="breadcrumbs"
+    [attr.aria-label]="'blog.article.breadcrumbs' | transloco"
+  >
+    <a routerLink="/">Spendist</a><span aria-hidden="true">/</span>
+    <a [routerLink]="basePath">{{ 'blog.common.badge' | transloco }}</a>
+  </nav>
+  <header class="article-header">
+    @if (category) {
+    <a class="category" [routerLink]="basePath + '/category/' + category.slug"
+      >{{ category.name }}</a
+    >
+    }
+    <h1>{{ post.title }}</h1>
+    <p class="lead">{{ post.description }}</p>
+    <div class="article-meta">
+      <span>Spendist Team</span>
+      <time [attr.datetime]="post.publishedAt">{{ post.publishedAt }}</time>
+      @if (post.updatedAt) {
+      <span
+        >{{ 'blog.article.updated' | transloco }}
+        <time [attr.datetime]="post.updatedAt">{{ post.updatedAt }}</time></span
+      >
+      }
+      <span
+        >{{ 'blog.article.readingTime' | transloco: { minutes:
+        post.readingMinutes } }}</span
+      >
+    </div>
+  </header>
+  <app-responsive-image
+    class="cover"
+    [image]="post.coverImage"
+    [alt]="post.coverImageAlt"
+    sizes="(min-width: 1100px) 1100px, calc(100vw - 2rem)"
+    [priority]="true"
+  />
+  <div class="article-layout">
+    <div>
+      <div class="article-body" [innerHTML]="post.bodyHtml"></div>
+      @if (post.tags.length) {
+      <div class="tags" [attr.aria-label]="'blog.tags.label' | transloco">
+        @for (tag of post.tags; track tag) {
+        <a [routerLink]="basePath" [queryParams]="{ tag }">#{{ tag }}</a> }
+      </div>
+      }
+      <app-blog-share
+        [title]="post.title"
+        [url]="absoluteUrl"
+        [locale]="locale"
+      />
+    </div>
+    @if (post.headings.length) {
+    <aside class="toc">
+      <strong>{{ 'blog.article.contents' | transloco }}</strong>
+      <ol>
+        @for (heading of post.headings; track heading.id) {
+        <li [class.nested]="heading.depth === 3">
+          <a [href]="'#' + heading.id">{{ heading.text }}</a>
+        </li>
+        }
+      </ol>
+    </aside>
+    }
+  </div>
+  <footer class="article-footer">
+    <a class="btn btn-ghost" [routerLink]="basePath"
+      >← {{ 'blog.article.back' | transloco }}</a
+    >
+  </footer>
+</article>
+} @else {
+<section class="article-shell not-found">
+  <h1>{{ 'blog.notFound.title' | transloco }}</h1>
+  <p>{{ 'blog.notFound.description' | transloco }}</p>
+  <a class="btn btn-primary" [routerLink]="basePath"
+    >{{ 'blog.notFound.action' | transloco }}</a
+  >
+</section>
+}

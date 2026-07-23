@@ -83,9 +83,16 @@ const withSecurityHeaders = (
     headers.set(name, value);
   }
   if (request) {
-    const { pathname } = new URL(request.url);
+    const url = new URL(request.url);
+    const { pathname } = url;
     if (SERVICE_WORKER_ASSET_PATHS.has(pathname)) {
       headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
+    if (
+      /^\/(pl|en)\/blog(?:\/|$)/.test(pathname) &&
+      url.searchParams.has('tag')
+    ) {
+      headers.set('X-Robots-Tag', 'noindex, follow');
     }
   }
   return new Response(response.body, {
@@ -128,6 +135,24 @@ const fallbackToIndex = async (
   return env.ASSETS.fetch(fallbackRequest);
 };
 
+const blogNotFoundResponse = async (
+  request: Request,
+  env: Env
+): Promise<Response> => {
+  const { pathname } = new URL(request.url);
+  const locale = pathname.startsWith('/pl/blog') ? 'pl' : 'en';
+  const url = new URL(request.url);
+  url.pathname = `/${locale}/blog-not-found/index.html`;
+  const response = await env.ASSETS.fetch(
+    new Request(url.toString(), { headers: request.headers })
+  );
+  return new Response(response.body, {
+    status: 404,
+    statusText: 'Not Found',
+    headers: response.headers,
+  });
+};
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -138,6 +163,12 @@ export default {
 
     const assetResponse = await env.ASSETS.fetch(request);
     if (assetResponse.status === 404 && shouldServeHtmlFallback(request)) {
+      if (/^\/(pl|en)\/blog(?:\/|$)/.test(url.pathname)) {
+        return withSecurityHeaders(
+          await blogNotFoundResponse(request, env),
+          request
+        );
+      }
       const fallbackResponse = await fallbackToIndex(request, env);
       return withSecurityHeaders(fallbackResponse, request);
     }

@@ -1,0 +1,27 @@
+:host,
+picture,
+img {
+  display: block;
+  width: 100%;
+}
+
+:host {
+  overflow: hidden;
+}
+
+picture,
+img {
+  height: 100%;
+}
+
+img {
+  object-fit: var(--responsive-image-fit, contain);
+  transform: var(--responsive-image-transform, none);
+  transition: transform 0.25s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  img {
+    transition: none;
+  }
+}

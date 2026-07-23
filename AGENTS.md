@@ -1,100 +1,95 @@
-# Repository Guidelines
+# Spendist repository guide
 
-## Project Structure & Module Organization
+## Purpose and product boundaries
 
-Spendist is an Nx-managed Angular workspace. Application code lives under `apps/web`, with standalone components in `apps/web/src/app` and shared assets in `apps/web/public`. Server-side rendering entry points sit in `apps/web/src/main.server.ts` and `apps/web/src/server.ts`, while Tailwind and PostCSS configs reside alongside the app in `apps/web/tailwind.config.js` and `apps/web/postcss.config.cjs`. Global utility styles are layered in `apps/web/src/styles.css`, and build artifacts land in `dist/apps/web`.
+Spendist is a GPL-3.0, open-source personal-finance application. It helps an authenticated user record and understand income, expenses, wallets, categories, places, recurring payments, and currencies. It is not a bank, payment initiator, accounting office, tax adviser, or investment adviser.
 
-## Framework Version
+- Preserve data portability: users can import history and export Spendist data.
+- Do not introduce advertising, data selling, or a feature gate that blocks a user from their own financial data without explicit product approval.
+- Treat the production database and user financial data as sensitive. Never use production data for local testing.
 
-- Target the latest Angular release (currently v20) and prefer modern signal-based APIs, control flow, and routing patterns in new code.
+## Workspace map
 
-## Build, Test, and Development Commands
+- `apps/web/` — Angular application, Cloudflare Worker, and deployed public assets.
+- `apps/web/src/app/` — standalone pages, stores, core services, shared UI, and translations.
+- `apps/web-e2e/` — Playwright E2E tests with an isolated database.
+- `libs/data-access-*` — generated/shared data-access libraries.
+- `supabase/migrations/` and `supabase/functions/` — versioned backend changes.
+- `doc/` — English, LLM-oriented feature knowledge base; start at `doc/README.md`.
+- `llm.txt` — concise English project map for LLMs.
+- `llm-full.txt` — detailed English LLM reference and feature index.
+- `apps/web/content/blog/` — independent English and Polish Markdown blog collections and category catalogs.
+- `apps/web/image-sources/` — original static raster images grouped by article or public-page feature.
+- `apps/web/public/` — deployable assets, including generated responsive images, blog RSS feeds, `robots.txt`, and `sitemap.xml`.
 
-- `npm install`: restore dependencies before running Nx targets.
-- `npx nx serve web`: launch the dev server with hot reload; Tailwind + DaisyUI classes are rebuilt automatically.
-- `npx nx build web`: produce the SSR-ready bundle in `dist/apps/web` using the configured Tailwind pipeline.
-- `npx nx test web`: execute the Vitest-powered unit suite in zoneless mode.
-- `npx nx lint web`: run ESLint with Nx module-boundary checks.
+## Documentation, LLM knowledge, and public SEO
 
-## Styling Toolkit (Tailwind + DaisyUI)
+Documentation is part of a product change, not a later task.
 
-Utility-first styling is enabled through Tailwind 4 and DaisyUI 5. Extend the design system by editing `apps/web/tailwind.config.js` (e.g., `daisyui: { themes: ['emerald'] }`) and keep component-level styles minimal. Use shared utility classes in templates (`<button class="btn btn-primary">`) and add custom layers in `styles.css` if a pattern repeats across features.
+When adding, removing, or materially changing a user-visible feature:
 
-- Mobile-first layouts are the default UX rule—build for small screens first, then enhance for larger breakpoints.
-- Spendist palettes (keep these in sync with the Tailwind/DaisyUI theme tokens):
-  - Light — Background `#FFFDFB`, Surface `#FFFFFF`, Text `#111827`, Primary `#0EA5A5`, Secondary `#F59E0B`, Accent `#EA580C`, Success `#16A34A`, Warning `#D97706`, Danger `#DC2626`.
-  - Dark — Background `#111315`, Surface `#161A1D`, Text `#E5E7EB`, Primary `#2DD4BF`, Secondary `#FBBF24`, Accent `#FB923C`.
+1. Update or add its English page in `doc/features/`. Cover current behavior, user-visible rules, data it owns, and deliberate limits.
+2. Update both `llm.txt` and `llm-full.txt`. Keep `llm.txt` concise; retain detailed behavior, route ownership, and architecture pointers in `llm-full.txt`.
+3. If the change adds or changes a public, indexable route, update `apps/web/public/sitemap.xml` and `apps/web/public/robots.txt` in the same PR. For blog routes, run `npm run blog:generate`; do not hand-edit generated SEO or RSS files.
+4. Never add authenticated or utility-only routes (login, password recovery, dashboard, settings, transactions, or modules) to the sitemap. When a route changes visibility, review both SEO files and keep private/utility routes disallowed.
 
-## Change Detection & Zoneless Runtime
+All content in `doc/`, `llm.txt`, and `llm-full.txt` is English. Document current behavior only; label future work as **Planned**.
 
-The app boots with `provideZonelessChangeDetection()` (`apps/web/src/app/app.config.ts`), so avoid APIs that assume `NgZone` patches DOM events. Prefer `run()` and signal-based patterns over zone hooks, and wire third-party libraries through their native callbacks. Vitest mirrors this setup by registering a `ZonelessTestModule` inside `apps/web/src/test-setup.ts`.
+### Blog authoring contract
 
-## Testing Guidelines
+- Read `apps/web/content/blog/README.md` before adding an article.
+- Polish and English are separate collections. Never invent or require a translated counterpart, and never add article-level `hreflang` unless an explicit translation relationship is introduced later.
+- Use the repo-local `add-spendist-blog-post` skill when asked to add/import a blog entry from Markdown. It must create `apps/web/content/blog/{pl|en}/{slug}.md` and default to `draft: true`.
+- Add Markdown to `apps/web/content/blog/{pl|en}/{slug}.md` and categories to that locale's `categories.json`.
+- Put original article raster files in `apps/web/image-sources/blog/{locale}/{slug}/`; use `cover.{ext}` for the cover and one lowercase kebab-case filename per body asset. Run `npm run images:generate`; never hand-edit generated files under `apps/web/public/media/`.
+- Keep drafts as `draft: true`; only `draft: false` enters public output. Run `npm run blog:generate` after every content, category, public-blog-route, or generator change.
+- Commit the source content and all generated outputs together: `blog-content.generated.ts`, `sitemap.xml`, `robots.txt`, and both locale RSS feeds. The Nx build must keep `blog-content-check` enabled.
+- Keep tags as query-string filters with `noindex,follow`; only published articles, valid pagination, and non-empty category archives belong in the sitemap.
+- There is no blog CMS, comment system, or database dependency. Do not add one without explicit product approval.
 
-Unit specs live beside their sources with the `*.spec.ts` suffix. Use Angular TestBed helpers, keep DOM expectations explicit (see `app.spec.ts`), and prefer focused signal-based assertions. Run `npx nx test web --coverage` after logic changes; coverage data is written to `coverage/apps/web`. Seed shared mocks or snapshot serializers in `apps/web/src/test-setup.ts` instead of duplicating boilerplate.
+### Static image contract
 
-E2E tests live in `apps/web-e2e` and follow the Tickist-style guarded database reset flow. Use `.local_env.e2e` or `.env.e2e` with a dedicated `SUPABASE_E2E_DB_URL`; it must not point to `SUPABASE_DB_URL` or `SUPABASE_REMOTE_DB_URL`.
+- All new static raster images for public pages use the shared source pipeline. Blog sources belong to one article directory; other page sources belong in `apps/web/image-sources/site/{feature}/`.
+- Reference generated images through their logical manifest ID and the shared `ResponsiveImage` component. Provide a correct `sizes` value, meaningful alt text, and mark only likely LCP images as priority.
+- Run `npm run images:generate` after source changes. Commit source images, generated `apps/web/public/media/` output, `media-manifest.json`, and `image-manifest.generated.ts` together. The Nx build must keep `responsive-images-check` enabled.
+- Keep SVGs as SVG. Do not route user uploads, PWA icons, or generated social brand assets through the static responsive-image pipeline.
 
-## Commit & Pull Request Guidelines
+## Application architecture
 
-Adopt Conventional Commits to keep Nx inference effective (e.g., `feat(web): add spending dashboard`). Scope messages to the affected project, mention linked GitHub issues, and describe Tailwind or zoneless implications in the PR body. Ensure lint, test, and build targets pass locally (`npx nx affected --target=test,lint,build`) before requesting review, and include screenshots or terminal output when UI or CLI behavior changes.
+- Angular uses standalone components, signals, lazy routes, SSR/hydration, and zoneless change detection. Prefer signal-based state and native callbacks; do not rely on `NgZone`-patched behavior.
+- Routing lives in `apps/web/src/app/app.routes.ts`. Public content includes `/`, `/pl/blog`, `/en/blog`, and generated localized blog routes; auth pages are reachable but deliberately not indexable. Authenticated product routes use `requireAuthGuard`.
+- Page-local data orchestration belongs beside its page in a store. Cross-cutting services, guards, Supabase setup, notifications, language, and theme belong in `core/`.
+- The backend is Supabase Auth, Postgres, RLS, Storage, Realtime, Edge Functions, `pg_cron`, `pg_net`, and Vault. Scheduled jobs belong in this Supabase ecosystem unless the user explicitly chooses another runtime.
+- Production runs through `apps/web/worker.ts` and `wrangler.toml`, not necessarily `apps/web/src/server.ts`. Verify Worker behavior when changing headers, assets, routing, or runtime configuration.
 
-## ExecPlans
+## UI, i18n, and icons
 
-When writing complex features or significant refactors, use an ExecPlan (as described in .agent/PLANS.md) from design to implementation. Write new plans to the .agent dir. Place any temporary research, clones, etc., in a .gitignored subdirectory of .agent.
+- Use Tailwind 4 and DaisyUI 5. Build mobile-first and keep repeated patterns in shared components or `apps/web/src/styles.css`.
+- Keep the Spendist light/dark palette aligned with Tailwind/DaisyUI theme tokens.
+- English and Polish use Transloco. Add matching keys to both translation files; do not hard-code user-facing copy in a component.
+- `LanguageService` persists language and updates `document.lang`; `ThemeService` persists the light/dark choice.
+- Use `@ng-icons/core` and Heroicons. Persist canonical `hero...` names through `HeroIconPickerComponent` and normalize them with `canonicalHeroIconName` in `settings.store.ts`.
 
-## Ikony
+## Database and security rules
 
-- W projekcie używamy biblioteki `@ng-icons/core` oraz zestawów Heroicons (`outline`, `solid`, `mini`, `micro`).
-- Ikony są rejestrowane dynamicznie w komponentach dzięki `HeroIconPickerComponent`, który udostępnia wyszukiwalną listę ikon i zwraca kanoniczne nazwy (`hero...`).
-- Normalizacja nazw ikon po stronie store'u odbywa się w `apps/web/src/app/pages/settings/settings.store.ts` przez helper `canonicalHeroIconName`, co zapewnia spójne przechowywanie w Supabase.
+- The app is in production. Do not make breaking database changes, destructive migrations, column renames, type changes, or data deletion without an approved migration/backfill plan.
+- Prefer additive, backwards-compatible migrations. Synchronize migration history before a remote push.
+- Commit every new migration or Edge Function with the code that needs it.
+- Keep RLS ownership boundaries intact. Do not log secrets, access tokens, or financial payloads.
+- For CSP/security work, inspect generated output and the Cloudflare Worker runtime path. Local Supabase Realtime requires supported localhost WebSocket origins in `connect-src`.
 
-## Transloco (i18n)
+## Development and verification
 
-- Wielojęzyczność (EN/PL) jest dostarczana przez `@ngneat/transloco`; konfiguracja globalna w `app.config.ts` korzysta z `provideAppTransloco()`.
-- Loader tłumaczeń (`AppTranslocoLoader`) ładuje katalogi z `apps/web/src/app/i18n/translations/`.
-- Preferencja języka jest zapisywana w localStorage (`LanguageService`), domyślny język wybierany jest na podstawie poprzedniego zapisu lub języka przeglądarki.
-- Navbar udostępnia selektor języka, który przełącza translacje w locie i aktualizuje atrybut `lang` w dokumencie.
+- First verify the current date; do not infer it from memory.
+- Use the `nx-workspace` skill before exploring workspace configuration. Use `nx-generate` before scaffolding. Use `supabase` for every schema, migration, RLS, Edge Function, or local Supabase task.
+- Run tasks through Nx and npm: `npm exec -- nx run web:lint`, `npm exec -- nx run web:test`, `npm exec -- nx run web:build`, and `npm exec -- nx run web-e2e:e2e` as applicable. Check help or Nx documentation before unfamiliar flags.
+- Unit specs live next to source. E2E tests live in `apps/web-e2e` and must use `.local_env.e2e` or `.env.e2e` with `SUPABASE_E2E_DB_URL`, never a remote or production database.
+- Add focused regression coverage for user-visible behavior. Add/update E2E coverage when auth or guards change.
+- Before hand-off, run the smallest relevant Nx checks and `git diff --check`. State any check that could not run and why.
 
-## Progress
+## Delivery conventions
 
-Notuj progress w plikach .agent/\*
-
-## Supabase Migrations & Functions
-
-- Aplikacja jest w produkcji: nie wprowadzaj breaking changes w bazie danych bez wyraźnej zgody użytkownika. Preferuj migracje kompatybilne wstecz, zmiany addytywne albo luzujące ograniczenia; destrukcyjne zmiany, rename kolumn, zmiany typów i usuwanie danych wymagają planu migracji/backfillu oraz akceptacji.
-- Każda nowa migracja lub funkcja tworzona w Supabase musi równolegle trafić do katalogu `supabase/migrations` w repozytorium (commit razem z kodem, który jej potrzebuje).
-- Synchronizuj historię (`supabase migration list --local/--db-url`) przed push, żeby uniknąć rozjazdów między bazą a repo.
-
-## Inne
-
-Zawsze sprawdzaj jaka jest data. Nie wierz swojej intuicji. Np poprzez new Date().now()
-
-## Skills
-
-- Domyślnie stosuj zasady `caveman lite` w technicznych update'ach i odpowiedziach: bez filleru/hedgingu, ale z pełnymi zdaniami i całą treścią techniczną.
-- Pełny skill `caveman` ładuj tylko na wyraźną prośbę lub gdy przewidywany output przekracza około 2 tys. tokenów (instrukcja kosztuje ~949 tokenów inputu; zmierzona oszczędność outputu 35–50%). Jawnie aktywowany tryb trwa do wyłączenia; `full`/`ultra` tylko na prośbę. Kod, commity, PR-y, dokumentacja użytkowa, ostrzeżenia bezpieczeństwa i działania nieodwracalne pozostają w normalnym stylu.
-
-<!-- nx configuration start-->
-<!-- Leave the start & end comments to automatically receive updates. -->
-
-## General Guidelines for working with Nx
-
-- For navigating/exploring the workspace, invoke the `nx-workspace` skill first - it has patterns for querying projects, targets, and dependencies
-- When running tasks (for example build, lint, test, e2e, etc.), always prefer running the task through `nx` (i.e. `nx run`, `nx run-many`, `nx affected`) instead of using the underlying tooling directly
-- Prefix nx commands with the workspace's package manager (e.g., `pnpm nx build`, `npm exec nx test`) - avoids using globally installed CLI
-- You have access to the Nx MCP server and its tools, use them to help the user
-- For Nx plugin best practices, check `node_modules/@nx/<plugin>/PLUGIN.md`. Not all plugins have this file - proceed without it if unavailable.
-- NEVER guess CLI flags - always check nx_docs or `--help` first when unsure
-
-## Scaffolding & Generators
-
-- For scaffolding tasks (creating apps, libs, project structure, setup), ALWAYS invoke the `nx-generate` skill FIRST before exploring or calling MCP tools
-
-## When to use nx_docs
-
-- USE for: advanced config options, unfamiliar flags, migration guides, plugin configuration, edge cases
-- DON'T USE for: basic generator syntax (`nx g @nx/react:app`), standard commands, things you already know
-- The `nx-generate` skill handles generator discovery internally - don't call nx_docs just to look up generator syntax
-
-<!-- nx configuration end-->
+- Use Conventional Commits with the affected scope, for example `feat(web): add spending dashboard`.
+- Record meaningful progress in `.agent/`. For complex features or significant refactors, create an ExecPlan in `.agent/` following `.agent/PLANS.md`.
+- Preserve unrelated changes in a dirty tree; never reset, overwrite, or delete them.
+- Technical updates use caveman-lite: direct and complete, without filler. Use full caveman only on request or when output would otherwise exceed roughly 2,000 tokens. Keep code, commits, user-facing documentation, safety warnings, and irreversible-action notices in normal style.
