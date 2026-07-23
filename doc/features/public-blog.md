@@ -20,13 +20,14 @@ The landing page and signed-out navigation link to the blog edition matching the
 There is no CMS, administrator panel, comment system, or database table for the first version. Editors publish through the repository:
 
 1. Add or update a localized category in `apps/web/content/blog/{locale}/categories.json`.
-2. Store the cover image under `apps/web/public/blog/`.
-3. Add a Markdown file named `{slug}.md` to `apps/web/content/blog/pl/` or `apps/web/content/blog/en/` using the front matter documented in `apps/web/content/blog/README.md`.
-4. Set `draft: false` when the article is ready.
-5. Run `npm run blog:generate` and commit the Markdown, image, generated TypeScript, RSS feeds, sitemap, and robots file together.
-6. Run the Nx lint, test, and build targets before publishing.
+2. Add a Markdown file named `{slug}.md` to `apps/web/content/blog/pl/` or `apps/web/content/blog/en/` using the front matter documented in `apps/web/content/blog/README.md`. The repository-local `add-spendist-blog-post` skill can create this file from supplied Markdown and always starts it as a draft.
+3. Put original raster files in the article-owned `apps/web/image-sources/blog/{locale}/{slug}/` directory. `cover.{ext}` is the cover; other lowercase kebab-case filenames are body assets.
+4. Run `npm run images:generate`. This writes deployable responsive variants and manifests; source images never share a directory with generated assets.
+5. Set `draft: false` only when the article, metadata, and all referenced images are ready.
+6. Run `npm run blog:generate` and commit the Markdown, source images, generated responsive assets/manifests, generated TypeScript, RSS feeds, sitemap, and robots file together.
+7. Run the Nx lint, test, and build targets before publishing.
 
-The generator rejects malformed slugs, unknown categories, invalid dates, missing images, invalid dimensions, and descriptions outside 50-160 characters. The Nx production build runs `blog:check` and fails when generated files are stale.
+The generator rejects malformed slugs, unknown categories, invalid dates, missing logical images, non-pipeline Markdown images, and descriptions outside 50-160 characters. The Nx production build runs both `images:check` and `blog:check` and fails when generated files are stale.
 
 ## Rendering and SEO
 
@@ -37,7 +38,7 @@ Blog pages provide canonical URLs, robots directives, Open Graph, Twitter cards,
 ## User-visible behavior and limits
 
 - Layouts are mobile-first and responsive.
-- Article cards reserve image dimensions, and published article routes are prerendered.
+- Article cards and article bodies use generated AVIF/WebP `srcset` candidates, explicit `sizes`, intrinsic dimensions, and a JPEG/PNG fallback. Covers reserve the 1200:630 ratio, non-critical images are lazy-loaded, and the article cover receives high fetch priority.
 - Sharing uses the browser Web Share API when available, copy-to-clipboard, and plain outbound Facebook, LinkedIn, and X URLs. No social SDK or tracker is embedded.
 - Author attribution is `Spendist Team`.
 - Comments, author profiles, search, related posts, and an editorial UI are not included.

@@ -1,4 +1,4 @@
-import { access, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import matter from 'gray-matter';
@@ -12,6 +12,7 @@ const GENERATED_TS = path.join(
   ROOT,
   'apps/web/src/app/pages/blog/blog-content.generated.ts'
 );
+const IMAGE_MANIFEST = path.join(PUBLIC_ROOT, 'media-manifest.json');
 const LOCALES = ['pl', 'en'];
 const SITE_URL = 'https://spendist.app';
 const PAGE_SIZE = 12;
@@ -33,14 +34,6 @@ function requiredString(data, field, file) {
     throw new Error(`${file}: ${field} must be a non-empty string.`);
   }
   return value.trim();
-}
-
-function positiveInteger(data, field, file) {
-  const value = Number(data[field]);
-  if (!Number.isInteger(value) || value <= 0) {
-    throw new Error(`${file}: ${field} must be a positive integer.`);
-  }
-  return value;
 }
 
 function isoDate(data, field, file, optional = false) {
@@ -76,7 +69,33 @@ export function extractHeadings(markdown) {
     });
 }
 
-export function renderMarkdown(markdown, headings) {
+function attribute(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('"', '&quot;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
+}
+
+function responsiveImageHtml(image, alt, sizes, priority = false, title = '') {
+  return `<picture>
+  <source type="image/avif" srcset="${attribute(
+    image.avifSrcset
+  )}" sizes="${attribute(sizes)}">
+  <source type="image/webp" srcset="${attribute(
+    image.webpSrcset
+  )}" sizes="${attribute(sizes)}">
+  <img src="${attribute(image.fallback.src)}" alt="${attribute(alt)}" width="${
+    image.width
+  }" height="${image.height}" loading="${
+    priority ? 'eager' : 'lazy'
+  }" fetchpriority="${priority ? 'high' : 'auto'}" decoding="${
+    priority ? 'sync' : 'async'
+  }"${title ? ` title="${attribute(title)}"` : ''}>
+</picture>`;
+}
+
+export function renderMarkdown(markdown, headings, resolveImage) {
   let headingIndex = 0;
   const renderer = new marked.Renderer();
   renderer.heading = ({ tokens, depth }) => {
@@ -86,23 +105,88 @@ export function renderMarkdown(markdown, headings) {
     const id = heading ? ` id="${heading.id}"` : '';
     return `<h${depth}${id}>${text}</h${depth}>\n`;
   };
+  const renderImage = ({ href, title, text }) => {
+    if (!href.startsWith('image:')) {
+      throw new Error(
+        `Blog Markdown images must use image:asset-name, received ${href}.`
+      );
+    }
+    if (!resolveImage) {
+      throw new Error(`No image resolver is available for ${href}.`);
+    }
+    if (!text.trim()) {
+      throw new Error(`${href}: blog images require descriptive alt text.`);
+    }
+    const image = resolveImage(href.slice('image:'.length));
+    return `<figure class="article-image">${responsiveImageHtml(
+      image,
+      text,
+      '(min-width: 1100px) 720px, calc(100vw - 2rem)',
+      false
+    )}${title ? `<figcaption>${attribute(title)}</figcaption>` : ''}</figure>`;
+  };
+  renderer.image = renderImage;
+  renderer.paragraph = ({ tokens }) => {
+    const images = tokens.filter((token) => token.type === 'image');
+    if (images.length) {
+      if (tokens.length !== 1 || images.length !== 1) {
+        throw new Error(
+          'Blog Markdown images must be placed in their own paragraph.'
+        );
+      }
+      return `${renderImage(images[0])}\n`;
+    }
+    return `<p>${renderer.parser.parseInline(tokens)}</p>\n`;
+  };
   const rendered = marked.parse(markdown, { gfm: true, renderer });
   return sanitizeHtml(String(rendered), {
     allowedTags: sanitizeHtml.defaults.allowedTags.concat([
       'img',
+      'picture',
+      'source',
       'figure',
       'figcaption',
     ]),
     allowedAttributes: {
       ...sanitizeHtml.defaults.allowedAttributes,
       a: ['href', 'title', 'rel'],
-      img: ['src', 'alt', 'title', 'width', 'height', 'loading'],
+      img: [
+        'src',
+        'alt',
+        'title',
+        'width',
+        'height',
+        'loading',
+        'fetchpriority',
+        'decoding',
+      ],
+      source: ['type', 'srcset', 'sizes'],
+      figure: ['class'],
       h2: ['id'],
       h3: ['id'],
       code: ['class'],
     },
     allowedSchemes: ['http', 'https', 'mailto'],
   });
+}
+
+function publicWebImage(manifest, id, file) {
+  const image = manifest.images?.[id];
+  if (!image) {
+    throw new Error(
+      `${file}: missing generated image "${id}". Add its source under ` +
+        'apps/web/image-sources/ and run npm run images:generate.'
+    );
+  }
+  return {
+    id: image.id,
+    source: image.source,
+    width: image.width,
+    height: image.height,
+    fallback: image.fallback,
+    avifSrcset: image.avifSrcset,
+    webpSrcset: image.webpSrcset,
+  };
 }
 
 async function loadCategories(locale) {
@@ -123,7 +207,7 @@ async function loadCategories(locale) {
   });
 }
 
-async function loadArticles(locale, categories) {
+async function loadArticles(locale, categories, imageManifest) {
   const directory = path.join(CONTENT_ROOT, locale);
   const entries = (await readdir(directory))
     .filter((name) => name.endsWith('.md'))
@@ -141,18 +225,8 @@ async function loadArticles(locale, categories) {
     const publishedAt = isoDate(parsed.data, 'publishedAt', file);
     const updatedAt = isoDate(parsed.data, 'updatedAt', file, true);
     const category = requiredString(parsed.data, 'category', file);
-    const coverImage = requiredString(parsed.data, 'coverImage', file);
+    const coverImageId = requiredString(parsed.data, 'coverImageId', file);
     const coverImageAlt = requiredString(parsed.data, 'coverImageAlt', file);
-    const coverImageWidth = positiveInteger(
-      parsed.data,
-      'coverImageWidth',
-      file
-    );
-    const coverImageHeight = positiveInteger(
-      parsed.data,
-      'coverImageHeight',
-      file
-    );
     const tags = Array.isArray(parsed.data.tags)
       ? [
           ...new Set(
@@ -175,15 +249,35 @@ async function loadArticles(locale, categories) {
     if (updatedAt && updatedAt < publishedAt) {
       throw new Error(`${file}: updatedAt cannot precede publishedAt.`);
     }
-    if (!coverImage.startsWith('/blog/')) {
+    if (coverImageId !== `blog/${locale}/${slug}/cover`) {
       throw new Error(
-        `${file}: coverImage must be an absolute /blog/ asset path.`
+        `${file}: coverImageId must be blog/${locale}/${slug}/cover.`
       );
     }
-    await access(path.join(PUBLIC_ROOT, coverImage.slice(1)));
+    const coverImage = publicWebImage(imageManifest, coverImageId, file);
+    if (
+      coverImage.width < 1200 ||
+      Math.abs(coverImage.width / coverImage.height - 1200 / 630) > 0.02
+    ) {
+      throw new Error(
+        `${file}: cover source must be at least 1200px wide with a 1200:630 aspect ratio.`
+      );
+    }
     slugs.add(slug);
     const headings = extractHeadings(parsed.content);
     const words = parsed.content.trim().split(/\s+/).filter(Boolean).length;
+    const resolveBodyImage = (assetName) => {
+      if (!SLUG_PATTERN.test(assetName) || assetName === 'cover') {
+        throw new Error(
+          `${file}: body image names must be lowercase kebab-case and cannot be cover.`
+        );
+      }
+      return publicWebImage(
+        imageManifest,
+        `blog/${locale}/${slug}/${assetName}`,
+        file
+      );
+    };
     articles.push({
       locale,
       title,
@@ -195,9 +289,7 @@ async function loadArticles(locale, categories) {
       tags,
       coverImage,
       coverImageAlt,
-      coverImageWidth,
-      coverImageHeight,
-      bodyHtml: renderMarkdown(parsed.content, headings),
+      bodyHtml: renderMarkdown(parsed.content, headings, resolveBodyImage),
       headings,
       readingMinutes: Math.max(1, Math.ceil(words / 220)),
       url: `/${locale}/blog/${slug}`,
@@ -313,13 +405,21 @@ function rss(locale, articles) {
 }
 
 async function buildOutputs() {
+  const imageManifest = JSON.parse(
+    await readFile(IMAGE_MANIFEST, 'utf8').catch(() => {
+      throw new Error(
+        'Missing responsive image manifest. Run npm run images:generate.'
+      );
+    })
+  );
   const categories = (await Promise.all(LOCALES.map(loadCategories))).flat();
   const articles = (
     await Promise.all(
       LOCALES.map((locale) =>
         loadArticles(
           locale,
-          categories.filter((category) => category.locale === locale)
+          categories.filter((category) => category.locale === locale),
+          imageManifest
         )
       )
     )

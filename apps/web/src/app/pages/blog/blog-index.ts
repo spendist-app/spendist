@@ -5,7 +5,6 @@ import {
   effect,
   inject,
 } from '@angular/core';
-import { NgOptimizedImage } from '@angular/common';
 import { ActivatedRoute, RouterLink, RouterLinkActive } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { TranslocoPipe, TranslocoService } from '@ngneat/transloco';
@@ -19,10 +18,11 @@ import {
 } from './blog-content';
 import { BlogSeoService } from './blog-seo.service';
 import type { BlogLocale } from './blog.types';
+import { ResponsiveImage } from '../../shared/responsive-image/responsive-image';
 
 @Component({
   selector: 'app-blog-index',
-  imports: [RouterLink, RouterLinkActive, TranslocoPipe, NgOptimizedImage],
+  imports: [RouterLink, RouterLinkActive, TranslocoPipe, ResponsiveImage],
   templateUrl: './blog-index.html',
   styleUrl: './blog-index.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

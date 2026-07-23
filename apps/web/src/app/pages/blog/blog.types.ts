@@ -1,3 +1,5 @@
+import type { WebImage } from '../../shared/responsive-image/responsive-image.types';
+
 export type BlogLocale = 'pl' | 'en';
 
 export interface BlogHeading {
@@ -15,10 +17,8 @@ export interface BlogArticleModel {
   readonly updatedAt: string | null;
   readonly category: string;
   readonly tags: readonly string[];
-  readonly coverImage: string;
+  readonly coverImage: WebImage;
   readonly coverImageAlt: string;
-  readonly coverImageWidth: number;
-  readonly coverImageHeight: number;
   readonly bodyHtml: string;
   readonly headings: readonly BlogHeading[];
   readonly readingMinutes: number;

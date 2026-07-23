@@ -57,9 +57,10 @@
 }
 .cover {
   width: 100%;
-  height: auto;
+  aspect-ratio: 1200 / 630;
   border-radius: 1.5rem;
   background: var(--color-base-200);
+  --responsive-image-fit: cover;
 }
 .article-layout {
   display: grid;
@@ -87,6 +88,24 @@
 }
 .article-body :is(p, ul, ol, blockquote, pre) {
   margin-top: 1.25rem;
+}
+.article-image {
+  margin-top: 1.75rem;
+}
+.article-image picture,
+.article-image img {
+  display: block;
+  width: 100%;
+}
+.article-image img {
+  height: auto;
+  border-radius: 1rem;
+}
+.article-image figcaption {
+  margin-top: 0.6rem;
+  color: color-mix(in srgb, var(--color-base-content) 60%, transparent);
+  font-size: 0.85rem;
+  text-align: center;
 }
 .article-body :is(ul, ol) {
   padding-inline-start: 1.5rem;

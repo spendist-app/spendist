@@ -54,11 +54,10 @@
         tabindex="-1"
         aria-hidden="true"
       >
-        <img
-          [ngSrc]="article.coverImage"
+        <app-responsive-image
+          [image]="article.coverImage"
           [alt]="article.coverImageAlt"
-          [width]="article.coverImageWidth"
-          [height]="article.coverImageHeight"
+          sizes="(min-width: 1100px) 520px, (min-width: 720px) 50vw, calc(100vw - 2rem)"
         />
       </a>
       <div class="article-card-body">

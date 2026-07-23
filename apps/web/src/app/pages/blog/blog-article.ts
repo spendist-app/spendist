@@ -1,4 +1,3 @@
-import { NgOptimizedImage } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -12,10 +11,11 @@ import { blogPath, findBlogArticle, findBlogCategory } from './blog-content';
 import { BlogSeoService } from './blog-seo.service';
 import { BlogShare } from './blog-share';
 import type { BlogLocale } from './blog.types';
+import { ResponsiveImage } from '../../shared/responsive-image/responsive-image';
 
 @Component({
   selector: 'app-blog-article',
-  imports: [RouterLink, TranslocoPipe, NgOptimizedImage, BlogShare],
+  imports: [RouterLink, TranslocoPipe, ResponsiveImage, BlogShare],
   templateUrl: './blog-article.html',
   styleUrl: './blog-article.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -69,7 +69,7 @@ export class BlogArticle {
       path: article.url,
       locale: article.locale,
       type: 'article',
-      image: article.coverImage,
+      image: article.coverImage.fallback.src,
       imageAlt: article.coverImageAlt,
       publishedAt: published,
       updatedAt: modified,
@@ -81,7 +81,7 @@ export class BlogArticle {
           '@type': 'BlogPosting',
           headline: article.title,
           description: article.description,
-          image: `https://spendist.app${article.coverImage}`,
+          image: `https://spendist.app${article.coverImage.fallback.src}`,
           datePublished: published,
           dateModified: modified ?? published,
           inLanguage: article.locale,

@@ -11,6 +11,7 @@ This directory is the English, LLM-oriented source of truth for current user-vis
 - [Places and dashboard insights](features/places-and-dashboard-insights.md)
 - [Preferences, notifications, and platform behavior](features/preferences-notifications-and-platform.md)
 - [Public multilingual blog](features/public-blog.md)
+- [Responsive web images](features/responsive-web-images.md)
 
 ## Maintenance
 

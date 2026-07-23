@@ -14,21 +14,58 @@ category: personal-finance
 tags:
   - budgeting
   - privacy
-coverImage: /blog/en/clear-article-slug/cover.webp
+coverImageId: blog/en/clear-article-slug/cover
 coverImageAlt: Descriptive alternative text
-coverImageWidth: 1200
-coverImageHeight: 630
 draft: true
 ---
 
 # A clear article title
 
 Article body in Markdown.
+
+![A descriptive alternative](image:monthly-chart 'Optional caption')
 ```
 
 `draft` must be explicitly set to `false` to publish. Published articles require
-all fields except `updatedAt`. Store images under `apps/web/public/blog/`.
+all fields except `updatedAt`.
 
-Run `npm run blog:generate`, review the generated registry, sitemap, robots and
-feeds, then commit source and generated files together. CI runs
-`npm run blog:check` and fails when generated files are stale.
+## Adding an article from Markdown
+
+The repository-local `add-spendist-blog-post` skill accepts supplied Markdown
+or article text and creates the actual
+`apps/web/content/blog/{pl|en}/{slug}.md` file. It always creates a draft. The
+Markdown file is therefore safely stored in the repository before images are
+available.
+
+## Image ownership and conversion
+
+Do not put original raster images directly in `public/`. Keep every post's
+source files together:
+
+```text
+apps/web/image-sources/blog/en/clear-article-slug/
+├── cover.jpg
+└── monthly-chart.png
+```
+
+The logical IDs are `blog/en/clear-article-slug/cover` and
+`blog/en/clear-article-slug/monthly-chart`. The cover ID belongs in front
+matter. Body images use `image:monthly-chart` without a filename extension.
+
+Use a cover source at least 1200 pixels wide in the 1200:630 social sharing
+ratio; published entries that do not meet this contract are rejected. Use the
+largest clean original available for body images, but do not upscale a small
+source.
+
+Run `npm run images:generate` after adding or changing sources. It creates
+multiple widths up to 1600 pixels, AVIF and WebP candidates, a JPEG or PNG
+fallback, and the generated manifest under `apps/web/public/`. The browser then
+selects an appropriate file through `srcset` and `sizes`. Do not edit or mix
+generated files with source files. `npm run images:check` detects stale or
+missing output.
+
+For a draft, run `npm run blog:generate` and keep `draft: true`. To publish,
+first add and convert all referenced images, set `draft: false`, then run
+`npm run blog:generate`. Review the generated registry, sitemap, robots, and
+feeds. Commit the Markdown, source images, generated image assets/manifests,
+and generated blog outputs together. CI runs `images:check` and `blog:check`.

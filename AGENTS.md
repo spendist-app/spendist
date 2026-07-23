@@ -19,7 +19,8 @@ Spendist is a GPL-3.0, open-source personal-finance application. It helps an aut
 - `llm.txt` — concise English project map for LLMs.
 - `llm-full.txt` — detailed English LLM reference and feature index.
 - `apps/web/content/blog/` — independent English and Polish Markdown blog collections and category catalogs.
-- `apps/web/public/` — origin assets, including generated blog RSS feeds, `robots.txt`, and `sitemap.xml`.
+- `apps/web/image-sources/` — original static raster images grouped by article or public-page feature.
+- `apps/web/public/` — deployable assets, including generated responsive images, blog RSS feeds, `robots.txt`, and `sitemap.xml`.
 
 ## Documentation, LLM knowledge, and public SEO
 
@@ -38,11 +39,20 @@ All content in `doc/`, `llm.txt`, and `llm-full.txt` is English. Document curren
 
 - Read `apps/web/content/blog/README.md` before adding an article.
 - Polish and English are separate collections. Never invent or require a translated counterpart, and never add article-level `hreflang` unless an explicit translation relationship is introduced later.
-- Add Markdown to `apps/web/content/blog/{pl|en}/{slug}.md`, categories to that locale's `categories.json`, and cover images to `apps/web/public/blog/`.
+- Use the repo-local `add-spendist-blog-post` skill when asked to add/import a blog entry from Markdown. It must create `apps/web/content/blog/{pl|en}/{slug}.md` and default to `draft: true`.
+- Add Markdown to `apps/web/content/blog/{pl|en}/{slug}.md` and categories to that locale's `categories.json`.
+- Put original article raster files in `apps/web/image-sources/blog/{locale}/{slug}/`; use `cover.{ext}` for the cover and one lowercase kebab-case filename per body asset. Run `npm run images:generate`; never hand-edit generated files under `apps/web/public/media/`.
 - Keep drafts as `draft: true`; only `draft: false` enters public output. Run `npm run blog:generate` after every content, category, public-blog-route, or generator change.
 - Commit the source content and all generated outputs together: `blog-content.generated.ts`, `sitemap.xml`, `robots.txt`, and both locale RSS feeds. The Nx build must keep `blog-content-check` enabled.
 - Keep tags as query-string filters with `noindex,follow`; only published articles, valid pagination, and non-empty category archives belong in the sitemap.
 - There is no blog CMS, comment system, or database dependency. Do not add one without explicit product approval.
+
+### Static image contract
+
+- All new static raster images for public pages use the shared source pipeline. Blog sources belong to one article directory; other page sources belong in `apps/web/image-sources/site/{feature}/`.
+- Reference generated images through their logical manifest ID and the shared `ResponsiveImage` component. Provide a correct `sizes` value, meaningful alt text, and mark only likely LCP images as priority.
+- Run `npm run images:generate` after source changes. Commit source images, generated `apps/web/public/media/` output, `media-manifest.json`, and `image-manifest.generated.ts` together. The Nx build must keep `responsive-images-check` enabled.
+- Keep SVGs as SVG. Do not route user uploads, PWA icons, or generated social brand assets through the static responsive-image pipeline.
 
 ## Application architecture
 

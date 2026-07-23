@@ -42,9 +42,11 @@ Routes live in `apps/web/src/app/app.routes.ts`. Public SEO files live in `apps/
 ## Blog publishing and SEO pipeline
 
 - Source content is in `apps/web/content/blog/pl/` and `apps/web/content/blog/en/`; the collections and category catalogs are independent and individual articles have no `hreflang` pairing.
-- Article front matter, image requirements, and the publishing checklist are documented in `apps/web/content/blog/README.md` and `doc/features/public-blog.md`.
-- `npm run blog:generate` validates front matter and local cover images, renders sanitized Markdown, calculates headings/reading time, and writes `blog-content.generated.ts`, both RSS feeds, `sitemap.xml`, and `robots.txt`.
-- The Nx build depends on `blog-content-check`, so stale generated artifacts fail the build. Commit source and generated files together.
+- Article front matter, image requirements, and the publishing checklist are documented in `apps/web/content/blog/README.md` and `doc/features/public-blog.md`. The repo-local `add-spendist-blog-post` skill turns supplied Markdown into the real localized `{slug}.md` file and always leaves it as a draft.
+- Original article raster files are isolated in `apps/web/image-sources/blog/{locale}/{slug}/`. Body Markdown references logical `image:asset-name` IDs; it never links directly to generated filenames.
+- `npm run images:generate` creates width-based AVIF/WebP candidates up to 1600 pixels, an opaque JPEG or transparent PNG fallback, `media-manifest.json`, and an Angular manifest. Other public pages use the same pipeline under `apps/web/image-sources/site/{feature}/` and render through `ResponsiveImage`.
+- `npm run blog:generate` validates front matter and logical cover/body images, renders sanitized responsive Markdown, calculates headings/reading time, and writes `blog-content.generated.ts`, both RSS feeds, `sitemap.xml`, and `robots.txt`.
+- The Nx build depends on `responsive-images-check` and `blog-content-check`, so stale generated artifacts fail the build. Commit source and generated files together.
 - Blog pages set canonical, robots, Open Graph, Twitter card, RSS discovery, and JSON-LD metadata. Blog homes use reciprocal PL/EN alternates; articles do not because they are editorially independent.
 - Public blog routes are statically prerendered. The Cloudflare Worker returns the localized branded blog fallback with HTTP 404 for unknown blog URLs.
 

@@ -30,13 +30,12 @@
       >
     </div>
   </header>
-  <img
+  <app-responsive-image
     class="cover"
-    [ngSrc]="post.coverImage"
+    [image]="post.coverImage"
     [alt]="post.coverImageAlt"
-    [width]="post.coverImageWidth"
-    [height]="post.coverImageHeight"
-    priority
+    sizes="(min-width: 1100px) 1100px, calc(100vw - 2rem)"
+    [priority]="true"
   />
   <div class="article-layout">
     <div>
