@@ -150,7 +150,9 @@
   </div>
   }
 
-  <div class="ms-auto flex items-center gap-3">
+  <div
+    class="ms-auto flex max-w-full flex-wrap items-center justify-end gap-2 sm:gap-3"
+  >
     @if (!auth.loading() && !auth.isAuthenticated()) {
     <a class="btn btn-ghost btn-sm" [routerLink]="blogLink()">{{
       'blog.common.badge' | transloco

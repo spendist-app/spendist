@@ -940,7 +940,11 @@ test('backfills transactions for a recurring payment started in the past', async
 
   await openTransactions(page);
   await filterTransactionsByRange(page, startDate, today);
-  await expect(page.locator('li').filter({ hasText: name })).toHaveCount(2);
+  await expect(
+    page
+      .locator('#transactions-results > ul > li')
+      .filter({ hasText: name })
+  ).toHaveCount(2);
 });
 
 test('creates wallet and keeps it after reload', async ({ page }, testInfo) => {
