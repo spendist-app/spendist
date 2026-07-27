@@ -269,6 +269,129 @@
               </button>
             </div>
           </form>
+
+          <div class="divider my-8"></div>
+
+          <section
+            class="space-y-4 rounded-2xl border border-error/30 bg-error/5 p-5"
+            aria-labelledby="settings-account-deletion-heading"
+          >
+            <header class="space-y-1">
+              <h3
+                id="settings-account-deletion-heading"
+                class="text-xl font-semibold text-error"
+              >
+                {{ 'settings.panels.profile.accountDeletion.title' | transloco }}
+              </h3>
+              <p class="text-sm text-base-content/70">
+                {{ 'settings.panels.profile.accountDeletion.description' | transloco }}
+              </p>
+            </header>
+
+            @if (!accountDeletionOpen()) {
+            <button
+              type="button"
+              class="btn btn-outline btn-error"
+              (click)="openAccountDeletion()"
+            >
+              {{ 'settings.panels.profile.accountDeletion.open' | transloco }}
+            </button>
+            } @else {
+            <form
+              class="space-y-4"
+              [formGroup]="accountDeletionForm"
+              (ngSubmit)="submitAccountDeletion()"
+            >
+              @if (accountDeletionError(); as deletionError) {
+              <p class="alert alert-error text-sm" role="alert" aria-live="assertive">
+                {{ deletionError | transloco }}
+              </p>
+              }
+
+              <p class="text-sm font-semibold text-error">
+                {{ 'settings.panels.profile.accountDeletion.warning' | transloco }}
+              </p>
+
+              <div class="grid gap-4 md:grid-cols-2">
+                <label class="form-control">
+                  <span class="label-text text-sm font-semibold">
+                    {{ 'settings.panels.profile.accountDeletion.passwordLabel' | transloco }}
+                  </span>
+                  <input
+                    id="delete-account-password"
+                    type="password"
+                    class="input input-bordered"
+                    formControlName="password"
+                    autocomplete="current-password"
+                  />
+                  @if (accountDeletionFormControls.password.touched && accountDeletionFormControls.password.invalid) {
+                  <span class="mt-1 text-xs text-error">
+                    {{ 'settings.panels.profile.accountDeletion.errors.passwordRequired' | transloco }}
+                  </span>
+                  }
+                </label>
+
+                <label class="form-control">
+                  <span class="label-text text-sm font-semibold">
+                    {{ 'settings.panels.profile.accountDeletion.confirmationLabel' | transloco }}
+                  </span>
+                  <input
+                    id="delete-account-confirmation"
+                    type="text"
+                    class="input input-bordered"
+                    formControlName="confirmation"
+                    autocomplete="off"
+                    spellcheck="false"
+                  />
+                  @if (accountDeletionFormControls.confirmation.touched && accountDeletionFormControls.confirmation.invalid) {
+                  <span class="mt-1 text-xs text-error">
+                    {{ 'settings.panels.profile.accountDeletion.errors.confirmation' | transloco }}
+                  </span>
+                  }
+                </label>
+              </div>
+
+              <label class="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  class="checkbox checkbox-error mt-0.5"
+                  formControlName="acknowledged"
+                />
+                <span class="text-sm">
+                  {{ 'settings.panels.profile.accountDeletion.acknowledgement' | transloco }}
+                </span>
+              </label>
+              @if (accountDeletionFormControls.acknowledged.touched && accountDeletionFormControls.acknowledged.invalid) {
+              <p class="text-xs text-error">
+                {{ 'settings.panels.profile.accountDeletion.errors.acknowledgement' | transloco }}
+              </p>
+              }
+
+              <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  class="btn btn-ghost"
+                  (click)="closeAccountDeletion()"
+                  [disabled]="accountDeletionPending()"
+                >
+                  {{ 'common.actions.cancel' | transloco }}
+                </button>
+                <button
+                  type="submit"
+                  class="btn btn-error"
+                  [disabled]="accountDeletionPending()"
+                >
+                  @if (accountDeletionPending()) {
+                  <span class="loading loading-spinner loading-sm"></span>
+                  {{ 'settings.panels.profile.accountDeletion.submitBusy' | transloco }}
+                  } @else {
+                  {{ 'settings.panels.profile.accountDeletion.submitIdle' | transloco }}
+                  }
+                </button>
+              </div>
+            </form>
+            }
+          </section>
         </section>
         }
       </section>

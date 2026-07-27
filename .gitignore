@@ -15,6 +15,7 @@
 # Environment files
 /.env
 /.local_env.e2e
+/.env.demo.local
 
 # Angular CLI and build artefacts
 /.angular-cli.json

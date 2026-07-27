@@ -41,6 +41,7 @@ export default defineConfig({
     command: `npx dotenv -e ${e2eEnvFile} -- npx nx serve web`,
     url: 'http://localhost:4200',
     reuseExistingServer: true,
+    timeout: 180_000,
     cwd: workspaceRoot,
   },
   projects: [

@@ -15,6 +15,7 @@ import {
 import { TranslocoPipe, TranslocoService } from '@ngneat/transloco';
 import { NgIcon } from '@ng-icons/core';
 import { heroPencilSquare, heroTrash } from '@ng-icons/heroicons/outline';
+import { Router } from '@angular/router';
 import {
   SettingsStore,
   CategoryEntity,
@@ -102,6 +103,7 @@ export class SettingsPageComponent {
   protected readonly spendistCsv = inject(SpendistCsvTransferStore);
   private readonly transloco = inject(TranslocoService);
   private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
 
   protected readonly heroIconSvg = heroIconSvgFn;
   protected readonly formatHeroIconLabel = formatHeroIconLabelFn;
@@ -156,6 +158,9 @@ export class SettingsPageComponent {
   protected readonly passwordChangeError = signal<string | null>(null);
   protected readonly passwordChangeSuccess = signal(false);
   protected readonly passwordMismatchSubmitted = signal(false);
+  protected readonly accountDeletionOpen = signal(false);
+  protected readonly accountDeletionPending = signal(false);
+  protected readonly accountDeletionError = signal<string | null>(null);
 
   protected readonly hasGroups = computed(() => this.store.groups().length > 0);
 
@@ -330,6 +335,19 @@ export class SettingsPageComponent {
       (this.passwordFormControls.confirmPassword.dirty ||
         this.passwordFormControls.confirmPassword.touched))
   );
+  protected readonly accountDeletionForm = this.fb.group({
+    password: this.fb.control('', {
+      validators: [Validators.required],
+    }),
+    confirmation: this.fb.control('', {
+      validators: [Validators.required, Validators.pattern(/^DELETE$/)],
+    }),
+    acknowledged: this.fb.control(false, {
+      validators: [Validators.requiredTrue],
+    }),
+  });
+  protected readonly accountDeletionFormControls =
+    this.accountDeletionForm.controls;
 
   constructor() {
     effect(() => {
@@ -945,6 +963,7 @@ export class SettingsPageComponent {
     this.passwordChangeError.set(null);
     this.passwordChangeSuccess.set(false);
     this.passwordMismatchSubmitted.set(false);
+    this.closeAccountDeletion();
   }
 
   protected async submitPasswordChange(): Promise<void> {
@@ -1001,6 +1020,57 @@ export class SettingsPageComponent {
       this.passwordForm.markAsUntouched();
     } finally {
       this.passwordChangePending.set(false);
+    }
+  }
+
+  protected openAccountDeletion(): void {
+    this.accountDeletionOpen.set(true);
+    this.accountDeletionError.set(null);
+  }
+
+  protected closeAccountDeletion(): void {
+    if (this.accountDeletionPending()) {
+      return;
+    }
+
+    this.accountDeletionOpen.set(false);
+    this.accountDeletionError.set(null);
+    this.accountDeletionForm.reset(
+      {
+        password: '',
+        confirmation: '',
+        acknowledged: false,
+      },
+      { emitEvent: false }
+    );
+    this.accountDeletionForm.markAsPristine();
+    this.accountDeletionForm.markAsUntouched();
+  }
+
+  protected async submitAccountDeletion(): Promise<void> {
+    if (this.accountDeletionPending()) {
+      return;
+    }
+
+    if (this.accountDeletionForm.invalid) {
+      this.accountDeletionForm.markAllAsTouched();
+      return;
+    }
+
+    this.accountDeletionPending.set(true);
+    this.accountDeletionError.set(null);
+
+    try {
+      const { password } = this.accountDeletionForm.getRawValue();
+      const result = await this.auth.deleteAccount(password);
+      if (result.error) {
+        this.accountDeletionError.set(result.error);
+        return;
+      }
+
+      await this.router.navigateByUrl('/');
+    } finally {
+      this.accountDeletionPending.set(false);
     }
   }
 

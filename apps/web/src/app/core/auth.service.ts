@@ -37,6 +37,10 @@ export interface PasswordRecoveryResult {
   error?: string;
 }
 
+export interface AccountDeletionResult {
+  error?: string;
+}
+
 /**
  * Keeps Supabase authentication state in sync with Angular signals so UI and routing
  * can react without relying on zones.
@@ -201,6 +205,32 @@ export class AuthService implements OnDestroy {
     return this.updatePassword(newPassword);
   }
 
+  async deleteAccount(password: string): Promise<AccountDeletionResult> {
+    try {
+      const { error } = await this.supabase.functions.invoke(
+        'delete-account',
+        {
+          body: { password },
+        }
+      );
+
+      if (error) {
+        return { error: await this.accountDeletionError(error) };
+      }
+
+      await this.supabase.auth.signOut({ scope: 'local' });
+      this.runInContext(() => {
+        this.state.set({
+          session: null,
+          loading: false,
+        });
+      });
+      return {};
+    } catch (error) {
+      return { error: await this.accountDeletionError(error) };
+    }
+  }
+
   async signUp(payload: SignUpPayload): Promise<AuthResult> {
     try {
       const { data, error } = await this.supabase.auth.signUp({
@@ -319,6 +349,33 @@ export class AuthService implements OnDestroy {
     }
 
     return 'Something went wrong. Please try again.';
+  }
+
+  private async accountDeletionError(error: unknown): Promise<string> {
+    const genericKey =
+      'settings.panels.profile.accountDeletion.errors.generic';
+    if (!error || typeof error !== 'object' || !('context' in error)) {
+      return genericKey;
+    }
+
+    const context = error.context;
+    if (!(context instanceof Response)) {
+      return genericKey;
+    }
+
+    try {
+      const payload = (await context.clone().json()) as { code?: unknown };
+      if (payload.code === 'invalid_password') {
+        return 'settings.panels.profile.accountDeletion.errors.invalidPassword';
+      }
+      if (payload.code === 'unauthorized') {
+        return 'settings.panels.profile.accountDeletion.errors.unauthorized';
+      }
+    } catch {
+      // Return a stable localized error when the function response is not JSON.
+    }
+
+    return genericKey;
   }
 
   private resolveAuthRedirectUrl(path: string): string {

@@ -13,6 +13,10 @@ This directory is the English, LLM-oriented source of truth for current user-vis
 - [Public multilingual blog](features/public-blog.md)
 - [Responsive web images](features/responsive-web-images.md)
 
+## Operations
+
+- [Demo data seeding](operations/demo-data-seeding.md)
+
 ## Maintenance
 
 When a user-visible feature changes, update its page in this directory in the same change. Describe shipped behavior, important inputs/outputs, data boundaries, and limits. Mark future work as **Planned**.

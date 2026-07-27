@@ -412,6 +412,38 @@ test('registers a new account and opens dashboard', async ({
   await expect(page.getByText('Biedronka').first()).toBeVisible();
 
   await expectDefaultCategoryGroups(page);
+
+  await page.getByRole('button', { name: /^Profile\b/ }).click();
+  await page.getByRole('button', { name: 'Security options' }).click();
+  await page.getByRole('button', { name: 'Delete my account' }).click();
+
+  await fillStableInput(
+    page.locator('#delete-account-password'),
+    DEFAULT_PASSWORD
+  );
+  await fillStableInput(
+    page.locator('#delete-account-confirmation'),
+    'DELETE'
+  );
+  await page
+    .getByLabel(
+      'I understand that my account and all of its data will be permanently deleted.'
+    )
+    .check();
+  await page
+    .getByRole('button', { name: 'Permanently delete account' })
+    .click();
+
+  await expect(page).toHaveURL(/\/$/, { timeout: 15000 });
+  await expect(page.getByRole('link', { name: 'Log in' })).toBeVisible();
+
+  await page.getByRole('link', { name: 'Log in' }).click();
+  await fillStableInput(page.locator('#email'), email);
+  await fillStableInput(page.locator('#password'), DEFAULT_PASSWORD);
+  await page.getByRole('button', { name: 'Log in' }).click();
+
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(page.getByRole('alert')).toBeVisible();
 });
 
 test('adds transaction and keeps it after reload', async ({
@@ -940,7 +972,11 @@ test('backfills transactions for a recurring payment started in the past', async
 
   await openTransactions(page);
   await filterTransactionsByRange(page, startDate, today);
-  await expect(page.locator('li').filter({ hasText: name })).toHaveCount(2);
+  await expect(
+    page
+      .locator('#transactions-results > ul > li')
+      .filter({ hasText: name })
+  ).toHaveCount(2);
 });
 
 test('creates wallet and keeps it after reload', async ({ page }, testInfo) => {

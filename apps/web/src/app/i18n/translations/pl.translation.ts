@@ -352,6 +352,29 @@ const pl = {
             samePassword: 'Nowe hasło musi różnić się od obecnego.',
           },
         },
+        accountDeletion: {
+          title: 'Usuń konto',
+          description:
+            'Trwale usuń konto Spendist, dane finansowe, powiadomienia i avatar.',
+          open: 'Usuń moje konto',
+          warning:
+            'Tej operacji nie można cofnąć. Najpierw wyeksportuj dane, które chcesz zachować.',
+          passwordLabel: 'Obecne hasło',
+          confirmationLabel: 'Wpisz DELETE, aby potwierdzić',
+          acknowledgement:
+            'Rozumiem, że moje konto i wszystkie jego dane zostaną trwale usunięte.',
+          submitIdle: 'Trwale usuń konto',
+          submitBusy: 'Usuwanie konta...',
+          errors: {
+            passwordRequired: 'Obecne hasło jest wymagane.',
+            confirmation: 'Wpisz dokładnie DELETE.',
+            acknowledgement: 'Potwierdź, że rozumiesz utratę danych.',
+            invalidPassword: 'Obecne hasło jest nieprawidłowe.',
+            unauthorized: 'Sesja wygasła. Zaloguj się ponownie i spróbuj jeszcze raz.',
+            generic:
+              'Nie udało się usunąć konta. Konto nadal jest aktywne; spróbuj ponownie.',
+          },
+        },
       },
       wallets: {
         label: 'Portfele',
