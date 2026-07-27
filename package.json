@@ -19,6 +19,8 @@
     "blog:check": "node tools/scripts/generate-blog-content.mjs --check",
     "images:generate": "node tools/scripts/generate-responsive-images.mjs",
     "images:check": "node tools/scripts/generate-responsive-images.mjs --check",
+    "demo:seed": "node tools/demo-seed/cli.mjs",
+    "demo:seed:test": "node --test tools/demo-seed/demo-seed.test.mjs",
     "nx:update": "nx migrate latest",
     "nx:update:run": "nx migrate --run-migrations",
     "db:reset": "npm run db:reset:local",
