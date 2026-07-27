@@ -2,7 +2,7 @@
 
 ## What it does
 
-Spendist uses Supabase email/password authentication. A person can sign up, sign in, sign out, request a password-reset email, complete password recovery from a link, and change their password while authenticated.
+Spendist uses Supabase email/password authentication. A person can sign up, sign in, sign out, request a password-reset email, complete password recovery from a link, change their password while authenticated, and permanently delete their account.
 
 Sign-up records profile information such as username, full name, timezone, language, default currency, and optional avatar URL. The application seeds default categories after an initial or newly signed-in session.
 
@@ -16,3 +16,32 @@ Sign-up records profile information such as username, full name, timezone, langu
 
 Financial records and notifications remain user-scoped through backend access controls.
 
+## Account deletion
+
+Account deletion is available in the security section of `/settings`. It is
+permanent and requires all of the following:
+
+- the authenticated session;
+- the account's current password;
+- typing `DELETE` exactly;
+- explicit acknowledgement that the data cannot be recovered.
+
+The browser calls the `delete-account` Supabase Edge Function. The function
+validates the bearer token, reauthenticates the same user with the supplied
+password, deletes avatar objects under that user's Storage folder, and then
+permanently deletes the Supabase Auth user. Database foreign keys cascade from
+the Auth user through the profile to financial records; notifications also
+cascade from the Auth user. The local session is cleared and the user returns to
+the public landing page after success.
+
+The function never accepts a user ID from the browser and never exposes its
+service-role credential. If password verification, avatar cleanup, or Auth
+deletion fails, the UI reports failure instead of claiming that the account was
+deleted.
+
+## Deliberate limits
+
+- There is no recovery window or soft-delete period.
+- Spendist does not automatically export data during deletion. Users should use
+  the CSV export before confirming if they want to retain transaction history.
+- Account deletion applies only to the currently authenticated user.

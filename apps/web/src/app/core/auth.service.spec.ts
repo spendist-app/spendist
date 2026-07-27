@@ -24,6 +24,12 @@ function createSupabaseMock() {
       }),
       signOut: vi.fn().mockResolvedValue({ error: null }),
     },
+    functions: {
+      invoke: vi.fn().mockResolvedValue({
+        data: { deleted: true },
+        error: null,
+      }),
+    },
   };
 }
 
@@ -87,5 +93,41 @@ describe('AuthService password flows', () => {
     expect(supabase.auth.updateUser).toHaveBeenCalledWith({
       password: 'Next1234',
     });
+  });
+
+  it('deletes the account through the Edge Function and clears the local session', async () => {
+    const service = TestBed.inject(AuthService);
+
+    const result = await service.deleteAccount('Current123');
+
+    expect(result.error).toBeUndefined();
+    expect(supabase.functions.invoke).toHaveBeenCalledWith('delete-account', {
+      body: { password: 'Current123' },
+    });
+    expect(supabase.auth.signOut).toHaveBeenCalledWith({ scope: 'local' });
+    expect(service.isAuthenticated()).toBe(false);
+  });
+
+  it('maps an invalid deletion password to a localized error', async () => {
+    supabase.functions.invoke.mockResolvedValueOnce({
+      data: null,
+      error: {
+        context: new Response(
+          JSON.stringify({ code: 'invalid_password' }),
+          {
+            status: 403,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        ),
+      },
+    });
+    const service = TestBed.inject(AuthService);
+
+    const result = await service.deleteAccount('WrongPassword');
+
+    expect(result.error).toBe(
+      'settings.panels.profile.accountDeletion.errors.invalidPassword'
+    );
+    expect(supabase.auth.signOut).not.toHaveBeenCalled();
   });
 });

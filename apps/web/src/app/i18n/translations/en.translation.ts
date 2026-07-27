@@ -353,6 +353,29 @@ const en = {
               'New password must be different from the current one.',
           },
         },
+        accountDeletion: {
+          title: 'Delete account',
+          description:
+            'Permanently delete your Spendist account, financial data, notifications, and avatar.',
+          open: 'Delete my account',
+          warning:
+            'This cannot be undone. Export any data you want to keep before continuing.',
+          passwordLabel: 'Current password',
+          confirmationLabel: 'Type DELETE to confirm',
+          acknowledgement:
+            'I understand that my account and all of its data will be permanently deleted.',
+          submitIdle: 'Permanently delete account',
+          submitBusy: 'Deleting account...',
+          errors: {
+            passwordRequired: 'Current password is required.',
+            confirmation: 'Type DELETE exactly as shown.',
+            acknowledgement: 'Confirm that you understand the data loss.',
+            invalidPassword: 'Current password is incorrect.',
+            unauthorized: 'Your session expired. Sign in again and retry.',
+            generic:
+              'The account could not be deleted. Your account remains active; please try again.',
+          },
+        },
       },
       wallets: {
         label: 'Wallets',
