@@ -8,6 +8,7 @@ import {
 import {
   assertExecutionAllowed,
   parseArgs,
+  resolveDemoSeedEnvironment,
   resolveProjectTarget,
   resolveTargetLocales,
 } from './safety.mjs';
@@ -21,15 +22,15 @@ function printHelp() {
 Dry run (default, no credentials and no writes):
   npm run demo:seed -- --locale=all
 
-Apply locally:
-  DEMO_SEED_SUPABASE_URL=http://127.0.0.1:55321 \\
-  DEMO_SEED_SERVICE_ROLE_KEY=... \\
-  DEMO_SEED_INITIAL_PASSWORD=... \\
-  npm run demo:seed -- --apply --locale=all
+Apply to the configured Supabase target:
+  npm run demo:seed:apply -- --locale=all
 
 Remote sync additionally requires:
-  DEMO_SEED_PROJECT_REF=<project-ref>
+  SUPABASE_PROJECT_REF=<project-ref>
   --allow-remote --confirm-project-ref=<project-ref>
+
+Shared remote Supabase configuration is loaded from .env by demo:seed:apply.
+Only DEMO_SEED_INITIAL_PASSWORD needs to be stored in .env.demo.local.
 
 Replace additionally requires:
   --mode=replace --confirm-replace=<exact comma-separated demo emails>
@@ -66,13 +67,18 @@ async function main() {
     return;
   }
 
-  const url = process.env.DEMO_SEED_SUPABASE_URL;
-  const serviceRoleKey = process.env.DEMO_SEED_SERVICE_ROLE_KEY;
-  if (!url) throw new Error('DEMO_SEED_SUPABASE_URL is required with --apply.');
+  const environment = resolveDemoSeedEnvironment();
+  const { url, serviceRoleKey } = environment;
+  if (!url)
+    throw new Error(
+      'SUPABASE_URL or DEMO_SEED_SUPABASE_URL is required with --apply.'
+    );
   if (!serviceRoleKey)
-    throw new Error('DEMO_SEED_SERVICE_ROLE_KEY is required with --apply.');
+    throw new Error(
+      'SUPABASE_SERVICE_ROLE_KEY, SUPABASE_SECRET_KEY, SB_SECRET_KEY, or DEMO_SEED_SERVICE_ROLE_KEY is required with --apply.'
+    );
   const target = resolveProjectTarget(url);
-  assertExecutionAllowed(options, target, process.env.DEMO_SEED_PROJECT_REF);
+  assertExecutionAllowed(options, target, environment.projectRef);
   console.log(
     `Applying ${options.mode} to ${
       target.isRemote ? `remote project ${target.projectRef}` : 'local Supabase'
@@ -81,7 +87,7 @@ async function main() {
   await applyDemoSeed({
     url,
     serviceRoleKey,
-    password: process.env.DEMO_SEED_INITIAL_PASSWORD,
+    password: environment.password,
     locales,
     mode: options.mode,
   });

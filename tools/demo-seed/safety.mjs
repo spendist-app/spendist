@@ -3,6 +3,29 @@ import { FIXTURES } from './fixtures.mjs';
 const VALID_LOCALES = new Set(['pl', 'en']);
 const VALID_MODES = new Set(['sync', 'replace']);
 
+function firstNonEmpty(environment, names) {
+  return names
+    .map((name) => environment[name])
+    .find((value) => typeof value === 'string' && value.trim());
+}
+
+export function resolveDemoSeedEnvironment(environment = process.env) {
+  return {
+    url: firstNonEmpty(environment, ['DEMO_SEED_SUPABASE_URL', 'SUPABASE_URL']),
+    serviceRoleKey: firstNonEmpty(environment, [
+      'DEMO_SEED_SERVICE_ROLE_KEY',
+      'SUPABASE_SERVICE_ROLE_KEY',
+      'SUPABASE_SECRET_KEY',
+      'SB_SECRET_KEY',
+    ]),
+    projectRef: firstNonEmpty(environment, [
+      'DEMO_SEED_PROJECT_REF',
+      'SUPABASE_PROJECT_REF',
+    ]),
+    password: firstNonEmpty(environment, ['DEMO_SEED_INITIAL_PASSWORD']),
+  };
+}
+
 export function parseArgs(argv) {
   const options = {
     apply: false,
@@ -84,9 +107,13 @@ export function assertExecutionAllowed(options, target, configuredProjectRef) {
     if (!options.allowRemote)
       throw new Error('Remote writes require --allow-remote.');
     if (!configuredProjectRef)
-      throw new Error('Remote writes require DEMO_SEED_PROJECT_REF.');
+      throw new Error(
+        'Remote writes require DEMO_SEED_PROJECT_REF or SUPABASE_PROJECT_REF.'
+      );
     if (configuredProjectRef !== target.projectRef) {
-      throw new Error('DEMO_SEED_PROJECT_REF does not match the Supabase URL.');
+      throw new Error(
+        'The configured project reference does not match the Supabase URL.'
+      );
     }
     if (options.confirmProjectRef !== target.projectRef) {
       throw new Error(

@@ -20,6 +20,7 @@
     "images:generate": "node tools/scripts/generate-responsive-images.mjs",
     "images:check": "node tools/scripts/generate-responsive-images.mjs --check",
     "demo:seed": "node tools/demo-seed/cli.mjs",
+    "demo:seed:apply": "dotenv -e .env -e .env.demo.local -- node tools/demo-seed/cli.mjs --apply",
     "demo:seed:test": "node --test tools/demo-seed/demo-seed.test.mjs",
     "db:backup:remote": "dotenv -e .env -e .env.backup.local -- node tools/backup/backup.mjs",
     "db:backup:verify": "dotenv -e .env.backup.local -- node tools/backup/backup.mjs",
