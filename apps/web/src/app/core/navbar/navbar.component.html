@@ -1,7 +1,7 @@
 <nav
-  class="navbar flex-wrap gap-3 bg-base-100/85 px-4 py-3 backdrop-blur shadow-sm"
+  class="navbar min-h-16 flex-nowrap gap-1 bg-base-100/85 px-1 py-2 shadow-sm backdrop-blur sm:gap-3 sm:px-4"
 >
-  <div class="flex items-center gap-3">
+  <div class="flex shrink-0 items-center gap-1 sm:gap-3">
     @if (!auth.loading() && auth.isAuthenticated()) {
     <div class="dropdown dropdown-bottom md:hidden">
       <button
@@ -64,15 +64,18 @@
     </div>
     }
 
-    <a class="btn btn-ghost gap-2 px-2 text-xl normal-case" routerLink="/">
+    <a
+      class="btn btn-ghost h-9 min-h-9 gap-1 px-1 text-base normal-case sm:gap-2 sm:px-2 sm:text-xl"
+      routerLink="/"
+    >
       <img
-        class="size-8"
+        class="size-7 sm:size-8"
         src="/brand/spendist-mark.svg"
         alt=""
         width="32"
         height="32"
       />
-      <span>{{ 'common.appName' | transloco }}</span>
+      <span class="hidden sm:inline">{{ 'common.appName' | transloco }}</span>
     </a>
   </div>
 
@@ -151,27 +154,55 @@
   }
 
   <div
-    class="ms-auto flex max-w-full flex-wrap items-center justify-end gap-2 sm:gap-3"
+    class="ms-auto flex min-w-0 flex-nowrap items-center justify-end gap-1 sm:gap-2"
   >
     @if (!auth.loading() && !auth.isAuthenticated()) {
-    <a class="btn btn-ghost btn-sm" [routerLink]="blogLink()">{{
-      'blog.common.badge' | transloco
-    }}</a>
-    <label class="sr-only" for="language-selector">
-      {{ 'common.language.label' | transloco }}
-    </label>
-    <select
-      id="language-selector"
-      class="select select-bordered select-sm"
-      [value]="activeLanguage()"
-      (change)="onLanguageChange($event)"
+    <a
+      class="btn btn-ghost btn-xs whitespace-nowrap px-1.5 sm:btn-sm sm:px-3"
+      [routerLink]="blogLink()"
+      >{{ 'blog.common.badge' | transloco }}</a
+    >
+    <div
+      class="flex shrink-0 items-center gap-0.5 rounded-lg border border-base-300 bg-base-200/70 p-0.5 shadow-inner"
+      role="group"
+      [attr.aria-label]="'common.language.label' | transloco"
     >
       @for (language of languages; track language.code) {
-      <option [value]="language.code">
-        {{ language.labelKey | transloco }}
-      </option>
+      <button
+        type="button"
+        class="btn btn-ghost h-7 min-h-7 w-7 rounded-md p-1 data-[active=true]:bg-base-100 data-[active=true]:ring-1 data-[active=true]:ring-primary/50 sm:h-8 sm:min-h-8 sm:w-8"
+        [attr.aria-label]="language.labelKey | transloco"
+        [attr.title]="language.labelKey | transloco"
+        [attr.aria-pressed]="activeLanguage() === language.code"
+        [attr.data-active]="activeLanguage() === language.code"
+        [attr.data-language]="language.code"
+        (click)="setLanguage(language.code)"
+      >
+        @if (language.code === 'pl') {
+        <svg
+          class="h-auto w-full overflow-hidden rounded-[2px] shadow-sm ring-1 ring-black/15"
+          viewBox="0 0 24 16"
+          aria-hidden="true"
+        >
+          <path fill="#fff" d="M0 0h24v8H0z" />
+          <path fill="#dc143c" d="M0 8h24v8H0z" />
+        </svg>
+        } @else {
+        <svg
+          class="h-auto w-full overflow-hidden rounded-[2px] shadow-sm ring-1 ring-black/15"
+          viewBox="0 0 60 36"
+          aria-hidden="true"
+        >
+          <path fill="#012169" d="M0 0h60v36H0z" />
+          <path d="m0 0 60 36m0-36L0 36" stroke="#fff" stroke-width="7" />
+          <path d="m0 0 60 36m0-36L0 36" stroke="#c8102e" stroke-width="4" />
+          <path d="M30 0v36M0 18h60" stroke="#fff" stroke-width="12" />
+          <path d="M30 0v36M0 18h60" stroke="#c8102e" stroke-width="7" />
+        </svg>
+        }
+      </button>
       }
-    </select>
+    </div>
     }
 
     <div class="flex-none">
@@ -251,13 +282,17 @@
         </div>
       </div>
       } @else {
-      <div class="flex items-center gap-2">
-        <a class="btn btn-ghost" routerLink="/login">{{
-          'common.actions.login' | transloco
-        }}</a>
-        <a class="btn btn-primary" routerLink="/signup">{{
-          'common.actions.signup' | transloco
-        }}</a>
+      <div class="flex flex-nowrap items-center gap-1 sm:gap-2">
+        <a
+          class="btn btn-ghost btn-xs whitespace-nowrap px-1.5 text-[0.7rem] sm:btn-sm sm:px-3 sm:text-sm"
+          routerLink="/login"
+          >{{ 'common.actions.login' | transloco }}</a
+        >
+        <a
+          class="btn btn-primary btn-xs whitespace-nowrap px-1.5 text-[0.7rem] sm:btn-sm sm:px-3 sm:text-sm"
+          routerLink="/signup"
+          >{{ 'common.actions.signup' | transloco }}</a
+        >
       </div>
       } }
     </div>

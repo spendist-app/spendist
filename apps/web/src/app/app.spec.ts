@@ -115,6 +115,40 @@ describe('App', () => {
     expect(compiled.querySelector('a[href="/modules/recurring-payments"]')).toBeFalsy();
   });
 
+  it('should switch guest language with accessible flag buttons', async () => {
+    const fixture = TestBed.createComponent(App);
+    const navbar = fixture.debugElement.query(By.directive(NavbarComponent))
+      .componentInstance as NavbarComponent;
+    navbar.setLanguage('en');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const languageGroup = compiled.querySelector('[role="group"]');
+    const englishButton = languageGroup?.querySelector<HTMLButtonElement>(
+      'button[data-language="en"]'
+    );
+    const polishButton = languageGroup?.querySelector<HTMLButtonElement>(
+      'button[data-language="pl"]'
+    );
+
+    expect(compiled.querySelector('select')).toBeFalsy();
+    expect(languageGroup?.hasAttribute('aria-label')).toBe(true);
+    expect(englishButton?.hasAttribute('aria-label')).toBe(true);
+    expect(polishButton?.hasAttribute('aria-label')).toBe(true);
+    expect(englishButton?.getAttribute('aria-pressed')).toBe('true');
+    expect(polishButton?.getAttribute('aria-pressed')).toBe('false');
+
+    polishButton?.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(polishButton?.getAttribute('aria-pressed')).toBe('true');
+    expect(compiled.querySelector('a[href="/pl/blog"]')).toBeTruthy();
+    expect(document.documentElement.lang).toBe('pl');
+  });
+
   it('should show avatar placeholder when signed in', () => {
     const fixture = TestBed.createComponent(App);
     authStub.setAuthenticated(true);
