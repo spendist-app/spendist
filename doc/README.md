@@ -16,6 +16,7 @@ This directory is the English, LLM-oriented source of truth for current user-vis
 ## Operations
 
 - [Demo data seeding](operations/demo-data-seeding.md)
+- [Encrypted database backups](operations/encrypted-database-backups.md)
 
 ## Maintenance
 
