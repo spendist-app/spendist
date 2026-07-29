@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "strict": true
+  },
+  "imports": {
+    "@aws-sdk/client-sesv2": "npm:@aws-sdk/client-sesv2@3.1097.0",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.89.0"
+  }
+}

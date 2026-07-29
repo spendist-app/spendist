@@ -5,5 +5,26 @@
     <link>https://spendist.app/en/blog</link>
     <description>Practical personal-finance and Spendist articles.</description>
     <language>en</language>
+    <item>
+      <title>Recurring Payments: How to Stop Silent Leaks in Your Household Budget</title>
+      <link>https://spendist.app/en/blog/recurring-payments-household-budget</link>
+      <guid>https://spendist.app/en/blog/recurring-payments-household-budget</guid>
+      <description>Subscriptions and regular bills can quietly drain a household budget. Learn how Spendist helps you track recurring payments and expenses.</description>
+      <pubDate>Wed, 29 Jul 2026 00:00:00 GMT</pubDate>
+    </item>
+    <item>
+      <title>What Is Spendist? Meet the Open-Source App for Managing Your Household Budget</title>
+      <link>https://spendist.app/en/blog/what-is-spendist</link>
+      <guid>https://spendist.app/en/blog/what-is-spendist</guid>
+      <description>Spendist is an open-source app for managing a household budget, expenses, income, recurring payments, wallets and portable financial data.</description>
+      <pubDate>Wed, 29 Jul 2026 00:00:00 GMT</pubDate>
+    </item>
+    <item>
+      <title>Why Was Spendist Created?</title>
+      <link>https://spendist.app/en/blog/why-was-spendist-created</link>
+      <guid>https://spendist.app/en/blog/why-was-spendist-created</guid>
+      <description>Spendist grew from more than a decade of expense tracking and over 40,000 recorded transactions. Discover the story behind the project.</description>
+      <pubDate>Wed, 29 Jul 2026 00:00:00 GMT</pubDate>
+    </item>
   </channel>
 </rss>

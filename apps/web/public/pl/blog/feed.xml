@@ -5,5 +5,26 @@
     <link>https://spendist.app/pl/blog</link>
     <description>Praktyczna wiedza o finansach osobistych i Spendist.</description>
     <language>pl</language>
+    <item>
+      <title>Czym jest Spendist? Poznaj otwartą aplikację do zarządzania budżetem domowym</title>
+      <link>https://spendist.app/pl/blog/czym-jest-spendist</link>
+      <guid>https://spendist.app/pl/blog/czym-jest-spendist</guid>
+      <description>Spendist to otwarta aplikacja do zarządzania budżetem domowym, wydatkami, przychodami i płatnościami cyklicznymi. Poznaj jej funkcje.</description>
+      <pubDate>Wed, 29 Jul 2026 00:00:00 GMT</pubDate>
+    </item>
+    <item>
+      <title>Dlaczego powstał Spendist?</title>
+      <link>https://spendist.app/pl/blog/dlaczego-powstal-spendist</link>
+      <guid>https://spendist.app/pl/blog/dlaczego-powstal-spendist</guid>
+      <description>Spendist powstał po ponad dekadzie ręcznego śledzenia wydatków i zapisaniu ponad 40 tys. transakcji. Poznaj historię projektu.</description>
+      <pubDate>Wed, 29 Jul 2026 00:00:00 GMT</pubDate>
+    </item>
+    <item>
+      <title>Płatności cykliczne: jak zatrzymać małe wycieki z domowego budżetu</title>
+      <link>https://spendist.app/pl/blog/platnosci-cykliczne-w-domowym-budzecie</link>
+      <guid>https://spendist.app/pl/blog/platnosci-cykliczne-w-domowym-budzecie</guid>
+      <description>Subskrypcje i regularne rachunki mogą po cichu obciążać budżet. Zobacz, jak Spendist pomaga kontrolować płatności cykliczne.</description>
+      <pubDate>Wed, 29 Jul 2026 00:00:00 GMT</pubDate>
+    </item>
   </channel>
 </rss>

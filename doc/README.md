@@ -8,6 +8,7 @@ This directory is the English, LLM-oriented source of truth for current user-vis
 - [Transactions](features/transactions.md)
 - [Financial organization and data portability](features/financial-organization-and-data-portability.md)
 - [Recurring payments](features/recurring-payments.md)
+- [Allowance](features/allowance.md)
 - [Places and dashboard insights](features/places-and-dashboard-insights.md)
 - [Preferences, notifications, and platform behavior](features/preferences-notifications-and-platform.md)
 - [Public multilingual blog](features/public-blog.md)

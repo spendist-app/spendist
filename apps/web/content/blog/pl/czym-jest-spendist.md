@@ -2,7 +2,7 @@
 title: Czym jest Spendist? Poznaj otwartą aplikację do zarządzania budżetem domowym
 slug: czym-jest-spendist
 description: Spendist to otwarta aplikacja do zarządzania budżetem domowym, wydatkami, przychodami i płatnościami cyklicznymi. Poznaj jej funkcje.
-publishedAt: 2026-07-24
+publishedAt: 2026-07-29
 category: spendist
 tags:
   - spendist
@@ -10,8 +10,8 @@ tags:
   - budzet-domowy
   - kontrola-wydatkow
 coverImageId: blog/pl/czym-jest-spendist/cover
-coverImageAlt: 'TODO: opisać ostateczną grafikę okładkową'
-draft: true
+coverImageAlt: 'Tytuł Czym jest Spendist obok ilustracji dokumentów domowego budżetu i logo Spendist'
+draft: false
 ---
 
 Drobne zakupy, rachunki, kilka subskrypcji, płatność raz na rok i wynagrodzenie wpływające na inne konto. Każda z tych operacji może wydawać się prosta, ale razem tworzą obraz, nad którym łatwo stracić kontrolę.

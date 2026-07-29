@@ -2,7 +2,7 @@
 title: Why Was Spendist Created?
 slug: why-was-spendist-created
 description: Spendist grew from more than a decade of expense tracking and over 40,000 recorded transactions. Discover the story behind the project.
-publishedAt: 2026-07-24
+publishedAt: 2026-07-29
 category: spendist
 tags:
   - spendist-story
@@ -10,8 +10,8 @@ tags:
   - open-source
   - expense-tracking
 coverImageId: blog/en/why-was-spendist-created/cover
-coverImageAlt: 'TODO: describe the final cover image'
-draft: true
+coverImageAlt: 'Years of handwritten budget notes beside a laptop, illustrating the path from manual tracking to Spendist'
+draft: false
 ---
 
 Spendist was not created because I suddenly thought, “I should build a personal finance app.”
@@ -48,7 +48,7 @@ Entering many expenses also took too much time.
 
 I tried to improve the process. I started using the Vimium browser extension to navigate forms with keyboard shortcuts. It helped, but it did not solve the underlying problem. I was optimising a workflow that needed a different approach from the start.
 
-![The expense-tracking history that led to the creation of Spendist](image:expense-tracking-timeline 'Expense-tracking timeline from 2013 to 2026')
+![A historic transaction view from the Polish finance app used before Spendist](image:expense-tracking-timeline 'The earlier expense-tracking workflow')
 
 ## The pandemic arrived, but my workflow stayed the same
 
@@ -114,7 +114,7 @@ This is a small feature. It is not as visually impressive as a complex chart or 
 
 Spendist grew from details like this.
 
-![Quickly adding multiple identical transactions in Spendist](image:bulk-entry-quantity 'Adding 12 identical transactions with bulk entry')
+![The Spendist bulk-entry form with a quantity field for repeated transactions](image:bulk-entry-quantity 'Adding repeated transactions with bulk entry')
 
 ## Spendist grew from real, repeated problems
 

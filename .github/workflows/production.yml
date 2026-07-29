@@ -32,6 +32,10 @@ jobs:
       INTERNAL_FUNCTION_SECRET: ${{ secrets.INTERNAL_FUNCTION_SECRET }}
       ROUTINE_RUNNER_SECRET: ${{ secrets.ROUTINE_RUNNER_SECRET }}
       RECURRING_PAYMENTS_SECRET: ${{ secrets.RECURRING_PAYMENTS_SECRET }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -81,6 +85,10 @@ jobs:
             --project-ref "$SUPABASE_PROJECT_REF" \
             --no-verify-jwt
 
+          supabase functions deploy send-allowance-invitation \
+            --project-ref "$SUPABASE_PROJECT_REF" \
+            --no-verify-jwt
+
       - name: Sync Supabase Edge Function Secrets
         run: |
           if [ -z "$SUPABASE_PROJECT_REF" ]; then
@@ -89,6 +97,7 @@ jobs:
           fi
 
           internal_function_secret="${INTERNAL_FUNCTION_SECRET:-${ROUTINE_RUNNER_SECRET:-${RECURRING_PAYMENTS_SECRET:-}}}"
+          app_url="${CLOUDFLARE_PRODUCTION_URL:-https://spendist.app}"
 
           if [ -z "$internal_function_secret" ]; then
             echo "::error::Missing required GitHub secret: INTERNAL_FUNCTION_SECRET"
@@ -96,8 +105,20 @@ jobs:
             exit 1
           fi
 
+          for secret_name in AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION EMAIL_FROM; do
+            if [ -z "${!secret_name}" ]; then
+              echo "::error::Missing required GitHub secret: $secret_name"
+              exit 1
+            fi
+          done
+
           secret_args=(
             INTERNAL_FUNCTION_SECRET="$internal_function_secret"
+            AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID"
+            AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY"
+            AWS_REGION="$AWS_REGION"
+            EMAIL_FROM="$EMAIL_FROM"
+            APP_URL="${app_url%/}"
           )
 
           supabase secrets set \

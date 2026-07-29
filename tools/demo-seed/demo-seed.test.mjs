@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { access } from 'node:fs/promises';
 import test from 'node:test';
 import { DEMO_SEED_ID, FIXTURES } from './fixtures.mjs';
 import {
@@ -13,6 +14,7 @@ import {
   resolveDemoSeedEnvironment,
   resolveProjectTarget,
 } from './safety.mjs';
+import { avatarObjectPath } from './supabase-runner.mjs';
 
 const OWNER = '10000000-0000-4000-8000-000000000001';
 
@@ -37,6 +39,18 @@ for (const locale of ['pl', 'en']) {
     assert.ok(summary.categoriesUsed >= 25);
   });
 }
+
+test('localized demo avatars are repository-managed', async () => {
+  for (const locale of ['pl', 'en']) {
+    const fixture = FIXTURES[locale];
+    assert.match(fixture.avatarFile, /^avatar-[a-z-]+\.png$/);
+    await access(new URL(`./assets/${fixture.avatarFile}`, import.meta.url));
+  }
+  assert.equal(
+    avatarObjectPath('10000000-0000-4000-8000-000000000001'),
+    '10000000-0000-4000-8000-000000000001/avatar.png'
+  );
+});
 
 test('CLI defaults to a no-write dry run', () => {
   const options = parseArgs([]);

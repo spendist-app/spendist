@@ -682,13 +682,22 @@
                     } @if (transaction.recurringTransactionId) {
                     <span
                       class="badge badge-primary badge-outline badge-sm max-w-full text-xs"
-                      [title]="transaction.recurringTransactionId"
+                      data-testid="recurring-source-badge"
+                      [title]="transaction.recurringTransactionName ?? ''"
                     >
                       {{ 'transactions.list.recurringSource' | transloco }}:
-                      <code class="font-mono"
-                        >{{ transaction.recurringTransactionId.slice(0, 8)
-                        }}</code
-                      >
+                      <span class="max-w-48 truncate font-medium">
+                        {{ transaction.recurringTransactionName ||
+                        ('transactions.list.recurringFallback' | transloco) }}
+                      </span>
+                    </span>
+                    }
+                    @if (transaction.sourceModule === 'allowance') {
+                    <span class="badge badge-secondary badge-outline badge-sm text-xs">
+                      {{
+                        ('transactions.list.allowance.' +
+                          (transaction.allowanceRole ?? 'recipient')) | transloco
+                      }}
                     </span>
                     }
                   </div>
@@ -749,7 +758,7 @@
                     [attr.aria-label]="'transactions.list.actions.delete' | transloco"
                     [attr.title]="'transactions.list.actions.delete' | transloco"
                     [attr.data-tip]="'transactions.list.actions.delete' | transloco"
-                    [disabled]="store.transactionMutationPending()"
+                    [disabled]="store.transactionMutationPending() || transaction.allowanceRole === 'recipient'"
                     (click)="confirmDelete(transaction)"
                   >
                     <ng-icon

@@ -27,7 +27,7 @@ class TransactionsStoreStub {
     sort: 'dateDesc',
   });
   readonly transactions = signal([]);
-  readonly filteredTransactions = signal([]);
+  readonly filteredTransactions = signal<readonly TransactionViewModel[]>([]);
   readonly groupedCategories = signal([
     {
       id: 'group-1',
@@ -271,6 +271,53 @@ describe('TransactionsPageComponent', () => {
         minimumFractionDigits: 2,
       }).format(-1234.56)
     );
+  });
+
+  it('shows the recurring payment name instead of its technical ID', () => {
+    const fixture = TestBed.createComponent(TransactionsPageComponent);
+    const store = fixture.debugElement.injector.get(
+      TransactionsStore
+    ) as unknown as TransactionsStoreStub;
+    store.filteredTransactions.set([
+      {
+        id: 'transaction-1',
+        ownerId: 'user-1',
+        categoryId: 'category-active',
+        occurredAt: new Date('2026-07-25T08:00:00Z'),
+        description: 'Best Doctors Justyna',
+        amount: 103.96,
+        amountInDefault: 103.96,
+        currency: 'PLN',
+        direction: 'expense',
+        isAutomatic: true,
+        recurringTransactionId: '1324a167-0000-0000-0000-000000000000',
+        recurringTransactionName: 'Health insurance',
+        recurringScheduledFor: new Date('2026-07-25T08:00:00Z'),
+        createdAt: new Date('2026-07-25T08:00:00Z'),
+        updatedAt: new Date('2026-07-25T08:00:00Z'),
+        exchangeRate: 1,
+        walletId: 'wallet-1',
+        placeId: null,
+        sourceModule: 'standard',
+        allowancePairId: null,
+        allowanceRole: null,
+        allowanceConnectionId: null,
+        category: null,
+        group: null,
+        tagIds: [],
+        place: null,
+      },
+    ]);
+    store.loadedTransactionCount.set(1);
+    store.totalMatchingTransactions.set(1);
+
+    fixture.detectChanges();
+
+    const badge = fixture.nativeElement.querySelector(
+      '[data-testid="recurring-source-badge"]'
+    ) as HTMLElement;
+    expect(badge.textContent).toContain('Health insurance');
+    expect(badge.textContent).not.toContain('1324a167');
   });
 
   it('formats category totals with the active locale and default currency', () => {

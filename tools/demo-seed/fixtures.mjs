@@ -1,4 +1,4 @@
-export const DATASET_VERSION = '2026-07-v1';
+export const DATASET_VERSION = '2026-07-v2';
 export const DEMO_SEED_ID = 'spendist-screenshots';
 export const DATE_RANGE = Object.freeze({
   start: '2026-01-01',
@@ -19,6 +19,7 @@ export const FIXTURES = {
     email: 'demo-pl@spendist.app',
     username: 'marta_nowak_demo',
     fullName: 'Marta Nowak',
+    avatarFile: 'avatar-marta-nowak.png',
     timezone: 'Europe/Warsaw',
     defaultCurrency: 'PLN',
     defaultCurrencyId: 1,
@@ -174,6 +175,7 @@ export const FIXTURES = {
     email: 'demo-en@spendist.app',
     username: 'emily_carter_demo',
     fullName: 'Emily Carter',
+    avatarFile: 'avatar-emily-carter.png',
     timezone: 'America/Chicago',
     defaultCurrency: 'USD',
     defaultCurrencyId: 2,

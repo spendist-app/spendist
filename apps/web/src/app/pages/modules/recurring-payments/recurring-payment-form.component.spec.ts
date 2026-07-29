@@ -150,6 +150,19 @@ describe('RecurringPaymentFormComponent', () => {
     }).compileComponents();
   });
 
+  it('uses the standard icon-only close action', () => {
+    const fixture = TestBed.createComponent(RecurringPaymentFormComponent);
+    fixture.componentRef.setInput('open', true);
+    fixture.detectChanges();
+
+    const closeButton = fixture.nativeElement.querySelector(
+      '[data-testid="recurring-payment-form-close"]'
+    ) as HTMLButtonElement;
+    expect(closeButton).not.toBeNull();
+    expect(closeButton.querySelector('ng-icon')).not.toBeNull();
+    expect(closeButton.textContent?.trim()).toBe('');
+  });
+
   it('uses the shared searchable category dropdown', async () => {
     const fixture = TestBed.createComponent(RecurringPaymentFormComponent);
     fixture.componentRef.setInput('open', true);

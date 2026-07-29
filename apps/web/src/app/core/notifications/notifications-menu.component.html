@@ -69,6 +69,20 @@
                   {{ notificationTitle(notification) | transloco: notificationParams(notification) }}
                 </p>
                 <p class="mt-1 text-xs text-base-content/60">{{ formatCreatedAt(notification) }}</p>
+                @if (isAllowanceInvitation(notification)) {
+                  <div class="mt-2 flex flex-wrap gap-2">
+                    <button type="button" class="btn btn-primary btn-xs"
+                      [disabled]="store.allowanceResponsePending()"
+                      (click)="respondToInvitation(notification, true)">
+                      {{ 'notifications.actions.accept' | transloco }}
+                    </button>
+                    <button type="button" class="btn btn-ghost btn-xs"
+                      [disabled]="store.allowanceResponsePending()"
+                      (click)="respondToInvitation(notification, false)">
+                      {{ 'notifications.actions.decline' | transloco }}
+                    </button>
+                  </div>
+                }
               </div>
             </article>
           </li>

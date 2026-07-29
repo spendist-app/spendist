@@ -52,7 +52,10 @@ test('serves separate, indexable English and Polish blog indexes', async ({
     })
   ).toBeVisible();
   await expect(
-    page.getByText('The first articles are on the way')
+    page.getByRole('heading', {
+      level: 2,
+      name: 'What Is Spendist? Meet the Open-Source App for Managing Your Household Budget',
+    })
   ).toBeVisible();
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
     'href',
@@ -71,8 +74,8 @@ test('serves separate, indexable English and Polish blog indexes', async ({
   );
   await expect(
     page.getByRole('navigation', { name: 'Blog categories' })
-  ).toHaveCount(0);
-  await expect(page.getByText('What Is Spendist?')).toHaveCount(0);
+  ).toBeVisible();
+  await expect(page.locator('.article-card')).toHaveCount(3);
 
   await page.goto('/pl/blog');
   await expect(
@@ -82,7 +85,10 @@ test('serves separate, indexable English and Polish blog indexes', async ({
     })
   ).toBeVisible();
   await expect(
-    page.getByText('Pierwsze artykuły są w przygotowaniu')
+    page.getByRole('heading', {
+      level: 2,
+      name: 'Dlaczego powstał Spendist?',
+    })
   ).toBeVisible();
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
     'href',
@@ -94,8 +100,8 @@ test('serves separate, indexable English and Polish blog indexes', async ({
   ).toHaveAttribute('href', 'https://spendist.app/en/blog');
   await expect(
     page.getByRole('navigation', { name: 'Kategorie bloga' })
-  ).toHaveCount(0);
-  await expect(page.getByText('Dlaczego powstał Spendist?')).toHaveCount(0);
+  ).toBeVisible();
+  await expect(page.locator('.article-card')).toHaveCount(3);
 });
 
 test('publishes blog discovery files', async ({ page }) => {
@@ -115,20 +121,22 @@ test('publishes blog discovery files', async ({ page }) => {
   expect(sitemapText).toContain('https://spendist.app/en/blog');
   expect(sitemapText).toContain('https://spendist.app/pl/blog');
   expect(sitemapText).not.toContain('/login');
-  expect(sitemapText).not.toContain('what-is-spendist');
-  expect(sitemapText).not.toContain('czym-jest-spendist');
+  expect(sitemapText).toContain(
+    'https://spendist.app/en/blog/what-is-spendist'
+  );
+  expect(sitemapText).toContain(
+    'https://spendist.app/pl/blog/czym-jest-spendist'
+  );
   expect(robotsText).toContain('Allow: /pl/blog');
   expect(robotsText).toContain('Disallow: /transactions');
-  expect(robotsText).toContain(
-    'Sitemap: https://spendist.app/sitemap.xml'
-  );
+  expect(robotsText).toContain('Sitemap: https://spendist.app/sitemap.xml');
   expect(englishFeedText).toContain('<language>en</language>');
-  expect(englishFeedText).not.toContain('<item>');
+  expect(englishFeedText.match(/<item>/g) ?? []).toHaveLength(3);
   expect(polishFeedText).toContain('<language>pl</language>');
-  expect(polishFeedText).not.toContain('<item>');
+  expect(polishFeedText.match(/<item>/g) ?? []).toHaveLength(3);
 });
 
-test('keeps tag filters and unpublished article URLs out of the index', async ({
+test('keeps tag filters out of the index and publishes article metadata', async ({
   page,
 }) => {
   await page.goto('/en/blog?tag=draft-only');
@@ -148,18 +156,21 @@ test('keeps tag filters and unpublished article URLs out of the index', async ({
   await expect(
     page.getByRole('heading', {
       level: 1,
-      name: 'This blog page does not exist',
+      name: 'What Is Spendist? Meet the Open-Source App for Managing Your Household Budget',
     })
   ).toBeVisible();
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
     'content',
-    'noindex,follow'
+    'index,follow,max-image-preview:large'
   );
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
     'href',
-    'https://spendist.app/en/blog'
+    'https://spendist.app/en/blog/what-is-spendist'
   );
-  await expect(page.locator('article.article-shell')).toHaveCount(0);
+  await expect(page.locator('article.article-shell')).toBeVisible();
+  await expect(
+    page.locator('source[type="image/avif"]').first()
+  ).toHaveAttribute('srcset', /\/media\/blog\/en\/what-is-spendist\//);
 });
 
 test('marks invalid blog pagination as noindex', async ({ page }) => {
@@ -181,7 +192,9 @@ test('marks invalid blog pagination as noindex', async ({ page }) => {
   );
 });
 
-test('keeps the empty blog usable on a mobile viewport', async ({ page }) => {
+test('keeps the published blog usable on a mobile viewport', async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto('/pl/blog');
 

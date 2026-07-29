@@ -2,7 +2,7 @@
 title: Dlaczego powstał Spendist?
 slug: dlaczego-powstal-spendist
 description: Spendist powstał po ponad dekadzie ręcznego śledzenia wydatków i zapisaniu ponad 40 tys. transakcji. Poznaj historię projektu.
-publishedAt: 2026-07-24
+publishedAt: 2026-07-29
 category: spendist
 tags:
   - historia-spendist
@@ -10,8 +10,8 @@ tags:
   - open-source
   - sledzenie-wydatkow
 coverImageId: blog/pl/dlaczego-powstal-spendist/cover
-coverImageAlt: 'TODO: opisać ostateczną grafikę okładkową'
-draft: true
+coverImageAlt: 'Lata odręcznych notatek budżetowych obok laptopa jako droga od ręcznego śledzenia wydatków do Spendist'
+draft: false
 ---
 
 Spendist nie powstał dlatego, że pewnego dnia pomyślałem: „Napiszę aplikację finansową”.
@@ -48,7 +48,7 @@ Wprowadzenie wielu wydatków również zajmowało zbyt dużo czasu.
 
 Próbowałem sobie z tym radzić. Zacząłem używać rozszerzenia Vimium, aby obsługiwać przeglądarkę skrótami klawiaturowymi i szybciej przechodzić pomiędzy polami. Pomagało, ale nie rozwiązywało problemu. Usprawniałem proces, który od początku wymagał innego podejścia.
 
-![Historia śledzenia wydatków, która doprowadziła do powstania Spendist](image:expense-tracking-timeline 'Oś czasu śledzenia wydatków od 2013 do 2026 roku')
+![Historyczny widok transakcji w polskiej aplikacji finansowej używanej przed Spendist](image:expense-tracking-timeline 'Wcześniejszy sposób śledzenia wydatków')
 
 ## Zaczęła się pandemia, a mój sposób pracy nadal się nie zmieniał
 
@@ -114,7 +114,7 @@ To niewielka funkcja. Nie wygląda tak efektownie jak skomplikowany wykres albo 
 
 I właśnie z takich szczegółów powstał Spendist.
 
-![Szybkie dodawanie wielu takich samych transakcji w Spendist](image:bulk-entry-quantity 'Zbiorcze dodawanie 12 takich samych transakcji')
+![Formularz Spendist z polem ilości dla powtarzających się transakcji](image:bulk-entry-quantity 'Dodawanie powtarzających się transakcji hurtowo')
 
 ## Spendist powstał z prawdziwych, powtarzających się problemów
 

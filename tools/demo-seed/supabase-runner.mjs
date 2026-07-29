@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { readFile } from 'node:fs/promises';
 import { DATASET_VERSION, DEMO_SEED_ID, FIXTURES } from './fixtures.mjs';
 import {
   generateDemoDataset,
@@ -20,6 +21,7 @@ const DELETE_ORDER = [
   'categories_group',
   'wallets',
 ];
+const AVATAR_BUCKET = 'avatars';
 
 function marker(locale) {
   return {
@@ -30,13 +32,14 @@ function marker(locale) {
   };
 }
 
-function userMetadata(fixture) {
+function userMetadata(fixture, avatarUrl = null) {
   return {
     username: fixture.username,
     full_name: fixture.fullName,
     language: fixture.locale,
     timezone: fixture.timezone,
     wallet_currency_id: fixture.defaultCurrencyId,
+    avatar_url: avatarUrl,
   };
 }
 
@@ -102,6 +105,17 @@ async function createDemoUser(client, locale, password) {
   return data.user;
 }
 
+export function avatarObjectPath(userId) {
+  return `${userId}/avatar.png`;
+}
+
+async function removeDemoAvatar(client, userId) {
+  const { error } = await client.storage
+    .from(AVATAR_BUCKET)
+    .remove([avatarObjectPath(userId)]);
+  failOnError(error, 'Could not remove the replaced demo avatar');
+}
+
 async function resolveDemoUser(client, locale, mode, password) {
   const fixture = FIXTURES[locale];
   const existing = await findUser(client, fixture.email);
@@ -111,12 +125,36 @@ async function resolveDemoUser(client, locale, mode, password) {
     );
   }
   if (mode === 'replace' && existing) {
+    await removeDemoAvatar(client, existing.id);
     const { error } = await client.auth.admin.deleteUser(existing.id, false);
     failOnError(error, `Could not replace ${fixture.email}`);
     return createDemoUser(client, locale, password);
   }
   if (!existing) return createDemoUser(client, locale, password);
   return existing;
+}
+
+async function seedDemoAvatar(client, fixture, userId) {
+  const avatar = await readFile(
+    new URL(`./assets/${fixture.avatarFile}`, import.meta.url)
+  );
+  const objectPath = avatarObjectPath(userId);
+  const { error: uploadError } = await client.storage
+    .from(AVATAR_BUCKET)
+    .upload(objectPath, avatar, {
+      cacheControl: '3600',
+      contentType: 'image/png',
+      upsert: true,
+    });
+  failOnError(uploadError, `Could not upload avatar for ${fixture.email}`);
+  const { data } = client.storage.from(AVATAR_BUCKET).getPublicUrl(objectPath);
+  const avatarUrl = `${data.publicUrl}?v=${DATASET_VERSION}`;
+  const { error: profileError } = await client
+    .from('profiles')
+    .update({ avatar_url: avatarUrl })
+    .eq('id', userId);
+  failOnError(profileError, `Could not set avatar for ${fixture.email}`);
+  return avatarUrl;
 }
 
 async function insertRows(client, table, rows) {
@@ -180,7 +218,7 @@ async function verifyCount(client, table, ownerId, expected) {
     );
 }
 
-async function verifyDataset(client, dataset) {
+async function verifyDataset(client, dataset, avatarUrl) {
   await verifyCount(
     client,
     'wallets',
@@ -219,6 +257,15 @@ async function verifyDataset(client, dataset) {
     dataset.profile.id,
     dataset.notifications.length
   );
+  const { data: profile, error: profileError } = await client
+    .from('profiles')
+    .select('avatar_url')
+    .eq('id', dataset.profile.id)
+    .single();
+  failOnError(profileError, 'Could not verify the demo avatar');
+  if (profile.avatar_url !== avatarUrl) {
+    throw new Error('Verification failed for the demo avatar URL.');
+  }
 }
 
 export function createAdminClient(url, serviceRoleKey) {
@@ -246,10 +293,11 @@ export async function applyDemoSeed({
     const dataset = generateDemoDataset(locale, user.id);
     validateDataset(dataset);
     await writeDataset(client, dataset);
+    const avatarUrl = await seedDemoAvatar(client, FIXTURES[locale], user.id);
     const { error: metadataError } = await client.auth.admin.updateUserById(
       user.id,
       {
-        user_metadata: userMetadata(FIXTURES[locale]),
+        user_metadata: userMetadata(FIXTURES[locale], avatarUrl),
         app_metadata: marker(locale),
       }
     );
@@ -257,7 +305,7 @@ export async function applyDemoSeed({
       metadataError,
       `Could not update markers for ${FIXTURES[locale].email}`
     );
-    await verifyDataset(client, dataset);
+    await verifyDataset(client, dataset, avatarUrl);
     const summary = summarizeDataset(dataset);
     summaries.push(summary);
     log(

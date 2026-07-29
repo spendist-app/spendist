@@ -1,0 +1,237 @@
+<main class="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+  <header class="space-y-2">
+    <span class="badge badge-primary badge-outline">
+      {{ 'modules.allowance.badge' | transloco }}
+    </span>
+    <h1 class="text-3xl font-bold sm:text-4xl">
+      {{ 'modules.allowance.title' | transloco }}
+    </h1>
+    <p class="max-w-3xl text-base-content/70">
+      {{ 'modules.allowance.description' | transloco }}
+    </p>
+    <div class="alert alert-info text-sm">
+      <span>{{ 'modules.allowance.ledgerNotice' | transloco }}</span>
+    </div>
+  </header>
+
+  @if (allowance.error()) {
+    <div class="alert alert-error">
+      <span>{{ allowance.error()! | transloco }}</span>
+    </div>
+  }
+
+  <section class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,0.8fr)]">
+    <div class="card border border-base-200 bg-base-100 shadow-sm">
+      <div class="card-body">
+        <h2 class="card-title">{{ 'modules.allowance.invite.title' | transloco }}</h2>
+        <p class="text-sm text-base-content/65">
+          {{ 'modules.allowance.invite.help' | transloco }}
+        </p>
+        <form class="mt-2 flex flex-col gap-3 sm:flex-row" [formGroup]="inviteForm" (ngSubmit)="sendInvite()">
+          <label class="form-control flex-1">
+            <span class="label-text">{{ 'modules.allowance.invite.email' | transloco }}</span>
+            <input class="input input-bordered w-full" type="email" formControlName="email" autocomplete="email" />
+          </label>
+          <button class="btn btn-primary self-end" type="submit" [disabled]="allowance.pending()">
+            @if (allowance.pending()) { <span class="loading loading-spinner loading-sm"></span> }
+            {{ 'modules.allowance.invite.submit' | transloco }}
+          </button>
+        </form>
+
+        @if (allowance.invitations().length > 0) {
+          <div class="mt-5 space-y-2">
+            <h3 class="font-semibold">{{ 'modules.allowance.invite.pending' | transloco }}</h3>
+            @for (invitation of allowance.invitations(); track invitation.id) {
+              <div class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-base-200 p-3 text-sm">
+                <span class="min-w-0 break-all">{{ invitation.invitee_email }}</span>
+                <span class="badge badge-outline">{{ ('modules.allowance.status.' + invitation.status) | transloco }}</span>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="card border border-base-200 bg-base-100 shadow-sm">
+      <div class="card-body">
+        <h2 class="card-title">{{ 'modules.allowance.connections.title' | transloco }}</h2>
+        @if (allowance.connections().length === 0) {
+          <p class="text-sm text-base-content/60">{{ 'modules.allowance.connections.empty' | transloco }}</p>
+        } @else {
+          <div class="space-y-3">
+            @for (connection of allowance.connections(); track connection.id) {
+              <article class="rounded-xl border border-base-200 p-3">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                  <div class="min-w-0">
+                    <p class="font-semibold">{{ connection.counterpartName }}</p>
+                    <p class="break-all text-sm text-base-content/60">{{ connection.counterpartEmail }}</p>
+                    <span class="badge badge-ghost badge-sm mt-2">
+                      {{ ('modules.allowance.connections.role.' + connection.role) | transloco }}
+                    </span>
+                  </div>
+                  @if (connection.status === 'active') {
+                    <button class="btn btn-ghost btn-sm text-error" type="button"
+                      [disabled]="allowance.pending()" (click)="allowance.disconnect(connection.id)">
+                      {{ 'modules.allowance.connections.disconnect' | transloco }}
+                    </button>
+                  } @else {
+                    <span class="badge">{{ 'modules.allowance.status.disconnected' | transloco }}</span>
+                  }
+                </div>
+              </article>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  @if (allowance.activePayerConnections().length > 0) {
+    <section class="card border border-base-200 bg-base-100 shadow-sm">
+      <form class="card-body" [formGroup]="scheduleForm" (ngSubmit)="createSchedule()">
+        <div>
+          <h2 class="card-title">{{ 'modules.allowance.schedule.title' | transloco }}</h2>
+          <p class="text-sm text-base-content/65">{{ 'modules.allowance.schedule.help' | transloco }}</p>
+        </div>
+        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <label class="form-control">
+            <span class="label-text">{{ 'modules.allowance.schedule.recipient' | transloco }}</span>
+            <select class="select select-bordered" formControlName="connectionId">
+              <option value="" disabled>{{ 'modules.allowance.schedule.chooseRecipient' | transloco }}</option>
+              @for (connection of allowance.activePayerConnections(); track connection.id) {
+                <option [value]="connection.id">{{ connection.counterpartName }}</option>
+              }
+            </select>
+          </label>
+          <label class="form-control">
+            <span class="label-text">{{ 'modules.allowance.schedule.name' | transloco }}</span>
+            <input class="input input-bordered" formControlName="name" />
+          </label>
+          <label class="form-control">
+            <span class="label-text">{{ 'modules.allowance.schedule.category' | transloco }}</span>
+            <select class="select select-bordered" formControlName="categoryId">
+              <option value="" disabled>—</option>
+              @for (category of transactions.categories(); track category.id) {
+                <option [value]="category.id">{{ category.name }}</option>
+              }
+            </select>
+          </label>
+          <label class="form-control">
+            <span class="label-text">{{ 'modules.allowance.schedule.wallet' | transloco }}</span>
+            <select class="select select-bordered" formControlName="walletId">
+              <option value="" disabled>—</option>
+              @for (wallet of transactions.wallets(); track wallet.id) {
+                <option [value]="wallet.id">{{ wallet.name }}</option>
+              }
+            </select>
+          </label>
+          <label class="form-control">
+            <span class="label-text">{{ 'modules.allowance.schedule.amountMode' | transloco }}</span>
+            <select class="select select-bordered" formControlName="amountMode">
+              <option value="fixed">{{ 'modules.allowance.schedule.fixed' | transloco }}</option>
+              <option value="variable">{{ 'modules.allowance.schedule.variable' | transloco }}</option>
+            </select>
+          </label>
+          @if (scheduleForm.controls.amountMode.value === 'fixed') {
+            <label class="form-control">
+              <span class="label-text">{{ 'modules.allowance.schedule.amount' | transloco }}</span>
+              <div class="join">
+                <input class="input input-bordered join-item w-full" type="number" min="0.01" step="0.01" formControlName="amount" />
+                <input class="input input-bordered join-item w-24 uppercase" maxlength="3" formControlName="currency" />
+              </div>
+            </label>
+          }
+          <label class="form-control">
+            <span class="label-text">{{ 'modules.allowance.schedule.frequency' | transloco }}</span>
+            <select class="select select-bordered" formControlName="frequency">
+              <option value="daily">{{ 'modules.allowance.schedule.daily' | transloco }}</option>
+              <option value="weekly">{{ 'modules.allowance.schedule.weekly' | transloco }}</option>
+              <option value="monthly">{{ 'modules.allowance.schedule.monthly' | transloco }}</option>
+            </select>
+          </label>
+          @if (scheduleForm.controls.frequency.value === 'weekly') {
+            <label class="form-control">
+              <span class="label-text">{{ 'modules.allowance.schedule.weekday' | transloco }}</span>
+              <select class="select select-bordered" formControlName="weekday">
+                <option [value]="1">{{ 'modules.allowance.weekdays.monday' | transloco }}</option>
+                <option [value]="2">{{ 'modules.allowance.weekdays.tuesday' | transloco }}</option>
+                <option [value]="3">{{ 'modules.allowance.weekdays.wednesday' | transloco }}</option>
+                <option [value]="4">{{ 'modules.allowance.weekdays.thursday' | transloco }}</option>
+                <option [value]="5">{{ 'modules.allowance.weekdays.friday' | transloco }}</option>
+                <option [value]="6">{{ 'modules.allowance.weekdays.saturday' | transloco }}</option>
+                <option [value]="0">{{ 'modules.allowance.weekdays.sunday' | transloco }}</option>
+              </select>
+            </label>
+          }
+          @if (scheduleForm.controls.frequency.value === 'monthly') {
+            <label class="form-control">
+              <span class="label-text">{{ 'modules.allowance.schedule.monthday' | transloco }}</span>
+              <input class="input input-bordered" type="number" min="1" max="28" formControlName="monthday" />
+            </label>
+          }
+          <label class="form-control">
+            <span class="label-text">{{ 'modules.allowance.schedule.time' | transloco }}</span>
+            <input class="input input-bordered" type="time" formControlName="time" />
+          </label>
+          <label class="form-control">
+            <span class="label-text">{{ 'modules.allowance.schedule.start' | transloco }}</span>
+            <input class="input input-bordered" type="date" formControlName="startDate" />
+          </label>
+          <label class="form-control">
+            <span class="label-text">{{ 'modules.allowance.schedule.end' | transloco }}</span>
+            <input class="input input-bordered" type="date" formControlName="endDate" />
+          </label>
+        </div>
+        <div class="card-actions justify-end">
+          <button class="btn btn-primary" type="submit" [disabled]="allowance.pending()">
+            {{ 'modules.allowance.schedule.submit' | transloco }}
+          </button>
+        </div>
+      </form>
+    </section>
+  }
+
+  <section class="space-y-3">
+    <h2 class="text-2xl font-bold">{{ 'modules.allowance.schedule.listTitle' | transloco }}</h2>
+    @if (allowance.schedules().length === 0) {
+      <div class="rounded-2xl border border-dashed border-base-300 p-8 text-center text-base-content/60">
+        {{ 'modules.allowance.schedule.empty' | transloco }}
+      </div>
+    } @else {
+      <div class="grid gap-4 md:grid-cols-2">
+        @for (schedule of allowance.schedules(); track schedule.id) {
+          <article class="card border border-base-200 bg-base-100 shadow-sm">
+            <div class="card-body gap-3">
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h3 class="card-title">{{ schedule.name }}</h3>
+                    <span class="badge badge-secondary">{{ 'modules.allowance.badge' | transloco }}</span>
+                    @if (schedule.isPaused) { <span class="badge badge-warning">{{ 'modules.allowance.status.paused' | transloco }}</span> }
+                  </div>
+                  <p class="text-sm text-base-content/60">
+                    {{ counterpart(schedule.connectionId)?.counterpartName }}
+                  </p>
+                </div>
+                @if (schedule.amountMode === 'fixed') {
+                  <strong>{{ schedule.amount | number: '1.2-2' }} {{ schedule.currency }}</strong>
+                } @else {
+                  <strong>{{ 'modules.allowance.schedule.variable' | transloco }}</strong>
+                }
+              </div>
+              <p class="font-mono text-xs text-base-content/55">{{ scheduleLabel(schedule) }}</p>
+              <div class="card-actions justify-end">
+                <button class="btn btn-outline btn-sm" type="button" (click)="allowance.toggleSchedule(schedule)">
+                  {{ (schedule.isPaused ? 'modules.allowance.schedule.resume' : 'modules.allowance.schedule.pause') | transloco }}
+                </button>
+                <button class="btn btn-ghost btn-sm text-error" type="button" (click)="allowance.deleteSchedule(schedule.id)">
+                  {{ 'common.actions.delete' | transloco }}
+                </button>
+              </div>
+            </div>
+          </article>
+        }
+      </div>
+    }
+  </section>
+</main>

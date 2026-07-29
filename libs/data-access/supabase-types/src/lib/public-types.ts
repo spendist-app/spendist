@@ -32,6 +32,9 @@ export type ProfileRow = PublicTables['profiles']['Row'];
 export type NotificationRow = PublicTables['notifications']['Row'];
 export type NotificationUpdate = PublicTables['notifications']['Update'];
 
+export type AllowanceInvitationRow = PublicTables['allowance_invitations']['Row'];
+export type AllowanceConnectionRow = PublicTables['allowance_connections']['Row'];
+
 export type RecurringTransactionRow = PublicTables['recurring_transactions']['Row'];
 export type RecurringTransactionInsert = PublicTables['recurring_transactions']['Insert'];
 export type RecurringTransactionUpdate = PublicTables['recurring_transactions']['Update'];

@@ -56,6 +56,7 @@ const en = {
     modules: 'Modules',
     modulesRecurring: 'Recurring payments',
     modulesPlaces: 'Places',
+    modulesAllowance: 'Allowance',
     menuToggle: 'Open navigation menu',
     about: {
       menuItem: 'About',
@@ -722,6 +723,8 @@ const en = {
     unreadCount: 'Unread: {{count}}',
     actions: {
       readAll: 'Read all',
+      accept: 'Accept',
+      decline: 'Decline',
     },
     empty: {
       title: 'No notifications',
@@ -739,11 +742,27 @@ const en = {
       exchange_rates_sync_failed: {
         title: 'Exchange rates sync failed: {{error}}',
       },
+      allowance_invitation_received: {
+        title: '{{inviterName}} invited you to Allowance',
+      },
+      allowance_invitation_accepted: {
+        title: '{{recipientName}} accepted your Allowance invitation',
+      },
+      allowance_invitation_declined: {
+        title: 'Your Allowance invitation was declined',
+      },
+      allowance_received: {
+        title: 'Allowance received: {{description}} ({{amount}} {{currency}})',
+      },
+      allowance_transfer_failed: {
+        title: 'Allowance could not be recorded: {{error}}',
+      },
     },
     errors: {
       generic: 'Something went wrong. Please try again.',
       load: 'Notifications could not be loaded.',
       markAllRead: 'Notifications could not be marked as read.',
+      allowanceResponse: 'The Allowance invitation could not be updated.',
     },
   },
   dashboard: {
@@ -903,6 +922,11 @@ const en = {
       noDescription: 'Untitled transaction',
       automatic: 'Automatic',
       recurringSource: 'Recurring',
+      recurringFallback: 'Recurring payment',
+      allowance: {
+        payer: 'Allowance · sent',
+        recipient: 'Allowance · received',
+      },
       uncategorized: 'No category',
       place: 'Place',
       direction: {
@@ -941,6 +965,7 @@ const en = {
         direction: 'Type',
         category: 'Category',
         wallet: 'Wallet',
+        allowanceRecipient: 'Also show for',
         tags: 'Tags',
         place: 'Place',
         quantity: 'Quantity',
@@ -986,6 +1011,10 @@ const en = {
           'Capture the essentials now — you can enrich the record with more details later.',
         edit: 'Update the details below to keep your history accurate.',
       },
+      audit: {
+        createdAt: 'Added',
+        updatedAt: 'Last edited',
+      },
       submit: {
         createIdle: 'Save transaction',
         createAndContinue: 'Save and add another',
@@ -1017,6 +1046,7 @@ const en = {
         place: 'No place',
         placeSearch: 'Search places...',
         wallet: 'Select wallet',
+        allowanceRecipient: 'Only on my account',
         tagInput: 'Type a tag and press Enter…',
       },
       validation: {
@@ -1030,6 +1060,7 @@ const en = {
         showAdvanced: 'Show advanced fields',
         hideAdvanced: 'Hide advanced fields',
         setToday: 'Set today',
+        clearPlace: 'Clear place',
         updateExchangeRate: 'Update exchange rate',
       },
       help: {
@@ -1038,6 +1069,10 @@ const en = {
         quantity: 'Use this when recording identical items bought together.',
         advancedDisclaimer:
           'Transactions default to your primary wallet — choose another if this one should be tracked elsewhere.',
+        allowanceRecipient:
+          'Creates a matching income entry for the selected recipient.',
+        allowanceEmpty:
+          'Connect a recipient in the Allowance module to use this option.',
       },
       emptyTags:
         'Start typing to create your first tag or choose from suggestions.',
@@ -1100,6 +1135,88 @@ const en = {
     },
   },
   modules: {
+    allowance: {
+      badge: 'Allowance',
+      title: 'Allowance, planned together',
+      description:
+        'Connect with a recipient and record matching expense and income entries, once or on a schedule.',
+      ledgerNotice:
+        'Spendist records budget entries only. It does not transfer money or initiate bank payments.',
+      invite: {
+        title: 'Invite a recipient',
+        help: 'You can invite more people by sending one invitation at a time.',
+        email: 'Email address',
+        submit: 'Send invitation',
+        pending: 'Invitations',
+      },
+      invitePage: {
+        title: 'Allowance invitation',
+        accepted: 'The accounts are now connected.',
+        open: 'Open Allowance',
+        invalid: 'This invitation is invalid, expired, or belongs to another email address.',
+        signIn: 'Log in or create an account using the invited email address.',
+      },
+      connections: {
+        title: 'Connected people',
+        empty: 'No connections yet.',
+        disconnect: 'Disconnect',
+        role: {
+          payer: 'You send allowance',
+          recipient: 'You receive allowance',
+        },
+      },
+      schedule: {
+        title: 'Plan allowance',
+        help: 'The schedule appears in Recurring payments with an Allowance badge.',
+        recipient: 'Recipient',
+        chooseRecipient: 'Choose a recipient',
+        name: 'Description',
+        category: 'Your expense category',
+        wallet: 'Your wallet',
+        amountMode: 'Amount type',
+        fixed: 'Fixed amount',
+        variable: 'Variable amount',
+        amount: 'Amount',
+        frequency: 'Frequency',
+        daily: 'Daily',
+        weekly: 'Weekly',
+        monthly: 'Monthly',
+        weekday: 'Day of week',
+        monthday: 'Day of month',
+        time: 'Time',
+        start: 'Start date',
+        end: 'End date (optional)',
+        submit: 'Create allowance schedule',
+        listTitle: 'Allowance schedules',
+        empty: 'No allowance schedules yet.',
+        pause: 'Pause',
+        resume: 'Resume',
+        nextRun: 'Next entry: {{date}}',
+        noUpcoming: 'No upcoming entries.',
+      },
+      weekdays: {
+        monday: 'Monday',
+        tuesday: 'Tuesday',
+        wednesday: 'Wednesday',
+        thursday: 'Thursday',
+        friday: 'Friday',
+        saturday: 'Saturday',
+        sunday: 'Sunday',
+      },
+      status: {
+        pending: 'Pending',
+        accepted: 'Accepted',
+        declined: 'Declined',
+        revoked: 'Revoked',
+        expired: 'Expired',
+        disconnected: 'Disconnected',
+        paused: 'Paused',
+      },
+      errors: {
+        load: 'Allowance data could not be loaded.',
+        mutation: 'The Allowance operation could not be completed.',
+      },
+    },
     recurringPayments: {
       badge: 'Modules',
       title: 'Recurring payments',
