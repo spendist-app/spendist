@@ -4,14 +4,20 @@ Spendist has a repository-managed, deterministic demo dataset intended for scree
 
 ## Dataset
 
-Dataset version `2026-07-v1` contains two dedicated users:
+Dataset version `2026-07-v2` contains two dedicated users:
 
 | Locale       | User         | Email                  | Base currency |
 | ------------ | ------------ | ---------------------- | ------------- |
 | Polish       | Marta Nowak  | `demo-pl@spendist.app` | PLN           |
 | English (US) | Emily Carter | `demo-en@spendist.app` | USD           |
 
-Each user has exactly 300 transactions dated from January 1 through July 28, 2026, three wallets, localized category groups and categories, tags, fictional places, recurring payments, recurring occurrences, and notifications. The generator uses stable keys and a seeded pseudorandom sequence, so the same dataset version produces the same domain records.
+Each user has exactly 300 transactions dated from January 1 through July 28, 2026, three wallets, localized category groups and categories, tags, fictional places, recurring payments, recurring occurrences, notifications, and a repository-managed profile avatar. The generator uses stable keys and a seeded pseudorandom sequence, so the same dataset version produces the same domain records.
+
+Avatar sources live in `tools/demo-seed/assets/`. During an apply, the tool
+uploads the localized image to the public `avatars` bucket at
+`<user-id>/avatar.png`, updates the profile and Auth metadata, and verifies the
+stored profile URL. A sync replaces the object in place. Replace mode removes
+the old user's avatar before recreating the identity.
 
 The initial password is supplied by the operator through `DEMO_SEED_INITIAL_PASSWORD`. It is required only when an account must be created or replaced. A normal `sync` never resets a password that was changed later.
 
@@ -60,7 +66,7 @@ Then run:
 npm run demo:seed:apply -- --locale=all
 ```
 
-Local writes still require `--apply`. The tool creates missing marked Auth users, rebuilds their domain data, and verifies final record counts.
+Local writes still require `--apply`. The tool creates missing marked Auth users, uploads their avatars, rebuilds their domain data, and verifies final record counts and profile-avatar URLs.
 
 ## Remote sync
 
@@ -73,7 +79,7 @@ npm run demo:seed:apply -- \
   --confirm-project-ref=YOUR_PROJECT_REF
 ```
 
-`sync` is the default mode. It preserves the Auth user ID and password, clears only the marked demo user's financial-domain records, recreates the selected dataset version, refreshes the demo metadata, and verifies final counts.
+`sync` is the default mode. It preserves the Auth user ID and password, clears only the marked demo user's financial-domain records, recreates the selected dataset version, replaces the avatar at the same user-owned Storage path, refreshes the demo metadata, and verifies final counts.
 
 The tool stops before changing data when:
 
@@ -83,7 +89,7 @@ The tool stops before changing data when:
 
 ## Replace
 
-Use replacement only when the Auth identity itself should be recreated. It permanently deletes the selected marked demo Auth user and its cascading data before creating a new identity. It requires the exact selected email addresses as a second confirmation:
+Use replacement only when the Auth identity itself should be recreated. It removes the selected demo avatar, permanently deletes the marked demo Auth user and its cascading data, and then creates a new identity. It requires the exact selected email addresses as a second confirmation:
 
 ```bash
 npm run demo:seed:apply -- \
