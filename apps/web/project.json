@@ -18,6 +18,16 @@
           {
             "glob": "**/*",
             "input": "apps/web/public"
+          },
+          {
+            "glob": "llm.txt",
+            "input": ".",
+            "output": "/"
+          },
+          {
+            "glob": "llm-full.txt",
+            "input": ".",
+            "output": "/"
           }
         ],
         "styles": ["apps/web/src/styles.css"],

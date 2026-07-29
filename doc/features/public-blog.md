@@ -31,9 +31,9 @@ The generator rejects malformed slugs, unknown categories, invalid dates, missin
 
 ## Rendering and SEO
 
-Published Markdown is converted to sanitized HTML during the build. Article H2/H3 headings receive stable anchors and feed the table of contents. The generator calculates reading time and sorts articles newest first.
+Published Markdown is converted to sanitized HTML during the build. Article H2/H3 headings receive stable anchors and feed the table of contents. Table-of-contents links retain the localized article path and scroll to the selected heading. The generator calculates reading time and sorts articles newest first.
 
-Blog pages provide canonical URLs, robots directives, Open Graph, Twitter cards, RSS discovery, and JSON-LD. Article pages use `BlogPosting` and breadcrumbs. Edition home pages have reciprocal PL/EN `hreflang`; article pages do not, because posts are independent. The generated sitemap contains the landing page, both edition indexes, published articles, and non-empty category archives. Unknown blog URLs receive a branded `noindex` page and the Cloudflare Worker returns HTTP 404.
+Blog pages provide canonical URLs, robots directives, Open Graph, Twitter cards, RSS discovery, and JSON-LD. Article pages use `BlogPosting` and breadcrumbs. The visually separated sharing panel uses icon-only Web Share, copy-link, Facebook, LinkedIn, and X actions with accessible labels; it does not load third-party social SDKs. Edition home pages have reciprocal PL/EN `hreflang`; article pages do not, because posts are independent. The generated sitemap contains the landing page, both edition indexes, published articles, and non-empty category archives. Unknown blog URLs receive a branded `noindex` page and the Cloudflare Worker returns HTTP 404.
 
 ## User-visible behavior and limits
 

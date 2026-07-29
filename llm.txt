@@ -20,9 +20,10 @@ Spendist is a GPL-3.0, open-source personal-finance web application. It helps a 
 - Hosting: Cloudflare Worker in `apps/web/worker.ts`; public assets are in `apps/web/public/`.
 - Routes: `apps/web/src/app/app.routes.ts`. Public indexable routes are `/`, `/pl/blog`, `/en/blog`, published localized articles, pagination, and non-empty category archives. Authentication and application routes are not sitemap entries.
 - Blog content: independent Polish and English Markdown collections under `apps/web/content/blog/`. Articles are not translation pairs. `npm run blog:generate` validates content and generates the Angular content module, locale RSS feeds, sitemap, and robots file; `blog:check` protects builds from stale output.
+- Blog articles: the table of contents keeps the localized article path and scrolls to stable heading anchors. The separated sharing panel provides icon-only browser share, copy-link, Facebook, LinkedIn, and X actions without social SDKs.
 - Blog authoring: the repo-local `add-spendist-blog-post` skill creates a real localized Markdown file and always starts it as `draft: true`, so images can be added later.
 - Static images: originals are grouped under `apps/web/image-sources/blog/{locale}/{slug}/` or `apps/web/image-sources/site/{feature}/`. `npm run images:generate` creates AVIF/WebP responsive variants, fallbacks, and manifests; `images:check` protects the build.
 
 ## Knowledge sources
 
-Start with `doc/README.md`, then read `llm-full.txt` for detailed behavior, route ownership, and architecture. Keep `doc/`, both LLM files, `sitemap.xml`, and `robots.txt` current when product behavior or public routes change.
+Start with `doc/README.md`, then read `llm-full.txt` for detailed behavior, route ownership, and architecture. The Worker publicly serves these files at both `/llm.txt` and the conventional `/llms.txt`, plus `/llm-full.txt` and `/llms-full.txt`. Keep `doc/`, both LLM files, `sitemap.xml`, and `robots.txt` current when product behavior or public routes change.

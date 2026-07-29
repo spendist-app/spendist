@@ -26,6 +26,22 @@ describe('BlogShare', () => {
     );
     expect(links).toHaveLength(3);
     expect(links.every((link) => link.rel.includes('noopener'))).toBe(true);
+    expect(links.map((link) => link.getAttribute('aria-label'))).toEqual([
+      'Facebook',
+      'LinkedIn',
+      'X',
+    ]);
+    expect(
+      fixture.nativeElement.querySelectorAll('.share-action ng-icon')
+    ).toHaveLength(4);
+    expect(fixture.nativeElement.querySelectorAll('.share-title')).toHaveLength(
+      1
+    );
+    expect(
+      Array.from(
+        fixture.nativeElement.querySelectorAll<HTMLElement>('.share-action')
+      ).every((action) => action.textContent?.trim() === '')
+    ).toBe(true);
     expect(links[0].href).toContain(
       encodeURIComponent('https://spendist.app/en/blog/useful-article')
     );

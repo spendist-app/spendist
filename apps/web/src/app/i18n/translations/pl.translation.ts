@@ -706,7 +706,6 @@ const pl = {
     },
     share: {
       label: 'Udostępnij artykuł',
-      shortLabel: 'Udostępnij',
       native: 'Udostępnij',
       copy: 'Kopiuj link',
       copied: 'Skopiowano',

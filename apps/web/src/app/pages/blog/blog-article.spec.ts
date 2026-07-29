@@ -12,7 +12,7 @@ import { BlogSeoService } from './blog-seo.service';
 describe('BlogArticle', () => {
   const seo = { apply: vi.fn() };
 
-  beforeEach(async () => {
+  const configure = async (slug: string) => {
     await TestBed.configureTestingModule({
       imports: [BlogArticle],
       providers: [
@@ -25,15 +25,20 @@ describe('BlogArticle', () => {
           useValue: {
             snapshot: {
               data: { blogLocale: 'pl' },
-              paramMap: convertToParamMap({ slug: 'missing-article' }),
+              paramMap: convertToParamMap({ slug }),
             },
           },
         },
       ],
     }).compileComponents();
+  };
+
+  beforeEach(() => {
+    seo.apply.mockClear();
   });
 
   it('marks an unknown article as noindex and shows the localized fallback', async () => {
+    await configure('missing-article');
     const fixture = TestBed.createComponent(BlogArticle);
     fixture.detectChanges();
     await fixture.whenStable();
@@ -42,5 +47,24 @@ describe('BlogArticle', () => {
       expect.objectContaining({ path: '/pl/blog', robots: 'noindex,follow' })
     );
     expect(fixture.nativeElement.querySelector('.not-found h1')).toBeTruthy();
+  });
+
+  it('keeps table-of-contents fragments on the localized article route', async () => {
+    await configure('platnosci-cykliczne-w-domowym-budzecie');
+    const fixture = TestBed.createComponent(BlogArticle);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const links = Array.from(
+      fixture.nativeElement.querySelectorAll<HTMLAnchorElement>('.toc a')
+    );
+    expect(links.length).toBeGreaterThan(0);
+    expect(
+      links.every((link) =>
+        link
+          .getAttribute('href')
+          ?.startsWith('/pl/blog/platnosci-cykliczne-w-domowym-budzecie#')
+      )
+    ).toBe(true);
   });
 });

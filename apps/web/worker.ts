@@ -49,6 +49,11 @@ const SERVICE_WORKER_ASSET_PATHS = new Set([
   '/worker-basic.min.js',
 ]);
 
+const LLM_ASSET_ALIASES = new Map([
+  ['/llms.txt', '/llm.txt'],
+  ['/llms-full.txt', '/llm-full.txt'],
+]);
+
 const buildEnvPayload = (env: Env): Record<string, string> => {
   const supabaseUrl = env.SUPABASE_URL ?? env.NG_APP_SUPABASE_URL ?? '';
   const publishableKey =
@@ -87,6 +92,9 @@ const withSecurityHeaders = (
     const { pathname } = url;
     if (SERVICE_WORKER_ASSET_PATHS.has(pathname)) {
       headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
+    if (/^\/llms?(?:-full)?\.txt$/.test(pathname)) {
+      headers.set('Content-Type', 'text/plain; charset=utf-8');
     }
     if (
       /^\/(pl|en)\/blog(?:\/|$)/.test(pathname) &&
@@ -161,7 +169,14 @@ export default {
       return envResponse(env);
     }
 
-    const assetResponse = await env.ASSETS.fetch(request);
+    const llmAssetPath = LLM_ASSET_ALIASES.get(url.pathname);
+    const assetRequest = llmAssetPath
+      ? new Request(
+          new URL(llmAssetPath + url.search, request.url).toString(),
+          request
+        )
+      : request;
+    const assetResponse = await env.ASSETS.fetch(assetRequest);
     if (assetResponse.status === 404 && shouldServeHtmlFallback(request)) {
       if (/^\/(pl|en)\/blog(?:\/|$)/.test(url.pathname)) {
         return withSecurityHeaders(
