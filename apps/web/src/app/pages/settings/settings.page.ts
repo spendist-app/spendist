@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   computed,
   effect,
   inject,
@@ -14,15 +15,26 @@ import {
 } from '@angular/forms';
 import { TranslocoPipe, TranslocoService } from '@ngneat/transloco';
 import { NgIcon } from '@ng-icons/core';
-import { heroPencilSquare, heroTrash } from '@ng-icons/heroicons/outline';
+import {
+  heroPencilSquare,
+  heroTrash,
+} from '@ng-icons/heroicons/outline';
 import { Router } from '@angular/router';
+import { debounceTime, distinctUntilChanged } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   SettingsStore,
   CategoryEntity,
   CategoryGroupEntity,
+  type ProfileUpdatePayload,
   WalletEntity,
 } from './settings.store';
 import type { ProfileEntity } from '../../core/profile.service';
+import { LanguageService } from '../../core/language.service';
+import {
+  SUPPORTED_LANGUAGES,
+  type LanguageCode,
+} from '../../i18n/languages';
 import {
   canonicalHeroIconName,
   formatHeroIconLabel as formatHeroIconLabelFn,
@@ -40,6 +52,20 @@ type CategoriesTabId = 'list' | 'groups';
 type CategoryEditorMode = 'create' | 'edit';
 type GroupEditorMode = 'create' | 'edit';
 type SpendistCsvRangeMode = 'month' | 'all';
+type ProfileAutosaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+
+function resolveTimezoneOptions(): readonly string[] {
+  const supportedValuesOf = (
+    Intl as typeof Intl & {
+      supportedValuesOf?: (key: 'timeZone') => string[];
+    }
+  ).supportedValuesOf;
+
+  const timezones = supportedValuesOf?.('timeZone') ?? [];
+  return Array.from(new Set(['UTC', ...timezones])).sort((left, right) =>
+    left.localeCompare(right)
+  );
+}
 
 const passwordsMatchValidator = (passwordKey: string, confirmPasswordKey: string) => {
   return (group: { get: (key: string) => { value: string } | null }) => {
@@ -98,18 +124,22 @@ interface ParentCategoryOption {
 })
 export class SettingsPageComponent {
   private readonly fb = inject(NonNullableFormBuilder);
+  private readonly destroyRef = inject(DestroyRef);
   protected readonly store = inject(SettingsStore);
   protected readonly kontomierzImport = inject(KontomierzImportStore);
   protected readonly spendistCsv = inject(SpendistCsvTransferStore);
   private readonly transloco = inject(TranslocoService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly languageService = inject(LanguageService);
 
   protected readonly heroIconSvg = heroIconSvgFn;
   protected readonly formatHeroIconLabel = formatHeroIconLabelFn;
   protected readonly isHeroIconName = isHeroIconNameFn;
   protected readonly editIcon = heroPencilSquare;
   protected readonly deleteIcon = heroTrash;
+  protected readonly profileLanguages = SUPPORTED_LANGUAGES;
+  protected readonly timezoneOptions = resolveTimezoneOptions();
 
   protected readonly panels: readonly SettingsPanel[] = [
     {
@@ -153,7 +183,8 @@ export class SettingsPageComponent {
   protected readonly selectedSpendistCsvFile = signal<File | null>(null);
   protected readonly selectedSpendistCsvCategoryIds = signal<readonly string[]>([]);
   protected readonly spendistCsvHeaders = SPENDIST_CSV_HEADERS;
-  protected readonly securityOpen = signal(false);
+  protected readonly profileAutosaveStatus =
+    signal<ProfileAutosaveStatus>('idle');
   protected readonly passwordChangePending = signal(false);
   protected readonly passwordChangeError = signal<string | null>(null);
   protected readonly passwordChangeSuccess = signal(false);
@@ -161,6 +192,18 @@ export class SettingsPageComponent {
   protected readonly accountDeletionOpen = signal(false);
   protected readonly accountDeletionPending = signal(false);
   protected readonly accountDeletionError = signal<string | null>(null);
+  private initializedProfileId: string | null = null;
+  private profileSaveQueue = Promise.resolve();
+  private pendingProfileSaves = 0;
+  private readonly pendingProfileValues: {
+    fullName?: string;
+    language?: LanguageCode;
+    timezone?: string;
+  } = {};
+  protected readonly failedProfileUpdate =
+    signal<ProfileUpdatePayload | null>(null);
+  private profileSaveFailed = false;
+  private profileSavedTimer: ReturnType<typeof setTimeout> | null = null;
 
   protected readonly hasGroups = computed(() => this.store.groups().length > 0);
 
@@ -302,6 +345,22 @@ export class SettingsPageComponent {
   protected readonly avatarInitials = computed(() =>
     this.resolveProfileInitials(this.profile())
   );
+  protected readonly profileForm = this.fb.group({
+    fullName: this.fb.control('', {
+      validators: [
+        Validators.required,
+        Validators.minLength(2),
+        Validators.maxLength(120),
+      ],
+    }),
+    language: this.fb.control<LanguageCode>('en', {
+      validators: [Validators.required],
+    }),
+    timezone: this.fb.control('UTC', {
+      validators: [Validators.required],
+    }),
+  });
+  protected readonly profileFormControls = this.profileForm.controls;
   protected readonly kontomierzImportForm = this.fb.group({
     walletId: this.fb.control('', { validators: [Validators.required] }),
   });
@@ -350,6 +409,39 @@ export class SettingsPageComponent {
     this.accountDeletionForm.controls;
 
   constructor() {
+    this.profileFormControls.fullName.valueChanges
+      .pipe(
+        debounceTime(600),
+        distinctUntilChanged(),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe(() => this.autosaveFullName());
+
+    this.destroyRef.onDestroy(() => {
+      if (this.profileSavedTimer) {
+        clearTimeout(this.profileSavedTimer);
+      }
+    });
+
+    effect(() => {
+      const profile = this.profile();
+      if (!profile || profile.id === this.initializedProfileId) {
+        return;
+      }
+
+      this.initializedProfileId = profile.id;
+      this.profileForm.setValue(
+        {
+          fullName: profile.fullName,
+          language: this.resolveLanguage(profile.language),
+          timezone: profile.timezone || 'UTC',
+        },
+        { emitEvent: false }
+      );
+      this.profileForm.markAsPristine();
+      this.profileForm.markAsUntouched();
+    });
+
     effect(() => {
       const categories = this.categoriesView();
       const currentId = this.selectedCategoryId();
@@ -954,16 +1046,84 @@ export class SettingsPageComponent {
     }
   }
 
-  protected openProfileEditor(): void {
-    return;
+  protected autosaveFullName(): void {
+    const control = this.profileFormControls.fullName;
+    if (control.invalid) {
+      return;
+    }
+
+    const fullName = control.value.trim();
+    if (
+      fullName === this.profile()?.fullName ||
+      fullName === this.pendingProfileValues.fullName
+    ) {
+      return;
+    }
+
+    this.queueProfileUpdate({ fullName });
   }
 
-  protected manageSecurity(): void {
-    this.securityOpen.update((open) => !open);
-    this.passwordChangeError.set(null);
-    this.passwordChangeSuccess.set(false);
-    this.passwordMismatchSubmitted.set(false);
-    this.closeAccountDeletion();
+  protected onFullNameBlur(): void {
+    this.profileFormControls.fullName.markAsTouched();
+    this.autosaveFullName();
+  }
+
+  protected onProfileLanguageChange(event: Event): void {
+    const value = (event.target as HTMLSelectElement | null)?.value;
+    if (!this.isLanguageCode(value)) {
+      return;
+    }
+
+    if (
+      value === this.resolveLanguage(this.profile()?.language) ||
+      value === this.pendingProfileValues.language
+    ) {
+      return;
+    }
+
+    this.profileFormControls.language.setValue(value, { emitEvent: false });
+    this.languageService.setLanguage(value);
+    this.queueProfileUpdate({ language: value });
+  }
+
+  protected onProfileTimezoneChange(event: Event): void {
+    const timezone = (event.target as HTMLSelectElement | null)?.value ?? '';
+    if (
+      !timezone ||
+      timezone === this.profile()?.timezone ||
+      timezone === this.pendingProfileValues.timezone
+    ) {
+      return;
+    }
+
+    this.profileFormControls.timezone.setValue(timezone, { emitEvent: false });
+    this.queueProfileUpdate({ timezone });
+  }
+
+  protected retryProfileAutosave(): void {
+    const payload = this.failedProfileUpdate();
+    if (!payload) {
+      return;
+    }
+
+    if (payload.fullName !== undefined) {
+      this.profileFormControls.fullName.setValue(payload.fullName, {
+        emitEvent: false,
+      });
+    }
+    if (payload.language !== undefined) {
+      this.profileFormControls.language.setValue(payload.language, {
+        emitEvent: false,
+      });
+      this.languageService.setLanguage(payload.language);
+    }
+    if (payload.timezone !== undefined) {
+      this.profileFormControls.timezone.setValue(payload.timezone, {
+        emitEvent: false,
+      });
+    }
+
+    this.queueProfileUpdate(payload);
   }
 
   protected async submitPasswordChange(): Promise<void> {
@@ -1076,6 +1236,161 @@ export class SettingsPageComponent {
 
   protected clearProfileError(): void {
     this.store.clearProfileError();
+    if (this.profileAutosaveStatus() === 'error') {
+      this.profileAutosaveStatus.set('idle');
+    }
+  }
+
+  private queueProfileUpdate(payload: ProfileUpdatePayload): void {
+    if (this.pendingProfileSaves === 0) {
+      this.profileSaveFailed = false;
+      this.failedProfileUpdate.set(null);
+    }
+    this.pendingProfileSaves += 1;
+    this.rememberPendingProfileValues(payload);
+    this.clearProfileSavedTimer();
+    this.profileAutosaveStatus.set('saving');
+
+    this.profileSaveQueue = this.profileSaveQueue
+      .catch(() => undefined)
+      .then(async () => {
+        try {
+          await this.store.updateProfile(payload);
+          this.markProfileControlsPristine(payload);
+        } catch {
+          this.profileSaveFailed = true;
+          this.failedProfileUpdate.set(payload);
+          this.rollbackProfileDraft(payload);
+          throw new Error('Profile autosave failed');
+        } finally {
+          this.forgetPendingProfileValues(payload);
+          this.pendingProfileSaves -= 1;
+        }
+      })
+      .then(
+        () => {
+          if (this.pendingProfileSaves === 0) {
+            if (this.profileSaveFailed) {
+              this.profileAutosaveStatus.set('error');
+            } else {
+              this.showProfileSavedStatus();
+            }
+          }
+        },
+        () => {
+          if (this.pendingProfileSaves === 0) {
+            this.profileAutosaveStatus.set('error');
+          }
+        }
+      );
+  }
+
+  private rememberPendingProfileValues(payload: ProfileUpdatePayload): void {
+    if (payload.fullName !== undefined) {
+      this.pendingProfileValues.fullName = payload.fullName;
+    }
+    if (payload.language !== undefined) {
+      this.pendingProfileValues.language = payload.language;
+    }
+    if (payload.timezone !== undefined) {
+      this.pendingProfileValues.timezone = payload.timezone;
+    }
+  }
+
+  private forgetPendingProfileValues(payload: ProfileUpdatePayload): void {
+    if (
+      payload.fullName !== undefined &&
+      this.pendingProfileValues.fullName === payload.fullName
+    ) {
+      delete this.pendingProfileValues.fullName;
+    }
+    if (
+      payload.language !== undefined &&
+      this.pendingProfileValues.language === payload.language
+    ) {
+      delete this.pendingProfileValues.language;
+    }
+    if (
+      payload.timezone !== undefined &&
+      this.pendingProfileValues.timezone === payload.timezone
+    ) {
+      delete this.pendingProfileValues.timezone;
+    }
+  }
+
+  private rollbackProfileDraft(payload: ProfileUpdatePayload): void {
+    const profile = this.profile();
+    if (!profile) {
+      return;
+    }
+
+    if (payload.fullName !== undefined) {
+      this.profileFormControls.fullName.setValue(profile.fullName, {
+        emitEvent: false,
+      });
+    }
+    if (payload.language !== undefined) {
+      const language = this.resolveLanguage(profile.language);
+      this.profileFormControls.language.setValue(language, {
+        emitEvent: false,
+      });
+      this.languageService.setLanguage(language);
+    }
+    if (payload.timezone !== undefined) {
+      this.profileFormControls.timezone.setValue(profile.timezone || 'UTC', {
+        emitEvent: false,
+      });
+    }
+  }
+
+  private markProfileControlsPristine(payload: ProfileUpdatePayload): void {
+    if (
+      payload.fullName !== undefined &&
+      this.profileFormControls.fullName.value.trim() === payload.fullName
+    ) {
+      this.profileFormControls.fullName.markAsPristine();
+    }
+    if (
+      payload.language !== undefined &&
+      this.profileFormControls.language.value === payload.language
+    ) {
+      this.profileFormControls.language.markAsPristine();
+    }
+    if (
+      payload.timezone !== undefined &&
+      this.profileFormControls.timezone.value === payload.timezone
+    ) {
+      this.profileFormControls.timezone.markAsPristine();
+    }
+  }
+
+  private showProfileSavedStatus(): void {
+    this.profileAutosaveStatus.set('saved');
+    this.clearProfileSavedTimer();
+    this.profileSavedTimer = setTimeout(() => {
+      if (this.profileAutosaveStatus() === 'saved') {
+        this.profileAutosaveStatus.set('idle');
+      }
+      this.profileSavedTimer = null;
+    }, 1800);
+  }
+
+  private clearProfileSavedTimer(): void {
+    if (!this.profileSavedTimer) {
+      return;
+    }
+    clearTimeout(this.profileSavedTimer);
+    this.profileSavedTimer = null;
+  }
+
+  private resolveLanguage(language: string | null | undefined): LanguageCode {
+    return this.isLanguageCode(language) ? language : 'en';
+  }
+
+  private isLanguageCode(
+    language: string | null | undefined
+  ): language is LanguageCode {
+    return SUPPORTED_LANGUAGES.some((option) => option.code === language);
   }
 
   private resolveGroupColor(groupId: string): string | null {

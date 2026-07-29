@@ -5,11 +5,12 @@ Spendist is a GPL-3.0, open-source personal-finance web application. It helps a 
 ## Product facts
 
 - Hosted application: `https://spendist.app`.
-- Languages: English and Polish.
+- Languages: English and Polish. The authenticated profile language controls the interface across devices; profile fields autosave in `/settings`. Signed-out navigation has an accessible flag switch in its compact single-row header.
 - Core flows: password authentication and permanent self-service account deletion, transaction entry/filtering, bulk transaction entry, wallets, category taxonomy, recurring payments, places, dashboard analysis, notifications, data import/export, and a public repository-backed blog.
 - Data portability: imports Kontomierz XLSX and Spendist CSV; exports filtered Spendist transactions as CSV.
 - Privacy boundary: authenticated financial data is isolated per user through Supabase/RLS. The product is designed without ads or data selling.
 - Account deletion: `/settings` requires the current password plus explicit irreversible confirmation; a Supabase Edge Function removes avatar files and the Auth user, cascading user-owned database data.
+- Profile settings: full name, language, timezone, and avatar are directly editable without a separate edit mode. Password and danger-zone cards are visible without a security toggle.
 
 ## Technical facts
 

@@ -28,22 +28,36 @@ Use `--locale=pl` or `--locale=en` to inspect one account.
 
 ## Secret handling
 
-Copy `.env.demo.example` to the ignored `.env.demo.local` file and obtain the values from the intended Supabase project:
+The apply command reuses the existing ignored `.env` values:
+
+- `SUPABASE_URL`;
+- `SUPABASE_PROJECT_REF`;
+- `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_SECRET_KEY`, or `SB_SECRET_KEY`.
+
+Copy `.env.demo.example` to the ignored `.env.demo.local` file. It only needs the initial password for newly created demo accounts:
 
 ```bash
-dotenv -e .env.demo.local -- npm run demo:seed -- --help
+cp .env.demo.example .env.demo.local
 ```
 
-`DEMO_SEED_SERVICE_ROLE_KEY` has administrative access. Keep it in a password manager or deployment secret store, use it only for the duration of the operation, and rotate it if it is exposed. Never paste it into command arguments, shell history, logs, issues, or commits. The tool does not print the service key or password.
+The administrative Supabase key has full data access. Keep it in a password manager or deployment secret store, use it only for the duration of the operation, and rotate it if it is exposed. Never paste it into command arguments, shell history, logs, issues, or commits. The tool does not print the service key or password.
 
-For remote use, `DEMO_SEED_PROJECT_REF` must equal the project reference extracted from `DEMO_SEED_SUPABASE_URL`. The URL must be the exact HTTPS Supabase project origin.
+For compatibility and explicit local overrides, `DEMO_SEED_SUPABASE_URL`, `DEMO_SEED_SERVICE_ROLE_KEY`, and `DEMO_SEED_PROJECT_REF` take precedence when present. For remote use, the resolved project reference must equal the project reference extracted from the resolved Supabase URL. The URL must be the exact HTTPS Supabase project origin.
 
 ## Local apply
 
-Start the local Supabase stack and obtain its service-role key from the local status output. Then run:
+Start the local Supabase stack and obtain its service-role key from the local status output. To override the remote values from `.env`, temporarily add the following local-only values to `.env.demo.local`:
+
+```text
+DEMO_SEED_SUPABASE_URL=http://127.0.0.1:55321
+DEMO_SEED_SERVICE_ROLE_KEY=<local-service-role-key>
+DEMO_SEED_PROJECT_REF=local
+```
+
+Then run:
 
 ```bash
-dotenv -e .env.demo.local -- npm run demo:seed -- --apply --locale=all
+npm run demo:seed:apply -- --locale=all
 ```
 
 Local writes still require `--apply`. The tool creates missing marked Auth users, rebuilds their domain data, and verifies final record counts.
@@ -53,8 +67,7 @@ Local writes still require `--apply`. The tool creates missing marked Auth users
 Run a dry run first. Schedule the write during a quiet period because the REST operations cannot form one cross-request database transaction. The operation is deterministic and safe to rerun after interruption.
 
 ```bash
-dotenv -e .env.demo.local -- npm run demo:seed -- \
-  --apply \
+npm run demo:seed:apply -- \
   --locale=all \
   --allow-remote \
   --confirm-project-ref=YOUR_PROJECT_REF
@@ -73,8 +86,7 @@ The tool stops before changing data when:
 Use replacement only when the Auth identity itself should be recreated. It permanently deletes the selected marked demo Auth user and its cascading data before creating a new identity. It requires the exact selected email addresses as a second confirmation:
 
 ```bash
-dotenv -e .env.demo.local -- npm run demo:seed -- \
-  --apply \
+npm run demo:seed:apply -- \
   --mode=replace \
   --locale=pl \
   --allow-remote \

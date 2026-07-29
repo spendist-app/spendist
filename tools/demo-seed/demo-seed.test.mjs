@@ -10,6 +10,7 @@ import {
   assertExecutionAllowed,
   isMarkedDemoUser,
   parseArgs,
+  resolveDemoSeedEnvironment,
   resolveProjectTarget,
 } from './safety.mjs';
 
@@ -42,6 +43,56 @@ test('CLI defaults to a no-write dry run', () => {
   assert.equal(options.apply, false);
   assert.equal(options.mode, 'sync');
   assert.equal(options.locale, 'all');
+});
+
+test('demo seed reuses standard Supabase environment variables', () => {
+  assert.deepEqual(
+    resolveDemoSeedEnvironment({
+      SUPABASE_URL: 'https://abc123.supabase.co',
+      SUPABASE_SERVICE_ROLE_KEY: 'standard-service-role',
+      SUPABASE_PROJECT_REF: 'abc123',
+      DEMO_SEED_INITIAL_PASSWORD: 'demo-password',
+    }),
+    {
+      url: 'https://abc123.supabase.co',
+      serviceRoleKey: 'standard-service-role',
+      projectRef: 'abc123',
+      password: 'demo-password',
+    }
+  );
+});
+
+test('demo-specific variables can explicitly override shared configuration', () => {
+  assert.deepEqual(
+    resolveDemoSeedEnvironment({
+      DEMO_SEED_SUPABASE_URL: 'http://127.0.0.1:55321',
+      SUPABASE_URL: 'https://abc123.supabase.co',
+      DEMO_SEED_SERVICE_ROLE_KEY: 'local-service-role',
+      SUPABASE_SERVICE_ROLE_KEY: 'remote-service-role',
+      DEMO_SEED_PROJECT_REF: 'local',
+      SUPABASE_PROJECT_REF: 'abc123',
+      DEMO_SEED_INITIAL_PASSWORD: 'demo-password',
+    }),
+    {
+      url: 'http://127.0.0.1:55321',
+      serviceRoleKey: 'local-service-role',
+      projectRef: 'local',
+      password: 'demo-password',
+    }
+  );
+});
+
+test('demo seed accepts current Supabase secret key aliases', () => {
+  assert.equal(
+    resolveDemoSeedEnvironment({ SUPABASE_SECRET_KEY: 'secret-key' })
+      .serviceRoleKey,
+    'secret-key'
+  );
+  assert.equal(
+    resolveDemoSeedEnvironment({ SB_SECRET_KEY: 'sb-secret-key' })
+      .serviceRoleKey,
+    'sb-secret-key'
+  );
 });
 
 test('remote writes require all project confirmations', () => {

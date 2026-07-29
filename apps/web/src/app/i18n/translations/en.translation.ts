@@ -309,6 +309,7 @@ const en = {
     },
     workspace: {
       label: 'Workspace',
+      navigationLabel: 'Settings sections',
     },
     panels: {
       profile: {
@@ -323,6 +324,20 @@ const en = {
         timezone: 'Timezone',
         blurb:
           'Your profile details power budgets, reporting, and workspace collaboration (coming soon).',
+        details: {
+          title: 'Profile details',
+          fullNameLabel: 'Full name',
+          fullNameError: 'Enter between 2 and 120 characters.',
+        },
+        autosave: {
+          saving: 'Saving…',
+          saved: 'Saved',
+          retry: 'Try again',
+          errors: {
+            generic:
+              'We could not save your profile changes. The previous value was restored.',
+          },
+        },
         avatar: {
           alt: 'User avatar',
           upload: 'Upload avatar',

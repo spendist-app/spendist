@@ -195,6 +195,28 @@ test('keeps the empty blog usable on a mobile viewport', async ({ page }) => {
     () => document.documentElement.scrollWidth > window.innerWidth
   );
   expect(horizontalOverflow).toBe(false);
+  const navbarLayout = await page.locator('nav.navbar').evaluate((navbar) => {
+    const children = [...navbar.children].map((child) =>
+      child.getBoundingClientRect()
+    );
+    return {
+      height: navbar.getBoundingClientRect().height,
+      rowCenters: children.map((child) =>
+        Math.round(child.top + child.height / 2)
+      ),
+    };
+  });
+  expect(navbarLayout.height).toBeLessThanOrEqual(72);
+  expect(
+    Math.max(...navbarLayout.rowCenters) - Math.min(...navbarLayout.rowCenters)
+  ).toBeLessThanOrEqual(1);
+  await expect(
+    page.getByRole('group', { name: 'Język' }).getByRole('button')
+  ).toHaveCount(2);
+  await expect(page.getByRole('button', { name: 'Polski' })).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  );
   await expect(page.getByRole('link', { name: 'RSS' })).toBeVisible();
 });
 

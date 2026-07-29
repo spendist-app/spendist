@@ -16,6 +16,8 @@
 /.env
 /.local_env.e2e
 /.env.demo.local
+/.env.backup.local
+/backups/
 
 # Angular CLI and build artefacts
 /.angular-cli.json

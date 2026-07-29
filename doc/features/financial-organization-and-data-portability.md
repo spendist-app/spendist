@@ -4,7 +4,8 @@
 
 Settings maintains the reference data used by transactions and recurring payments:
 
-- profile and avatar;
+- an always-editable profile and avatar, with automatic saving for full name,
+  language, and timezone;
 - wallets, their currencies, and default status;
 - category groups;
 - nested categories, colors, and Heroicons;
@@ -21,4 +22,3 @@ Spendist CSV is a separate portable format. Users can export all or filtered tra
 Before importing a Spendist CSV, the app reports valid transactions, duplicate candidates, missing groups/categories/wallets/tags, and file issues. Valid missing reference data can be created during import; duplicate transaction rows are skipped. The readable format includes date, description, direction, amount, currency, category path, wallet, tags, and automatic/recurring metadata.
 
 Spendist CSV and Kontomierz import metadata stay separate.
-

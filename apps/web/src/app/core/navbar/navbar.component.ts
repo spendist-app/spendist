@@ -7,6 +7,7 @@ import { NotificationsMenuComponent } from '../notifications/notifications-menu.
 import { ProfileService } from '../profile.service';
 import { ThemeService } from '../theme.service';
 import { appInfoConfig } from '../../config/app-info.config';
+import type { LanguageCode } from '../../i18n/languages';
 
 @Component({
   standalone: true,
@@ -175,16 +176,10 @@ export class NavbarComponent {
     await this.router.navigateByUrl('/');
   }
 
-  onLanguageChange(event: Event): void {
-    const target = event.target as HTMLSelectElement | null;
-    const next = (target?.value ?? '') as Parameters<
-      LanguageService['setLanguage']
-    >[0];
-    if (next) {
-      this.languageService.setLanguage(next);
-      if (/^\/(pl|en)\/blog(?:\/|$)/.test(this.router.url)) {
-        void this.router.navigateByUrl(`/${next}/blog`);
-      }
+  setLanguage(language: LanguageCode): void {
+    this.languageService.setLanguage(language);
+    if (/^\/(pl|en)\/blog(?:\/|$)/.test(this.router.url)) {
+      void this.router.navigateByUrl(`/${language}/blog`);
     }
   }
 }

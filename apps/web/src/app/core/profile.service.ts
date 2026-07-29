@@ -2,8 +2,13 @@ import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { SupabaseClient } from '@supabase/supabase-js';
 import type { Tables } from '@spendist/data-access/supabase-types';
 import { AuthService } from './auth.service';
+import { LanguageService } from './language.service';
 import { logError } from './logger';
 import { SUPABASE_CLIENT } from './supabase';
+import {
+  SUPPORTED_LANGUAGES,
+  type LanguageCode,
+} from '../i18n/languages';
 
 type ProfileRow = Tables<'profiles'>;
 
@@ -22,6 +27,7 @@ export interface ProfileEntity {
 export class ProfileService {
   private readonly supabase = inject<SupabaseClient>(SUPABASE_CLIENT);
   private readonly auth = inject(AuthService);
+  private readonly languageService = inject(LanguageService);
   private readonly profileState = signal<ProfileEntity | null>(null);
   private activeUserId: string | null = null;
   private requestToken = 0;
@@ -54,6 +60,7 @@ export class ProfileService {
   setProfile(profile: ProfileEntity | null): void {
     this.profileState.set(profile);
     this.activeUserId = profile?.id ?? this.activeUserId;
+    this.applyProfileLanguage(profile);
   }
 
   private async loadProfile(userId: string): Promise<void> {
@@ -74,12 +81,25 @@ export class ProfileService {
         throw error;
       }
 
-      this.profileState.set(data ? mapProfileRow(data as ProfileRow) : null);
+      this.setProfile(data ? mapProfileRow(data as ProfileRow) : null);
     } catch (error) {
       if (token === this.requestToken) {
         this.profileState.set(null);
       }
       logError('ProfileService', 'Failed to load profile', error);
+    }
+  }
+
+  private applyProfileLanguage(profile: ProfileEntity | null): void {
+    if (!profile) {
+      return;
+    }
+
+    const language = profile.language;
+    if (
+      SUPPORTED_LANGUAGES.some((option) => option.code === language)
+    ) {
+      this.languageService.setLanguage(language as LanguageCode);
     }
   }
 }

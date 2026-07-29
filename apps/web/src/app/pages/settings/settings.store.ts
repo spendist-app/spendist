@@ -58,6 +58,12 @@ export interface WalletPayload {
   readonly isDefault: boolean;
 }
 
+export interface ProfileUpdatePayload {
+  readonly fullName?: string;
+  readonly language?: 'en' | 'pl';
+  readonly timezone?: string;
+}
+
 interface CurrencyOption {
   readonly id: number;
   readonly symbol: string;
@@ -613,6 +619,69 @@ export class SettingsStore {
       }));
     } catch (error) {
       const message = this.describeProfileError(error);
+      this.setProfileError(message);
+      throw new SettingsStoreError(message);
+    } finally {
+      this.setProfilePending(false);
+    }
+  }
+
+  async updateProfile(payload: ProfileUpdatePayload): Promise<ProfileEntity> {
+    const userId = this.requireUserId();
+    const update: {
+      full_name?: string;
+      language?: 'en' | 'pl';
+      timezone?: string;
+    } = {};
+
+    if (payload.fullName !== undefined) {
+      update.full_name = payload.fullName.trim();
+    }
+    if (payload.language !== undefined) {
+      update.language = payload.language;
+    }
+    if (payload.timezone !== undefined) {
+      update.timezone = payload.timezone;
+    }
+
+    if (Object.keys(update).length === 0) {
+      const profile = this.state().profile;
+      if (!profile) {
+        throw new SettingsStoreError(
+          'settings.panels.profile.autosave.errors.generic'
+        );
+      }
+      return profile;
+    }
+
+    this.setProfilePending(true);
+    this.setProfileError(null);
+
+    try {
+      const { data, error } = await this.supabase
+        .from('profiles')
+        .update(update)
+        .eq('id', userId)
+        .select('*')
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      const profile = mapProfileRow(this.requireRow(data as ProfileRow | null));
+      this.profileService.setProfile(profile);
+      this.state.update((state) => ({
+        ...state,
+        profile,
+        profileError: null,
+      }));
+      return profile;
+    } catch (error) {
+      const message =
+        error instanceof SettingsStoreError
+          ? error.message
+          : 'settings.panels.profile.autosave.errors.generic';
       this.setProfileError(message);
       throw new SettingsStoreError(message);
     } finally {

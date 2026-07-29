@@ -309,6 +309,7 @@ const pl = {
     },
     workspace: {
       label: 'Obszar roboczy',
+      navigationLabel: 'Sekcje ustawień',
     },
     panels: {
       profile: {
@@ -323,6 +324,20 @@ const pl = {
         timezone: 'Strefa czasowa',
         blurb:
           'Dane profilu zasilają budżety, raporty oraz przyszłą współpracę w zespole.',
+        details: {
+          title: 'Dane profilu',
+          fullNameLabel: 'Imię i nazwisko',
+          fullNameError: 'Podaj od 2 do 120 znaków.',
+        },
+        autosave: {
+          saving: 'Zapisywanie…',
+          saved: 'Zapisano',
+          retry: 'Spróbuj ponownie',
+          errors: {
+            generic:
+              'Nie udało się zapisać zmian profilu. Poprzednia wartość została przywrócona.',
+          },
+        },
         avatar: {
           alt: 'Avatar użytkownika',
           upload: 'Prześlij avatar',
