@@ -9,10 +9,17 @@ import {
   signal,
 } from '@angular/core';
 import { TranslocoPipe } from '@ngneat/transloco';
+import { NgIcon } from '@ng-icons/core';
+import { heroLink, heroShare } from '@ng-icons/heroicons/outline';
+import {
+  bootstrapFacebook,
+  bootstrapLinkedin,
+  bootstrapTwitterX,
+} from '@ng-icons/bootstrap-icons';
 
 @Component({
   selector: 'app-blog-share',
-  imports: [TranslocoPipe],
+  imports: [TranslocoPipe, NgIcon],
   templateUrl: './blog-share.html',
   styleUrl: './blog-share.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -32,6 +39,11 @@ export class BlogShare {
   protected readonly encodedTitle = computed(() =>
     encodeURIComponent(this.title())
   );
+  protected readonly shareIcon = heroShare;
+  protected readonly linkIcon = heroLink;
+  protected readonly facebookIcon = bootstrapFacebook;
+  protected readonly linkedinIcon = bootstrapLinkedin;
+  protected readonly xIcon = bootstrapTwitterX;
 
   protected async share(): Promise<void> {
     if (!this.nativeShareAvailable) return;

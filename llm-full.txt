@@ -18,7 +18,7 @@ The hosted application is `https://spendist.app`. The source is an Nx workspace 
 - **Notifications:** user-scoped Realtime notifications for recurring activity, exchange-rate-sync failure, Allowance invitations, and received allowance. Invitation notifications include accept/decline actions.
 - **Data portability:** Kontomierz XLSX import to a chosen wallet; readable, filtered Spendist CSV export; CSV analysis before import, valid reference-data creation, and duplicate skipping. Spendist CSV and Kontomierz flows are separate.
 - **Preferences:** authenticated profile language is authoritative across devices; full name, language, and IANA timezone autosave in `/settings`. Signed-out English/Polish choice and light/dark theme are stored locally. Signed-out navigation uses accessible flag buttons in a compact single-row header; changing language on a blog URL opens the other edition's home page.
-- **Public blog:** separate Polish and English Markdown collections for signed-out readers. Each edition can publish unrelated articles, categories are indexable when non-empty, tags are filter-only and `noindex`, and sharing uses Web Share/copy/plain social links without embedded social SDKs. There are no comments, CMS, or admin panel.
+- **Public blog:** separate Polish and English Markdown collections for signed-out readers. Each edition can publish unrelated articles, categories are indexable when non-empty, tags are filter-only and `noindex`, table-of-contents links scroll within the current localized article, and the separated sharing panel uses icon-only Web Share, copy-link, Facebook, LinkedIn, and X actions without embedded social SDKs. There are no comments, CMS, or admin panel.
 
 Read `doc/features/` for feature-level details and deliberate limits.
 
@@ -33,6 +33,8 @@ Read `doc/features/` for feature-level details and deliberate limits.
 | `/{locale}/blog/page/{page}` | Blog pagination, 12 posts per page. | Indexable and prerendered |
 | `/{locale}/blog?tag={tag}` | Client-visible tag filter. | `noindex,follow`; excluded from sitemap |
 | `/{locale}/blog/feed.xml` | Locale-specific RSS 2.0 feed. | Discovery file, not an HTML page |
+| `/llm.txt`, `/llms.txt` | Concise public project knowledge file; the plural path is a Worker alias. | Plain UTF-8 text |
+| `/llm-full.txt`, `/llms-full.txt` | Detailed public project knowledge file; the plural path is a Worker alias. | Plain UTF-8 text |
 | `/login`, `/signup` | Authentication entry points. | Not indexed |
 | `/forgot-password`, `/reset-password` | Password recovery utilities. | Not indexed |
 | `/dashboard`, `/home`, `/transactions`, `/settings` | Authenticated product pages. | Not indexed |

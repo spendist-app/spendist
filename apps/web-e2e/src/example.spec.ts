@@ -171,6 +171,29 @@ test('keeps tag filters out of the index and publishes article metadata', async 
   await expect(
     page.locator('source[type="image/avif"]').first()
   ).toHaveAttribute('srcset', /\/media\/blog\/en\/what-is-spendist\//);
+
+  const firstContentsLink = page.locator('.toc a').first();
+  await expect(firstContentsLink).toHaveAttribute(
+    'href',
+    /^\/en\/blog\/what-is-spendist#/
+  );
+  await firstContentsLink.click();
+  await expect(page).toHaveURL(/\/en\/blog\/what-is-spendist#[\w-]+$/);
+
+  const sharePanel = page.getByRole('region', { name: 'Share article' });
+  await expect(
+    sharePanel.getByText('Share article', { exact: true })
+  ).toHaveCount(1);
+  await expect(
+    sharePanel.getByRole('button', { name: 'Copy link' })
+  ).toBeVisible();
+  await expect(
+    sharePanel.getByRole('link', { name: 'Facebook' })
+  ).toBeVisible();
+  await expect(
+    sharePanel.getByRole('link', { name: 'LinkedIn' })
+  ).toBeVisible();
+  await expect(sharePanel.getByRole('link', { name: 'X' })).toBeVisible();
 });
 
 test('marks invalid blog pagination as noindex', async ({ page }) => {

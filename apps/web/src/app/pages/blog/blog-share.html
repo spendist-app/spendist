@@ -1,32 +1,62 @@
 <section class="share" [attr.aria-label]="'blog.share.label' | transloco">
-  <span>{{ 'blog.share.shortLabel' | transloco }}</span>
-  @if (nativeShareAvailable) {
-  <button type="button" class="btn btn-sm btn-primary" (click)="share()">
-    {{ 'blog.share.native' | transloco }}
-  </button>
-  }
-  <button type="button" class="btn btn-sm btn-ghost" (click)="copy()">
-    {{ (copied() ? 'blog.share.copied' : 'blog.share.copy') | transloco }}
-  </button>
-  <a
-    class="btn btn-sm btn-ghost"
-    target="_blank"
-    rel="noopener noreferrer"
-    [href]="'https://www.facebook.com/sharer/sharer.php?u=' + encodedUrl()"
-    >Facebook</a
-  >
-  <a
-    class="btn btn-sm btn-ghost"
-    target="_blank"
-    rel="noopener noreferrer"
-    [href]="'https://www.linkedin.com/sharing/share-offsite/?url=' + encodedUrl()"
-    >LinkedIn</a
-  >
-  <a
-    class="btn btn-sm btn-ghost"
-    target="_blank"
-    rel="noopener noreferrer"
-    [href]="'https://twitter.com/intent/tweet?url=' + encodedUrl() + '&text=' + encodedTitle()"
-    >X</a
-  >
+  <strong class="share-title">{{ 'blog.share.label' | transloco }}</strong>
+  <div class="share-actions">
+    @if (nativeShareAvailable) {
+    <button
+      type="button"
+      class="share-action btn btn-circle btn-primary"
+      [attr.aria-label]="'blog.share.native' | transloco"
+      [attr.title]="'blog.share.native' | transloco"
+      (click)="share()"
+    >
+      <ng-icon [svg]="shareIcon" size="20" aria-hidden="true"></ng-icon>
+    </button>
+    }
+    <button
+      type="button"
+      class="share-action btn btn-circle btn-ghost"
+      [attr.aria-label]="
+        (copied() ? 'blog.share.copied' : 'blog.share.copy') | transloco
+      "
+      [attr.title]="
+        (copied() ? 'blog.share.copied' : 'blog.share.copy') | transloco
+      "
+      (click)="copy()"
+    >
+      <ng-icon [svg]="linkIcon" size="21" aria-hidden="true"></ng-icon>
+    </button>
+    <a
+      class="share-action btn btn-circle btn-ghost"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Facebook"
+      title="Facebook"
+      [href]="'https://www.facebook.com/sharer/sharer.php?u=' + encodedUrl()"
+    >
+      <ng-icon [svg]="facebookIcon" size="20" aria-hidden="true"></ng-icon>
+    </a>
+    <a
+      class="share-action btn btn-circle btn-ghost"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="LinkedIn"
+      title="LinkedIn"
+      [href]="'https://www.linkedin.com/sharing/share-offsite/?url=' + encodedUrl()"
+    >
+      <ng-icon [svg]="linkedinIcon" size="20" aria-hidden="true"></ng-icon>
+    </a>
+    <a
+      class="share-action btn btn-circle btn-ghost"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="X"
+      title="X"
+      [href]="'https://twitter.com/intent/tweet?url=' + encodedUrl() + '&text=' + encodedTitle()"
+    >
+      <ng-icon [svg]="xIcon" size="18" aria-hidden="true"></ng-icon>
+    </a>
+  </div>
+  <span class="sr-only" aria-live="polite">
+    @if (copied()) { {{ 'blog.share.copied' | transloco }} }
+  </span>
 </section>

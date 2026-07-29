@@ -703,7 +703,6 @@ const en = {
     },
     share: {
       label: 'Share article',
-      shortLabel: 'Share',
       native: 'Share',
       copy: 'Copy link',
       copied: 'Copied',

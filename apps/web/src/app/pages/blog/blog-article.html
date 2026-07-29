@@ -58,7 +58,9 @@
       <ol>
         @for (heading of post.headings; track heading.id) {
         <li [class.nested]="heading.depth === 3">
-          <a [href]="'#' + heading.id">{{ heading.text }}</a>
+          <a [routerLink]="post.url" [fragment]="heading.id"
+            >{{ heading.text }}</a
+          >
         </li>
         }
       </ol>

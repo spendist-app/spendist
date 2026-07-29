@@ -48,4 +48,31 @@ describe('blog Worker routing', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('X-Robots-Tag')).toBe('noindex, follow');
   });
+
+  it.each([
+    ['/llms.txt', '/llm.txt'],
+    ['/llms-full.txt', '/llm-full.txt'],
+  ])(
+    'serves %s from the repository LLM asset',
+    async (publicPath, assetPath) => {
+      const requestedPaths: string[] = [];
+      const response = await worker.fetch(
+        new Request(`https://spendist.app${publicPath}`),
+        {
+          ASSETS: {
+            fetch: async (request: Request) => {
+              requestedPaths.push(new URL(request.url).pathname);
+              return new Response('# Spendist');
+            },
+          },
+        }
+      );
+
+      expect(requestedPaths).toEqual([assetPath]);
+      expect(response.status).toBe(200);
+      expect(response.headers.get('Content-Type')).toBe(
+        'text/plain; charset=utf-8'
+      );
+    }
+  );
 });
