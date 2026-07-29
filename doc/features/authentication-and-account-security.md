@@ -18,8 +18,10 @@ Financial records and notifications remain user-scoped through backend access co
 
 ## Account deletion
 
-Account deletion is available in the security section of `/settings`. It is
-permanent and requires all of the following:
+Password change and the account-deletion danger zone are visible directly in
+the profile section of `/settings`; they are not hidden behind a separate
+security toggle. Account deletion remains a two-step operation. It is permanent
+and requires all of the following:
 
 - the authenticated session;
 - the account's current password;

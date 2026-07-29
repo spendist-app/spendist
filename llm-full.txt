@@ -10,13 +10,13 @@ The hosted application is `https://spendist.app`. The source is an Nx workspace 
 
 - **Authentication and account security:** email/password sign-up and sign-in, password-recovery email, reset-link session handling, authenticated password changes, and permanent self-service account deletion. Deletion requires the current password plus explicit confirmation, removes avatar objects, and cascades user-owned database data from the deleted Auth user. New users receive default categories.
 - **Transactions:** create income/expense records with date, description, amount, currency, wallet, category, optional tags, and optional place. Users can edit, duplicate, delete, filter, sort, search, and create transactions in bulk from pasted rows. Default-currency conversion uses stored exchange rates where applicable.
-- **Financial organization:** profile/avatar, wallets with currencies/default status, category groups, nested categories, colors, Heroicons, and reusable tags.
+- **Financial organization:** an always-editable autosaving profile/avatar, wallets with currencies/default status, category groups, nested categories, colors, Heroicons, and reusable tags.
 - **Recurring payments:** scheduled income/expense with fixed or variable amount, category, wallet, currency, tags, schedule, and optional end date. Scheduled Supabase work creates automatic transaction records; it never makes a real payment.
 - **Places:** reusable locations/merchants with optional address and note metadata. Users can attach them to transactions and inspect annual spending totals.
 - **Dashboard:** up to 12 calendar months of cash flow, selected-month category/tag totals, recurring-created transaction totals, and yearly place spending, scoped by wallet where relevant.
 - **Notifications:** user-scoped Realtime notifications for recurring activity and exchange-rate-sync failure; users can mark all visible unread items as read.
 - **Data portability:** Kontomierz XLSX import to a chosen wallet; readable, filtered Spendist CSV export; CSV analysis before import, valid reference-data creation, and duplicate skipping. Spendist CSV and Kontomierz flows are separate.
-- **Preferences:** persisted English/Polish choice and light/dark theme. Signed-out navigation uses accessible flag buttons in a compact single-row header; changing language on a blog URL opens the other edition's home page.
+- **Preferences:** authenticated profile language is authoritative across devices; full name, language, and IANA timezone autosave in `/settings`. Signed-out English/Polish choice and light/dark theme are stored locally. Signed-out navigation uses accessible flag buttons in a compact single-row header; changing language on a blog URL opens the other edition's home page.
 - **Public blog:** separate Polish and English Markdown collections for signed-out readers. Each edition can publish unrelated articles, categories are indexable when non-empty, tags are filter-only and `noindex`, and sharing uses Web Share/copy/plain social links without embedded social SDKs. There are no comments, CMS, or admin panel.
 
 Read `doc/features/` for feature-level details and deliberate limits.

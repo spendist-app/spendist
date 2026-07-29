@@ -359,8 +359,6 @@ test('shows password change validation in settings', async ({ page }) => {
   await ensureAuthenticated(page);
   await openSettings(page);
 
-  await page.getByRole('button', { name: 'Security options' }).click();
-
   await expect(page.getByRole('heading', { name: 'Password' })).toBeVisible();
   await page.getByRole('button', { name: 'Change password' }).click();
   await expect(page.getByText('Current password is required.')).toBeVisible();
@@ -414,7 +412,6 @@ test('registers a new account and opens dashboard', async ({
   await expectDefaultCategoryGroups(page);
 
   await page.getByRole('button', { name: /^Profile\b/ }).click();
-  await page.getByRole('button', { name: 'Security options' }).click();
   await page.getByRole('button', { name: 'Delete my account' }).click();
 
   await fillStableInput(
@@ -444,6 +441,70 @@ test('registers a new account and opens dashboard', async ({
 
   await expect(page).toHaveURL(/\/login$/);
   await expect(page.getByRole('alert')).toBeVisible();
+});
+
+test('uses the profile language and autosaves profile details', async ({
+  page,
+}, testInfo) => {
+  await ensureAuthenticated(page);
+  await page.evaluate(() => {
+    window.localStorage.setItem('spendist.language', 'pl');
+  });
+  await page.reload();
+
+  await expect(
+    page.getByRole('heading', { name: DASHBOARD_HEADING })
+  ).toBeVisible({ timeout: 15000 });
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.lang))
+    .toBe('en');
+
+  await openSettings(page);
+  await expect(page.getByRole('heading', { name: 'Password' })).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Security options' })
+  ).toHaveCount(0);
+
+  const fullName = page.locator('#profile-full-name');
+  await expect
+    .poll(() => fullName.inputValue(), { timeout: 15000 })
+    .not.toBe('');
+  const originalName = await fullName.inputValue();
+  const changedName = `E2E Profile ${uniqueSuffix(testInfo)}`;
+
+  await fillStableInput(fullName, changedName);
+  await fullName.press('Tab');
+  await expect(page.getByText('Saved', { exact: true })).toBeVisible({
+    timeout: 15000,
+  });
+
+  await page.reload();
+  await openSettings(page);
+  await expect(fullName).toHaveValue(changedName, { timeout: 15000 });
+
+  await fillStableInput(fullName, originalName);
+  await fullName.press('Tab');
+  await expect(page.getByText('Saved', { exact: true })).toBeVisible({
+    timeout: 15000,
+  });
+});
+
+test('keeps settings navigation usable without mobile overflow', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await ensureAuthenticated(page);
+  await openSettings(page);
+
+  await expect(page.locator('#profile-full-name')).toBeVisible();
+  await expect(
+    page.getByRole('navigation', { name: 'Settings sections' })
+  ).toBeVisible();
+
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - window.innerWidth
+  );
+  expect(overflow).toBeLessThanOrEqual(1);
 });
 
 test('adds transaction and keeps it after reload', async ({

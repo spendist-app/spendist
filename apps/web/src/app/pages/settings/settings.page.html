@@ -11,11 +11,29 @@
     </p>
   </header>
 
+  <nav
+    class="mb-6 flex max-w-full min-w-0 snap-x gap-2 overflow-x-auto pb-2 lg:hidden"
+    [attr.aria-label]="'settings.workspace.navigationLabel' | transloco"
+  >
+    @for (panel of panels; track panel.id) {
+    <button
+      type="button"
+      class="btn btn-sm shrink-0 snap-start whitespace-nowrap"
+      [class.btn-primary]="panel.id === activePanel()"
+      [class.btn-ghost]="panel.id !== activePanel()"
+      [attr.aria-current]="panel.id === activePanel() ? 'page' : null"
+      (click)="selectPanel(panel.id)"
+    >
+      {{ panel.labelKey | transloco }}
+    </button>
+    }
+  </nav>
+
   <div
     class="grid gap-6 lg:grid-cols-[minmax(0,260px)_minmax(0,1fr)] xl:grid-cols-[minmax(0,280px)_minmax(0,1fr)]"
   >
     <aside
-      class="rounded-2xl border border-base-300 bg-base-100/80 shadow-sm backdrop-blur-sm"
+      class="hidden rounded-2xl border border-base-300 bg-base-100/80 shadow-sm backdrop-blur-sm lg:block"
     >
       <div class="flex flex-col gap-4 p-4 sm:p-6">
         <h2
@@ -23,7 +41,10 @@
         >
           {{ 'settings.workspace.label' | transloco }}
         </h2>
-        <nav class="flex flex-col gap-2" aria-label="Settings sections">
+        <nav
+          class="flex flex-col gap-2"
+          [attr.aria-label]="'settings.workspace.navigationLabel' | transloco"
+        >
           @for (panel of panels; track panel.id) {
           <button
             type="button"
@@ -48,75 +69,81 @@
       </div>
     </aside>
 
-    <div class="flex flex-col gap-6">
+    <div class="flex min-w-0 flex-col gap-6">
       @if (activePanel() === 'profile') {
-      <section class="space-y-6">
-        <header class="space-y-2">
-          <h2 class="text-2xl font-semibold">
-            {{ 'settings.panels.profile.header' | transloco }}
-          </h2>
-          <p class="text-base-content/70">
-            {{ 'settings.panels.profile.text' | transloco }}
-          </p>
+      <section class="min-w-0 space-y-6">
+        <header
+          class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
+        >
+          <div class="space-y-2">
+            <h2 class="text-2xl font-semibold">
+              {{ 'settings.panels.profile.header' | transloco }}
+            </h2>
+            <p class="text-base-content/70">
+              {{ 'settings.panels.profile.text' | transloco }}
+            </p>
+          </div>
+          <div
+            class="min-h-6 shrink-0 text-sm"
+            role="status"
+            aria-live="polite"
+          >
+            @if (profileAutosaveStatus() === 'saving') {
+            <span class="inline-flex items-center gap-2 text-base-content/60">
+              <span class="loading loading-spinner loading-xs"></span>
+              {{ 'settings.panels.profile.autosave.saving' | transloco }}
+            </span>
+            } @else if (profileAutosaveStatus() === 'saved') {
+            <span class="font-medium text-success">
+              {{ 'settings.panels.profile.autosave.saved' | transloco }}
+            </span>
+            }
+          </div>
         </header>
 
-        <div
-          class="grid gap-4 rounded-2xl border border-base-300 bg-base-100/80 p-6 shadow-sm sm:grid-cols-2"
+        <section
+          class="min-w-0 rounded-2xl border border-base-300 bg-base-100/80 p-4 shadow-sm sm:p-6"
+          aria-labelledby="settings-profile-details-heading"
         >
-          <article class="flex items-start gap-4">
-            @if (profile()?.avatarUrl; as avatarUrl) {
-            <div class="avatar">
-              <div
-                class="size-16 rounded-full ring-2 ring-primary/20 ring-offset-2 ring-offset-base-100"
+          <div class="grid gap-6 xl:grid-cols-[minmax(0,220px)_minmax(0,1fr)]">
+            <div class="space-y-4">
+              <h3
+                id="settings-profile-details-heading"
+                class="text-xl font-semibold"
               >
-                <img
-                  [src]="avatarUrl"
-                  [alt]="'settings.panels.profile.avatar.alt' | transloco"
-                  class="object-cover"
-                />
-              </div>
-            </div>
-            } @else {
-            <div class="avatar placeholder">
-              <div class="bg-primary/20 text-primary size-16 rounded-full">
-                <span class="font-semibold">{{ avatarInitials() }}</span>
-              </div>
-            </div>
-            }
-            <div class="flex-1 space-y-2">
-              <h3 class="text-lg font-semibold">
-                {{ profile()?.fullName ||
-                ('settings.panels.profile.fallbackName' | transloco) }}
+                {{ 'settings.panels.profile.details.title' | transloco }}
               </h3>
-              <p class="text-sm text-base-content/70">
-                {{ 'settings.panels.profile.language' | transloco }}: {{
-                profile()?.language || ('settings.panels.profile.notSet' |
-                transloco) }} · {{ 'settings.panels.profile.timezone' |
-                transloco }}: {{ profile()?.timezone ||
-                ('settings.panels.profile.notSet' | transloco) }}
-              </p>
-            </div>
-          </article>
+              <div class="flex items-center gap-4">
+                @if (profile()?.avatarUrl; as avatarUrl) {
+                <div class="avatar">
+                  <div
+                    class="size-16 rounded-full ring-2 ring-primary/20 ring-offset-2 ring-offset-base-100"
+                  >
+                    <img
+                      [src]="avatarUrl"
+                      [alt]="'settings.panels.profile.avatar.alt' | transloco"
+                      class="object-cover"
+                    />
+                  </div>
+                </div>
+                } @else {
+                <div class="avatar placeholder">
+                  <div class="size-16 rounded-full bg-primary/20 text-primary">
+                    <span class="font-semibold">{{ avatarInitials() }}</span>
+                  </div>
+                </div>
+                }
+                <div class="min-w-0">
+                  <p class="truncate font-semibold">
+                    {{ profile()?.fullName ||
+                    ('settings.panels.profile.fallbackName' | transloco) }}
+                  </p>
+                  <p class="truncate text-sm text-base-content/60">
+                    @{{ profile()?.username }}
+                  </p>
+                </div>
+              </div>
 
-          <div class="flex flex-col justify-between gap-4">
-            <p class="text-sm text-base-content/70">
-              {{ 'settings.panels.profile.avatar.help' | transloco }}
-            </p>
-            @if (avatarUploadError(); as avatarError) {
-            <div
-              class="alert alert-error flex-col items-start gap-2 rounded-xl border border-error/20 bg-error/10 p-3 text-sm text-error"
-            >
-              <span>{{ avatarError | transloco }}</span>
-              <button
-                type="button"
-                class="btn btn-ghost btn-xs text-error"
-                (click)="clearProfileError()"
-              >
-                {{ 'common.actions.dismiss' | transloco }}
-              </button>
-            </div>
-            }
-            <div class="flex flex-wrap gap-2">
               <input
                 id="avatar-upload"
                 type="file"
@@ -126,49 +153,127 @@
               />
               <label
                 for="avatar-upload"
-                class="btn btn-primary btn-sm"
+                class="btn btn-outline btn-sm w-full sm:w-auto"
                 [class.btn-disabled]="avatarUploadPending()"
                 [attr.aria-disabled]="avatarUploadPending()"
               >
                 @if (avatarUploadPending()) {
                 <span class="loading loading-xs" aria-hidden="true"></span>
-                {{ 'settings.panels.profile.avatar.uploading' | transloco }} }
-                @else { {{ 'settings.panels.profile.avatar.upload' | transloco
-                }} }
+                {{ 'settings.panels.profile.avatar.uploading' | transloco }}
+                } @else {
+                {{ 'settings.panels.profile.avatar.upload' | transloco }}
+                }
               </label>
+              <p class="text-xs text-base-content/60">
+                {{ 'settings.panels.profile.avatar.help' | transloco }}
+              </p>
+            </div>
+
+            <form
+              class="grid min-w-0 content-start gap-5 md:grid-cols-2"
+              [formGroup]="profileForm"
+            >
+              <label class="form-control md:col-span-2">
+                <span class="label-text text-sm font-semibold">
+                  {{ 'settings.panels.profile.details.fullNameLabel' | transloco }}
+                </span>
+                <input
+                  id="profile-full-name"
+                  type="text"
+                  class="input input-bordered w-full"
+                  formControlName="fullName"
+                  autocomplete="name"
+                  maxlength="120"
+                  (blur)="onFullNameBlur()"
+                />
+                @if (profileFormControls.fullName.touched &&
+                profileFormControls.fullName.invalid) {
+                <span class="mt-1 text-xs text-error">
+                  {{ 'settings.panels.profile.details.fullNameError' | transloco }}
+                </span>
+                }
+              </label>
+
+              <label class="form-control">
+                <span class="label-text text-sm font-semibold">
+                  {{ 'settings.panels.profile.language' | transloco }}
+                </span>
+                <select
+                  id="profile-language"
+                  class="select select-bordered max-w-full min-w-0"
+                  formControlName="language"
+                  (change)="onProfileLanguageChange($event)"
+                >
+                  @for (language of profileLanguages; track language.code) {
+                  <option [value]="language.code">
+                    {{ language.labelKey | transloco }}
+                  </option>
+                  }
+                </select>
+              </label>
+
+              <label class="form-control">
+                <span class="label-text text-sm font-semibold">
+                  {{ 'settings.panels.profile.timezone' | transloco }}
+                </span>
+                <select
+                  id="profile-timezone"
+                  class="select select-bordered max-w-full min-w-0"
+                  formControlName="timezone"
+                  (change)="onProfileTimezoneChange($event)"
+                >
+                  @if (profile()?.timezone; as currentTimezone) {
+                  @if (!timezoneOptions.includes(currentTimezone)) {
+                  <option [value]="currentTimezone">
+                    {{ currentTimezone }}
+                  </option>
+                  }
+                  }
+                  @for (timezone of timezoneOptions; track timezone) {
+                  <option [value]="timezone">{{ timezone }}</option>
+                  }
+                </select>
+              </label>
+            </form>
+          </div>
+
+          @if (avatarUploadError(); as profileError) {
+          <div
+            class="alert alert-error mt-5 flex-col items-start gap-3 rounded-xl border border-error/20 bg-error/10 text-sm text-error sm:flex-row sm:items-center"
+            role="alert"
+          >
+            <span class="flex-1">{{ profileError | transloco }}</span>
+            <div class="flex gap-2">
+              @if (failedProfileUpdate()) {
               <button
                 type="button"
-                class="btn btn-primary btn-square btn-sm tooltip"
-                [attr.aria-label]="'common.actions.openProfileEditor' | transloco"
-                [attr.title]="'common.actions.openProfileEditor' | transloco"
-                [attr.data-tip]="'common.actions.openProfileEditor' | transloco"
-                (click)="openProfileEditor()"
+                class="btn btn-error btn-sm"
+                (click)="retryProfileAutosave()"
               >
-                <ng-icon [svg]="editIcon" size="18" aria-hidden="true"></ng-icon>
+                {{ 'settings.panels.profile.autosave.retry' | transloco }}
               </button>
+              }
               <button
                 type="button"
                 class="btn btn-ghost btn-sm"
-                (click)="manageSecurity()"
+                (click)="clearProfileError()"
               >
-                {{ 'common.actions.manageSecurity' | transloco }}
+                {{ 'common.actions.dismiss' | transloco }}
               </button>
             </div>
           </div>
-        </div>
+          }
+        </section>
 
-        <div
-          class="rounded-2xl border border-dashed border-base-300 bg-base-100/50 p-6 text-sm text-base-content/70"
-        >
-          {{ 'settings.panels.profile.note' | transloco }}
-        </div>
-
-        @if (securityOpen()) {
         <section
-          class="rounded-2xl border border-base-300 bg-base-100/80 p-6 shadow-sm"
+          class="rounded-2xl border border-base-300 bg-base-100/80 p-4 shadow-sm sm:p-6"
           aria-labelledby="settings-security-heading"
         >
-          <form class="space-y-5" [formGroup]="passwordForm" (ngSubmit)="submitPasswordChange()">
+          <form
+            class="space-y-5"
+            [formGroup]="passwordForm"
+            (ngSubmit)="submitPasswordChange()"
+          >
             <header class="space-y-1">
               <h3 id="settings-security-heading" class="text-xl font-semibold">
                 {{ 'settings.panels.profile.security.title' | transloco }}
@@ -190,7 +295,7 @@
             </p>
             }
 
-            <div class="grid gap-4 md:grid-cols-3">
+            <div class="grid gap-4 lg:grid-cols-3">
               <label class="form-control">
                 <span class="label-text text-sm font-semibold">
                   {{ 'settings.panels.profile.security.currentPasswordLabel' | transloco }}
@@ -198,11 +303,12 @@
                 <input
                   id="current-password"
                   type="password"
-                  class="input input-bordered"
+                  class="input input-bordered w-full"
                   formControlName="currentPassword"
                   autocomplete="current-password"
                 />
-                @if (passwordFormControls.currentPassword.touched && passwordFormControls.currentPassword.invalid) {
+                @if (passwordFormControls.currentPassword.touched &&
+                passwordFormControls.currentPassword.invalid) {
                 <span class="mt-1 text-xs text-error">
                   {{ 'settings.panels.profile.security.errors.currentRequired' | transloco }}
                 </span>
@@ -216,11 +322,12 @@
                 <input
                   id="new-password"
                   type="password"
-                  class="input input-bordered"
+                  class="input input-bordered w-full"
                   formControlName="newPassword"
                   autocomplete="new-password"
                 />
-                @if (passwordFormControls.newPassword.touched && passwordFormControls.newPassword.invalid) {
+                @if (passwordFormControls.newPassword.touched &&
+                passwordFormControls.newPassword.invalid) {
                 <span class="mt-1 text-xs text-error">
                   {{ 'settings.panels.profile.security.errors.newPassword' | transloco }}
                 </span>
@@ -234,7 +341,7 @@
                 <input
                   id="confirm-new-password"
                   type="password"
-                  class="input input-bordered"
+                  class="input input-bordered w-full"
                   formControlName="confirmPassword"
                   autocomplete="new-password"
                 />
@@ -246,18 +353,10 @@
               </label>
             </div>
 
-            <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                class="btn btn-ghost"
-                (click)="manageSecurity()"
-                [disabled]="passwordChangePending()"
-              >
-                {{ 'common.actions.cancel' | transloco }}
-              </button>
+            <div class="flex justify-stretch sm:justify-end">
               <button
                 type="submit"
-                class="btn btn-primary"
+                class="btn btn-primary w-full sm:w-auto"
                 [disabled]="passwordChangePending()"
               >
                 @if (passwordChangePending()) {
@@ -269,131 +368,135 @@
               </button>
             </div>
           </form>
-
-          <div class="divider my-8"></div>
-
-          <section
-            class="space-y-4 rounded-2xl border border-error/30 bg-error/5 p-5"
-            aria-labelledby="settings-account-deletion-heading"
-          >
-            <header class="space-y-1">
-              <h3
-                id="settings-account-deletion-heading"
-                class="text-xl font-semibold text-error"
-              >
-                {{ 'settings.panels.profile.accountDeletion.title' | transloco }}
-              </h3>
-              <p class="text-sm text-base-content/70">
-                {{ 'settings.panels.profile.accountDeletion.description' | transloco }}
-              </p>
-            </header>
-
-            @if (!accountDeletionOpen()) {
-            <button
-              type="button"
-              class="btn btn-outline btn-error"
-              (click)="openAccountDeletion()"
-            >
-              {{ 'settings.panels.profile.accountDeletion.open' | transloco }}
-            </button>
-            } @else {
-            <form
-              class="space-y-4"
-              [formGroup]="accountDeletionForm"
-              (ngSubmit)="submitAccountDeletion()"
-            >
-              @if (accountDeletionError(); as deletionError) {
-              <p class="alert alert-error text-sm" role="alert" aria-live="assertive">
-                {{ deletionError | transloco }}
-              </p>
-              }
-
-              <p class="text-sm font-semibold text-error">
-                {{ 'settings.panels.profile.accountDeletion.warning' | transloco }}
-              </p>
-
-              <div class="grid gap-4 md:grid-cols-2">
-                <label class="form-control">
-                  <span class="label-text text-sm font-semibold">
-                    {{ 'settings.panels.profile.accountDeletion.passwordLabel' | transloco }}
-                  </span>
-                  <input
-                    id="delete-account-password"
-                    type="password"
-                    class="input input-bordered"
-                    formControlName="password"
-                    autocomplete="current-password"
-                  />
-                  @if (accountDeletionFormControls.password.touched && accountDeletionFormControls.password.invalid) {
-                  <span class="mt-1 text-xs text-error">
-                    {{ 'settings.panels.profile.accountDeletion.errors.passwordRequired' | transloco }}
-                  </span>
-                  }
-                </label>
-
-                <label class="form-control">
-                  <span class="label-text text-sm font-semibold">
-                    {{ 'settings.panels.profile.accountDeletion.confirmationLabel' | transloco }}
-                  </span>
-                  <input
-                    id="delete-account-confirmation"
-                    type="text"
-                    class="input input-bordered"
-                    formControlName="confirmation"
-                    autocomplete="off"
-                    spellcheck="false"
-                  />
-                  @if (accountDeletionFormControls.confirmation.touched && accountDeletionFormControls.confirmation.invalid) {
-                  <span class="mt-1 text-xs text-error">
-                    {{ 'settings.panels.profile.accountDeletion.errors.confirmation' | transloco }}
-                  </span>
-                  }
-                </label>
-              </div>
-
-              <label class="flex cursor-pointer items-start gap-3">
-                <input
-                  type="checkbox"
-                  class="checkbox checkbox-error mt-0.5"
-                  formControlName="acknowledged"
-                />
-                <span class="text-sm">
-                  {{ 'settings.panels.profile.accountDeletion.acknowledgement' | transloco }}
-                </span>
-              </label>
-              @if (accountDeletionFormControls.acknowledged.touched && accountDeletionFormControls.acknowledged.invalid) {
-              <p class="text-xs text-error">
-                {{ 'settings.panels.profile.accountDeletion.errors.acknowledgement' | transloco }}
-              </p>
-              }
-
-              <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  class="btn btn-ghost"
-                  (click)="closeAccountDeletion()"
-                  [disabled]="accountDeletionPending()"
-                >
-                  {{ 'common.actions.cancel' | transloco }}
-                </button>
-                <button
-                  type="submit"
-                  class="btn btn-error"
-                  [disabled]="accountDeletionPending()"
-                >
-                  @if (accountDeletionPending()) {
-                  <span class="loading loading-spinner loading-sm"></span>
-                  {{ 'settings.panels.profile.accountDeletion.submitBusy' | transloco }}
-                  } @else {
-                  {{ 'settings.panels.profile.accountDeletion.submitIdle' | transloco }}
-                  }
-                </button>
-              </div>
-            </form>
-            }
-          </section>
         </section>
-        }
+
+        <section
+          class="space-y-4 rounded-2xl border border-error/30 bg-error/5 p-4 shadow-sm sm:p-6"
+          aria-labelledby="settings-account-deletion-heading"
+        >
+          <header class="space-y-1">
+            <h3
+              id="settings-account-deletion-heading"
+              class="text-xl font-semibold text-error"
+            >
+              {{ 'settings.panels.profile.accountDeletion.title' | transloco }}
+            </h3>
+            <p class="text-sm text-base-content/70">
+              {{ 'settings.panels.profile.accountDeletion.description' | transloco }}
+            </p>
+          </header>
+
+          @if (!accountDeletionOpen()) {
+          <button
+            type="button"
+            class="btn btn-outline btn-error w-full sm:w-auto"
+            (click)="openAccountDeletion()"
+          >
+            {{ 'settings.panels.profile.accountDeletion.open' | transloco }}
+          </button>
+          } @else {
+          <form
+            class="space-y-4"
+            [formGroup]="accountDeletionForm"
+            (ngSubmit)="submitAccountDeletion()"
+          >
+            @if (accountDeletionError(); as deletionError) {
+            <div
+              class="alert alert-error text-sm"
+              role="alert"
+              aria-live="assertive"
+            >
+              {{ deletionError | transloco }}
+            </div>
+            }
+
+            <p class="text-sm font-semibold text-error">
+              {{ 'settings.panels.profile.accountDeletion.warning' | transloco }}
+            </p>
+
+            <div class="grid gap-4 md:grid-cols-2">
+              <label class="form-control">
+                <span class="label-text text-sm font-semibold">
+                  {{ 'settings.panels.profile.accountDeletion.passwordLabel' | transloco }}
+                </span>
+                <input
+                  id="delete-account-password"
+                  type="password"
+                  class="input input-bordered w-full"
+                  formControlName="password"
+                  autocomplete="current-password"
+                />
+                @if (accountDeletionFormControls.password.touched &&
+                accountDeletionFormControls.password.invalid) {
+                <span class="mt-1 text-xs text-error">
+                  {{ 'settings.panels.profile.accountDeletion.errors.passwordRequired' | transloco }}
+                </span>
+                }
+              </label>
+
+              <label class="form-control">
+                <span class="label-text text-sm font-semibold">
+                  {{ 'settings.panels.profile.accountDeletion.confirmationLabel' | transloco }}
+                </span>
+                <input
+                  id="delete-account-confirmation"
+                  type="text"
+                  class="input input-bordered w-full"
+                  formControlName="confirmation"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+                @if (accountDeletionFormControls.confirmation.touched &&
+                accountDeletionFormControls.confirmation.invalid) {
+                <span class="mt-1 text-xs text-error">
+                  {{ 'settings.panels.profile.accountDeletion.errors.confirmation' | transloco }}
+                </span>
+                }
+              </label>
+            </div>
+
+            <label class="flex cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                class="checkbox checkbox-error mt-0.5"
+                formControlName="acknowledged"
+              />
+              <span class="text-sm">
+                {{ 'settings.panels.profile.accountDeletion.acknowledgement' | transloco }}
+              </span>
+            </label>
+            @if (accountDeletionFormControls.acknowledged.touched &&
+            accountDeletionFormControls.acknowledged.invalid) {
+            <p class="text-xs text-error">
+              {{ 'settings.panels.profile.accountDeletion.errors.acknowledgement' | transloco }}
+            </p>
+            }
+
+            <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                class="btn btn-ghost"
+                (click)="closeAccountDeletion()"
+                [disabled]="accountDeletionPending()"
+              >
+                {{ 'common.actions.cancel' | transloco }}
+              </button>
+              <button
+                type="submit"
+                class="btn btn-error"
+                [disabled]="accountDeletionPending()"
+              >
+                @if (accountDeletionPending()) {
+                <span class="loading loading-spinner loading-sm"></span>
+                {{ 'settings.panels.profile.accountDeletion.submitBusy' | transloco }}
+                } @else {
+                {{ 'settings.panels.profile.accountDeletion.submitIdle' | transloco }}
+                }
+              </button>
+            </div>
+          </form>
+          }
+        </section>
       </section>
       } @else if (activePanel() === 'wallets') {
       <section class="space-y-6">
