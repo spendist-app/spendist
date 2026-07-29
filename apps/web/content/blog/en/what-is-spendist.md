@@ -2,7 +2,7 @@
 title: What Is Spendist? Meet the Open-Source App for Managing Your Household Budget
 slug: what-is-spendist
 description: Spendist is an open-source app for managing a household budget, expenses, income, recurring payments, wallets and portable financial data.
-publishedAt: 2026-07-24
+publishedAt: 2026-07-29
 category: spendist
 tags:
   - spendist
@@ -10,8 +10,8 @@ tags:
   - household-budget
   - expense-tracking
 coverImageId: blog/en/what-is-spendist/cover
-coverImageAlt: 'TODO: describe the final cover image'
-draft: true
+coverImageAlt: 'What Is Spendist title beside an illustration of household-budget documents and the Spendist logo'
+draft: false
 ---
 
 Small purchases, monthly bills, several subscriptions, an annual renewal and income arriving in different accounts may all seem manageable on their own. Together, they can create a financial picture that is surprisingly difficult to follow.

@@ -2,7 +2,7 @@
 title: 'Recurring Payments: How to Stop Silent Leaks in Your Household Budget'
 slug: recurring-payments-household-budget
 description: Subscriptions and regular bills can quietly drain a household budget. Learn how Spendist helps you track recurring payments and expenses.
-publishedAt: 2026-07-24
+publishedAt: 2026-07-29
 category: household-budget
 tags:
   - recurring-payments
@@ -10,8 +10,8 @@ tags:
   - household-budget
   - budget-planning
 coverImageId: blog/en/recurring-payments-household-budget/cover
-coverImageAlt: 'TODO: describe the final cover image'
-draft: true
+coverImageAlt: 'Recurring payments flowing into a monthly household-budget total beside the Spendist logo'
+draft: false
 ---
 
 One subscription costing a few euros is unlikely to break a household budget. A second small charge may also go unnoticed. Add cloud storage, a fitness app, a streaming service, insurance, bank fees and an annual renewal, however, and the picture begins to change.
@@ -79,7 +79,7 @@ Creating a record does not mean that Spendist moved any money. The application:
 
 It records expected or completed activity inside the budget. The user can still adjust the amount, date or description if the real payment was different.
 
-![Monthly recurring expense plan in the Spendist app](image:recurring-monthly-plan 'Monthly recurring payment plan')
+![Monthly recurring-payment totals and category summaries in Spendist](image:recurring-monthly-plan 'Monthly recurring-payment summary')
 
 ## A simple monthly subscription review
 

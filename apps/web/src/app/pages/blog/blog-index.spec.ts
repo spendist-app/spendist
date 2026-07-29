@@ -38,7 +38,7 @@ describe('BlogIndex', () => {
     }).compileComponents();
   });
 
-  it('renders an indexable empty English blog', async () => {
+  it('renders the published English articles on an indexable blog', async () => {
     const fixture = TestBed.createComponent(BlogIndex);
     fixture.detectChanges();
     await fixture.whenStable();
@@ -51,6 +51,13 @@ describe('BlogIndex', () => {
         robots: 'index,follow,max-image-preview:large',
       })
     );
-    expect(fixture.nativeElement.querySelector('.empty-state h2')).toBeTruthy();
+    const cards = fixture.nativeElement.querySelectorAll(
+      '.article-card'
+    ) as NodeListOf<HTMLElement>;
+    expect(cards).toHaveLength(3);
+    expect(cards[0]?.textContent).toContain('Recurring Payments');
+    expect(
+      fixture.nativeElement.querySelector('.empty-state h2')
+    ).not.toBeTruthy();
   });
 });

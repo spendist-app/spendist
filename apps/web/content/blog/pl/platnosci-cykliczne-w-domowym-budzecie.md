@@ -2,7 +2,7 @@
 title: 'Płatności cykliczne: jak zatrzymać małe wycieki z domowego budżetu'
 slug: platnosci-cykliczne-w-domowym-budzecie
 description: Subskrypcje i regularne rachunki mogą po cichu obciążać budżet. Zobacz, jak Spendist pomaga kontrolować płatności cykliczne.
-publishedAt: 2026-07-24
+publishedAt: 2026-07-29
 category: budzet-domowy
 tags:
   - platnosci-cykliczne
@@ -10,8 +10,8 @@ tags:
   - budzet-domowy
   - planowanie-budzetu
 coverImageId: blog/pl/platnosci-cykliczne-w-domowym-budzecie/cover
-coverImageAlt: 'TODO: opisać ostateczną grafikę okładkową'
-draft: true
+coverImageAlt: 'Płatności cykliczne składające się na miesięczną sumę domowego budżetu obok logo Spendist'
+draft: false
 ---
 
 Jedna subskrypcja za 19 zł raczej nie wywróci domowego budżetu. Druga za 39 zł też może pozostać niezauważona. Gdy dołożymy do tego przechowywanie plików, aplikację sportową, serwis filmowy, ubezpieczenie, opłaty bankowe i usługę odnawianą raz w roku, obraz zaczyna wyglądać inaczej.
@@ -79,7 +79,7 @@ Automatyczne utworzenie rekordu nie oznacza, że Spendist pobrał lub przesłał
 
 Rejestruje planowaną lub wykonaną operację wewnątrz budżetu. Dzięki temu użytkownik zachowuje kontrolę i może poprawić kwotę, datę albo opis, jeśli rzeczywista płatność wyglądała inaczej.
 
-![Miesięczny plan regularnych wydatków w aplikacji Spendist](image:recurring-monthly-plan 'Miesięczny plan płatności cyklicznych')
+![Miesięczne podsumowanie płatności cyklicznych i kategorii w Spendist](image:recurring-monthly-plan 'Miesięczne podsumowanie płatności cyklicznych')
 
 ## Prosty przegląd płatności cyklicznych raz w miesiącu
 
