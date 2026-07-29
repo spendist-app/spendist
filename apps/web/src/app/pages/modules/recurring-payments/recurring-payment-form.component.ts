@@ -170,6 +170,9 @@ export class RecurringPaymentFormComponent {
     this.store.defaultCurrency()
   );
   readonly walletCurrency = computed(() => this.selectedWalletCurrency());
+  readonly isEditingAllowance = computed(
+    () => this.store.editingRecurring()?.sourceModule === 'allowance'
+  );
   readonly currencyOptions = computed<readonly CurrencyOption[]>(() => {
     const currencies = this.store.currencies();
     if (currencies.length === 0) {

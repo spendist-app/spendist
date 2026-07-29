@@ -32,6 +32,9 @@ export class LoginPageComponent {
   readonly passwordResetSuccess = signal(
     this.route.snapshot.queryParamMap.get('passwordReset') === 'success'
   );
+  private readonly returnUrl = safeReturnUrl(
+    this.route.snapshot.queryParamMap.get('returnUrl')
+  );
 
   async login(): Promise<void> {
     if (this.submitting()) {
@@ -56,9 +59,15 @@ export class LoginPageComponent {
         return;
       }
 
-      await this.router.navigateByUrl('/dashboard');
+      await this.router.navigateByUrl(this.returnUrl);
     } finally {
       this.submitting.set(false);
     }
   }
+}
+
+function safeReturnUrl(value: string | null): string {
+  return value?.startsWith('/') && !value.startsWith('//')
+    ? value
+    : '/dashboard';
 }

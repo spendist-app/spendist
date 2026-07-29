@@ -217,10 +217,12 @@
                 inputmode="text"
                 class="input join-item input-bordered flex-1 min-w-0 font-mono"
                 placeholder="0.00"
+                [readOnly]="isAllowanceRecipient()"
               />
               <select
                 formControlName="currency"
                 class="select join-item select-bordered uppercase shrink-0 w-24 sm:w-28"
+                [attr.disabled]="isAllowanceRecipient() ? true : null"
                 aria-label="{{
                   'transactions.form.fields.currency' | transloco
                 }}"
@@ -252,6 +254,7 @@
                 [class.btn-outline]="
                   form.controls.direction.value !== 'expense'
                 "
+                [disabled]="isAllowanceRecipient()"
                 (click)="selectDirection('expense')"
               >
                 {{ 'transactions.form.directions.expense' | transloco }}
@@ -261,6 +264,7 @@
                 class="btn"
                 [class.btn-success]="form.controls.direction.value === 'income'"
                 [class.btn-outline]="form.controls.direction.value !== 'income'"
+                [disabled]="isAllowanceRecipient()"
                 (click)="selectDirection('income')"
               >
                 {{ 'transactions.form.directions.income' | transloco }}
@@ -371,6 +375,36 @@
                 }
               </select>
             </label>
+
+            @if (!isEditMode()) {
+            <label class="form-control">
+              <span
+                class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60"
+              >
+                {{ 'transactions.form.fields.allowanceRecipient' | transloco }}
+              </span>
+              <select
+                formControlName="allowanceConnectionId"
+                class="select select-bordered"
+              >
+                <option value="">
+                  {{ 'transactions.form.placeholders.allowanceRecipient' | transloco }}
+                </option>
+                @for (connection of allowanceConnections(); track connection.id) {
+                <option [value]="connection.id">
+                  {{ connection.counterpartName }}
+                </option>
+                }
+              </select>
+              <span class="mt-1 text-xs text-base-content/55">
+                @if (allowanceConnections().length === 0) {
+                {{ 'transactions.form.help.allowanceEmpty' | transloco }}
+                } @else {
+                {{ 'transactions.form.help.allowanceRecipient' | transloco }}
+                }
+              </span>
+            </label>
+            }
           </div>
           <p class="mt-3 text-xs text-base-content/50">
             {{ 'transactions.form.help.advancedDisclaimer' | transloco }}

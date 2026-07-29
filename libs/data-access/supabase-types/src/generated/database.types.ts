@@ -13,6 +13,159 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      allowance_connections: {
+        Row: {
+          accepted_invitation_id: string | null
+          connected_at: string
+          created_at: string
+          disconnected_at: string | null
+          id: string
+          payer_id: string
+          recipient_category_id: string
+          recipient_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_invitation_id?: string | null
+          connected_at?: string
+          created_at?: string
+          disconnected_at?: string | null
+          id?: string
+          payer_id: string
+          recipient_category_id: string
+          recipient_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_invitation_id?: string | null
+          connected_at?: string
+          created_at?: string
+          disconnected_at?: string | null
+          id?: string
+          payer_id?: string
+          recipient_category_id?: string
+          recipient_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "allowance_connections_accepted_invitation_id_fkey"
+            columns: ["accepted_invitation_id"]
+            isOneToOne: false
+            referencedRelation: "allowance_invitations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "allowance_connections_category_fk"
+            columns: ["recipient_id", "recipient_category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["owner_id", "id"]
+          },
+          {
+            foreignKeyName: "allowance_connections_payer_id_fkey"
+            columns: ["payer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "allowance_connections_payer_id_fkey"
+            columns: ["payer_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_transactions_overview"
+            referencedColumns: ["owner_id"]
+          },
+          {
+            foreignKeyName: "allowance_connections_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "allowance_connections_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_transactions_overview"
+            referencedColumns: ["owner_id"]
+          },
+        ]
+      }
+      allowance_invitations: {
+        Row: {
+          created_at: string
+          email_delivery_status: string
+          expires_at: string
+          id: string
+          invitee_email: string
+          invitee_id: string | null
+          inviter_id: string
+          responded_at: string | null
+          status: string
+          token_hash: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email_delivery_status?: string
+          expires_at: string
+          id?: string
+          invitee_email: string
+          invitee_id?: string | null
+          inviter_id: string
+          responded_at?: string | null
+          status?: string
+          token_hash: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email_delivery_status?: string
+          expires_at?: string
+          id?: string
+          invitee_email?: string
+          invitee_id?: string | null
+          inviter_id?: string
+          responded_at?: string | null
+          status?: string
+          token_hash?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "allowance_invitations_invitee_id_fkey"
+            columns: ["invitee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "allowance_invitations_invitee_id_fkey"
+            columns: ["invitee_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_transactions_overview"
+            referencedColumns: ["owner_id"]
+          },
+          {
+            foreignKeyName: "allowance_invitations_inviter_id_fkey"
+            columns: ["inviter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "allowance_invitations_inviter_id_fkey"
+            columns: ["inviter_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_transactions_overview"
+            referencedColumns: ["owner_id"]
+          },
+        ]
+      }
       categories: {
         Row: {
           color: string | null
@@ -23,6 +176,7 @@ export type Database = {
           name: string
           owner_id: string
           parent_id: string | null
+          system_key: string | null
           updated_at: string
         }
         Insert: {
@@ -34,6 +188,7 @@ export type Database = {
           name: string
           owner_id: string
           parent_id?: string | null
+          system_key?: string | null
           updated_at?: string
         }
         Update: {
@@ -45,6 +200,7 @@ export type Database = {
           name?: string
           owner_id?: string
           parent_id?: string | null
+          system_key?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -473,6 +629,7 @@ export type Database = {
       }
       recurring_transactions: {
         Row: {
+          allowance_connection_id: string | null
           amount: number
           amount_mode: string
           category_id: string
@@ -489,11 +646,13 @@ export type Database = {
           owner_id: string
           paused_at: string | null
           schedule: string
+          source_module: string
           start_date: string
           updated_at: string
           wallet_id: string
         }
         Insert: {
+          allowance_connection_id?: string | null
           amount: number
           amount_mode?: string
           category_id: string
@@ -510,11 +669,13 @@ export type Database = {
           owner_id: string
           paused_at?: string | null
           schedule: string
+          source_module?: string
           start_date: string
           updated_at?: string
           wallet_id: string
         }
         Update: {
+          allowance_connection_id?: string | null
           amount?: number
           amount_mode?: string
           category_id?: string
@@ -531,11 +692,19 @@ export type Database = {
           owner_id?: string
           paused_at?: string | null
           schedule?: string
+          source_module?: string
           start_date?: string
           updated_at?: string
           wallet_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "recurring_transactions_allowance_connection_fk"
+            columns: ["allowance_connection_id"]
+            isOneToOne: false
+            referencedRelation: "allowance_connections"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "recurring_transactions_category_owner_fk"
             columns: ["owner_id", "category_id"]
@@ -666,6 +835,9 @@ export type Database = {
       }
       transactions: {
         Row: {
+          allowance_connection_id: string | null
+          allowance_pair_id: string | null
+          allowance_role: string | null
           amount: number
           amount_in_default: number
           category_id: string
@@ -685,10 +857,14 @@ export type Database = {
           place_id: string | null
           recurring_scheduled_for: string | null
           recurring_transaction_id: string | null
+          source_module: string
           updated_at: string
           wallet_id: string
         }
         Insert: {
+          allowance_connection_id?: string | null
+          allowance_pair_id?: string | null
+          allowance_role?: string | null
           amount: number
           amount_in_default?: number
           category_id: string
@@ -708,10 +884,14 @@ export type Database = {
           place_id?: string | null
           recurring_scheduled_for?: string | null
           recurring_transaction_id?: string | null
+          source_module?: string
           updated_at?: string
           wallet_id: string
         }
         Update: {
+          allowance_connection_id?: string | null
+          allowance_pair_id?: string | null
+          allowance_role?: string | null
           amount?: number
           amount_in_default?: number
           category_id?: string
@@ -731,10 +911,18 @@ export type Database = {
           place_id?: string | null
           recurring_scheduled_for?: string | null
           recurring_transaction_id?: string | null
+          source_module?: string
           updated_at?: string
           wallet_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "transactions_allowance_connection_fk"
+            columns: ["allowance_connection_id"]
+            isOneToOne: false
+            referencedRelation: "allowance_connections"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "transactions_category_owner_fk"
             columns: ["owner_id", "category_id"]
@@ -844,6 +1032,10 @@ export type Database = {
       }
     }
     Functions: {
+      accept_allowance_invitation: {
+        Args: { p_token: string }
+        Returns: string
+      }
       available_transaction_months: {
         Args: { p_wallet_id?: string }
         Returns: {
@@ -871,14 +1063,78 @@ export type Database = {
         Args: { p_amount: number; p_occurrence_id: string }
         Returns: string
       }
+      complete_standard_recurring_transaction_occurrence: {
+        Args: { p_amount: number; p_occurrence_id: string }
+        Returns: string
+      }
+      create_allowance_invitation: { Args: { p_email: string }; Returns: Json }
+      create_allowance_transaction: {
+        Args: {
+          p_amount: number
+          p_category_id: string
+          p_connection_id: string
+          p_currency: string
+          p_description: string
+          p_occurred_at: string
+          p_place_id?: string
+          p_tag_ids?: string[]
+          p_wallet_id: string
+        }
+        Returns: Json
+      }
+      create_allowance_transaction_pair_internal: {
+        Args: {
+          p_amount: number
+          p_category_id: string
+          p_connection_id: string
+          p_currency: string
+          p_description: string
+          p_is_automatic?: boolean
+          p_occurred_at: string
+          p_payer_id: string
+          p_place_id?: string
+          p_recurring_id?: string
+          p_scheduled_for?: string
+          p_wallet_id: string
+        }
+        Returns: Json
+      }
+      delete_allowance_transaction: {
+        Args: { p_transaction_id: string }
+        Returns: undefined
+      }
+      disconnect_allowance_connection: {
+        Args: { p_connection_id: string }
+        Returns: undefined
+      }
       enqueue_recurring_transaction: {
         Args: { p_recurring_id: string; p_run_at?: string }
+        Returns: string
+      }
+      enqueue_standard_recurring_transaction: {
+        Args: { p_recurring_id: string; p_run_at?: string }
+        Returns: string
+      }
+      ensure_allowance_connection: {
+        Args: { p_invitation_id: string; p_recipient_id: string }
         Returns: string
       }
       find_existing_transaction_import_fingerprints: {
         Args: { p_import_fingerprints: string[]; p_import_source: string }
         Returns: {
           import_fingerprint: string
+        }[]
+      }
+      get_allowance_connections: {
+        Args: never
+        Returns: {
+          connected_at: string
+          counterpart_email: string
+          counterpart_id: string
+          counterpart_name: string
+          id: string
+          role: string
+          status: string
         }[]
       }
       get_exchange_rate: {
@@ -944,6 +1200,27 @@ export type Database = {
       resolve_preferred_currency_id: {
         Args: { user_meta: Json }
         Returns: number
+      }
+      respond_allowance_invitation: {
+        Args: { p_accept: boolean; p_invitation_id: string }
+        Returns: string
+      }
+      set_allowance_invitation_delivery: {
+        Args: { p_invitation_id: string; p_status: string }
+        Returns: undefined
+      }
+      update_allowance_transaction: {
+        Args: {
+          p_amount: number
+          p_category_id: string
+          p_currency: string
+          p_description: string
+          p_occurred_at: string
+          p_place_id?: string
+          p_transaction_id: string
+          p_wallet_id: string
+        }
+        Returns: string
       }
     }
     Enums: {

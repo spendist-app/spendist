@@ -41,6 +41,10 @@ interface TransactionEntity {
   readonly exchangeRate: number | null;
   readonly walletId: string;
   readonly placeId: string | null;
+  readonly sourceModule: 'standard' | 'allowance';
+  readonly allowancePairId: string | null;
+  readonly allowanceRole: 'payer' | 'recipient' | null;
+  readonly allowanceConnectionId: string | null;
 }
 
 interface TransactionsState {
@@ -67,6 +71,19 @@ interface TransactionsState {
   readonly tagSummaries: ReadonlyMap<string, TagExpenseSummary>;
   readonly summaryLoading: boolean;
   readonly summaryError: string | null;
+  readonly allowanceConnections: readonly AllowanceConnectionOption[];
+}
+
+export interface AllowanceConnectionOption {
+  readonly id: string;
+  readonly counterpartName: string;
+}
+
+interface AllowanceConnectionRpcRow {
+  readonly id: string | null;
+  readonly role: string | null;
+  readonly counterpart_name: string | null;
+  readonly status: string | null;
 }
 
 export interface TagEntity {
@@ -201,6 +218,7 @@ export interface CreateTransactionPayload {
   readonly foreignCurrency?: string | null;
   readonly walletId: string;
   readonly placeId?: string | null;
+  readonly allowanceConnectionId?: string | null;
 }
 
 export type CreateTransactionBatchItem = Omit<
@@ -230,6 +248,7 @@ interface NormalizedCreatePayload {
   readonly exchangeRate: number | null;
   readonly walletId: string;
   readonly placeId: string | null;
+  readonly allowanceConnectionId: string | null;
 }
 
 interface NormalizedUpdatePayload {
@@ -276,6 +295,7 @@ export class TransactionsStore {
     tagSummaries: new Map(),
     summaryLoading: false,
     summaryError: null,
+    allowanceConnections: [],
   });
 
   private readonly filters = signal<TransactionsFilters>(
@@ -313,6 +333,9 @@ export class TransactionsStore {
   readonly wallets = computed(() => this.state().wallets);
   readonly places = computed(() => this.state().places);
   readonly currencies = computed(() => this.state().currencies);
+  readonly allowanceConnections = computed(
+    () => this.state().allowanceConnections
+  );
   readonly defaultCurrency = computed(
     () => this.state().defaultCurrency ?? FALLBACK_CURRENCY
   );
@@ -460,6 +483,7 @@ export class TransactionsStore {
           tagSummaries: new Map(),
           summaryLoading: false,
           summaryError: null,
+          allowanceConnections: [],
         });
         this.filters.set(this.createInitialFilters());
         this.lastSummaryRangeKey = null;
@@ -540,6 +564,7 @@ export class TransactionsStore {
         placesResult,
         currenciesResult,
         availableYears,
+        allowanceConnectionsResult,
       ] = await Promise.all([
         this.supabase
           .from('categories_group')
@@ -571,6 +596,7 @@ export class TransactionsStore {
           .select('*')
           .order('symbol', { ascending: true }),
         this.loadAvailableYears(userId),
+        this.supabase.rpc('get_allowance_connections'),
       ]);
 
       if (groupsResult.error) {
@@ -595,6 +621,9 @@ export class TransactionsStore {
 
       if (currenciesResult.error) {
         throw currenciesResult.error;
+      }
+      if (allowanceConnectionsResult.error) {
+        throw allowanceConnectionsResult.error;
       }
 
       const groups = this.sortGroups(
@@ -632,6 +661,16 @@ export class TransactionsStore {
         wallets[0]?.currency ??
         FALLBACK_CURRENCY;
       const previousState = this.state();
+      const allowanceConnections = (
+        (allowanceConnectionsResult.data ?? []) as AllowanceConnectionRpcRow[]
+      )
+        .filter(
+          (row) => row.role === 'payer' && row.status === 'active' && row.id
+        )
+        .map((row) => ({
+          id: row.id as string,
+          counterpartName: row.counterpart_name ?? '',
+        }));
       this.state.set({
         loading: true,
         error: null,
@@ -656,6 +695,7 @@ export class TransactionsStore {
         tagSummaries: previousState.tagSummaries,
         summaryLoading: previousState.summaryLoading,
         summaryError: previousState.summaryError,
+        allowanceConnections,
       });
       await this.loadTransactionsPage({
         append: false,
@@ -1380,6 +1420,31 @@ export class TransactionsStore {
     }));
 
     try {
+      if (normalized.allowanceConnectionId) {
+        const { error } = await this.supabase.rpc(
+          'create_allowance_transaction',
+          {
+            p_connection_id: normalized.allowanceConnectionId,
+            p_category_id: normalized.categoryId,
+            p_wallet_id: normalized.walletId,
+            p_occurred_at: normalized.occurredAt.toISOString(),
+            p_description: normalized.description,
+            p_amount: normalized.amount,
+            p_currency: normalized.currency,
+            p_place_id: normalized.placeId,
+            p_tag_ids: [...normalized.tagIds],
+          }
+        );
+        if (error) throw error;
+        await this.refresh();
+        this.state.update((state) => ({
+          ...state,
+          transactionMutationPending: false,
+          mutationError: null,
+        }));
+        return { success: true };
+      }
+
       const rows = Array.from({ length: normalized.quantity }, () => ({
         owner_id: userId,
         category_id: normalized.categoryId,
@@ -1574,9 +1639,23 @@ export class TransactionsStore {
     }));
 
     try {
-      const { error: updateError } = await this.supabase
-        .from('transactions')
-        .update({
+      const current = this.state().transactions.find(
+        (transaction) => transaction.id === transactionId
+      );
+      const updateResult =
+        current?.sourceModule === 'allowance' &&
+        current.allowanceRole === 'payer'
+          ? await this.supabase.rpc('update_allowance_transaction', {
+              p_transaction_id: transactionId,
+              p_category_id: normalized.categoryId,
+              p_wallet_id: normalized.walletId,
+              p_occurred_at: normalized.occurredAt.toISOString(),
+              p_description: normalized.description,
+              p_amount: normalized.amount,
+              p_currency: normalized.currency,
+              p_place_id: normalized.placeId,
+            })
+          : await this.supabase.from('transactions').update({
           category_id: normalized.categoryId,
           description: normalized.description,
           occurred_at: normalized.occurredAt.toISOString(),
@@ -1587,12 +1666,10 @@ export class TransactionsStore {
           exchange_rate: normalized.exchangeRate,
           wallet_id: normalized.walletId,
           place_id: normalized.placeId,
-        })
-        .eq('owner_id', userId)
-        .eq('id', transactionId);
+        }).eq('owner_id', userId).eq('id', transactionId);
 
-      if (updateError) {
-        throw updateError;
+      if (updateResult.error) {
+        throw updateResult.error;
       }
 
       const { error: deleteTagsError } = await this.supabase
@@ -1655,14 +1732,23 @@ export class TransactionsStore {
     }));
 
     try {
-      const { error } = await this.supabase
-        .from('transactions')
-        .delete()
-        .eq('owner_id', userId)
-        .eq('id', transactionId);
+      const current = this.state().transactions.find(
+        (transaction) => transaction.id === transactionId
+      );
+      const result =
+        current?.sourceModule === 'allowance' &&
+        current.allowanceRole === 'payer'
+          ? await this.supabase.rpc('delete_allowance_transaction', {
+              p_transaction_id: transactionId,
+            })
+          : await this.supabase
+              .from('transactions')
+              .delete()
+              .eq('owner_id', userId)
+              .eq('id', transactionId);
 
-      if (error) {
-        throw error;
+      if (result.error) {
+        throw result.error;
       }
 
       await this.refresh();
@@ -2152,6 +2238,14 @@ export class TransactionsStore {
         : null,
       walletId: row.wallet_id,
       placeId: row.place_id ?? null,
+      sourceModule:
+        row.source_module === 'allowance' ? 'allowance' : 'standard',
+      allowancePairId: row.allowance_pair_id ?? null,
+      allowanceRole:
+        row.allowance_role === 'payer' || row.allowance_role === 'recipient'
+          ? row.allowance_role
+          : null,
+      allowanceConnectionId: row.allowance_connection_id ?? null,
     };
   }
 
@@ -2369,6 +2463,7 @@ export class TransactionsStore {
       exchangeRate,
       walletId,
       placeId,
+      allowanceConnectionId: payload.allowanceConnectionId?.trim() || null,
     };
   }
 

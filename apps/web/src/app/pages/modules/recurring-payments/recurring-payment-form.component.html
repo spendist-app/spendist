@@ -275,6 +275,7 @@
               id="recurring-direction"
               class="select select-bordered w-full"
               formControlName="direction"
+              [attr.disabled]="isEditingAllowance() ? true : null"
             >
               <option value="expense">
                 {{

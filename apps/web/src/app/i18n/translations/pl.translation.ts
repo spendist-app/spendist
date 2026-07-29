@@ -56,6 +56,7 @@ const pl = {
     modules: 'Moduły',
     modulesRecurring: 'Płatności cykliczne',
     modulesPlaces: 'Miejsca',
+    modulesAllowance: 'Kieszonkowe',
     menuToggle: 'Otwórz menu nawigacji',
     about: {
       menuItem: 'O aplikacji',
@@ -725,6 +726,8 @@ const pl = {
     unreadCount: 'Nieprzeczytane: {{count}}',
     actions: {
       readAll: 'Przeczytaj wszystko',
+      accept: 'Akceptuj',
+      decline: 'Odrzuć',
     },
     empty: {
       title: 'Brak notyfikacji',
@@ -742,11 +745,27 @@ const pl = {
       exchange_rates_sync_failed: {
         title: 'Synchronizacja kursów walut nie powiodła się: {{error}}',
       },
+      allowance_invitation_received: {
+        title: '{{inviterName}} zaprasza Cię do modułu Kieszonkowe',
+      },
+      allowance_invitation_accepted: {
+        title: '{{recipientName}} zaakceptował(a) zaproszenie do modułu Kieszonkowe',
+      },
+      allowance_invitation_declined: {
+        title: 'Zaproszenie do modułu Kieszonkowe zostało odrzucone',
+      },
+      allowance_received: {
+        title: 'Otrzymano kieszonkowe: {{description}} ({{amount}} {{currency}})',
+      },
+      allowance_transfer_failed: {
+        title: 'Nie udało się zapisać kieszonkowego: {{error}}',
+      },
     },
     errors: {
       generic: 'Coś poszło nie tak. Spróbuj ponownie.',
       load: 'Nie udało się załadować notyfikacji.',
       markAllRead: 'Nie udało się oznaczyć notyfikacji jako przeczytane.',
+      allowanceResponse: 'Nie udało się zaktualizować zaproszenia do modułu Kieszonkowe.',
     },
   },
   dashboard: {
@@ -906,6 +925,10 @@ const pl = {
       noDescription: 'Transakcja bez opisu',
       automatic: 'Automatyczna',
       recurringSource: 'Cykliczna',
+      allowance: {
+        payer: 'Kieszonkowe · wysłane',
+        recipient: 'Kieszonkowe · otrzymane',
+      },
       uncategorized: 'Brak kategorii',
       place: 'Miejsce',
       direction: {
@@ -944,6 +967,7 @@ const pl = {
         direction: 'Typ',
         category: 'Kategoria',
         wallet: 'Portfel',
+        allowanceRecipient: 'Pokaż również u',
         tags: 'Tagi',
         place: 'Miejsce',
         quantity: 'Ilość',
@@ -1019,6 +1043,7 @@ const pl = {
         place: 'Brak miejsca',
         placeSearch: 'Szukaj miejsca...',
         wallet: 'Wybierz portfel',
+        allowanceRecipient: 'Tylko na moim koncie',
         tagInput: 'Wpisz tag i naciśnij Enter…',
       },
       validation: {
@@ -1040,6 +1065,10 @@ const pl = {
           'Użyj, gdy zapisujesz kilka identycznych pozycji za jednym razem.',
         advancedDisclaimer:
           'Każda transakcja trafia domyślnie do głównego portfela — zmień go tutaj, jeśli ma być zaksięgowana gdzie indziej.',
+        allowanceRecipient:
+          'Tworzy odpowiadający przychód na koncie wybranego odbiorcy.',
+        allowanceEmpty:
+          'Połącz odbiorcę w module Kieszonkowe, aby użyć tej opcji.',
       },
       emptyTags:
         'Zacznij pisać, aby dodać pierwszy tag lub wybierz z podpowiedzi.',
@@ -1102,6 +1131,88 @@ const pl = {
     },
   },
   modules: {
+    allowance: {
+      badge: 'Kieszonkowe',
+      title: 'Kieszonkowe zaplanowane razem',
+      description:
+        'Połącz konto z odbiorcą i zapisuj odpowiadające sobie koszty oraz przychody jednorazowo albo cyklicznie.',
+      ledgerNotice:
+        'Spendist zapisuje wyłącznie wpisy budżetowe. Nie przesyła pieniędzy ani nie inicjuje płatności bankowych.',
+      invite: {
+        title: 'Zaproś odbiorcę',
+        help: 'Możesz połączyć wiele osób, wysyłając kolejne zaproszenia.',
+        email: 'Adres e-mail',
+        submit: 'Wyślij zaproszenie',
+        pending: 'Zaproszenia',
+      },
+      invitePage: {
+        title: 'Zaproszenie do modułu Kieszonkowe',
+        accepted: 'Konta zostały połączone.',
+        open: 'Otwórz Kieszonkowe',
+        invalid: 'Zaproszenie jest nieprawidłowe, wygasło albo dotyczy innego adresu e-mail.',
+        signIn: 'Zaloguj się lub utwórz konto przy użyciu zaproszonego adresu e-mail.',
+      },
+      connections: {
+        title: 'Połączone osoby',
+        empty: 'Nie masz jeszcze żadnych połączeń.',
+        disconnect: 'Rozłącz',
+        role: {
+          payer: 'Wysyłasz kieszonkowe',
+          recipient: 'Otrzymujesz kieszonkowe',
+        },
+      },
+      schedule: {
+        title: 'Zaplanuj kieszonkowe',
+        help: 'Harmonogram pojawi się także w Płatnościach cyklicznych z labelką Kieszonkowe.',
+        recipient: 'Odbiorca',
+        chooseRecipient: 'Wybierz odbiorcę',
+        name: 'Opis',
+        category: 'Twoja kategoria kosztowa',
+        wallet: 'Twój portfel',
+        amountMode: 'Rodzaj kwoty',
+        fixed: 'Stała kwota',
+        variable: 'Zmienna kwota',
+        amount: 'Kwota',
+        frequency: 'Częstotliwość',
+        daily: 'Codziennie',
+        weekly: 'Co tydzień',
+        monthly: 'Co miesiąc',
+        weekday: 'Dzień tygodnia',
+        monthday: 'Dzień miesiąca',
+        time: 'Godzina',
+        start: 'Data rozpoczęcia',
+        end: 'Data zakończenia (opcjonalnie)',
+        submit: 'Utwórz harmonogram kieszonkowego',
+        listTitle: 'Harmonogramy kieszonkowego',
+        empty: 'Brak harmonogramów kieszonkowego.',
+        pause: 'Wstrzymaj',
+        resume: 'Wznów',
+        nextRun: 'Następny wpis: {{date}}',
+        noUpcoming: 'Brak kolejnych wpisów.',
+      },
+      weekdays: {
+        monday: 'Poniedziałek',
+        tuesday: 'Wtorek',
+        wednesday: 'Środa',
+        thursday: 'Czwartek',
+        friday: 'Piątek',
+        saturday: 'Sobota',
+        sunday: 'Niedziela',
+      },
+      status: {
+        pending: 'Oczekuje',
+        accepted: 'Zaakceptowane',
+        declined: 'Odrzucone',
+        revoked: 'Anulowane',
+        expired: 'Wygasłe',
+        disconnected: 'Rozłączone',
+        paused: 'Wstrzymane',
+      },
+      errors: {
+        load: 'Nie udało się załadować danych modułu Kieszonkowe.',
+        mutation: 'Nie udało się wykonać operacji w module Kieszonkowe.',
+      },
+    },
     recurringPayments: {
       badge: 'Moduły',
       title: 'Płatności cykliczne',

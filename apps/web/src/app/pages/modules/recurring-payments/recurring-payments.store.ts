@@ -69,6 +69,8 @@ export interface RecurringTransactionEntity {
   readonly walletName: string | null;
   readonly isPaused: boolean;
   readonly pausedAt: Date | null;
+  readonly sourceModule: 'standard' | 'allowance';
+  readonly allowanceConnectionId: string | null;
 }
 
 export interface RecurringOccurrenceEntity {
@@ -970,6 +972,9 @@ export class RecurringPaymentsStore {
       walletName: wallet?.name ?? null,
       isPaused: row.is_paused,
       pausedAt: row.paused_at ? new Date(row.paused_at) : null,
+      sourceModule:
+        row.source_module === 'allowance' ? 'allowance' : 'standard',
+      allowanceConnectionId: row.allowance_connection_id ?? null,
     };
   }
 

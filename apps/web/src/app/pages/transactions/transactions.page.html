@@ -691,6 +691,14 @@
                       >
                     </span>
                     }
+                    @if (transaction.sourceModule === 'allowance') {
+                    <span class="badge badge-secondary badge-outline badge-sm text-xs">
+                      {{
+                        ('transactions.list.allowance.' +
+                          (transaction.allowanceRole ?? 'recipient')) | transloco
+                      }}
+                    </span>
+                    }
                   </div>
                   <p class="text-sm text-base-content/70">
                     {{ formatDate(transaction.occurredAt) }} · {{
@@ -749,7 +757,7 @@
                     [attr.aria-label]="'transactions.list.actions.delete' | transloco"
                     [attr.title]="'transactions.list.actions.delete' | transloco"
                     [attr.data-tip]="'transactions.list.actions.delete' | transloco"
-                    [disabled]="store.transactionMutationPending()"
+                    [disabled]="store.transactionMutationPending() || transaction.allowanceRole === 'recipient'"
                     (click)="confirmDelete(transaction)"
                   >
                     <ng-icon

@@ -5,7 +5,7 @@ import {
   type ValidatorFn,
   Validators,
 } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@ngneat/transloco';
 import { AuthService } from '../../core/auth.service';
 import { LanguageService } from '../../core/language.service';
@@ -89,12 +89,16 @@ export class SignupPageComponent {
   private readonly formBuilder = inject(NonNullableFormBuilder);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly languageService = inject(LanguageService);
   private readonly initialLanguage =
     this.languageService.currentLanguage() ?? FALLBACK_LANGUAGE;
   private readonly initialCurrencyId = detectPreferredCurrencyId(
     this.initialLanguage,
     detectLocales()
+  );
+  private readonly returnUrl = safeReturnUrl(
+    this.route.snapshot.queryParamMap.get('returnUrl')
   );
 
   readonly form = this.formBuilder.group(
@@ -168,9 +172,15 @@ export class SignupPageComponent {
         return;
       }
 
-      await this.router.navigateByUrl('/dashboard');
+      await this.router.navigateByUrl(this.returnUrl);
     } finally {
       this.submitting.set(false);
     }
   }
+}
+
+function safeReturnUrl(value: string | null): string {
+  return value?.startsWith('/') && !value.startsWith('//')
+    ? value
+    : '/dashboard';
 }

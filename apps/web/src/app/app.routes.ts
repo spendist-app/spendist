@@ -93,6 +93,21 @@ export const appRoutes: Route[] = [
       ),
   },
   {
+    path: 'modules/allowance',
+    canActivate: [requireAuthGuard],
+    loadComponent: () =>
+      import('./pages/modules/allowance/allowance.page').then(
+        (m) => m.AllowancePageComponent
+      ),
+  },
+  {
+    path: 'allowance/invite',
+    loadComponent: () =>
+      import('./pages/modules/allowance/allowance-invite.page').then(
+        (m) => m.AllowanceInvitePageComponent
+      ),
+  },
+  {
     path: '**',
     redirectTo: '',
   },

@@ -123,6 +123,11 @@
                     <span class="badge badge-secondary badge-outline text-xs uppercase">
                       {{ amountModeLabel(transaction) | transloco }}
                     </span>
+                    @if (transaction.sourceModule === 'allowance') {
+                      <span class="badge badge-accent badge-outline text-xs uppercase">
+                        {{ 'modules.allowance.badge' | transloco }}
+                      </span>
+                    }
                     @if (transaction.isPaused) {
                       <span class="badge badge-warning badge-outline text-xs uppercase">
                         {{ 'modules.recurringPayments.list.status.stopped' | transloco }}

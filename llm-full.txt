@@ -12,9 +12,10 @@ The hosted application is `https://spendist.app`. The source is an Nx workspace 
 - **Transactions:** create income/expense records with date, description, amount, currency, wallet, category, optional tags, and optional place. Users can edit, duplicate, delete, filter, sort, search, and create transactions in bulk from pasted rows. Default-currency conversion uses stored exchange rates where applicable.
 - **Financial organization:** an always-editable autosaving profile/avatar, wallets with currencies/default status, category groups, nested categories, colors, Heroicons, and reusable tags.
 - **Recurring payments:** scheduled income/expense with fixed or variable amount, category, wallet, currency, tags, schedule, and optional end date. Scheduled Supabase work creates automatic transaction records; it never makes a real payment.
+- **Allowance:** directional email-confirmed connections between a payer and recipient. Manual and recurring allowance creates two ordinary owner-scoped transactions atomically, keeps amount/currency synchronized, and never transfers real money.
 - **Places:** reusable locations/merchants with optional address and note metadata. Users can attach them to transactions and inspect annual spending totals.
 - **Dashboard:** up to 12 calendar months of cash flow, selected-month category/tag totals, recurring-created transaction totals, and yearly place spending, scoped by wallet where relevant.
-- **Notifications:** user-scoped Realtime notifications for recurring activity and exchange-rate-sync failure; users can mark all visible unread items as read.
+- **Notifications:** user-scoped Realtime notifications for recurring activity, exchange-rate-sync failure, Allowance invitations, and received allowance. Invitation notifications include accept/decline actions.
 - **Data portability:** Kontomierz XLSX import to a chosen wallet; readable, filtered Spendist CSV export; CSV analysis before import, valid reference-data creation, and duplicate skipping. Spendist CSV and Kontomierz flows are separate.
 - **Preferences:** authenticated profile language is authoritative across devices; full name, language, and IANA timezone autosave in `/settings`. Signed-out English/Polish choice and light/dark theme are stored locally. Signed-out navigation uses accessible flag buttons in a compact single-row header; changing language on a blog URL opens the other edition's home page.
 - **Public blog:** separate Polish and English Markdown collections for signed-out readers. Each edition can publish unrelated articles, categories are indexable when non-empty, tags are filter-only and `noindex`, and sharing uses Web Share/copy/plain social links without embedded social SDKs. There are no comments, CMS, or admin panel.
@@ -35,7 +36,8 @@ Read `doc/features/` for feature-level details and deliberate limits.
 | `/login`, `/signup` | Authentication entry points. | Not indexed |
 | `/forgot-password`, `/reset-password` | Password recovery utilities. | Not indexed |
 | `/dashboard`, `/home`, `/transactions`, `/settings` | Authenticated product pages. | Not indexed |
-| `/modules/recurring-payments`, `/modules/places` | Authenticated modules. | Not indexed |
+| `/modules/recurring-payments`, `/modules/places`, `/modules/allowance` | Authenticated modules. | Not indexed |
+| `/allowance/invite` | Utility handoff for a single-use Allowance email link. | Not indexed |
 
 Routes live in `apps/web/src/app/app.routes.ts`. Public SEO files live in `apps/web/public/`. `sitemap.xml` has canonical indexable content only; `robots.txt` disallows private/utility routes.
 
@@ -58,6 +60,7 @@ Routes live in `apps/web/src/app/app.routes.ts`. Public SEO files live in `apps/
 - `apps/web/worker.ts` serves Cloudflare assets, exposes runtime `/env.js`, handles HTML fallback, and adds security headers. Do not judge production behavior from the development server alone.
 - Supabase provides Auth, Postgres, RLS, Storage, Realtime, Edge Functions, `pg_cron`, `pg_net`, and Vault. Migrations are under `supabase/migrations/`; generated types are in `libs/data-access/supabase-types/`.
 - `supabase/functions/delete-account/` owns permanent account deletion. It derives identity from the bearer token, reauthenticates with the submitted current password, removes the user's avatar folder, and uses the service role only inside the function to delete the Auth user.
+- `supabase/functions/send-allowance-invitation/` sends localized invitation links through Resend. The database stores only a seven-day token hash; cross-owner transaction writes remain atomic database operations.
 
 ## Operational constraints
 

@@ -11,6 +11,9 @@ interface RecurringTransactionNotificationPayload {
   readonly currency?: unknown;
   readonly end_date?: unknown;
   readonly error?: unknown;
+  readonly invitation_id?: unknown;
+  readonly inviter_name?: unknown;
+  readonly recipient_name?: unknown;
 }
 
 @Component({
@@ -47,7 +50,28 @@ export class NotificationsMenuComponent {
       currency: this.stringify(payload?.currency, ''),
       endDate: this.stringify(payload?.end_date, ''),
       error: this.stringify(payload?.error, ''),
+      inviterName: this.stringify(payload?.inviter_name, ''),
+      recipientName: this.stringify(payload?.recipient_name, ''),
     };
+  }
+
+  isAllowanceInvitation(notification: NotificationRow): boolean {
+    return notification.type === 'allowance_invitation_received';
+  }
+
+  async respondToInvitation(
+    notification: NotificationRow,
+    accept: boolean
+  ): Promise<void> {
+    const payload =
+      notification.payload as RecurringTransactionNotificationPayload | null;
+    const invitationId = this.stringify(payload?.invitation_id, '');
+    if (!invitationId) return;
+    const success = await this.store.respondToAllowanceInvitation(
+      invitationId,
+      accept
+    );
+    if (success) await this.store.refresh();
   }
 
   formatCreatedAt(notification: NotificationRow): string {

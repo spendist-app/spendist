@@ -58,6 +58,11 @@
                 {{ 'navbar.modulesPlaces' | transloco }}
               </a>
             </li>
+            <li>
+              <a class="rounded-lg px-3 py-2 text-sm" routerLink="/modules/allowance">
+                {{ 'navbar.modulesAllowance' | transloco }}
+              </a>
+            </li>
           </ul>
         </li>
       </ul>
@@ -145,6 +150,16 @@
               (click)="closeModulesMenu()"
             >
               {{ 'navbar.modulesPlaces' | transloco }}
+            </a>
+          </li>
+          <li>
+            <a
+              class="rounded-lg px-3 py-2 text-sm"
+              routerLink="/modules/allowance"
+              routerLinkActive="active"
+              (click)="closeModulesMenu()"
+            >
+              {{ 'navbar.modulesAllowance' | transloco }}
             </a>
           </li>
         </ul>

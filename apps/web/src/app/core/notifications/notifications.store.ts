@@ -40,6 +40,7 @@ export class NotificationsStore implements OnDestroy {
     this.state().notifications.filter((notification) => !notification.read_at).length
   );
   readonly hasUnread = computed(() => this.unreadCount() > 0);
+  readonly allowanceResponsePending = signal(false);
 
   private readonly sessionEffect = effect(() => {
     const userId = this.auth.session()?.user.id ?? null;
@@ -116,6 +117,39 @@ export class NotificationsStore implements OnDestroy {
         markAllPending: false,
         error: 'notifications.errors.markAllRead',
       }));
+    }
+  }
+
+  async respondToAllowanceInvitation(
+    invitationId: string,
+    accept: boolean
+  ): Promise<boolean> {
+    if (this.allowanceResponsePending()) return false;
+    this.allowanceResponsePending.set(true);
+    try {
+      const { error } = await this.supabase.rpc(
+        'respond_allowance_invitation',
+        {
+          p_invitation_id: invitationId,
+          p_accept: accept,
+        }
+      );
+      if (error) throw error;
+      await this.refresh();
+      return true;
+    } catch (error) {
+      logError(
+        'NotificationsStore',
+        'Failed to respond to allowance invitation',
+        error
+      );
+      this.state.update((state) => ({
+        ...state,
+        error: 'notifications.errors.allowanceResponse',
+      }));
+      return false;
+    } finally {
+      this.allowanceResponsePending.set(false);
     }
   }
 

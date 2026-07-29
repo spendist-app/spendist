@@ -79,6 +79,11 @@ export class TransactionCreateFormComponent {
   protected readonly showAdvanced = signal(false);
   protected readonly exchangeRateRefreshPending = signal(false);
   protected readonly isEditMode = computed(() => this.mode() === 'edit');
+  protected readonly isAllowanceRecipient = computed(
+    () =>
+      this.isEditMode() &&
+      this.transaction()?.allowanceRole === 'recipient'
+  );
   protected readonly tags = computed<readonly TagEntity[]>(() =>
     this.store.tags()
   );
@@ -87,6 +92,9 @@ export class TransactionCreateFormComponent {
   );
   protected readonly places = computed<readonly PlaceEntity[]>(() =>
     this.store.places()
+  );
+  protected readonly allowanceConnections = computed(() =>
+    this.store.allowanceConnections?.() ?? []
   );
   private readonly selectedWalletCurrency = signal(
     this.store.defaultCurrency()
@@ -158,6 +166,9 @@ export class TransactionCreateFormComponent {
     foreignAmount: this.formBuilder.control<string>(''),
     walletId: this.formBuilder.control<string>('', {
       validators: [Validators.required],
+      nonNullable: true,
+    }),
+    allowanceConnectionId: this.formBuilder.control<string>('', {
       nonNullable: true,
     }),
   });
@@ -392,6 +403,14 @@ export class TransactionCreateFormComponent {
         this.syncWalletCurrency(typeof walletId === 'string' ? walletId : null);
       });
 
+    this.form.controls.allowanceConnectionId.valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe((connectionId) => {
+        if (!connectionId) return;
+        this.form.controls.direction.setValue('expense');
+        this.form.controls.quantity.setValue(1);
+      });
+
     this.syncWalletCurrency(
       typeof this.form.controls.walletId.value === 'string'
         ? this.form.controls.walletId.value
@@ -492,6 +511,9 @@ export class TransactionCreateFormComponent {
   }
 
   protected selectDirection(direction: TransactionDirection): void {
+    if (this.isAllowanceRecipient()) {
+      return;
+    }
     this.form.controls.direction.setValue(direction);
   }
 
@@ -612,6 +634,8 @@ export class TransactionCreateFormComponent {
       foreignCurrency: resolvedAmountInDefault ? defaultCurrency : null,
       walletId,
       placeId: raw.placeId || null,
+      allowanceConnectionId:
+        mode === 'create' ? raw.allowanceConnectionId || null : null,
     };
 
     if (mode === 'create') {
@@ -670,6 +694,7 @@ export class TransactionCreateFormComponent {
       tags: [] as TagPickerSelection[],
       foreignAmount: '',
       walletId: this.store.defaultWalletId() ?? '',
+      allowanceConnectionId: '',
     });
     this.form.markAsPristine();
     this.form.markAsUntouched();
@@ -781,6 +806,7 @@ export class TransactionCreateFormComponent {
       tags: this.mapTagIdsToSelections(transaction.tagIds),
       foreignAmount: this.formatAmountInDefault(transaction),
       walletId: transaction.walletId,
+      allowanceConnectionId: '',
     });
     this.form.markAsPristine();
     this.form.markAsUntouched();
@@ -812,6 +838,7 @@ export class TransactionCreateFormComponent {
       tags: this.mapTagIdsToSelections(transaction.tagIds),
       foreignAmount: this.formatAmountInDefault(transaction),
       walletId: transaction.walletId,
+      allowanceConnectionId: '',
     });
     this.form.markAsPristine();
     this.form.markAsUntouched();
