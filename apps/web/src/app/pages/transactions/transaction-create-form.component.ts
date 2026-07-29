@@ -28,6 +28,7 @@ import type { TransactionDirection } from '@spendist/data-access/supabase-types'
 import { parseAmountInput } from './transaction-amount.parser';
 import { heroIconSvg } from '../../shared/icons/heroicons';
 import { logError } from '../../core/logger';
+import { LanguageService } from '../../core/language.service';
 import {
   CategorySelectComponent,
   CategorySelectOption,
@@ -65,6 +66,7 @@ export class TransactionCreateFormComponent {
   protected readonly closeIcon = heroIconSvg('heroXMark');
 
   private readonly formBuilder = inject(FormBuilder);
+  private readonly languageService = inject(LanguageService);
   protected readonly store = inject(TransactionsStore);
   private readonly host = inject(ElementRef<HTMLElement>);
   protected readonly descriptionInput =
@@ -79,6 +81,22 @@ export class TransactionCreateFormComponent {
   protected readonly showAdvanced = signal(false);
   protected readonly exchangeRateRefreshPending = signal(false);
   protected readonly isEditMode = computed(() => this.mode() === 'edit');
+  protected readonly wasEdited = computed(() => {
+    const transaction = this.transaction();
+    return transaction
+      ? transaction.updatedAt.getTime() > transaction.createdAt.getTime()
+      : false;
+  });
+  private readonly auditDateFormatter = computed(
+    () =>
+      new Intl.DateTimeFormat(
+        this.languageService.currentLanguage() === 'pl' ? 'pl-PL' : 'en',
+        {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+        }
+      )
+  );
   protected readonly isAllowanceRecipient = computed(
     () =>
       this.isEditMode() &&
@@ -397,6 +415,12 @@ export class TransactionCreateFormComponent {
         this.persistRecentDefaults({ categoryId });
       });
 
+    this.form.controls.placeId.valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe((placeId) => {
+        this.persistRecentDefaults({ placeId });
+      });
+
     this.form.controls.walletId.valueChanges
       .pipe(takeUntilDestroyed())
       .subscribe((walletId) => {
@@ -445,6 +469,11 @@ export class TransactionCreateFormComponent {
     control.markAsDirty();
     control.markAsTouched();
     this.closePlaceDropdown();
+  }
+
+  protected clearPlace(event: MouseEvent): void {
+    event.stopPropagation();
+    this.selectPlace('');
   }
 
   protected onPlaceDropdownFocusOut(event: FocusEvent): void {
@@ -515,6 +544,10 @@ export class TransactionCreateFormComponent {
       return;
     }
     this.form.controls.direction.setValue(direction);
+  }
+
+  protected formatAuditDate(date: Date): string {
+    return this.auditDateFormatter().format(date);
   }
 
   protected async submitAndAddAnother(): Promise<void> {
@@ -648,6 +681,7 @@ export class TransactionCreateFormComponent {
         this.persistRecentDefaults({
           occurredOn: raw.occurredOn,
           categoryId: raw.categoryId,
+          placeId: raw.placeId,
         });
         this.saved.emit('created');
         if (afterCreate === 'continue') {
@@ -685,7 +719,7 @@ export class TransactionCreateFormComponent {
     this.form.reset({
       description: '',
       categoryId: defaultCategory,
-      placeId: '',
+      placeId: this.resolvePlaceId(defaults?.placeId) ?? '',
       occurredOn: defaults?.occurredOn ?? this.todayIsoString(),
       amount: '',
       currency: this.store.defaultCurrency(),
@@ -707,7 +741,11 @@ export class TransactionCreateFormComponent {
   }
 
   private persistRecentDefaults(
-    patch: Partial<{ occurredOn: string; categoryId: string }>
+    patch: Partial<{
+      occurredOn: string;
+      categoryId: string;
+      placeId: string;
+    }>
   ): void {
     if (this.mode() !== 'create' || this.prefill()) {
       return;
@@ -721,9 +759,11 @@ export class TransactionCreateFormComponent {
       categoryId:
         this.resolveCategoryId(patch.categoryId ?? current?.categoryId) ??
         undefined,
+      placeId:
+        this.resolvePlaceId(patch.placeId ?? current?.placeId) ?? undefined,
     };
 
-    if (!next.occurredOn && !next.categoryId) {
+    if (!next.occurredOn && !next.categoryId && !next.placeId) {
       return;
     }
 
@@ -740,6 +780,7 @@ export class TransactionCreateFormComponent {
   private recentDefaults(): {
     occurredOn?: string;
     categoryId?: string;
+    placeId?: string;
   } | null {
     try {
       const raw = sessionStorage.getItem(
@@ -752,6 +793,7 @@ export class TransactionCreateFormComponent {
       const parsed = JSON.parse(raw) as {
         occurredOn?: unknown;
         categoryId?: unknown;
+        placeId?: unknown;
       };
       const occurredOn =
         typeof parsed.occurredOn === 'string' &&
@@ -762,8 +804,14 @@ export class TransactionCreateFormComponent {
         typeof parsed.categoryId === 'string'
           ? this.resolveCategoryId(parsed.categoryId) ?? undefined
           : undefined;
+      const placeId =
+        typeof parsed.placeId === 'string'
+          ? this.resolvePlaceId(parsed.placeId) ?? undefined
+          : undefined;
 
-      return occurredOn || categoryId ? { occurredOn, categoryId } : null;
+      return occurredOn || categoryId || placeId
+        ? { occurredOn, categoryId, placeId }
+        : null;
     } catch {
       return null;
     }
@@ -780,6 +828,16 @@ export class TransactionCreateFormComponent {
       .categories()
       .some((category) => category.id === categoryId)
       ? categoryId
+      : null;
+  }
+
+  private resolvePlaceId(placeId: string | null | undefined): string | null {
+    if (!placeId) {
+      return null;
+    }
+
+    return this.store.places().some((place) => place.id === placeId)
+      ? placeId
       : null;
   }
 

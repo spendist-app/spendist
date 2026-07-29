@@ -922,6 +922,7 @@ const en = {
       noDescription: 'Untitled transaction',
       automatic: 'Automatic',
       recurringSource: 'Recurring',
+      recurringFallback: 'Recurring payment',
       allowance: {
         payer: 'Allowance · sent',
         recipient: 'Allowance · received',
@@ -1010,6 +1011,10 @@ const en = {
           'Capture the essentials now — you can enrich the record with more details later.',
         edit: 'Update the details below to keep your history accurate.',
       },
+      audit: {
+        createdAt: 'Added',
+        updatedAt: 'Last edited',
+      },
       submit: {
         createIdle: 'Save transaction',
         createAndContinue: 'Save and add another',
@@ -1055,6 +1060,7 @@ const en = {
         showAdvanced: 'Show advanced fields',
         hideAdvanced: 'Hide advanced fields',
         setToday: 'Set today',
+        clearPlace: 'Clear place',
         updateExchangeRate: 'Update exchange rate',
       },
       help: {

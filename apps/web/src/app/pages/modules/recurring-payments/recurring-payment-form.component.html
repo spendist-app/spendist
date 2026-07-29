@@ -53,10 +53,16 @@
 
         <button
           type="button"
-          class="btn btn-ghost btn-sm self-end sm:self-start"
+          class="btn btn-ghost btn-square btn-sm self-end sm:self-start"
+          data-testid="recurring-payment-form-close"
+          [attr.aria-label]="'common.actions.close' | transloco"
           (click)="onDismiss()"
         >
-          {{ 'common.actions.close' | transloco }}
+          <ng-icon
+            [svg]="closeIcon"
+            size="18"
+            aria-hidden="true"
+          ></ng-icon>
         </button>
       </header>
 

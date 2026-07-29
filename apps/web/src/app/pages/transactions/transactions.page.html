@@ -682,13 +682,14 @@
                     } @if (transaction.recurringTransactionId) {
                     <span
                       class="badge badge-primary badge-outline badge-sm max-w-full text-xs"
-                      [title]="transaction.recurringTransactionId"
+                      data-testid="recurring-source-badge"
+                      [title]="transaction.recurringTransactionName ?? ''"
                     >
                       {{ 'transactions.list.recurringSource' | transloco }}:
-                      <code class="font-mono"
-                        >{{ transaction.recurringTransactionId.slice(0, 8)
-                        }}</code
-                      >
+                      <span class="max-w-48 truncate font-medium">
+                        {{ transaction.recurringTransactionName ||
+                        ('transactions.list.recurringFallback' | transloco) }}
+                      </span>
                     </span>
                     }
                     @if (transaction.sourceModule === 'allowance') {

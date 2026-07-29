@@ -39,6 +39,23 @@
           <p class="mt-1 max-w-2xl text-xs text-base-content/70 sm:text-sm">
             {{ 'transactions.form.subtitle.' + mode() | transloco }}
           </p>
+          @if (isEditMode() && transaction(); as editedTransaction) {
+          <div
+            class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-base-content/55"
+            data-testid="transaction-audit-dates"
+          >
+            <span data-testid="transaction-created-at">
+              {{ 'transactions.form.audit.createdAt' | transloco }}:
+              {{ formatAuditDate(editedTransaction.createdAt) }}
+            </span>
+            @if (wasEdited()) {
+            <span data-testid="transaction-updated-at">
+              {{ 'transactions.form.audit.updatedAt' | transloco }}:
+              {{ formatAuditDate(editedTransaction.updatedAt) }}
+            </span>
+            }
+          </div>
+          }
         </div>
 
         <button
@@ -131,7 +148,7 @@
             <div class="relative" (focusout)="onPlaceDropdownFocusOut($event)">
               <button
                 type="button"
-                class="btn btn-outline min-h-12 w-full justify-between gap-3 px-4 text-left font-normal"
+                class="btn btn-outline min-h-12 w-full justify-between gap-3 px-4 pr-20 text-left font-normal"
                 aria-haspopup="listbox"
                 [attr.aria-expanded]="placeDropdownOpen()"
                 [attr.aria-label]="'transactions.form.fields.place' | transloco"
@@ -151,6 +168,27 @@
                   v
                 </span>
               </button>
+              @if (selectedPlaceId()) {
+              <button
+                type="button"
+                class="btn btn-ghost btn-square btn-sm absolute right-9 top-1/2 -translate-y-1/2"
+                data-testid="clear-transaction-place"
+                [attr.aria-label]="
+                  'transactions.form.actions.clearPlace' | transloco
+                "
+                (click)="clearPlace($event)"
+              >
+                @if (closeIcon; as iconSvg) {
+                <ng-icon
+                  [svg]="iconSvg"
+                  size="16"
+                  aria-hidden="true"
+                ></ng-icon>
+                } @else {
+                <span aria-hidden="true">X</span>
+                }
+              </button>
+              }
 
               @if (placeDropdownOpen()) {
               <div

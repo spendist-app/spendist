@@ -925,6 +925,7 @@ const pl = {
       noDescription: 'Transakcja bez opisu',
       automatic: 'Automatyczna',
       recurringSource: 'Cykliczna',
+      recurringFallback: 'Płatność cykliczna',
       allowance: {
         payer: 'Kieszonkowe · wysłane',
         recipient: 'Kieszonkowe · otrzymane',
@@ -1012,6 +1013,10 @@ const pl = {
         create: 'Zapisz kluczowe informacje — resztę rozbudujesz później.',
         edit: 'Zaktualizuj dane poniżej, aby historia była dokładna.',
       },
+      audit: {
+        createdAt: 'Dodano',
+        updatedAt: 'Ostatnia edycja',
+      },
       submit: {
         createIdle: 'Zapisz transakcję',
         createAndContinue: 'Zapisz i dodaj kolejną',
@@ -1056,6 +1061,7 @@ const pl = {
         showAdvanced: 'Pokaż pola zaawansowane',
         hideAdvanced: 'Ukryj pola zaawansowane',
         setToday: 'Ustaw dzisiaj',
+        clearPlace: 'Wyczyść miejsce',
         updateExchangeRate: 'Aktualizuj kurs',
       },
       help: {

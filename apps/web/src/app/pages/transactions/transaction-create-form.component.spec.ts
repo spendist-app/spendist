@@ -151,12 +151,13 @@ describe('TransactionCreateFormComponent', () => {
     expect(document.activeElement).toBe(descriptionInput);
   });
 
-  it('uses recent create date and category from session storage', () => {
+  it('uses recent create date, category and place from session storage', () => {
     sessionStorage.setItem(
       recentDefaultsStorageKey,
       JSON.stringify({
         occurredOn: '2026-06-15',
         categoryId: 'category-2',
+        placeId: 'place-1',
       })
     );
 
@@ -166,6 +167,7 @@ describe('TransactionCreateFormComponent', () => {
     const component = fixture.componentInstance;
     expect(component['form'].controls.occurredOn.value).toBe('2026-06-15');
     expect(component['form'].controls.categoryId.value).toBe('category-2');
+    expect(component['form'].controls.placeId.value).toBe('place-1');
   });
 
   it('sets the transaction date to today from the date helper action', () => {
@@ -265,6 +267,15 @@ describe('TransactionCreateFormComponent', () => {
     expect(fixture.componentInstance['form'].controls.placeId.value).toBe(
       'place-1'
     );
+
+    compiled
+      .querySelector<HTMLButtonElement>(
+        '[data-testid="clear-transaction-place"]'
+      )
+      ?.click();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance['form'].controls.placeId.value).toBe('');
   });
 
   it('shows seven recently used tags and adds one with a click', () => {
@@ -313,13 +324,14 @@ describe('TransactionCreateFormComponent', () => {
     ).toEqual(tags.slice(1, 8).map((tag) => tag.name));
   });
 
-  it('remembers create date and category after saving', async () => {
+  it('remembers create date, category and place after saving', async () => {
     const fixture = TestBed.createComponent(TransactionCreateFormComponent);
     fixture.detectChanges();
 
     const component = fixture.componentInstance;
     component['form'].patchValue({
       categoryId: 'category-2',
+      placeId: 'place-1',
       occurredOn: '2026-06-16',
       amount: '42',
       walletId: 'wallet-1',
@@ -329,10 +341,11 @@ describe('TransactionCreateFormComponent', () => {
 
     const stored = JSON.parse(
       sessionStorage.getItem(recentDefaultsStorageKey) ?? '{}'
-    ) as { occurredOn?: string; categoryId?: string };
+    ) as { occurredOn?: string; categoryId?: string; placeId?: string };
     expect(stored).toEqual({
       occurredOn: '2026-06-16',
       categoryId: 'category-2',
+      placeId: 'place-1',
     });
   });
 
@@ -390,7 +403,10 @@ describe('TransactionCreateFormComponent', () => {
       direction: 'expense',
       isAutomatic: false,
       recurringTransactionId: null,
+      recurringTransactionName: null,
       recurringScheduledFor: null,
+      createdAt: new Date('2026-05-29T08:15:00Z'),
+      updatedAt: new Date('2026-05-30T11:45:00Z'),
       exchangeRate: null,
       walletId: 'wallet-1',
       placeId: 'place-1',
@@ -402,6 +418,14 @@ describe('TransactionCreateFormComponent', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
+    expect(
+      compiled.querySelector('[data-testid="transaction-created-at"]')
+        ?.textContent
+    ).toContain('May 29, 2026');
+    expect(
+      compiled.querySelector('[data-testid="transaction-updated-at"]')
+        ?.textContent
+    ).toContain('May 30, 2026');
     const currencySelect = compiled.querySelector(
       'select[formControlName="currency"]'
     ) as HTMLSelectElement;

@@ -37,7 +37,10 @@ interface TransactionEntity {
   readonly direction: TransactionDirection;
   readonly isAutomatic: boolean;
   readonly recurringTransactionId: string | null;
+  readonly recurringTransactionName: string | null;
   readonly recurringScheduledFor: Date | null;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
   readonly exchangeRate: number | null;
   readonly walletId: string;
   readonly placeId: string | null;
@@ -198,8 +201,15 @@ interface TransactionTagExpenseSummaryRow {
     | null;
 }
 
+interface TransactionPageRow extends TransactionRow {
+  readonly recurring_transactions:
+    | { readonly name: string }
+    | readonly { readonly name: string }[]
+    | null;
+}
+
 interface TransactionPageResult {
-  readonly rows: readonly TransactionRow[];
+  readonly rows: readonly TransactionPageRow[];
   readonly tagRows: readonly TransactionTagRow[];
   readonly total: number;
   readonly page: number;
@@ -832,7 +842,7 @@ export class TransactionsStore {
     const to = from + SUPABASE_PAGE_SIZE - 1;
     let query = this.supabase
       .from('transactions')
-      .select('*', { count: 'exact' })
+      .select('*, recurring_transactions(name)', { count: 'exact' })
       .eq('owner_id', userId);
 
     if (filters.from) {
@@ -921,7 +931,7 @@ export class TransactionsStore {
       throw error;
     }
 
-    const rows = (data ?? []) as TransactionRow[];
+    const rows = (data ?? []) as TransactionPageRow[];
     const tagRows = await this.loadTransactionTagRows(
       userId,
       rows.map((row) => row.id)
@@ -1655,18 +1665,22 @@ export class TransactionsStore {
               p_currency: normalized.currency,
               p_place_id: normalized.placeId,
             })
-          : await this.supabase.from('transactions').update({
-          category_id: normalized.categoryId,
-          description: normalized.description,
-          occurred_at: normalized.occurredAt.toISOString(),
-          amount: normalized.amount,
-          amount_in_default: normalized.amountInDefault,
-          currency: normalized.currency,
-          direction: normalized.direction,
-          exchange_rate: normalized.exchangeRate,
-          wallet_id: normalized.walletId,
-          place_id: normalized.placeId,
-        }).eq('owner_id', userId).eq('id', transactionId);
+          : await this.supabase
+              .from('transactions')
+              .update({
+                category_id: normalized.categoryId,
+                description: normalized.description,
+                occurred_at: normalized.occurredAt.toISOString(),
+                amount: normalized.amount,
+                amount_in_default: normalized.amountInDefault,
+                currency: normalized.currency,
+                direction: normalized.direction,
+                exchange_rate: normalized.exchangeRate,
+                wallet_id: normalized.walletId,
+                place_id: normalized.placeId,
+              })
+              .eq('owner_id', userId)
+              .eq('id', transactionId);
 
       if (updateResult.error) {
         throw updateResult.error;
@@ -2198,7 +2212,7 @@ export class TransactionsStore {
     return [...currencies].sort((a, b) => a.symbol.localeCompare(b.symbol));
   }
 
-  private mapTransactionRow(row: TransactionRow): TransactionEntity {
+  private mapTransactionRow(row: TransactionPageRow): TransactionEntity {
     const amount =
       typeof row.amount === 'number' ? row.amount : Number(row.amount);
     const amountInDefault =
@@ -2230,9 +2244,12 @@ export class TransactionsStore {
       direction: row.direction,
       isAutomatic: !!row.is_automatic,
       recurringTransactionId: row.recurring_transaction_id ?? null,
+      recurringTransactionName: this.recurringTransactionName(row),
       recurringScheduledFor: row.recurring_scheduled_for
         ? new Date(row.recurring_scheduled_for)
         : null,
+      createdAt: new Date(row.creation_date),
+      updatedAt: new Date(row.updated_at),
       exchangeRate: Number.isFinite(exchangeRate ?? NaN)
         ? (exchangeRate as number)
         : null,
@@ -2247,6 +2264,14 @@ export class TransactionsStore {
           : null,
       allowanceConnectionId: row.allowance_connection_id ?? null,
     };
+  }
+
+  private recurringTransactionName(row: TransactionPageRow): string | null {
+    const relation = row.recurring_transactions;
+    if (!relation) {
+      return null;
+    }
+    return 'name' in relation ? relation.name : relation[0]?.name ?? null;
   }
 
   private mapPlaceRow(row: PlaceRow): PlaceEntity {

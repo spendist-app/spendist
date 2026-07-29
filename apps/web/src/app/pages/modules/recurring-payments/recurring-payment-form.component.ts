@@ -17,6 +17,8 @@ import {
 } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TranslocoPipe, TranslocoService } from '@ngneat/transloco';
+import { NgIcon } from '@ng-icons/core';
+import { heroXMark } from '@ng-icons/heroicons/outline';
 import { logError } from '../../../core/logger';
 import {
   CategorySelectComponent,
@@ -62,6 +64,7 @@ type RecurringFormGroup = FormGroup<{
   imports: [
     ReactiveFormsModule,
     TranslocoPipe,
+    NgIcon,
     CategorySelectComponent,
     TagPickerComponent,
   ],
@@ -70,6 +73,7 @@ type RecurringFormGroup = FormGroup<{
 })
 export class RecurringPaymentFormComponent {
   readonly store = inject(RecurringPaymentsStore);
+  readonly closeIcon = heroXMark;
   private readonly transloco = inject(TranslocoService);
   private readonly today = new Date();
 
