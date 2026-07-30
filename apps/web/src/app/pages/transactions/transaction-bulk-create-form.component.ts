@@ -89,6 +89,7 @@ export class TransactionBulkCreateFormComponent {
   protected readonly submitted = signal(false);
   protected readonly asyncIssues = signal<readonly BulkTransactionIssue[]>([]);
   protected readonly focusedRowIndex = signal(0);
+  protected readonly parseClipboardAsTable = signal(true);
   private readonly batchWalletSyncEffect = effect(() => {
     const wallets = this.store.wallets();
     if (wallets.length === 0) {
@@ -194,6 +195,11 @@ export class TransactionBulkCreateFormComponent {
     this.batchDirection.set(direction);
   }
 
+  protected updateClipboardParsing(event: Event): void {
+    const checkbox = event.currentTarget as HTMLInputElement;
+    this.parseClipboardAsTable.set(checkbox.checked);
+  }
+
   protected copyField(
     rowId: number,
     field: CopyableBulkTransactionField,
@@ -236,6 +242,10 @@ export class TransactionBulkCreateFormComponent {
 
   @HostListener('document:paste', ['$event'])
   protected onPaste(event: ClipboardEvent): void {
+    if (!this.parseClipboardAsTable()) {
+      return;
+    }
+
     const text = event.clipboardData?.getData('text/plain') ?? '';
     if (!text.trim()) {
       return;

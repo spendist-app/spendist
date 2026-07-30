@@ -972,6 +972,9 @@ const en = {
       batchSettings: {
         title: 'Batch settings',
         hint: 'Wallet and type apply to every transaction in this batch.',
+        parseClipboardAsTable: 'Split pasted data into columns',
+        parseClipboardAsTableHint:
+          'Turn off to paste all text into the active field, including commas or semicolons.',
       },
       summary: 'Transactions to save: {{ count }}',
       duplicates: '{{ count }} possible duplicates detected.',

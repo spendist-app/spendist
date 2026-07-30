@@ -975,6 +975,9 @@ const pl = {
       batchSettings: {
         title: 'Ustawienia partii',
         hint: 'Portfel i typ dotyczą wszystkich transakcji w tym zapisie.',
+        parseClipboardAsTable: 'Rozdzielaj wklejane dane na kolumny',
+        parseClipboardAsTableHint:
+          'Wyłącz, aby wkleić cały tekst do aktywnego pola, także gdy zawiera przecinki lub średniki.',
       },
       summary: 'Transakcje do zapisu: {{ count }}',
       duplicates: 'Wykryto {{ count }} możliwych duplikatów.',

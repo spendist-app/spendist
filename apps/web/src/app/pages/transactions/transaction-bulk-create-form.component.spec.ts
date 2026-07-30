@@ -191,6 +191,34 @@ describe('TransactionBulkCreateFormComponent', () => {
     });
   });
 
+  it('leaves pasted text in the focused field when table parsing is disabled', () => {
+    const fixture = TestBed.createComponent(TransactionBulkCreateFormComponent);
+    fixture.detectChanges();
+    const component = fixture.componentInstance as unknown as {
+      rows(): readonly { readonly description: string }[];
+      parseClipboardAsTable(): boolean;
+      onPaste(event: ClipboardEvent): void;
+    };
+    const toggle = fixture.nativeElement.querySelector(
+      '[data-testid="bulk-paste-table-toggle"]'
+    ) as HTMLInputElement;
+    const event = {
+      clipboardData: {
+        getData: () => 'Coffee, cake and tea',
+      },
+      preventDefault: vi.fn(),
+    } as unknown as ClipboardEvent;
+
+    expect(toggle.checked).toBe(true);
+    toggle.click();
+    fixture.detectChanges();
+    component.onPaste(event);
+
+    expect(component.parseClipboardAsTable()).toBe(false);
+    expect(event.preventDefault).not.toHaveBeenCalled();
+    expect(component.rows()[0].description).toBe('');
+  });
+
   it('blocks submit when an active row has an invalid amount', async () => {
     const fixture = TestBed.createComponent(TransactionBulkCreateFormComponent);
     fixture.detectChanges();

@@ -139,6 +139,27 @@
             </div>
           </fieldset>
         </div>
+        <label
+          class="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-base-300 bg-base-100 px-3 py-3"
+        >
+          <input
+            type="checkbox"
+            class="checkbox checkbox-primary checkbox-sm mt-0.5"
+            data-testid="bulk-paste-table-toggle"
+            [checked]="parseClipboardAsTable()"
+            (change)="updateClipboardParsing($event)"
+          />
+          <span>
+            <span class="block text-sm font-medium">
+              {{ 'transactions.bulk.batchSettings.parseClipboardAsTable' |
+              transloco }}
+            </span>
+            <span class="block text-xs text-base-content/60">
+              {{ 'transactions.bulk.batchSettings.parseClipboardAsTableHint' |
+              transloco }}
+            </span>
+          </span>
+        </label>
       </section>
 
       <div class="space-y-3 xl:space-y-0">
