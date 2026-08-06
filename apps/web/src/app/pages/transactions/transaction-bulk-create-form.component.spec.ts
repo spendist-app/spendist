@@ -113,7 +113,11 @@ class TransactionsStoreStub {
 
   async createTransactionBatch(payload: CreateTransactionBatchPayload) {
     this.createTransactionBatchPayload = payload;
-    return { success: true, created: payload.transactions.length };
+    return {
+      success: true,
+      created: payload.transactions.length,
+      duplicatesSkipped: 0,
+    };
   }
 }
 
@@ -163,6 +167,51 @@ describe('TransactionBulkCreateFormComponent', () => {
       placeId: 'place-barber',
       tagIds: ['tag-meal', 'tag-newtag'],
     });
+  });
+
+  it('reuses the editor for an exact import draft and blocks unknown tags', () => {
+    const fixture = TestBed.createComponent(TransactionBulkCreateFormComponent);
+    fixture.componentRef.setInput('prefill', {
+      mode: 'import',
+      walletId: 'wallet-default',
+      direction: 'expense',
+      duplicatesSkipped: 0,
+      rows: [
+        {
+          occurredAt: new Date('2026-08-01T12:00:00.000Z'),
+          description: 'Imported row',
+          amount: 10,
+          currency: 'PLN',
+          categoryPath: ['Missing category'],
+          categoryId: '',
+          tags: ['missing-tag'],
+          placeId: '',
+          importContext: {
+            source: 'spendist_csv',
+            fingerprint: 'fingerprint-1',
+            metadata: {},
+            isAutomatic: false,
+            recurringScheduledFor: null,
+            sourceAmountInDefault: 10,
+          },
+        },
+      ],
+    });
+    fixture.detectChanges();
+    const component = fixture.componentInstance as unknown as {
+      rows(): readonly unknown[];
+      validationIssues(): readonly { key: string }[];
+    };
+
+    expect(component.rows()).toHaveLength(1);
+    expect(component.validationIssues().map((issue) => issue.key)).toEqual(
+      expect.arrayContaining(['category', 'tags'])
+    );
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="bulk-paste-table-toggle"]'
+      )
+    ).toBeNull();
   });
 
   it('captures paste events from anywhere while the modal is open', () => {

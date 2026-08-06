@@ -720,12 +720,36 @@ describe('TransactionsPageComponent', () => {
     addButton.click();
     fixture.detectChanges();
     const bulkButton = fixture.nativeElement.querySelector(
-      '#transaction-add-actions button:last-child'
+      '[data-testid="transaction-bulk-open"]'
     ) as HTMLButtonElement;
 
     bulkButton.click();
 
     expect(component.bulkFormOpen()).toBe(true);
+  });
+
+  it('opens file import from the add speed dial', () => {
+    const fixture = TestBed.createComponent(TransactionsPageComponent);
+    fixture.detectChanges();
+    const component = fixture.componentInstance as unknown as {
+      importFormOpen(): boolean;
+    };
+    const addButton = fixture.nativeElement.querySelector(
+      '[data-testid="transaction-add-menu-trigger"]'
+    ) as HTMLButtonElement;
+    addButton.click();
+    fixture.detectChanges();
+
+    const importButton = fixture.nativeElement.querySelector(
+      '[data-testid="transaction-import-open"]'
+    ) as HTMLButtonElement;
+    importButton.click();
+    fixture.detectChanges();
+
+    expect(component.importFormOpen()).toBe(true);
+    expect(
+      fixture.nativeElement.querySelector('app-transaction-import-form')
+    ).toBeTruthy();
   });
 
   it('closes the add speed dial with Escape', () => {

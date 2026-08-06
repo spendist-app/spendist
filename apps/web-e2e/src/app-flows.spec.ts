@@ -418,10 +418,7 @@ test('registers a new account and opens dashboard', async ({
     page.locator('#delete-account-password'),
     DEFAULT_PASSWORD
   );
-  await fillStableInput(
-    page.locator('#delete-account-confirmation'),
-    'DELETE'
-  );
+  await fillStableInput(page.locator('#delete-account-confirmation'), 'DELETE');
   await page
     .getByLabel(
       'I understand that my account and all of its data will be permanently deleted.'
@@ -663,6 +660,142 @@ test('exposes bulk entry and applies year, month, and amount sorting', async ({
   await expect(rows.nth(1)).toBeVisible({ timeout: 15000 });
   await expect(rows.nth(0)).toContainText(higherAmountDescription);
   await expect(rows.nth(1)).toContainText(lowerAmountDescription);
+});
+
+test('imports pasted Spendist CSV through bulk review and skips a repeat', async ({
+  page,
+}, testInfo) => {
+  const suffix = uniqueSuffix(testInfo);
+  const description = `E2E CSV import ${suffix}`;
+  const occurredAt = new Date().toISOString();
+  const header =
+    'id,occurred_at,description,direction,amount,currency,amount_in_default,category_group,category_path,category,wallet,wallet_currency,tags,is_automatic,recurring_scheduled_for,import_source,imported_at';
+  const row = [
+    `source-${suffix}`,
+    occurredAt,
+    description,
+    'expense',
+    '12.34',
+    'PLN',
+    '12.34',
+    'E2E',
+    'Unmatched category',
+    'Unmatched category',
+    'Unmatched wallet',
+    'PLN',
+    '',
+    'false',
+    '',
+    '',
+    '',
+  ].join(',');
+  const csv = `${header}\n${row}`;
+
+  await ensureAuthenticated(page);
+  await openTransactions(page);
+
+  const importOnce = async () => {
+    await page.getByTestId('transaction-add-menu-trigger').hover();
+    await page.getByTestId('transaction-import-open').click();
+    const importDialog = page.getByRole('dialog', {
+      name: 'Add transactions from a file',
+    });
+    await importDialog.getByRole('button', { name: 'Paste CSV' }).click();
+    await importDialog.getByTestId('csv-schema-help').click();
+    await expect(
+      page.getByRole('heading', { name: 'Spendist CSV schema' })
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Close' }).last().click();
+    await importDialog.getByTestId('transaction-import-paste').fill(csv);
+    await importDialog.getByTestId('transaction-import-parse').click();
+    await selectFirstRealOption(
+      importDialog.getByTestId('transaction-import-wallet')
+    );
+    await importDialog.getByTestId('transaction-import-review').click();
+
+    const review = page.getByRole('dialog', {
+      name: 'Review imported transactions',
+    });
+    await selectFirstTransactionCategory(page);
+    await review.getByRole('button', { name: 'Save 1' }).click();
+  };
+
+  await importOnce();
+  await expect(page.getByText(description)).toBeVisible({ timeout: 15000 });
+  await expect(
+    page.getByText(/1 transactions imported; 0 duplicates skipped/)
+  ).toBeVisible();
+
+  await importOnce();
+  await expect(
+    page.getByText(/0 transactions imported; 1 duplicates skipped/)
+  ).toBeVisible();
+});
+
+test('imports and edits a Biedronka e-receipt before saving', async ({
+  page,
+}, testInfo) => {
+  const suffix = uniqueSuffix(testInfo);
+  const editedDescription = `E2E Biedronka import ${suffix}`;
+  const receipt = {
+    IDZ: `e2e-receipt-${suffix}`,
+    header: [{ headerData: { date: new Date().toISOString() } }],
+    body: [
+      {
+        sellLine: {
+          name: 'Banan Luz C',
+          price: 699,
+          total: 664,
+          quantity: '0,950',
+          isStorno: false,
+        },
+      },
+      {
+        discountLine: {
+          value: 64,
+          isDiscount: true,
+          isStorno: false,
+        },
+      },
+      { sumInCurrency: { currency: 'PLN', fiscalTotal: 600 } },
+    ],
+    data: 'ignored',
+    sign: 'ignored',
+  };
+
+  await ensureAuthenticated(page);
+  await openTransactions(page);
+  await page.getByTestId('transaction-add-menu-trigger').hover();
+  await page.getByTestId('transaction-import-open').click();
+  const importDialog = page.getByRole('dialog', {
+    name: 'Add transactions from a file',
+  });
+  await importDialog
+    .getByRole('radio', { name: /Biedronka e-receipt/ })
+    .click();
+  await importDialog.getByTestId('transaction-import-file').setInputFiles({
+    name: 'receipt.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(receipt)),
+  });
+  await selectFirstRealOption(
+    importDialog.getByTestId('transaction-import-wallet')
+  );
+  await selectFirstRealOption(
+    importDialog.getByTestId('transaction-import-category')
+  );
+  await importDialog.getByTestId('transaction-import-review').click();
+
+  const review = page.getByRole('dialog', {
+    name: 'Review imported transactions',
+  });
+  await review
+    .locator('input[placeholder="Description"]')
+    .fill(editedDescription);
+  await review.getByRole('button', { name: 'Save 1' }).click();
+  await expect(page.getByText(editedDescription)).toBeVisible({
+    timeout: 15000,
+  });
 });
 
 test('filters categories from the sidebar with group checkboxes', async ({
@@ -1048,9 +1181,7 @@ test('backfills transactions for a recurring payment started in the past', async
   await openTransactions(page);
   await filterTransactionsByRange(page, startDate, today);
   await expect(
-    page
-      .locator('#transactions-results > ul > li')
-      .filter({ hasText: name })
+    page.locator('#transactions-results > ul > li').filter({ hasText: name })
   ).toHaveCount(2);
 });
 
