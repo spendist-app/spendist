@@ -702,10 +702,11 @@ test('imports pasted Spendist CSV through bulk review and skips a repeat', async
     });
     await importDialog.getByRole('button', { name: 'Paste CSV' }).click();
     await importDialog.getByTestId('csv-schema-help').click();
-    await expect(
-      page.getByRole('heading', { name: 'Spendist CSV schema' })
-    ).toBeVisible();
-    await page.getByRole('button', { name: 'Close' }).last().click();
+    const schemaDialog = page.getByRole('dialog', {
+      name: 'Spendist CSV schema',
+    });
+    await expect(schemaDialog).toBeVisible();
+    await schemaDialog.getByRole('button', { name: 'Close' }).click();
     await importDialog.getByTestId('transaction-import-paste').fill(csv);
     await importDialog.getByTestId('transaction-import-parse').click();
     await selectFirstRealOption(
