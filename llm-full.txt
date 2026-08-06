@@ -60,6 +60,8 @@ Routes live in `apps/web/src/app/app.routes.ts`. Public SEO files live in `apps/
 - Standalone page components and page-local signal stores are colocated. Cross-cutting services, guards, Supabase setup, notifications, language, and theme are in `core/`.
 - `en.translation.ts` and `pl.translation.ts` are the translation sources. Every user-facing key needs both languages.
 - `apps/web/worker.ts` serves Cloudflare assets, exposes runtime `/env.js`, handles HTML fallback, and adds security headers. Do not judge production behavior from the development server alone.
+- `Dockerfile`, `compose.yaml`, and `tools/docker/` provide a production-like self-hosted browser runtime. `npm run docker:up` starts the existing isolated Supabase CLI project, applies pending local migrations, exports only its public URL and publishable key, and runs the container at `http://localhost:4200`; `npm run docker:down` preserves local database volumes.
+- `.github/workflows/docker.yml` validates the image on pull requests and publishes `linux/amd64` and `linux/arm64` images to `ghcr.io/spendist-app/spendist` from `develop`, `master`, and `v*` tags.
 - Supabase provides Auth, Postgres, RLS, Storage, Realtime, Edge Functions, `pg_cron`, `pg_net`, and Vault. Migrations are under `supabase/migrations/`; generated types are in `libs/data-access/supabase-types/`.
 - `supabase/functions/delete-account/` owns permanent account deletion. It derives identity from the bearer token, reauthenticates with the submitted current password, removes the user's avatar folder, and uses the service role only inside the function to delete the Auth user.
 - `supabase/functions/send-allowance-invitation/` sends localized invitation links through Resend. The database stores only a seven-day token hash; cross-owner transaction writes remain atomic database operations.
@@ -71,6 +73,7 @@ Routes live in `apps/web/src/app/app.routes.ts`. Public SEO files live in `apps/
 - Preserve RLS ownership checks and user-scoped notification queries.
 - Use Angular signals and zoneless-safe patterns. Do not assume `NgZone` patches arbitrary callbacks.
 - Validate with Nx targets and focused tests. E2E uses a dedicated local Supabase database URL, never production.
+- The local Docker orchestrator refuses non-local Supabase URLs. Browser images receive only publishable configuration, never database passwords, service-role keys, or production credentials.
 
 ## Documentation contract
 

@@ -44,7 +44,10 @@
     "supabase:ensure": "node tools/scripts/ensure-local-supabase.mjs",
     "supabase:start": "npx supabase start",
     "supabase:stop": "npx supabase stop",
-    "supabase:status": "npx supabase status"
+    "supabase:status": "npx supabase status",
+    "docker:up": "node tools/docker/docker-local.mjs up",
+    "docker:down": "node tools/docker/docker-local.mjs down",
+    "docker:test": "node --test tools/docker/docker-local.test.mjs"
   },
   "repository": {
     "type": "git",

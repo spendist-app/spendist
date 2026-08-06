@@ -1,0 +1,28 @@
+services:
+  web:
+    image: ${SPENDIST_IMAGE:-spendist:local}
+    build:
+      context: .
+      target: runtime
+      labels:
+        org.opencontainers.image.source: https://github.com/spendist-app/spendist
+        org.opencontainers.image.licenses: GPL-3.0-only
+    environment:
+      SUPABASE_URL: ${SPENDIST_DOCKER_SUPABASE_URL:-http://127.0.0.1:55321}
+      SUPABASE_PUBLISHABLE_KEY: ${SPENDIST_DOCKER_SUPABASE_PUBLISHABLE_KEY:-}
+      NG_APP_SUPABASE_FUNCTIONS_URL: ${SPENDIST_DOCKER_SUPABASE_FUNCTIONS_URL:-}
+      NG_APP_BUILD_COMMIT: ${SPENDIST_DOCKER_BUILD_COMMIT:-local}
+    ports:
+      - '${SPENDIST_PORT:-4200}:8080'
+    init: true
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - --quiet
+        - --output-document=/dev/null
+        - http://127.0.0.1:8080/
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 10s
