@@ -861,10 +861,21 @@
       type="button"
       role="menuitem"
       class="btn btn-secondary min-w-52 justify-start shadow-lg"
+      data-testid="transaction-bulk-open"
       (click)="openBulkCreateForm()"
     >
       <ng-icon [svg]="addBulkIcon" size="20" aria-hidden="true"></ng-icon>
       {{ 'transactions.actions.addBulk' | transloco }}
+    </button>
+    <button
+      type="button"
+      role="menuitem"
+      class="btn btn-accent min-w-52 justify-start shadow-lg"
+      data-testid="transaction-import-open"
+      (click)="openImportForm()"
+    >
+      <ng-icon [svg]="addImportIcon" size="20" aria-hidden="true"></ng-icon>
+      {{ 'transactions.actions.addFromFile' | transloco }}
     </button>
   </div>
   }
@@ -899,7 +910,14 @@ activeTransaction(); @let duplicate = duplicateSource();
 ></app-transaction-create-form>
 } @if (bulkFormOpen()) {
 <app-transaction-bulk-create-form
+  [prefill]="importPrefill()"
   (closed)="handleBulkFormClosed()"
   (saved)="handleBulkFormSaved($event)"
+  (importCompleted)="handleImportCompleted($event)"
 ></app-transaction-bulk-create-form>
+} @if (importFormOpen()) {
+<app-transaction-import-form
+  (closed)="handleImportClosed()"
+  (prepared)="handleImportPrepared($event)"
+></app-transaction-import-form>
 }

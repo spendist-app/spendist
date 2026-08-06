@@ -1,0 +1,104 @@
+<section class="fixed inset-0 z-40 flex items-end justify-center p-2 sm:items-center sm:p-6">
+  <button type="button" class="absolute inset-0 bg-base-200/70 backdrop-blur-sm" [attr.aria-label]="'common.actions.close' | transloco" (click)="closed.emit()"></button>
+  <div class="relative z-10 flex max-h-[calc(100dvh-1rem)] w-full max-w-3xl flex-col overflow-hidden rounded-t-3xl border border-base-300 bg-base-100 shadow-2xl sm:rounded-3xl" role="dialog" aria-modal="true" aria-labelledby="transaction-import-title">
+    <header class="flex items-start justify-between border-b border-base-200 px-5 py-4">
+      <div>
+        <p class="badge badge-primary badge-outline text-xs uppercase">{{ 'transactions.import.badge' | transloco }}</p>
+        <h2 id="transaction-import-title" class="mt-1 text-2xl font-semibold">{{ 'transactions.import.title' | transloco }}</h2>
+        <p class="mt-1 text-sm text-base-content/60">{{ 'transactions.import.description' | transloco }}</p>
+      </div>
+      <button type="button" class="btn btn-ghost btn-square btn-sm" [attr.aria-label]="'common.actions.close' | transloco" (click)="closed.emit()"><ng-icon [svg]="closeIcon" size="20"></ng-icon></button>
+    </header>
+
+    <div class="min-h-0 flex-1 space-y-5 overflow-auto p-5">
+      <div class="grid gap-3 sm:grid-cols-2" role="radiogroup" [attr.aria-label]="'transactions.import.formatLabel' | transloco">
+        @for (adapter of adapters; track adapter.id) {
+        <button type="button" class="rounded-2xl border p-4 text-left transition" [class.border-primary]="selectedFormat() === adapter.id" [class.bg-primary/10]="selectedFormat() === adapter.id" [class.border-base-300]="selectedFormat() !== adapter.id" role="radio" [attr.aria-checked]="selectedFormat() === adapter.id" (click)="selectFormat(adapter.id)">
+          <span class="block font-semibold">{{ adapter.labelKey | transloco }}</span>
+          <span class="mt-1 block text-sm text-base-content/60">{{ adapter.descriptionKey | transloco }}</span>
+        </button>
+        }
+      </div>
+
+      @if (selectedFormat() === 'spendist_csv') {
+      <section class="space-y-3">
+        <div class="flex items-center justify-between gap-3">
+          <div class="tabs tabs-boxed" role="tablist">
+            <button type="button" class="tab" [class.tab-active]="csvMode() === 'file'" (click)="selectCsvMode('file')">{{ 'transactions.import.fileTab' | transloco }}</button>
+            <button type="button" class="tab" [class.tab-active]="csvMode() === 'paste'" (click)="selectCsvMode('paste')">{{ 'transactions.import.pasteTab' | transloco }}</button>
+          </div>
+          <button type="button" class="btn btn-ghost btn-sm" data-testid="csv-schema-help" (click)="schemaOpen.set(true)"><ng-icon [svg]="helpIcon" size="18"></ng-icon>{{ 'transactions.import.schema.action' | transloco }}</button>
+        </div>
+        @if (csvMode() === 'file') {
+        <label class="form-control">
+          <span class="label-text mb-1">{{ 'transactions.import.chooseCsv' | transloco }}</span>
+          <input type="file" class="file-input file-input-bordered w-full" accept=".csv,text/csv" data-testid="transaction-import-file" (change)="onFileSelected($event)" />
+        </label>
+        } @else {
+        <label class="form-control">
+          <span class="label-text mb-1">{{ 'transactions.import.pasteLabel' | transloco }}</span>
+          <textarea class="textarea textarea-bordered min-h-44 font-mono text-xs" data-testid="transaction-import-paste" [ngModel]="pastedCsv()" (ngModelChange)="pastedCsv.set($event); parsed.set(null)"></textarea>
+        </label>
+        }
+      </section>
+      } @else {
+      <label class="form-control">
+        <span class="label-text mb-1">{{ 'transactions.import.chooseJson' | transloco }}</span>
+        <input type="file" class="file-input file-input-bordered w-full" accept=".json,application/json" data-testid="transaction-import-file" (change)="onFileSelected($event)" />
+      </label>
+      }
+
+      @if (!parsed()) {
+      <button type="button" class="btn btn-primary w-full sm:w-auto" data-testid="transaction-import-parse" [disabled]="!canParse() || processing()" (click)="parseSource()">{{ 'transactions.import.parse' | transloco }}</button>
+      }
+
+      @if (errorKey(); as key) {
+      <div class="alert alert-error text-sm" role="alert">{{ key | transloco }}</div>
+      }
+
+      @if (parsed(); as batch) {
+      <section class="space-y-4 rounded-2xl border border-base-300 bg-base-200/30 p-4">
+        <p class="font-semibold">{{ 'transactions.import.parsed' | transloco: { count: batch.rows.length } }}</p>
+        <label class="form-control">
+          <span class="label-text mb-1">{{ 'transactions.bulk.columns.wallet' | transloco }}</span>
+          <select class="select select-bordered" data-testid="transaction-import-wallet" [ngModel]="walletId()" (ngModelChange)="walletId.set($event)">
+            <option value="">{{ 'transactions.import.selectWallet' | transloco }}</option>
+            @for (wallet of store.wallets(); track wallet.id) { <option [value]="wallet.id">{{ wallet.name }} · {{ wallet.currency }}</option> }
+          </select>
+          @if (!walletId() && batch.walletName) { <span class="mt-1 text-xs text-warning">{{ 'transactions.import.walletNotMatched' | transloco: { name: batch.walletName } }}</span> }
+        </label>
+        @if (batch.format === 'biedronka_e_receipt') {
+        <div class="grid gap-3 sm:grid-cols-2">
+          <label class="form-control">
+            <span class="label-text mb-1">{{ 'transactions.bulk.columns.category' | transloco }}</span>
+            <select class="select select-bordered" data-testid="transaction-import-category" [ngModel]="categoryId()" (ngModelChange)="categoryId.set($event)">
+              <option value="">{{ 'transactions.import.selectCategory' | transloco }}</option>
+              @for (category of store.categories(); track category.id) { <option [value]="category.id">{{ categoryLabel(category.id) }}</option> }
+            </select>
+          </label>
+          <label class="form-control">
+            <span class="label-text mb-1">{{ 'transactions.bulk.columns.place' | transloco }}</span>
+            <select class="select select-bordered" [ngModel]="placeId()" (ngModelChange)="placeId.set($event)">
+              <option value="">{{ 'transactions.import.noPlace' | transloco }}</option>
+              @for (place of store.places(); track place.id) { <option [value]="place.id">{{ place.name }}</option> }
+            </select>
+          </label>
+        </div>
+        }
+        <button type="button" class="btn btn-primary w-full" data-testid="transaction-import-review" [disabled]="!canContinue()" (click)="continueToReview()">{{ 'transactions.import.review' | transloco }}</button>
+      </section>
+      }
+    </div>
+  </div>
+</section>
+
+@if (schemaOpen()) {
+<section class="fixed inset-0 z-50 flex items-center justify-center p-4">
+  <button type="button" class="absolute inset-0 bg-neutral/60" [attr.aria-label]="'common.actions.close' | transloco" (click)="schemaOpen.set(false)"></button>
+  <div class="relative z-10 max-h-[80dvh] w-full max-w-lg overflow-auto rounded-2xl bg-base-100 p-5 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="csv-schema-title">
+    <div class="flex items-start justify-between"><div><h3 id="csv-schema-title" class="text-xl font-semibold">{{ 'transactions.import.schema.title' | transloco }}</h3><p class="text-sm text-base-content/60">{{ 'transactions.import.schema.description' | transloco }}</p></div><button type="button" class="btn btn-ghost btn-square btn-sm" data-testid="csv-schema-close" [attr.aria-label]="'common.actions.close' | transloco" (click)="schemaOpen.set(false)"><ng-icon [svg]="closeIcon" size="18" aria-hidden="true"></ng-icon></button></div>
+    <code class="mt-4 block whitespace-pre-wrap rounded-xl bg-base-200 p-3 text-xs">{{ csvHeaders.join(',') }}</code>
+    <p class="mt-3 text-sm"><strong>{{ 'transactions.import.schema.required' | transloco }}</strong> occurred_at, direction, amount, currency, category_group, category_path, wallet</p>
+  </div>
+</section>
+}

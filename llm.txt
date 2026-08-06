@@ -6,8 +6,8 @@ Spendist is a GPL-3.0, open-source personal-finance web application. It helps a 
 
 - Hosted application: `https://spendist.app`.
 - Languages: English and Polish. The authenticated profile language controls the interface across devices; profile fields autosave in `/settings`. Signed-out navigation has an accessible flag switch in its compact single-row header.
-- Core flows: password authentication and permanent self-service account deletion, transaction entry/filtering, bulk transaction entry, wallets, category taxonomy, recurring payments, directional Allowance/Kieszonkowe connections, places, dashboard analysis, notifications, data import/export, and a public repository-backed blog.
-- Data portability: imports Kontomierz XLSX and Spendist CSV; exports filtered Spendist transactions as CSV.
+- Core flows: password authentication and permanent self-service account deletion, transaction entry/filtering, bulk transaction entry with optional clipboard column parsing, browser-only CSV/Biedronka file import with editable review and duplicate skipping, wallets, category taxonomy, recurring payments, directional Allowance/Kieszonkowe connections, places, dashboard analysis, notifications, data import/export, and a public repository-backed blog.
+- Data portability: imports Kontomierz XLSX, Spendist CSV, and Biedronka e-receipt JSON; exports filtered Spendist transactions as CSV.
 - Privacy boundary: authenticated financial data is isolated per user through Supabase/RLS. The product is designed without ads or data selling.
 - Account deletion: `/settings` requires the current password plus explicit irreversible confirmation; a Supabase Edge Function removes avatar files and the Auth user, cascading user-owned database data.
 - Profile settings: full name, language, timezone, and avatar are directly editable without a separate edit mode. Password and danger-zone cards are visible without a security toggle.
@@ -18,6 +18,7 @@ Spendist is a GPL-3.0, open-source personal-finance web application. It helps a 
 - Frontend: Angular standalone components, signals, zoneless change detection, SSR/hydration, Transloco, Tailwind CSS, DaisyUI, and Heroicons.
 - Backend: Supabase Auth, Postgres, RLS, Storage, Realtime, Edge Functions, `pg_cron`, `pg_net`, and Vault.
 - Hosting: Cloudflare Worker in `apps/web/worker.ts`; public assets are in `apps/web/public/`.
+- Containers: `npm run docker:up` starts the existing isolated local Supabase CLI stack, applies pending local migrations, and serves the production Angular browser build through Compose at `http://localhost:4200`. `npm run docker:down` preserves local data. Versioned `linux/amd64` and `linux/arm64` images are published to `ghcr.io/spendist-app/spendist`.
 - Routes: `apps/web/src/app/app.routes.ts`. Public indexable routes are `/`, `/pl/blog`, `/en/blog`, published localized articles, pagination, and non-empty category archives. Authentication and application routes are not sitemap entries.
 - Blog content: independent Polish and English Markdown collections under `apps/web/content/blog/`. Articles are not translation pairs. `npm run blog:generate` validates content and generates the Angular content module, locale RSS feeds, sitemap, and robots file; `blog:check` protects builds from stale output.
 - Blog articles: the table of contents keeps the localized article path and scrolls to stable heading anchors. The separated sharing panel provides icon-only browser share, copy-link, Facebook, LinkedIn, and X actions without social SDKs.

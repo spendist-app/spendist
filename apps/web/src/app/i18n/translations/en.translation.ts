@@ -943,6 +943,7 @@ const en = {
     actions: {
       add: 'Add transaction',
       addBulk: 'Add in bulk',
+      addFromFile: 'Add from file',
       addShortcutHint: 'Add transaction (Alt+N)',
       openMenu: 'Open transaction actions',
       openMenuShortcutHint: 'Add transaction or add in bulk (Alt+N)',
@@ -952,6 +953,8 @@ const en = {
       created: 'Transaction saved in the database.',
       updated: 'Transaction changes saved.',
       bulkCreated: '{{ count }} transactions saved in the database.',
+      importCreated:
+        '{{ created }} transactions imported; {{ duplicatesSkipped }} duplicates skipped.',
     },
     bulk: {
       badge: 'Import',
@@ -972,6 +975,9 @@ const en = {
       batchSettings: {
         title: 'Batch settings',
         hint: 'Wallet and type apply to every transaction in this batch.',
+        parseClipboardAsTable: 'Split pasted data into columns',
+        parseClipboardAsTableHint:
+          'Turn off to paste all text into the active field, including commas or semicolons.',
       },
       summary: 'Transactions to save: {{ count }}',
       duplicates: '{{ count }} possible duplicates detected.',
@@ -992,8 +998,61 @@ const en = {
         wallet: 'select a wallet',
         currency: 'enter a valid currency',
         quantity: 'quantity must be an integer from 1 to 100',
+        tags: 'map unknown tags to existing tags or remove them',
         exchangeRate: 'exchange rate is unavailable for this date and currency',
         save: 'transaction could not be prepared',
+      },
+    },
+    import: {
+      badge: 'Import',
+      title: 'Add transactions from a file',
+      description:
+        'Files are parsed locally in your browser and are not uploaded.',
+      formatLabel: 'Import format',
+      fileTab: 'Upload file',
+      pasteTab: 'Paste CSV',
+      chooseCsv: 'Choose a Spendist CSV file',
+      chooseJson: 'Choose a Biedronka e-receipt JSON file',
+      pasteLabel: 'Paste CSV content',
+      parse: 'Read transactions',
+      parsed: '{{ count }} transactions ready for review',
+      selectWallet: 'Select an existing wallet',
+      selectCategory: 'Select a category',
+      noPlace: 'No place',
+      walletNotMatched:
+        'Wallet “{{ name }}” was not found. Select an existing wallet.',
+      review: 'Review and edit transactions',
+      reviewBadge: 'Import review',
+      reviewTitle: 'Review imported transactions',
+      sourceCategory: 'CSV category not matched: {{ name }}',
+      sourceTags:
+        'Unknown CSV tags: {{ names }}. Replace them with existing tags or clear the field.',
+      formats: {
+        csv: {
+          title: 'Spendist CSV',
+          description:
+            'The same 17-column format used in Settings import/export.',
+        },
+        biedronka: {
+          title: 'Biedronka e-receipt',
+          description: 'JSON file exported from the Biedronka application.',
+        },
+      },
+      schema: {
+        action: 'CSV schema',
+        title: 'Spendist CSV schema',
+        description: 'Use the columns below. Extra columns are ignored.',
+        required: 'Required:',
+      },
+      errors: {
+        read: 'The file could not be read.',
+        invalid: 'The file could not be parsed.',
+        invalid_file: 'The CSV file is invalid. Check its schema and values.',
+        invalid_receipt:
+          'The Biedronka e-receipt is invalid or its totals do not match.',
+        mixed_direction: 'All CSV rows must have the same transaction type.',
+        mixed_wallet: 'All CSV rows must use the same wallet.',
+        row_limit: 'One import can contain at most 500 transactions.',
       },
     },
     form: {
@@ -1152,7 +1211,8 @@ const en = {
         title: 'Allowance invitation',
         accepted: 'The accounts are now connected.',
         open: 'Open Allowance',
-        invalid: 'This invitation is invalid, expired, or belongs to another email address.',
+        invalid:
+          'This invitation is invalid, expired, or belongs to another email address.',
         signIn: 'Log in or create an account using the invited email address.',
       },
       connections: {

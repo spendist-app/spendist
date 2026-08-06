@@ -132,7 +132,7 @@ async function selectFirstCategoryOption(page: Page): Promise<string> {
   const search = dialog.getByPlaceholder('Search categories...');
   await expect(search).toBeFocused();
 
-  const option = dialog.getByRole('option').first();
+  const option = dialog.getByRole('listbox').getByRole('option').first();
   await expect(option).toBeVisible({ timeout: 15000 });
   const label = (await option.textContent())?.trim() ?? '';
   if (!label) {
@@ -418,10 +418,7 @@ test('registers a new account and opens dashboard', async ({
     page.locator('#delete-account-password'),
     DEFAULT_PASSWORD
   );
-  await fillStableInput(
-    page.locator('#delete-account-confirmation'),
-    'DELETE'
-  );
+  await fillStableInput(page.locator('#delete-account-confirmation'), 'DELETE');
   await page
     .getByLabel(
       'I understand that my account and all of its data will be permanently deleted.'
@@ -542,6 +539,20 @@ test('exposes bulk entry and applies year, month, and amount sorting', async ({
   const suffix = uniqueSuffix(testInfo);
   const lowerAmountDescription = `E2E lower amount ${suffix}`;
   const higherAmountDescription = `E2E higher amount ${suffix}`;
+  const now = new Date();
+  const currentYear = now.getUTCFullYear();
+  const currentMonthIndex = now.getUTCMonth();
+  const currentDate = now.toISOString().slice(0, 10);
+  const currentMonthStart = new Date(
+    Date.UTC(currentYear, currentMonthIndex, 1)
+  )
+    .toISOString()
+    .slice(0, 10);
+  const currentMonthEnd = new Date(
+    Date.UTC(currentYear, currentMonthIndex + 1, 0)
+  )
+    .toISOString()
+    .slice(0, 10);
 
   await ensureAuthenticated(page);
   await openTransactions(page);
@@ -609,7 +620,7 @@ test('exposes bulk entry and applies year, month, and amount sorting', async ({
       .fill(transaction.description);
     await dialog
       .locator('input[formcontrolname="occurredOn"]')
-      .fill('2026-07-10');
+      .fill(currentDate);
     await selectFirstTransactionCategory(page);
     await dialog
       .locator('input[formcontrolname="amount"]')
@@ -624,22 +635,22 @@ test('exposes bulk entry and applies year, month, and amount sorting', async ({
   await expandAdvancedTransactionFilters(page);
   const year = page.getByTestId('transaction-year-filter');
   const month = page.getByTestId('transaction-month-filter');
-  await year.selectOption('2026');
+  await year.selectOption(currentYear.toString());
   await expect(month).toBeEnabled();
   await expect(month.locator('option')).toHaveCount(13);
   await expect(page.getByLabel('Date from', { exact: true })).toHaveValue(
-    '2026-01-01'
+    `${currentYear}-01-01`
   );
   await expect(page.getByLabel('Date to', { exact: true })).toHaveValue(
-    '2026-12-31'
+    `${currentYear}-12-31`
   );
 
-  await month.selectOption('6');
+  await month.selectOption(currentMonthIndex.toString());
   await expect(page.getByLabel('Date from', { exact: true })).toHaveValue(
-    '2026-07-01'
+    currentMonthStart
   );
   await expect(page.getByLabel('Date to', { exact: true })).toHaveValue(
-    '2026-07-31'
+    currentMonthEnd
   );
 
   await page.getByTestId('transaction-sort-filter').selectOption('amountDesc');
@@ -649,6 +660,143 @@ test('exposes bulk entry and applies year, month, and amount sorting', async ({
   await expect(rows.nth(1)).toBeVisible({ timeout: 15000 });
   await expect(rows.nth(0)).toContainText(higherAmountDescription);
   await expect(rows.nth(1)).toContainText(lowerAmountDescription);
+});
+
+test('imports pasted Spendist CSV through bulk review and skips a repeat', async ({
+  page,
+}, testInfo) => {
+  const suffix = uniqueSuffix(testInfo);
+  const description = `E2E CSV import ${suffix}`;
+  const occurredAt = new Date().toISOString();
+  const header =
+    'id,occurred_at,description,direction,amount,currency,amount_in_default,category_group,category_path,category,wallet,wallet_currency,tags,is_automatic,recurring_scheduled_for,import_source,imported_at';
+  const row = [
+    `source-${suffix}`,
+    occurredAt,
+    description,
+    'expense',
+    '12.34',
+    'PLN',
+    '12.34',
+    'E2E',
+    'Unmatched category',
+    'Unmatched category',
+    'Unmatched wallet',
+    'PLN',
+    '',
+    'false',
+    '',
+    '',
+    '',
+  ].join(',');
+  const csv = `${header}\n${row}`;
+
+  await ensureAuthenticated(page);
+  await openTransactions(page);
+
+  const importOnce = async () => {
+    await page.getByTestId('transaction-add-menu-trigger').hover();
+    await page.getByTestId('transaction-import-open').click();
+    const importDialog = page.getByRole('dialog', {
+      name: 'Add transactions from a file',
+    });
+    await importDialog.getByRole('button', { name: 'Paste CSV' }).click();
+    await importDialog.getByTestId('csv-schema-help').click();
+    const schemaDialog = page.getByRole('dialog', {
+      name: 'Spendist CSV schema',
+    });
+    await expect(schemaDialog).toBeVisible();
+    await schemaDialog.getByRole('button', { name: 'Close' }).click();
+    await importDialog.getByTestId('transaction-import-paste').fill(csv);
+    await importDialog.getByTestId('transaction-import-parse').click();
+    await selectFirstRealOption(
+      importDialog.getByTestId('transaction-import-wallet')
+    );
+    await importDialog.getByTestId('transaction-import-review').click();
+
+    const review = page.getByRole('dialog', {
+      name: 'Review imported transactions',
+    });
+    await selectFirstTransactionCategory(page);
+    await review.getByRole('button', { name: 'Save 1' }).click();
+  };
+
+  await importOnce();
+  await expect(page.getByText(description)).toBeVisible({ timeout: 15000 });
+  await expect(
+    page.getByText(/1 transactions imported; 0 duplicates skipped/)
+  ).toBeVisible();
+
+  await importOnce();
+  await expect(
+    page.getByText(/0 transactions imported; 1 duplicates skipped/)
+  ).toBeVisible();
+});
+
+test('imports and edits a Biedronka e-receipt before saving', async ({
+  page,
+}, testInfo) => {
+  const suffix = uniqueSuffix(testInfo);
+  const editedDescription = `E2E Biedronka import ${suffix}`;
+  const receipt = {
+    IDZ: `e2e-receipt-${suffix}`,
+    header: [{ headerData: { date: new Date().toISOString() } }],
+    body: [
+      {
+        sellLine: {
+          name: 'Banan Luz C',
+          price: 699,
+          total: 664,
+          quantity: '0,950',
+          isStorno: false,
+        },
+      },
+      {
+        discountLine: {
+          value: 64,
+          isDiscount: true,
+          isStorno: false,
+        },
+      },
+      { sumInCurrency: { currency: 'PLN', fiscalTotal: 600 } },
+    ],
+    data: 'ignored',
+    sign: 'ignored',
+  };
+
+  await ensureAuthenticated(page);
+  await openTransactions(page);
+  await page.getByTestId('transaction-add-menu-trigger').hover();
+  await page.getByTestId('transaction-import-open').click();
+  const importDialog = page.getByRole('dialog', {
+    name: 'Add transactions from a file',
+  });
+  await importDialog
+    .getByRole('radio', { name: /Biedronka e-receipt/ })
+    .click();
+  await importDialog.getByTestId('transaction-import-file').setInputFiles({
+    name: 'receipt.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(receipt)),
+  });
+  await selectFirstRealOption(
+    importDialog.getByTestId('transaction-import-wallet')
+  );
+  await selectFirstRealOption(
+    importDialog.getByTestId('transaction-import-category')
+  );
+  await importDialog.getByTestId('transaction-import-review').click();
+
+  const review = page.getByRole('dialog', {
+    name: 'Review imported transactions',
+  });
+  await review
+    .locator('input[placeholder="Description"]')
+    .fill(editedDescription);
+  await review.getByRole('button', { name: 'Save 1' }).click();
+  await expect(page.getByText(editedDescription)).toBeVisible({
+    timeout: 15000,
+  });
 });
 
 test('filters categories from the sidebar with group checkboxes', async ({
@@ -1034,9 +1182,7 @@ test('backfills transactions for a recurring payment started in the past', async
   await openTransactions(page);
   await filterTransactionsByRange(page, startDate, today);
   await expect(
-    page
-      .locator('#transactions-results > ul > li')
-      .filter({ hasText: name })
+    page.locator('#transactions-results > ul > li').filter({ hasText: name })
   ).toHaveCount(2);
 });
 

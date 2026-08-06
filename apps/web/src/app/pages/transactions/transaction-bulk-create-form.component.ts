@@ -5,6 +5,7 @@ import {
   computed,
   effect,
   inject,
+  input,
   output,
   signal,
 } from '@angular/core';
@@ -25,6 +26,10 @@ import {
 } from '../../shared/category-select/category-select.component';
 import { logError } from '../../core/logger';
 import { parseAmountInput } from './transaction-amount.parser';
+import type {
+  TransactionBulkPrefill,
+  TransactionImportContext,
+} from './transaction-import.models';
 import {
   CreateTransactionBatchItem,
   TransactionsStore,
@@ -42,6 +47,9 @@ interface BulkTransactionDraftRow {
   readonly placeId: string;
   readonly quantity: number | null;
   readonly touched: boolean;
+  readonly importContext: TransactionImportContext | null;
+  readonly sourceCategory: string;
+  readonly financialFieldsChanged: boolean;
 }
 
 interface BulkTransactionIssue {
@@ -79,6 +87,9 @@ export class TransactionBulkCreateFormComponent {
   private static readonly INITIAL_ROW_COUNT = 8;
   private static readonly EXTRA_ROW_COUNT = 10;
   private nextRowId = 0;
+  private importPrefillApplied = false;
+
+  readonly prefill = input<TransactionBulkPrefill | null>(null);
 
   protected readonly store = inject(TransactionsStore);
   protected readonly batchWalletId = signal(this.defaultWalletId());
@@ -89,6 +100,7 @@ export class TransactionBulkCreateFormComponent {
   protected readonly submitted = signal(false);
   protected readonly asyncIssues = signal<readonly BulkTransactionIssue[]>([]);
   protected readonly focusedRowIndex = signal(0);
+  protected readonly parseClipboardAsTable = signal(true);
   private readonly batchWalletSyncEffect = effect(() => {
     const wallets = this.store.wallets();
     if (wallets.length === 0) {
@@ -110,9 +122,37 @@ export class TransactionBulkCreateFormComponent {
       rows.map((row) => (!row.touched ? { ...row, currency } : row))
     );
   });
+  private readonly importPrefillEffect = effect(() => {
+    const prefill = this.prefill();
+    if (!prefill || this.importPrefillApplied) return;
+    this.importPrefillApplied = true;
+    this.batchWalletId.set(prefill.walletId);
+    this.batchDirection.set(prefill.direction);
+    this.rows.set(
+      prefill.rows.map((row) => ({
+        id: this.nextRowId++,
+        occurredOn: this.toDateInput(row.occurredAt),
+        description: row.description,
+        amount: row.amount.toFixed(2),
+        currency: row.currency,
+        categoryId: row.categoryId,
+        tags: row.tags.join(', '),
+        placeId: row.placeId,
+        quantity: 1,
+        touched: true,
+        importContext: row.importContext,
+        sourceCategory: row.categoryPath.join(' / '),
+        financialFieldsChanged: false,
+      }))
+    );
+  });
 
   readonly closed = output<void>();
   readonly saved = output<number>();
+  readonly importCompleted = output<{
+    created: number;
+    duplicatesSkipped: number;
+  }>();
 
   protected readonly closeIcon = heroXMark;
   protected readonly clearIcon = heroTrash;
@@ -151,6 +191,9 @@ export class TransactionBulkCreateFormComponent {
       this.selectedWallet() !== null &&
       !this.store.transactionMutationPending()
   );
+  protected readonly importMode = computed(
+    () => this.prefill()?.mode === 'import'
+  );
 
   protected onClose(): void {
     this.closed.emit();
@@ -170,7 +213,18 @@ export class TransactionBulkCreateFormComponent {
     this.asyncIssues.set([]);
     this.rows.update((rows) =>
       rows.map((row) =>
-        row.id === rowId ? { ...row, [field]: value, touched: true } : row
+        row.id === rowId
+          ? {
+              ...row,
+              [field]: value,
+              touched: true,
+              financialFieldsChanged:
+                row.financialFieldsChanged ||
+                field === 'occurredOn' ||
+                field === 'amount' ||
+                field === 'currency',
+            }
+          : row
       )
     );
   }
@@ -178,6 +232,11 @@ export class TransactionBulkCreateFormComponent {
   protected updateBatchWallet(walletId: string): void {
     const previousCurrency = this.selectedWallet()?.currency.toUpperCase();
     this.batchWalletId.set(walletId);
+    if (this.importMode()) {
+      this.rows.update((rows) =>
+        rows.map((row) => ({ ...row, financialFieldsChanged: true }))
+      );
+    }
     const nextCurrency = this.selectedWallet()?.currency.toUpperCase();
     if (!nextCurrency || nextCurrency === previousCurrency) {
       return;
@@ -192,6 +251,11 @@ export class TransactionBulkCreateFormComponent {
 
   protected updateBatchDirection(direction: TransactionDirection): void {
     this.batchDirection.set(direction);
+  }
+
+  protected updateClipboardParsing(event: Event): void {
+    const checkbox = event.currentTarget as HTMLInputElement;
+    this.parseClipboardAsTable.set(checkbox.checked);
   }
 
   protected copyField(
@@ -236,6 +300,11 @@ export class TransactionBulkCreateFormComponent {
 
   @HostListener('document:paste', ['$event'])
   protected onPaste(event: ClipboardEvent): void {
+    if (this.importMode()) return;
+    if (!this.parseClipboardAsTable()) {
+      return;
+    }
+
     const text = event.clipboardData?.getData('text/plain') ?? '';
     if (!text.trim()) {
       return;
@@ -285,6 +354,15 @@ export class TransactionBulkCreateFormComponent {
     );
   }
 
+  protected unknownTagNames(raw: string): readonly string[] {
+    const knownTags = new Set(
+      this.store.tags().map((tag) => tag.name.trim().toLocaleLowerCase('pl-PL'))
+    );
+    return this.parseTagNames(raw).filter(
+      (tag) => !knownTags.has(tag.toLocaleLowerCase('pl-PL'))
+    );
+  }
+
   protected async submit(): Promise<void> {
     if (this.store.transactionMutationPending()) {
       return;
@@ -302,7 +380,7 @@ export class TransactionBulkCreateFormComponent {
     );
 
     try {
-      if (tagNames.length > 0) {
+      if (!this.importMode() && tagNames.length > 0) {
         await this.store.ensureTags(tagNames);
       }
 
@@ -310,15 +388,19 @@ export class TransactionBulkCreateFormComponent {
       const exchangeIssues: BulkTransactionIssue[] = [];
       for (const item of prepared) {
         const targetCurrency = item.wallet.currency.toUpperCase();
+        const sourceAmountInDefault = !item.row.financialFieldsChanged
+          ? item.row.importContext?.sourceAmountInDefault ?? null
+          : null;
         const amountInDefault =
-          item.currency === targetCurrency
+          sourceAmountInDefault ??
+          (item.currency === targetCurrency
             ? item.amount
             : await this.calculateAmountInDefault(
                 item.amount,
                 item.currency,
                 targetCurrency,
                 item.occurredAt
-              );
+              ));
 
         if (amountInDefault === null) {
           exchangeIssues.push(this.issueForRow(item.row, 'exchangeRate'));
@@ -337,6 +419,12 @@ export class TransactionBulkCreateFormComponent {
           foreignCurrency: targetCurrency,
           walletId: item.wallet.id,
           placeId: item.row.placeId || null,
+          importContext: item.row.importContext
+            ? {
+                ...item.row.importContext,
+                sourceAmountInDefault: amountInDefault,
+              }
+            : undefined,
         };
         const quantity = this.validQuantity(item.row.quantity) ?? 0;
         for (let index = 0; index < quantity; index += 1) {
@@ -354,6 +442,12 @@ export class TransactionBulkCreateFormComponent {
       });
       if (result.success) {
         this.saved.emit(result.created);
+        if (this.importMode()) {
+          this.importCompleted.emit({
+            created: result.created,
+            duplicatesSkipped: result.duplicatesSkipped,
+          });
+        }
         this.closed.emit();
       }
     } catch (error) {
@@ -427,6 +521,12 @@ export class TransactionBulkCreateFormComponent {
 
       if (this.validQuantity(row.quantity) === null) {
         issues.push(this.issueForRow(row, 'quantity', index));
+      }
+
+      if (this.importMode()) {
+        if (this.unknownTagNames(row.tags).length > 0) {
+          issues.push(this.issueForRow(row, 'tags', index));
+        }
       }
     });
 
@@ -636,7 +736,17 @@ export class TransactionBulkCreateFormComponent {
       placeId: '',
       quantity: 1,
       touched: false,
+      importContext: null,
+      sourceCategory: '',
+      financialFieldsChanged: false,
     };
+  }
+
+  private toDateInput(value: Date): string {
+    const year = value.getUTCFullYear();
+    const month = String(value.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(value.getUTCDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   private selectedWallet(): WalletEntity | null {

@@ -386,7 +386,8 @@ const pl = {
             confirmation: 'Wpisz dokładnie DELETE.',
             acknowledgement: 'Potwierdź, że rozumiesz utratę danych.',
             invalidPassword: 'Obecne hasło jest nieprawidłowe.',
-            unauthorized: 'Sesja wygasła. Zaloguj się ponownie i spróbuj jeszcze raz.',
+            unauthorized:
+              'Sesja wygasła. Zaloguj się ponownie i spróbuj jeszcze raz.',
             generic:
               'Nie udało się usunąć konta. Konto nadal jest aktywne; spróbuj ponownie.',
           },
@@ -748,13 +749,15 @@ const pl = {
         title: '{{inviterName}} zaprasza Cię do modułu Kieszonkowe',
       },
       allowance_invitation_accepted: {
-        title: '{{recipientName}} zaakceptował(a) zaproszenie do modułu Kieszonkowe',
+        title:
+          '{{recipientName}} zaakceptował(a) zaproszenie do modułu Kieszonkowe',
       },
       allowance_invitation_declined: {
         title: 'Zaproszenie do modułu Kieszonkowe zostało odrzucone',
       },
       allowance_received: {
-        title: 'Otrzymano kieszonkowe: {{description}} ({{amount}} {{currency}})',
+        title:
+          'Otrzymano kieszonkowe: {{description}} ({{amount}} {{currency}})',
       },
       allowance_transfer_failed: {
         title: 'Nie udało się zapisać kieszonkowego: {{error}}',
@@ -764,7 +767,8 @@ const pl = {
       generic: 'Coś poszło nie tak. Spróbuj ponownie.',
       load: 'Nie udało się załadować notyfikacji.',
       markAllRead: 'Nie udało się oznaczyć notyfikacji jako przeczytane.',
-      allowanceResponse: 'Nie udało się zaktualizować zaproszenia do modułu Kieszonkowe.',
+      allowanceResponse:
+        'Nie udało się zaktualizować zaproszenia do modułu Kieszonkowe.',
     },
   },
   dashboard: {
@@ -946,6 +950,7 @@ const pl = {
     actions: {
       add: 'Dodaj transakcję',
       addBulk: 'Dodaj hurtowo',
+      addFromFile: 'Dodaj z pliku',
       addShortcutHint: 'Dodaj transakcję (Alt+N)',
       openMenu: 'Otwórz menu dodawania',
       openMenuShortcutHint: 'Dodaj transakcję lub hurtowo (Alt+N)',
@@ -955,6 +960,8 @@ const pl = {
       created: 'Transakcja została zapisana w bazie.',
       updated: 'Zmiany w transakcji zostały zapisane.',
       bulkCreated: 'Zapisano {{ count }} transakcji w bazie.',
+      importCreated:
+        'Zaimportowano {{ created }} transakcji; pominięto duplikaty: {{ duplicatesSkipped }}.',
     },
     bulk: {
       badge: 'Import',
@@ -975,6 +982,9 @@ const pl = {
       batchSettings: {
         title: 'Ustawienia partii',
         hint: 'Portfel i typ dotyczą wszystkich transakcji w tym zapisie.',
+        parseClipboardAsTable: 'Rozdzielaj wklejane dane na kolumny',
+        parseClipboardAsTableHint:
+          'Wyłącz, aby wkleić cały tekst do aktywnego pola, także gdy zawiera przecinki lub średniki.',
       },
       summary: 'Transakcje do zapisu: {{ count }}',
       duplicates: 'Wykryto {{ count }} możliwych duplikatów.',
@@ -995,8 +1005,64 @@ const pl = {
         wallet: 'wybierz portfel',
         currency: 'podaj poprawną walutę',
         quantity: 'ilość musi być liczbą całkowitą od 1 do 100',
+        tags: 'przypisz nieznane tagi do istniejących albo je usuń',
         exchangeRate: 'brak kursu dla daty i waluty',
         save: 'nie udało się przygotować transakcji',
+      },
+    },
+    import: {
+      badge: 'Import',
+      title: 'Dodaj transakcje z pliku',
+      description:
+        'Pliki są odczytywane lokalnie w przeglądarce i nie są wysyłane.',
+      formatLabel: 'Format importu',
+      fileTab: 'Wgraj plik',
+      pasteTab: 'Wklej CSV',
+      chooseCsv: 'Wybierz plik CSV Spendist',
+      chooseJson: 'Wybierz plik JSON e-paragonu Biedronki',
+      pasteLabel: 'Wklej zawartość CSV',
+      parse: 'Odczytaj transakcje',
+      parsed: '{{ count }} transakcji gotowych do sprawdzenia',
+      selectWallet: 'Wybierz istniejący portfel',
+      selectCategory: 'Wybierz kategorię',
+      noPlace: 'Bez miejsca',
+      walletNotMatched:
+        'Nie znaleziono portfela „{{ name }}”. Wybierz istniejący portfel.',
+      review: 'Sprawdź i edytuj transakcje',
+      reviewBadge: 'Weryfikacja importu',
+      reviewTitle: 'Sprawdź importowane transakcje',
+      sourceCategory: 'Nie dopasowano kategorii z CSV: {{ name }}',
+      sourceTags:
+        'Nieznane tagi z CSV: {{ names }}. Zastąp je istniejącymi tagami albo wyczyść pole.',
+      formats: {
+        csv: {
+          title: 'CSV Spendist',
+          description:
+            'Ten sam format 17 kolumn, którego używa import i eksport w Ustawieniach.',
+        },
+        biedronka: {
+          title: 'E-paragon Biedronki',
+          description: 'Plik JSON wyeksportowany z aplikacji Biedronka.',
+        },
+      },
+      schema: {
+        action: 'Schemat CSV',
+        title: 'Schemat CSV Spendist',
+        description: 'Użyj poniższych kolumn. Dodatkowe kolumny są ignorowane.',
+        required: 'Wymagane:',
+      },
+      errors: {
+        read: 'Nie udało się odczytać pliku.',
+        invalid: 'Nie udało się przetworzyć pliku.',
+        invalid_file:
+          'Plik CSV jest nieprawidłowy. Sprawdź schemat i wartości.',
+        invalid_receipt:
+          'E-paragon Biedronki jest nieprawidłowy albo jego sumy się nie zgadzają.',
+        mixed_direction:
+          'Wszystkie wiersze CSV muszą mieć ten sam typ transakcji.',
+        mixed_wallet:
+          'Wszystkie wiersze CSV muszą korzystać z tego samego portfela.',
+        row_limit: 'Jeden import może zawierać maksymalnie 500 transakcji.',
       },
     },
     form: {
@@ -1154,8 +1220,10 @@ const pl = {
         title: 'Zaproszenie do modułu Kieszonkowe',
         accepted: 'Konta zostały połączone.',
         open: 'Otwórz Kieszonkowe',
-        invalid: 'Zaproszenie jest nieprawidłowe, wygasło albo dotyczy innego adresu e-mail.',
-        signIn: 'Zaloguj się lub utwórz konto przy użyciu zaproszonego adresu e-mail.',
+        invalid:
+          'Zaproszenie jest nieprawidłowe, wygasło albo dotyczy innego adresu e-mail.',
+        signIn:
+          'Zaloguj się lub utwórz konto przy użyciu zaproszonego adresu e-mail.',
       },
       connections: {
         title: 'Połączone osoby',

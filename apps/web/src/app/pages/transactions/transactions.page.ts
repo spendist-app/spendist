@@ -17,6 +17,7 @@ import { NgIcon } from '@ng-icons/core';
 import {
   heroDocumentDuplicate,
   heroDocumentPlus,
+  heroArrowUpTray,
   heroPencilSquare,
   heroPlus,
   heroTableCells,
@@ -37,6 +38,8 @@ import type { LanguageCode } from '../../i18n/languages';
 import { TransactionCreateFormComponent } from './transaction-create-form.component';
 import type { TransactionFormSaveResult } from './transaction-create-form.component';
 import { TransactionBulkCreateFormComponent } from './transaction-bulk-create-form.component';
+import { TransactionImportFormComponent } from './transaction-import-form.component';
+import type { TransactionBulkPrefill } from './transaction-import.models';
 
 interface MonthOption {
   readonly value: string;
@@ -58,6 +61,7 @@ interface TransactionToast {
     NgIcon,
     TransactionCreateFormComponent,
     TransactionBulkCreateFormComponent,
+    TransactionImportFormComponent,
   ],
   providers: [TransactionsStore],
   templateUrl: './transactions.page.html',
@@ -67,6 +71,10 @@ export class TransactionsPageComponent implements OnDestroy {
   protected readonly store = inject(TransactionsStore);
   protected readonly createFormOpen = signal(false);
   protected readonly bulkFormOpen = signal(false);
+  protected readonly importFormOpen = signal(false);
+  protected readonly importPrefill = signal<TransactionBulkPrefill | null>(
+    null
+  );
   protected readonly addMenuOpen = signal(false);
   private readonly addMenu = viewChild<ElementRef<HTMLElement>>('addMenu');
   protected readonly formMode = signal<'create' | 'edit'>('create');
@@ -103,6 +111,7 @@ export class TransactionsPageComponent implements OnDestroy {
   protected readonly addIcon = heroPlus;
   protected readonly addSingleIcon = heroDocumentPlus;
   protected readonly addBulkIcon = heroTableCells;
+  protected readonly addImportIcon = heroArrowUpTray;
 
   protected readonly filters = computed(() => this.store.activeFilters());
   protected readonly locale = computed(() =>
@@ -211,7 +220,7 @@ export class TransactionsPageComponent implements OnDestroy {
     }
     body.classList.toggle(
       'overflow-hidden',
-      this.createFormOpen() || this.bulkFormOpen()
+      this.createFormOpen() || this.bulkFormOpen() || this.importFormOpen()
     );
   });
 
@@ -454,6 +463,7 @@ export class TransactionsPageComponent implements OnDestroy {
     this.closeAddMenu();
     this.store.dismissMutationError();
     this.bulkFormOpen.set(false);
+    this.importFormOpen.set(false);
     this.formMode.set('create');
     this.editingTransaction.set(null);
     this.duplicateTransaction.set(null);
@@ -478,7 +488,8 @@ export class TransactionsPageComponent implements OnDestroy {
       event.defaultPrevented ||
       !isAddShortcut ||
       this.createFormOpen() ||
-      this.bulkFormOpen()
+      this.bulkFormOpen() ||
+      this.importFormOpen()
     ) {
       return;
     }
@@ -490,6 +501,7 @@ export class TransactionsPageComponent implements OnDestroy {
   protected openEditForm(transaction: TransactionViewModel): void {
     this.store.dismissMutationError();
     this.bulkFormOpen.set(false);
+    this.importFormOpen.set(false);
     this.formMode.set('edit');
     this.editingTransaction.set(transaction);
     this.duplicateTransaction.set(null);
@@ -499,6 +511,7 @@ export class TransactionsPageComponent implements OnDestroy {
   protected openDuplicate(transaction: TransactionViewModel): void {
     this.store.dismissMutationError();
     this.bulkFormOpen.set(false);
+    this.importFormOpen.set(false);
     this.formMode.set('create');
     this.editingTransaction.set(null);
     this.duplicateTransaction.set(transaction);
@@ -517,6 +530,27 @@ export class TransactionsPageComponent implements OnDestroy {
     this.closeAddMenu();
     this.handleFormClosed();
     this.store.dismissMutationError();
+    this.importFormOpen.set(false);
+    this.importPrefill.set(null);
+    this.bulkFormOpen.set(true);
+  }
+
+  protected openImportForm(): void {
+    this.closeAddMenu();
+    this.handleFormClosed();
+    this.bulkFormOpen.set(false);
+    this.importPrefill.set(null);
+    this.store.dismissMutationError();
+    this.importFormOpen.set(true);
+  }
+
+  protected handleImportClosed(): void {
+    this.importFormOpen.set(false);
+  }
+
+  protected handleImportPrepared(prefill: TransactionBulkPrefill): void {
+    this.importPrefill.set(prefill);
+    this.importFormOpen.set(false);
     this.bulkFormOpen.set(true);
   }
 
@@ -547,6 +581,7 @@ export class TransactionsPageComponent implements OnDestroy {
 
   protected handleBulkFormClosed(): void {
     this.bulkFormOpen.set(false);
+    this.importPrefill.set(null);
     this.store.dismissMutationError();
   }
 
@@ -559,7 +594,15 @@ export class TransactionsPageComponent implements OnDestroy {
   }
 
   protected handleBulkFormSaved(count: number): void {
+    if (this.importPrefill()) return;
     this.showToast('transactions.toasts.bulkCreated', { count });
+  }
+
+  protected handleImportCompleted(result: {
+    created: number;
+    duplicatesSkipped: number;
+  }): void {
+    this.showToast('transactions.toasts.importCreated', result);
   }
 
   private showToast(

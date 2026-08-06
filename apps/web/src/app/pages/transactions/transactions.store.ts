@@ -12,8 +12,10 @@ import type {
   TransactionTagRow,
   WalletRow,
   PlaceRow,
+  Json,
   Tables,
 } from '@spendist/data-access/supabase-types';
+import type { TransactionImportContext } from './transaction-import.models';
 import type {
   CategoryEntity,
   CategoryGroupEntity,
@@ -231,10 +233,10 @@ export interface CreateTransactionPayload {
   readonly allowanceConnectionId?: string | null;
 }
 
-export type CreateTransactionBatchItem = Omit<
-  CreateTransactionPayload,
-  'quantity'
->;
+export interface CreateTransactionBatchItem
+  extends Omit<CreateTransactionPayload, 'quantity'> {
+  readonly importContext?: TransactionImportContext;
+}
 
 export interface CreateTransactionBatchPayload {
   readonly transactions: readonly CreateTransactionBatchItem[];
@@ -1522,31 +1524,21 @@ export class TransactionsStore {
 
   async createTransactionBatch(
     payload: CreateTransactionBatchPayload
-  ): Promise<{ success: boolean; created: number; error?: string }> {
+  ): Promise<{
+    success: boolean;
+    created: number;
+    duplicatesSkipped: number;
+    error?: string;
+  }> {
     const userId = this.userId();
     if (!userId) {
       const message = 'You need to be signed in to create transactions.';
-      return { success: false, created: 0, error: message };
-    }
-
-    const normalized = payload.transactions
-      .map((transaction) =>
-        this.normalizeCreatePayload({
-          ...transaction,
-          quantity: 1,
-        })
-      )
-      .filter((transaction): transaction is NormalizedCreatePayload =>
-        Boolean(transaction)
-      );
-
-    if (
-      normalized.length === 0 ||
-      normalized.length !== payload.transactions.length
-    ) {
-      const message =
-        'Invalid transaction data. Please review the form and try again.';
-      return { success: false, created: 0, error: message };
+      return {
+        success: false,
+        created: 0,
+        duplicatesSkipped: 0,
+        error: message,
+      };
     }
 
     this.state.update((state) => ({
@@ -1556,7 +1548,59 @@ export class TransactionsStore {
     }));
 
     try {
-      const rows = normalized.map((transaction) => ({
+      const existingKeys = await this.loadExistingImportKeys(
+        payload.transactions
+      );
+      const seenImportKeys = new Set(existingKeys);
+      const transactions = payload.transactions.filter((transaction) => {
+        const context = transaction.importContext;
+        if (!context) return true;
+        const key = `${context.source}|${context.fingerprint}`;
+        if (seenImportKeys.has(key)) return false;
+        seenImportKeys.add(key);
+        return true;
+      });
+      const duplicatesSkipped =
+        payload.transactions.length - transactions.length;
+      if (transactions.length === 0) {
+        this.state.update((state) => ({
+          ...state,
+          transactionMutationPending: false,
+          mutationError: null,
+        }));
+        return { success: true, created: 0, duplicatesSkipped };
+      }
+
+      const normalized = transactions
+        .map((transaction) =>
+          this.normalizeCreatePayload({ ...transaction, quantity: 1 })
+        )
+        .filter((transaction): transaction is NormalizedCreatePayload =>
+          Boolean(transaction)
+        );
+      if (normalized.length !== transactions.length) {
+        throw new Error(
+          'Invalid transaction data. Please review the form and try again.'
+        );
+      }
+
+      const importedAt = new Date().toISOString();
+      const rows = normalized.map((transaction, index) => ({
+        ...(() => {
+          const context = transactions[index].importContext;
+          return context
+            ? {
+                import_source: context.source,
+                import_fingerprint: context.fingerprint,
+                import_metadata: context.metadata as unknown as Json,
+                imported_at: importedAt,
+                recurring_scheduled_for:
+                  context.isAutomatic && context.recurringScheduledFor
+                    ? context.recurringScheduledFor.toISOString()
+                    : null,
+              }
+            : {};
+        })(),
         owner_id: userId,
         category_id: transaction.categoryId,
         description: transaction.description,
@@ -1565,7 +1609,7 @@ export class TransactionsStore {
         amount_in_default: transaction.amountInDefault,
         currency: transaction.currency,
         direction: transaction.direction,
-        is_automatic: false,
+        is_automatic: transactions[index].importContext?.isAutomatic ?? false,
         exchange_rate: transaction.exchangeRate,
         wallet_id: transaction.walletId,
         place_id: transaction.placeId,
@@ -1608,7 +1652,11 @@ export class TransactionsStore {
         mutationError: null,
       }));
 
-      return { success: true, created: transactionRows.length };
+      return {
+        success: true,
+        created: transactionRows.length,
+        duplicatesSkipped,
+      };
     } catch (error) {
       const message = this.describeError(error);
       logError(
@@ -1621,8 +1669,39 @@ export class TransactionsStore {
         transactionMutationPending: false,
         mutationError: message,
       }));
-      return { success: false, created: 0, error: message };
+      return {
+        success: false,
+        created: 0,
+        duplicatesSkipped: 0,
+        error: message,
+      };
     }
+  }
+
+  private async loadExistingImportKeys(
+    transactions: readonly CreateTransactionBatchItem[]
+  ): Promise<Set<string>> {
+    const bySource = new Map<string, Set<string>>();
+    for (const transaction of transactions) {
+      const context = transaction.importContext;
+      if (!context) continue;
+      const fingerprints = bySource.get(context.source) ?? new Set<string>();
+      fingerprints.add(context.fingerprint);
+      bySource.set(context.source, fingerprints);
+    }
+    const result = new Set<string>();
+    for (const [source, fingerprints] of bySource) {
+      const { data, error } = await this.supabase.rpc(
+        'find_existing_transaction_import_fingerprints',
+        { p_import_source: source, p_import_fingerprints: [...fingerprints] }
+      );
+      if (error) throw error;
+      for (const row of data ?? []) {
+        if (row.import_fingerprint)
+          result.add(`${source}|${row.import_fingerprint}`);
+      }
+    }
+    return result;
   }
 
   async updateTransaction(
