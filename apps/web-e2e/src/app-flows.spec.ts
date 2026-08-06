@@ -542,6 +542,20 @@ test('exposes bulk entry and applies year, month, and amount sorting', async ({
   const suffix = uniqueSuffix(testInfo);
   const lowerAmountDescription = `E2E lower amount ${suffix}`;
   const higherAmountDescription = `E2E higher amount ${suffix}`;
+  const now = new Date();
+  const currentYear = now.getUTCFullYear();
+  const currentMonthIndex = now.getUTCMonth();
+  const currentDate = now.toISOString().slice(0, 10);
+  const currentMonthStart = new Date(
+    Date.UTC(currentYear, currentMonthIndex, 1)
+  )
+    .toISOString()
+    .slice(0, 10);
+  const currentMonthEnd = new Date(
+    Date.UTC(currentYear, currentMonthIndex + 1, 0)
+  )
+    .toISOString()
+    .slice(0, 10);
 
   await ensureAuthenticated(page);
   await openTransactions(page);
@@ -609,7 +623,7 @@ test('exposes bulk entry and applies year, month, and amount sorting', async ({
       .fill(transaction.description);
     await dialog
       .locator('input[formcontrolname="occurredOn"]')
-      .fill('2026-07-10');
+      .fill(currentDate);
     await selectFirstTransactionCategory(page);
     await dialog
       .locator('input[formcontrolname="amount"]')
@@ -624,22 +638,22 @@ test('exposes bulk entry and applies year, month, and amount sorting', async ({
   await expandAdvancedTransactionFilters(page);
   const year = page.getByTestId('transaction-year-filter');
   const month = page.getByTestId('transaction-month-filter');
-  await year.selectOption('2026');
+  await year.selectOption(currentYear.toString());
   await expect(month).toBeEnabled();
   await expect(month.locator('option')).toHaveCount(13);
   await expect(page.getByLabel('Date from', { exact: true })).toHaveValue(
-    '2026-01-01'
+    `${currentYear}-01-01`
   );
   await expect(page.getByLabel('Date to', { exact: true })).toHaveValue(
-    '2026-12-31'
+    `${currentYear}-12-31`
   );
 
-  await month.selectOption('6');
+  await month.selectOption(currentMonthIndex.toString());
   await expect(page.getByLabel('Date from', { exact: true })).toHaveValue(
-    '2026-07-01'
+    currentMonthStart
   );
   await expect(page.getByLabel('Date to', { exact: true })).toHaveValue(
-    '2026-07-31'
+    currentMonthEnd
   );
 
   await page.getByTestId('transaction-sort-filter').selectOption('amountDesc');
