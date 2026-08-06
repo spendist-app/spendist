@@ -132,7 +132,7 @@ async function selectFirstCategoryOption(page: Page): Promise<string> {
   const search = dialog.getByPlaceholder('Search categories...');
   await expect(search).toBeFocused();
 
-  const option = dialog.getByRole('option').first();
+  const option = dialog.getByRole('listbox').getByRole('option').first();
   await expect(option).toBeVisible({ timeout: 15000 });
   const label = (await option.textContent())?.trim() ?? '';
   if (!label) {
