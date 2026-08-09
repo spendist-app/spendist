@@ -5,6 +5,7 @@ import { firstValueFrom } from 'rxjs';
 import {
   redirectAuthenticatedToHomeGuard,
   requireAuthGuard,
+  requireAuthWithReturnUrlGuard,
 } from './core/auth.guard';
 import { LanguageService } from './core/language.service';
 
@@ -67,6 +68,22 @@ export const appRoutes: Route[] = [
     canActivate: [redirectAuthenticatedToHomeGuard],
     loadComponent: () =>
       import('./pages/signup/signup.page').then((m) => m.SignupPageComponent),
+  },
+  {
+    path: 'settings/connected-apps',
+    canActivate: [requireAuthGuard],
+    loadComponent: () =>
+      import('./pages/connected-apps/connected-apps.page').then(
+        (m) => m.ConnectedAppsPageComponent
+      ),
+  },
+  {
+    path: 'oauth/consent',
+    canActivate: [requireAuthWithReturnUrlGuard],
+    loadComponent: () =>
+      import('./pages/oauth-consent/oauth-consent.page').then(
+        (m) => m.OAuthConsentPageComponent
+      ),
   },
   {
     path: 'settings',

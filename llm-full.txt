@@ -16,6 +16,7 @@ The hosted application is `https://spendist.app`. The source is an Nx workspace 
 - **Places:** reusable locations/merchants with optional address and note metadata. Users can attach them to transactions and inspect annual spending totals.
 - **Dashboard:** up to 12 calendar months of cash flow, selected-month category/tag totals, recurring-created transaction totals, and yearly place spending, scoped by wallet where relevant.
 - **Notifications:** user-scoped Realtime notifications for recurring activity, exchange-rate-sync failure, Allowance invitations, and received allowance. Invitation notifications include accept/decline actions.
+- **MCP integration:** an official TypeScript SDK server exposes daily read/write finance workflows through STDIO and stateless Streamable HTTP at `https://mcp.spendist.app/mcp`. There is no separate staging Worker: local automated checks precede a production pilot limited to a small invited group. Remote clients use Supabase OAuth 2.1 with PKCE and explicit consent. All database requests retain the user's bearer token and RLS identity; Allowance is read-only, imports and account security are excluded, mutations are metadata-audited, and deletion requires a five-minute one-use confirmation bound to an unchanged record.
 - **Data portability:** Kontomierz XLSX import to a chosen wallet; readable, filtered Spendist CSV export; Settings CSV analysis with valid reference-data creation; and quick browser-only Spendist CSV/Biedronka import with editable review and duplicate skipping. The quick flow never creates wallets, categories, or tags. Spendist CSV, Biedronka, and Kontomierz metadata remain separate.
 - **Preferences:** authenticated profile language is authoritative across devices; full name, language, and IANA timezone autosave in `/settings`. Signed-out English/Polish choice and light/dark theme are stored locally. Signed-out navigation uses accessible flag buttons in a compact single-row header; changing language on a blog URL opens the other edition's home page.
 - **Public blog:** separate Polish and English Markdown collections for signed-out readers. Each edition can publish unrelated articles, categories are indexable when non-empty, tags are filter-only and `noindex`, table-of-contents links scroll within the current localized article, and the separated sharing panel uses icon-only Web Share, copy-link, Facebook, LinkedIn, and X actions without embedded social SDKs. There are no comments, CMS, or admin panel.
@@ -40,6 +41,8 @@ Read `doc/features/` for feature-level details and deliberate limits.
 | `/dashboard`, `/home`, `/transactions`, `/settings` | Authenticated product pages. | Not indexed |
 | `/modules/recurring-payments`, `/modules/places`, `/modules/allowance` | Authenticated modules. | Not indexed |
 | `/allowance/invite` | Utility handoff for a single-use Allowance email link. | Not indexed |
+| `/oauth/consent` | Authenticated Supabase OAuth client consent screen used by MCP and other approved OAuth clients. | Not indexed |
+| `/settings/connected-apps` | Authenticated OAuth grant list and revocation screen. | Not indexed |
 
 Routes live in `apps/web/src/app/app.routes.ts`. Public SEO files live in `apps/web/public/`. `sitemap.xml` has canonical indexable content only; `robots.txt` disallows private/utility routes.
 

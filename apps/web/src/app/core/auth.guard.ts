@@ -6,7 +6,9 @@ import { AuthService } from './auth.service';
 
 type GuardResult = boolean | UrlTree;
 
-const waitForAuthState = (predicate: (isAuthenticated: boolean) => GuardResult) => {
+const waitForAuthState = (
+  predicate: (isAuthenticated: boolean) => GuardResult
+) => {
   const auth = inject(AuthService);
 
   return toObservable(auth.authState).pipe(
@@ -27,5 +29,16 @@ export const requireAuthGuard: CanActivateFn = () => {
   const router = inject(Router);
   return waitForAuthState((isAuthenticated) =>
     isAuthenticated ? true : router.parseUrl('/')
+  );
+};
+
+export const requireAuthWithReturnUrlGuard: CanActivateFn = (_route, state) => {
+  const router = inject(Router);
+  return waitForAuthState((isAuthenticated) =>
+    isAuthenticated
+      ? true
+      : router.createUrlTree(['/login'], {
+          queryParams: { returnUrl: state.url },
+        })
   );
 };

@@ -48,6 +48,36 @@ const pl = {
         'Ikona „{{icon}}” nie należy do zestawu Heroicons, ale pozostanie zapisana.',
     },
   },
+  oauthConsent: {
+    badge: 'Dostęp zewnętrzny',
+    title: 'Połącz aplikację ze Spendist',
+    subtitle:
+      'Sprawdź, co ten klient OAuth będzie mógł zrobić na Twoim koncie Spendist.',
+    loading: 'Wczytywanie prośby o autoryzację',
+    accessTitle: 'Żądany dostęp do Spendist',
+    accessRead:
+      'Odczyt portfeli, transakcji, kategorii, płatności cyklicznych, podsumowań i stanu Kieszonkowego.',
+    accessWrite:
+      'Tworzenie i aktualizacja obsługiwanych danych finansowych oraz oznaczanie powiadomień jako przeczytane.',
+    accessDelete:
+      'Przygotowanie usunięcia i wykonanie go dopiero po osobnym, krótkotrwałym potwierdzeniu.',
+    scope: 'Zakres OAuth',
+    warning:
+      'Kontynuuj tylko wtedy, gdy ufasz tej aplikacji. Później możesz cofnąć jej zgodę OAuth.',
+    deny: 'Odmów',
+    approve: 'Zezwól na dostęp',
+  },
+  connectedApps: {
+    back: 'Ustawienia',
+    title: 'Połączone aplikacje',
+    subtitle:
+      'Sprawdź i odwołaj dostęp aplikacji korzystających ze Spendist przez OAuth.',
+    loading: 'Wczytywanie połączonych aplikacji',
+    empty: 'Żadna aplikacja zewnętrzna nie ma obecnie dostępu.',
+    scopes: 'Zakresy',
+    revoke: 'Cofnij dostęp',
+    manage: 'Zarządzaj dostępem',
+  },
   navbar: {
     settings: 'Ustawienia',
     signOut: 'Wyloguj się',

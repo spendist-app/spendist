@@ -23,6 +23,7 @@
     "demo:seed:apply": "dotenv -e .env -e .env.demo.local -- node tools/demo-seed/cli.mjs --apply",
     "demo:seed:test": "node --test tools/demo-seed/demo-seed.test.mjs",
     "db:test:allowance": "docker exec -i supabase_db_spendist-app psql -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/tests/allowance.sql",
+    "db:test:mcp": "docker exec -i supabase_db_spendist-app psql -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/tests/mcp.sql",
     "db:backup:remote": "dotenv -e .env -e .env.backup.local -- node tools/backup/backup.mjs",
     "db:backup:verify": "dotenv -e .env.backup.local -- node tools/backup/backup.mjs",
     "db:backup:test": "node --test tools/backup/backup.test.mjs",
@@ -47,7 +48,11 @@
     "supabase:status": "npx supabase status",
     "docker:up": "node tools/docker/docker-local.mjs up",
     "docker:down": "node tools/docker/docker-local.mjs down",
-    "docker:test": "node --test tools/docker/docker-local.test.mjs"
+    "docker:test": "node --test tools/docker/docker-local.test.mjs",
+    "mcp:build": "nx build mcp",
+    "mcp:test": "nx test mcp",
+    "mcp:stdio": "node dist/apps/mcp/main.mjs",
+    "mcp:worker:check": "nx run mcp:worker:dry-run"
   },
   "repository": {
     "type": "git",
@@ -70,6 +75,7 @@
     "@angular/cli": "21.2.13",
     "@angular/compiler-cli": "21.2.9",
     "@angular/language-service": "21.2.9",
+    "@cloudflare/workers-types": "^5.20260809.1",
     "@eslint/js": "^9.39.2",
     "@nx/angular": "22.7.5",
     "@nx/devkit": "22.7.5",
@@ -114,7 +120,8 @@
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.50.1",
     "vite": "^7.3.0",
-    "vitest": "4.0.16"
+    "vitest": "4.0.16",
+    "wrangler": "^4.120.0"
   },
   "dependencies": {
     "@angular-devkit/build-angular": "21.2.9",
@@ -127,6 +134,8 @@
     "@angular/router": "21.2.9",
     "@angular/service-worker": "^21.2.9",
     "@angular/ssr": "21.2.9",
+    "@modelcontextprotocol/hono": "^2.0.0",
+    "@modelcontextprotocol/server": "^2.0.0",
     "@ng-icons/bootstrap-icons": "^32.5.0",
     "@ng-icons/core": "^32.5.0",
     "@ng-icons/heroicons": "^32.5.0",
@@ -134,8 +143,10 @@
     "@supabase/supabase-js": "^2.89.0",
     "express": "^4.22.1",
     "helmet": "^8.2.0",
+    "hono": "^4.13.1",
     "nx-mcp": "^0.12.0",
     "rxjs": "~7.8.2",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "zod": "^4.4.3"
   }
 }

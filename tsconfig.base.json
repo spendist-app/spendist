@@ -15,7 +15,12 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@spendist/data-access/supabase-types": ["libs/data-access/supabase-types/src/index.ts"]
+      "@spendist/data-access/supabase-types": [
+        "libs/data-access/supabase-types/src/index.ts"
+      ],
+      "@spendist/data-access/spendist": [
+        "./libs/data-access/spendist/src/index.ts"
+      ]
     }
   },
   "exclude": ["node_modules", "tmp"]

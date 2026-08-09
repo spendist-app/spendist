@@ -12,6 +12,7 @@ Spendist is a GPL-3.0, open-source personal-finance web application. It helps a 
 - Account deletion: `/settings` requires the current password plus explicit irreversible confirmation; a Supabase Edge Function removes avatar files and the Auth user, cascading user-owned database data.
 - Profile settings: full name, language, timezone, and avatar are directly editable without a separate edit mode. Password and danger-zone cards are visible without a security toggle.
 - Allowance: a payer invites a recipient by email, then manual or recurring activity atomically creates an expense for the payer and income for the recipient. It records ledger entries only and never moves money.
+- MCP: compatible assistants can access most daily Spendist functions over STDIO or OAuth-protected Streamable HTTP. Requests keep the user's Supabase RLS identity; Allowance is read-only and deletion requires a short-lived second confirmation.
 
 ## Technical facts
 
@@ -20,6 +21,7 @@ Spendist is a GPL-3.0, open-source personal-finance web application. It helps a 
 - Hosting: Cloudflare Worker in `apps/web/worker.ts`; public assets are in `apps/web/public/`.
 - Containers: `npm run docker:up` starts the existing isolated local Supabase CLI stack, applies pending local migrations, and serves the production Angular browser build through Compose at `http://localhost:4200`. `npm run docker:down` preserves local data. Versioned `linux/amd64` and `linux/arm64` images are published to `ghcr.io/spendist-app/spendist`.
 - Routes: `apps/web/src/app/app.routes.ts`. Public indexable routes are `/`, `/pl/blog`, `/en/blog`, published localized articles, pagination, and non-empty category archives. Authentication and application routes are not sitemap entries.
+- MCP runtime: `apps/mcp/` owns the official SDK server, STDIO adapter, and production Cloudflare Streamable HTTP Worker at `https://mcp.spendist.app/mcp`; there is no separate staging Worker. `libs/data-access/spendist/` owns shared user-token data access. OAuth consent is the non-indexable `/oauth/consent` utility route. Initial production validation is limited to a small invited group.
 - Blog content: independent Polish and English Markdown collections under `apps/web/content/blog/`. Articles are not translation pairs. `npm run blog:generate` validates content and generates the Angular content module, locale RSS feeds, sitemap, and robots file; `blog:check` protects builds from stale output.
 - Blog articles: the table of contents keeps the localized article path and scrolls to stable heading anchors. The separated sharing panel provides icon-only browser share, copy-link, Facebook, LinkedIn, and X actions without social SDKs.
 - Blog authoring: the repo-local `add-spendist-blog-post` skill creates a real localized Markdown file and always starts it as `draft: true`, so images can be added later.

@@ -14,5 +14,6 @@ Disallow: /transactions
 Disallow: /settings
 Disallow: /modules/
 Disallow: /allowance/
+Disallow: /oauth/
 
 Sitemap: https://spendist.app/sitemap.xml

@@ -48,6 +48,36 @@ const en = {
         'Icon “{{icon}}” isn’t part of the Heroicons set, but it will be kept as-is.',
     },
   },
+  oauthConsent: {
+    badge: 'External access',
+    title: 'Connect an app to Spendist',
+    subtitle:
+      'Review what this OAuth client can do with your Spendist account.',
+    loading: 'Loading authorization request',
+    accessTitle: 'Requested Spendist access',
+    accessRead:
+      'Read wallets, transactions, categories, recurring payments, summaries, and Allowance state.',
+    accessWrite:
+      'Create and update supported personal-finance records and mark notifications as read.',
+    accessDelete:
+      'Prepare deletions and execute them only after a separate, short-lived confirmation.',
+    scope: 'OAuth scope',
+    warning:
+      'Only continue if you trust this application. You can revoke its OAuth grant later.',
+    deny: 'Deny',
+    approve: 'Allow access',
+  },
+  connectedApps: {
+    back: 'Settings',
+    title: 'Connected applications',
+    subtitle:
+      'Review and revoke applications that can access Spendist through OAuth.',
+    loading: 'Loading connected applications',
+    empty: 'No external applications currently have access.',
+    scopes: 'Scopes',
+    revoke: 'Revoke access',
+    manage: 'Manage access',
+  },
   navbar: {
     settings: 'Settings',
     signOut: 'Sign out',
