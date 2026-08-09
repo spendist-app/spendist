@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { transactionImportAdapter } from './transaction-import.adapters';
+import {
+  detectTransactionImport,
+  transactionImportAdapter,
+} from './transaction-import.adapters';
 import { TransactionImportError } from './transaction-import.models';
 
 const CSV_HEADER =
@@ -55,6 +58,53 @@ function receipt(overrides: Record<string, unknown> = {}): string {
 }
 
 describe('transaction import adapters', () => {
+  it('detects supported formats from their content', () => {
+    const csv = detectTransactionImport(`\uFEFF${CSV_HEADER}\n${csvRow()}`);
+    const biedronka = detectTransactionImport(`  ${receipt()}  `);
+
+    expect(csv).toMatchObject({
+      status: 'valid',
+      format: 'spendist_csv',
+    });
+    expect(biedronka).toMatchObject({
+      status: 'valid',
+      format: 'biedronka_e_receipt',
+    });
+  });
+
+  it('keeps a recognized format when its contents fail validation', () => {
+    const csv = detectTransactionImport(
+      `${CSV_HEADER}\n${csvRow({ amount: 'not-a-number' })}`
+    );
+    const invalidReceipt = JSON.parse(receipt()) as Record<string, unknown>;
+    delete invalidReceipt['header'];
+    const biedronka = detectTransactionImport(JSON.stringify(invalidReceipt));
+
+    expect(csv).toMatchObject({
+      status: 'invalid',
+      format: 'spendist_csv',
+      error: { code: 'invalid_file' },
+    });
+    expect(biedronka).toMatchObject({
+      status: 'invalid',
+      format: 'biedronka_e_receipt',
+      error: { code: 'invalid_receipt' },
+    });
+  });
+
+  it('labels unrelated JSON and text as unknown', () => {
+    expect(detectTransactionImport('{"items":[]}')).toMatchObject({
+      status: 'invalid',
+      format: 'unknown',
+      error: { code: 'unknown_format' },
+    });
+    expect(detectTransactionImport('ordinary text')).toMatchObject({
+      status: 'invalid',
+      format: 'unknown',
+      error: { code: 'unknown_format' },
+    });
+  });
+
   it('parses Spendist CSV and preserves source fidelity', () => {
     const batch = transactionImportAdapter('spendist_csv').parse(
       `${CSV_HEADER}\n${csvRow()}`

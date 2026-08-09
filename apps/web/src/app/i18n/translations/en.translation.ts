@@ -1035,23 +1035,32 @@ const en = {
     },
     import: {
       badge: 'Import',
-      title: 'Add transactions from a file',
+      title: 'Import transactions',
       description:
-        'Files are parsed locally in your browser and are not uploaded.',
-      formatLabel: 'Import format',
+        'Files and pasted data are processed locally in your browser and are not uploaded.',
+      sourceLabel: 'Import source',
       fileTab: 'Upload file',
       pasteTab: 'Paste CSV',
-      chooseCsv: 'Choose a Spendist CSV file',
-      chooseJson: 'Choose a Biedronka e-receipt JSON file',
+      fileHeading: 'Choose one file',
+      acceptedFiles:
+        'Accepted: Spendist CSV or a Biedronka e-receipt exported as JSON. Up to 500 transactions.',
+      dropzoneAction: 'Drop a file here or choose a file',
+      dropzoneHint: 'CSV or JSON',
+      pasteHeading: 'Paste Spendist CSV',
+      pasteDescription:
+        'The content is detected and validated automatically after you paste it.',
       pasteLabel: 'Paste CSV content',
-      parse: 'Read transactions',
+      readingFile: 'Reading and detecting the file format…',
+      validating: 'Validating CSV…',
+      removeFile: 'Remove file',
       parsed: '{{ count }} transactions ready for review',
+      mappingTitle: 'Complete import details',
       selectWallet: 'Select an existing wallet',
       selectCategory: 'Select a category',
       noPlace: 'No place',
       walletNotMatched:
         'Wallet “{{ name }}” was not found. Select an existing wallet.',
-      review: 'Review and edit transactions',
+      review: 'Review transactions',
       reviewBadge: 'Import review',
       reviewTitle: 'Review imported transactions',
       sourceCategory: 'CSV category not matched: {{ name }}',
@@ -1068,6 +1077,11 @@ const en = {
           description: 'JSON file exported from the Biedronka application.',
         },
       },
+      detected: {
+        spendist_csv: 'Spendist CSV',
+        biedronka_e_receipt: 'Biedronka e-receipt',
+        unknown: 'Unknown format',
+      },
       schema: {
         action: 'CSV schema',
         title: 'Spendist CSV schema',
@@ -1080,6 +1094,8 @@ const en = {
         invalid_file: 'The CSV file is invalid. Check its schema and values.',
         invalid_receipt:
           'The Biedronka e-receipt is invalid or its totals do not match.',
+        unknown_format:
+          'This file is not a supported Spendist CSV or Biedronka e-receipt.',
         mixed_direction: 'All CSV rows must have the same transaction type.',
         mixed_wallet: 'All CSV rows must use the same wallet.',
         row_limit: 'One import can contain at most 500 transactions.',

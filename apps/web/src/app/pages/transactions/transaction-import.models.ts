@@ -3,6 +3,9 @@ import type { TransactionDirection } from '@spendist/data-access/supabase-types'
 export const TRANSACTION_IMPORT_MAX_ROWS = 500;
 
 export type TransactionImportFormat = 'spendist_csv' | 'biedronka_e_receipt';
+export type TransactionImportDetectedFormat =
+  | TransactionImportFormat
+  | 'unknown';
 
 export interface TransactionImportContext {
   readonly source: TransactionImportFormat;
@@ -46,8 +49,21 @@ export interface TransactionImportAdapter {
   readonly descriptionKey: string;
   readonly accept: string;
   readonly supportsPaste: boolean;
+  matches(text: string): boolean;
   parse(text: string): TransactionImportDraftBatch;
 }
+
+export type TransactionImportDetection =
+  | {
+      readonly status: 'valid';
+      readonly format: TransactionImportFormat;
+      readonly batch: TransactionImportDraftBatch;
+    }
+  | {
+      readonly status: 'invalid';
+      readonly format: TransactionImportDetectedFormat;
+      readonly error: TransactionImportError;
+    };
 
 export class TransactionImportError extends Error {
   constructor(
@@ -55,6 +71,7 @@ export class TransactionImportError extends Error {
     readonly code:
       | 'invalid_file'
       | 'invalid_receipt'
+      | 'unknown_format'
       | 'mixed_direction'
       | 'mixed_wallet'
       | 'row_limit'

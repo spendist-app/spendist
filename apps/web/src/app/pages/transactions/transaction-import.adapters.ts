@@ -6,6 +6,7 @@ import {
 import {
   TRANSACTION_IMPORT_MAX_ROWS,
   TransactionImportAdapter,
+  TransactionImportDetection,
   TransactionImportDraftBatch,
   TransactionImportDraftRow,
   TransactionImportError,
@@ -22,6 +23,7 @@ export const TRANSACTION_IMPORT_ADAPTERS: readonly TransactionImportAdapter[] =
       descriptionKey: 'transactions.import.formats.csv.description',
       accept: '.csv,text/csv',
       supportsPaste: true,
+      matches: looksLikeSpendistCsv,
       parse: parseCsvImport,
     },
     {
@@ -30,6 +32,7 @@ export const TRANSACTION_IMPORT_ADAPTERS: readonly TransactionImportAdapter[] =
       descriptionKey: 'transactions.import.formats.biedronka.description',
       accept: '.json,application/json',
       supportsPaste: false,
+      matches: looksLikeBiedronkaReceipt,
       parse: parseBiedronkaImport,
     },
   ];
@@ -45,6 +48,86 @@ export function transactionImportAdapter(
     );
   }
   return adapter;
+}
+
+export function detectTransactionImport(
+  text: string
+): TransactionImportDetection {
+  const normalized = stripBom(text).trim();
+  const adapter = TRANSACTION_IMPORT_ADAPTERS.find((item) =>
+    item.matches(normalized)
+  );
+  if (!adapter) {
+    return {
+      status: 'invalid',
+      format: 'unknown',
+      error: new TransactionImportError(
+        'The file format is not supported.',
+        'unknown_format'
+      ),
+    };
+  }
+
+  try {
+    return {
+      status: 'valid',
+      format: adapter.id,
+      batch: adapter.parse(normalized),
+    };
+  } catch (error) {
+    return {
+      status: 'invalid',
+      format: adapter.id,
+      error:
+        error instanceof TransactionImportError
+          ? error
+          : new TransactionImportError(
+              'The file could not be parsed.',
+              'invalid_file'
+            ),
+    };
+  }
+}
+
+function looksLikeSpendistCsv(text: string): boolean {
+  const header = stripBom(text).split(/\r?\n/, 1)[0]?.toLowerCase() ?? '';
+  const headers = new Set(
+    header.split(',').map((value) => value.trim().replace(/^"|"$/g, ''))
+  );
+  if (!headers.has('occurred_at')) return false;
+
+  const signatures = [
+    'direction',
+    'amount',
+    'currency',
+    'category_group',
+    'category_path',
+    'wallet',
+  ];
+  return signatures.filter((value) => headers.has(value)).length >= 3;
+}
+
+function looksLikeBiedronkaReceipt(text: string): boolean {
+  let receipt: unknown;
+  try {
+    receipt = JSON.parse(text);
+  } catch {
+    return false;
+  }
+  if (!isRecord(receipt)) return false;
+  if ('IDZ' in receipt) return true;
+
+  return arrayRecords(receipt['body']).some(
+    (entry) =>
+      'sellLine' in entry ||
+      'discountLine' in entry ||
+      'sumInCurrency' in entry ||
+      'fiscalFooter' in entry
+  );
+}
+
+function stripBom(value: string): string {
+  return value.charCodeAt(0) === 0xfeff ? value.slice(1) : value;
 }
 
 function parseCsvImport(text: string): TransactionImportDraftBatch {

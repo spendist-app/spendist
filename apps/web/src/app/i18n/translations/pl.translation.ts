@@ -1042,23 +1042,32 @@ const pl = {
     },
     import: {
       badge: 'Import',
-      title: 'Dodaj transakcje z pliku',
+      title: 'Importuj transakcje',
       description:
-        'Pliki są odczytywane lokalnie w przeglądarce i nie są wysyłane.',
-      formatLabel: 'Format importu',
+        'Pliki i wklejone dane są przetwarzane lokalnie w przeglądarce i nie są wysyłane.',
+      sourceLabel: 'Źródło importu',
       fileTab: 'Wgraj plik',
       pasteTab: 'Wklej CSV',
-      chooseCsv: 'Wybierz plik CSV Spendist',
-      chooseJson: 'Wybierz plik JSON e-paragonu Biedronki',
+      fileHeading: 'Wybierz jeden plik',
+      acceptedFiles:
+        'Akceptujemy CSV Spendist oraz e-paragon Biedronki wyeksportowany jako JSON. Maksymalnie 500 transakcji.',
+      dropzoneAction: 'Upuść plik tutaj lub wybierz plik',
+      dropzoneHint: 'CSV lub JSON',
+      pasteHeading: 'Wklej CSV Spendist',
+      pasteDescription:
+        'Po wklejeniu zawartość zostanie automatycznie rozpoznana i sprawdzona.',
       pasteLabel: 'Wklej zawartość CSV',
-      parse: 'Odczytaj transakcje',
+      readingFile: 'Odczytujemy plik i rozpoznajemy format…',
+      validating: 'Sprawdzamy CSV…',
+      removeFile: 'Usuń plik',
       parsed: '{{ count }} transakcji gotowych do sprawdzenia',
+      mappingTitle: 'Uzupełnij dane importu',
       selectWallet: 'Wybierz istniejący portfel',
       selectCategory: 'Wybierz kategorię',
       noPlace: 'Bez miejsca',
       walletNotMatched:
         'Nie znaleziono portfela „{{ name }}”. Wybierz istniejący portfel.',
-      review: 'Sprawdź i edytuj transakcje',
+      review: 'Sprawdź transakcje',
       reviewBadge: 'Weryfikacja importu',
       reviewTitle: 'Sprawdź importowane transakcje',
       sourceCategory: 'Nie dopasowano kategorii z CSV: {{ name }}',
@@ -1075,6 +1084,11 @@ const pl = {
           description: 'Plik JSON wyeksportowany z aplikacji Biedronka.',
         },
       },
+      detected: {
+        spendist_csv: 'CSV Spendist',
+        biedronka_e_receipt: 'E-paragon Biedronki',
+        unknown: 'Nieznany format',
+      },
       schema: {
         action: 'Schemat CSV',
         title: 'Schemat CSV Spendist',
@@ -1088,6 +1102,8 @@ const pl = {
           'Plik CSV jest nieprawidłowy. Sprawdź schemat i wartości.',
         invalid_receipt:
           'E-paragon Biedronki jest nieprawidłowy albo jego sumy się nie zgadzają.',
+        unknown_format:
+          'Ten plik nie jest obsługiwanym CSV Spendist ani e-paragonem Biedronki.',
         mixed_direction:
           'Wszystkie wiersze CSV muszą mieć ten sam typ transakcji.',
         mixed_wallet:

@@ -26,10 +26,18 @@ Spendist CSV and Kontomierz import metadata stay separate.
 ## Quick transaction import and review
 
 The Transactions page offers a browser-only import flow beside single and bulk
-entry. It supports the same Spendist CSV schema used in Settings, either from a
-file or pasted text, and Biedronka e-receipt JSON files. An adapter registry owns
-format detection and parsing so another format can be added without changing
-the import modal's workflow.
+entry. The source step has separate upload and pasted-CSV tabs, not a manual
+format selector. Its single upload surface accepts the same Spendist CSV schema
+used in Settings and Biedronka e-receipt JSON files, detects their format from
+the content, and validates them immediately. Pasted Spendist CSV is validated
+automatically after input. An adapter registry owns format detection and parsing
+so another format can be added without changing the import modal's workflow.
+
+The source status identifies the detected format, file name, validation result,
+and transaction count. Unsupported content is reported as an unknown format.
+The review action remains unavailable until the batch is valid, an existing
+wallet is selected, and Biedronka imports have a common category. An optional
+place can also be applied to every Biedronka item before review.
 
 Every import is limited to 500 transactions and opens the existing bulk editor
 before saving. A Spendist CSV batch must use one wallet and one direction. The
@@ -40,8 +48,7 @@ columns and marks the required fields.
 
 Each Biedronka sell line becomes one expense. Discounts immediately following a
 sell line reduce that item's amount, while its quantity and unit price are kept
-in the description. A wallet and category are required before review, and a
-place is optional. Receipt totals must match, and storno lines are rejected.
+in the description. Receipt totals must match, and storno lines are rejected.
 Signed payloads, receipt images, signatures, and payment/card details are
 ignored and never stored.
 

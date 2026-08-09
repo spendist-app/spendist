@@ -1,25 +1,33 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
+  OnDestroy,
   computed,
   inject,
   output,
   signal,
+  viewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NgIcon } from '@ng-icons/core';
-import { heroQuestionMarkCircle, heroXMark } from '@ng-icons/heroicons/outline';
+import {
+  heroArrowUpTray,
+  heroQuestionMarkCircle,
+  heroXMark,
+} from '@ng-icons/heroicons/outline';
 import { TranslocoPipe } from '@ngneat/transloco';
 import { SPENDIST_CSV_HEADERS } from '../settings/spendist-csv-transfer.parser';
 import {
   TRANSACTION_IMPORT_ADAPTERS,
+  detectTransactionImport,
   transactionImportAdapter,
 } from './transaction-import.adapters';
 import {
   TransactionBulkPrefill,
+  TransactionImportDetectedFormat,
   TransactionImportDraftBatch,
   TransactionImportError,
-  TransactionImportFormat,
 } from './transaction-import.models';
 import { TransactionsStore } from './transactions.store';
 
@@ -30,16 +38,16 @@ import { TransactionsStore } from './transactions.store';
   templateUrl: './transaction-import-form.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class TransactionImportFormComponent {
+export class TransactionImportFormComponent implements OnDestroy {
+  private pasteValidationTimer: ReturnType<typeof setTimeout> | null = null;
+  private fileReadVersion = 0;
   protected readonly store = inject(TransactionsStore);
-  protected readonly adapters = TRANSACTION_IMPORT_ADAPTERS;
   protected readonly csvHeaders = SPENDIST_CSV_HEADERS;
-  protected readonly selectedFormat =
-    signal<TransactionImportFormat>('spendist_csv');
-  protected readonly csvMode = signal<'file' | 'paste'>('file');
+  protected readonly sourceMode = signal<'file' | 'paste'>('file');
   protected readonly pastedCsv = signal('');
-  protected readonly sourceText = signal('');
   protected readonly fileName = signal('');
+  protected readonly detectedFormat =
+    signal<TransactionImportDetectedFormat | null>(null);
   protected readonly parsed = signal<TransactionImportDraftBatch | null>(null);
   protected readonly walletId = signal('');
   protected readonly categoryId = signal('');
@@ -47,19 +55,27 @@ export class TransactionImportFormComponent {
   protected readonly errorKey = signal<string | null>(null);
   protected readonly schemaOpen = signal(false);
   protected readonly processing = signal(false);
+  protected readonly dragActive = signal(false);
+  private readonly fileInput =
+    viewChild<ElementRef<HTMLInputElement>>('fileInput');
 
   readonly closed = output<void>();
   readonly prepared = output<TransactionBulkPrefill>();
 
   protected readonly closeIcon = heroXMark;
   protected readonly helpIcon = heroQuestionMarkCircle;
-  protected readonly selectedAdapter = computed(() =>
-    transactionImportAdapter(this.selectedFormat())
-  );
-  protected readonly canParse = computed(() =>
-    this.selectedFormat() === 'spendist_csv' && this.csvMode() === 'paste'
-      ? this.pastedCsv().trim().length > 0
-      : this.sourceText().trim().length > 0
+  protected readonly uploadIcon = heroArrowUpTray;
+  protected readonly acceptedFileTypes = Array.from(
+    new Set(
+      TRANSACTION_IMPORT_ADAPTERS.flatMap((adapter) =>
+        adapter.accept.split(',')
+      )
+    )
+  ).join(',');
+  protected readonly hasSource = computed(() =>
+    this.sourceMode() === 'file'
+      ? this.fileName().length > 0
+      : this.pastedCsv().trim().length > 0
   );
   protected readonly canContinue = computed(() => {
     const parsed = this.parsed();
@@ -70,50 +86,107 @@ export class TransactionImportFormComponent {
     );
   });
 
-  protected selectFormat(format: TransactionImportFormat): void {
-    this.selectedFormat.set(format);
+  ngOnDestroy(): void {
+    this.clearPasteValidationTimer();
+  }
+
+  protected selectSourceMode(mode: 'file' | 'paste'): void {
+    if (this.sourceMode() === mode) return;
+    this.sourceMode.set(mode);
     this.resetSource();
   }
 
-  protected selectCsvMode(mode: 'file' | 'paste'): void {
-    this.csvMode.set(mode);
-    this.parsed.set(null);
-    this.errorKey.set(null);
+  protected onPastedCsvChange(value: string): void {
+    this.pastedCsv.set(value);
+    this.resetValidation();
+    this.processing.set(false);
+    if (!value.trim()) return;
+
+    this.detectedFormat.set('spendist_csv');
+    this.processing.set(true);
+    this.pasteValidationTimer = setTimeout(() => {
+      this.pasteValidationTimer = null;
+      this.validatePastedCsv();
+    }, 300);
   }
 
   protected async onFileSelected(event: Event): Promise<void> {
     const input = event.currentTarget as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
+    await this.processFile(file);
+  }
+
+  protected onDragOver(event: DragEvent): void {
+    event.preventDefault();
+    this.dragActive.set(true);
+  }
+
+  protected onDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    this.dragActive.set(false);
+  }
+
+  protected async onFileDropped(event: DragEvent): Promise<void> {
+    event.preventDefault();
+    this.dragActive.set(false);
+    const file = event.dataTransfer?.files[0];
+    if (!file) return;
+    await this.processFile(file);
+  }
+
+  protected removeFile(): void {
+    this.fileReadVersion += 1;
+    const input = this.fileInput()?.nativeElement;
+    if (input) input.value = '';
+    this.resetSource();
+  }
+
+  private async processFile(file: File): Promise<void> {
+    const readVersion = ++this.fileReadVersion;
     this.processing.set(true);
-    this.errorKey.set(null);
+    this.resetValidation();
+    this.fileName.set(file.name);
     try {
-      this.sourceText.set(await file.text());
-      this.fileName.set(file.name);
-      this.parseSource();
+      const text = await file.text();
+      if (readVersion !== this.fileReadVersion) return;
+      const detection = detectTransactionImport(text);
+      this.detectedFormat.set(detection.format);
+      if (detection.status === 'valid') {
+        this.applyBatch(detection.batch);
+      } else {
+        this.errorKey.set(this.importErrorKey(detection.error));
+      }
     } catch {
+      if (readVersion !== this.fileReadVersion) return;
+      this.detectedFormat.set('unknown');
       this.errorKey.set('transactions.import.errors.read');
+    } finally {
+      if (readVersion === this.fileReadVersion) {
+        this.processing.set(false);
+      }
+    }
+  }
+
+  private validatePastedCsv(): void {
+    try {
+      const batch = transactionImportAdapter('spendist_csv').parse(
+        this.pastedCsv()
+      );
+      this.applyBatch(batch);
+    } catch (error) {
+      this.errorKey.set(this.importErrorKey(error));
     } finally {
       this.processing.set(false);
     }
   }
 
-  protected parseSource(): void {
+  private applyBatch(batch: TransactionImportDraftBatch): void {
+    this.parsed.set(batch);
     this.errorKey.set(null);
-    try {
-      const text =
-        this.selectedFormat() === 'spendist_csv' && this.csvMode() === 'paste'
-          ? this.pastedCsv()
-          : this.sourceText();
-      const batch = this.selectedAdapter().parse(text);
-      this.parsed.set(batch);
-      this.walletId.set(this.matchWallet(batch.walletName));
-      this.categoryId.set('');
-      this.placeId.set('');
-    } catch (error) {
-      this.parsed.set(null);
-      this.errorKey.set(this.importErrorKey(error));
-    }
+    this.walletId.set(this.matchWallet(batch.walletName));
+    this.categoryId.set('');
+    this.placeId.set('');
   }
 
   protected continueToReview(): void {
@@ -207,10 +280,28 @@ export class TransactionImportFormComponent {
   }
 
   private resetSource(): void {
-    this.sourceText.set('');
+    this.fileReadVersion += 1;
+    this.clearPasteValidationTimer();
     this.pastedCsv.set('');
     this.fileName.set('');
+    this.processing.set(false);
+    this.dragActive.set(false);
+    this.resetValidation();
+  }
+
+  private resetValidation(): void {
+    this.clearPasteValidationTimer();
+    this.detectedFormat.set(null);
     this.parsed.set(null);
     this.errorKey.set(null);
+    this.walletId.set('');
+    this.categoryId.set('');
+    this.placeId.set('');
+  }
+
+  private clearPasteValidationTimer(): void {
+    if (this.pasteValidationTimer === null) return;
+    clearTimeout(this.pasteValidationTimer);
+    this.pasteValidationTimer = null;
   }
 }
