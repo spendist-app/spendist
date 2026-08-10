@@ -22,7 +22,11 @@
       "@spendist/data-access/spendist": [
         "./libs/data-access/spendist/src/index.ts"
       ]
-    }
+    },
+    "strict": false,
+    "noUncheckedSideEffectImports": false,
+    "types": ["*"],
+    "esModuleInterop": false
   },
   "exclude": ["node_modules", "tmp"]
 }
