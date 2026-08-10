@@ -308,6 +308,41 @@
     </div>
   </section>
 
+  <section
+    class="related-project-section"
+    aria-labelledby="related-project-title"
+  >
+    <div class="related-project-copy">
+      <span class="eyebrow">
+        {{ 'landing.relatedProject.badge' | transloco }}
+      </span>
+      <h2 id="related-project-title">
+        {{ 'landing.relatedProject.title' | transloco }}
+      </h2>
+      <p>{{ 'landing.relatedProject.description' | transloco }}</p>
+    </div>
+    <div class="related-project-actions">
+      <a
+        class="btn btn-primary"
+        href="https://tickist.com/"
+        target="_blank"
+        rel="noopener noreferrer"
+        data-testid="tickist-link"
+      >
+        {{ 'landing.relatedProject.visit' | transloco }}
+      </a>
+      <a
+        class="btn btn-ghost"
+        href="https://github.com/tickist/tickist-app"
+        target="_blank"
+        rel="noopener noreferrer"
+        data-testid="tickist-github-link"
+      >
+        {{ 'landing.relatedProject.github' | transloco }}
+      </a>
+    </div>
+  </section>
+
   <footer class="landing-footer">
     <a class="footer-brand" routerLink="/">
       <img src="/brand/spendist-mark.svg" alt="" width="32" height="32" />

@@ -700,7 +700,7 @@ test('imports pasted Spendist CSV through bulk review and skips a repeat', async
     const importDialog = page.getByRole('dialog', {
       name: 'Import transactions',
     });
-    await importDialog.getByRole('button', { name: 'Paste CSV' }).click();
+    await importDialog.getByRole('tab', { name: 'Paste CSV' }).click();
     const aiPromptButton = importDialog.getByRole('button', {
       name: 'Prepare an AI prompt',
     });

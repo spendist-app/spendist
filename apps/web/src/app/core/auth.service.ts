@@ -51,6 +51,7 @@ export interface AccountDeletionResult {
 export class AuthService implements OnDestroy {
   private readonly supabase = inject(SUPABASE_CLIENT);
   private readonly environmentInjector = inject(EnvironmentInjector);
+  private readonly defaultCategorySeeds = new Map<string, Promise<void>>();
 
   private readonly state = signal<AuthState>({
     session: null,
@@ -275,6 +276,7 @@ export class AuthService implements OnDestroy {
           return { error: this.normalizeProfileError(profileError) };
         }
 
+        await this.seedDefaultCategories(data.session);
       }
 
       return { user };
@@ -318,7 +320,21 @@ export class AuthService implements OnDestroy {
     this.environmentInjector.runInContext(fn);
   }
 
-  private async seedDefaultCategories(session: Session): Promise<void> {
+  private seedDefaultCategories(session: Session): Promise<void> {
+    const userId = session.user.id;
+    const existingSeed = this.defaultCategorySeeds.get(userId);
+    if (existingSeed) {
+      return existingSeed;
+    }
+
+    const seed = this.runDefaultCategorySeed(session).finally(() => {
+      this.defaultCategorySeeds.delete(userId);
+    });
+    this.defaultCategorySeeds.set(userId, seed);
+    return seed;
+  }
+
+  private async runDefaultCategorySeed(session: Session): Promise<void> {
     const language = session.user.user_metadata['language'];
     const userLanguage = (
       typeof language === 'string' ? language : DEFAULT_LANGUAGE

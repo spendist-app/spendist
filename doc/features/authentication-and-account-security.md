@@ -4,7 +4,7 @@
 
 Spendist uses Supabase email/password authentication. A person can sign up, sign in, sign out, request a password-reset email, complete password recovery from a link, change their password while authenticated, and permanently delete their account.
 
-Sign-up records profile information such as username, full name, timezone, language, default currency, and optional avatar URL. The application seeds default categories after an initial or newly signed-in session.
+Sign-up records profile information such as username, full name, timezone, language, default currency, and optional avatar URL. The application seeds default categories after an initial or newly signed-in session. When sign-up returns an authenticated session, navigation waits for that seed attempt to finish, and concurrent authentication events reuse the same in-flight operation instead of creating the hierarchy twice.
 
 ## Routes and limits
 

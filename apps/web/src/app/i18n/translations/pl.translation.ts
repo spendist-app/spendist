@@ -258,6 +258,14 @@ const pl = {
       button: 'Utwórz darmowe konto',
       github: 'Zobacz kod źródłowy',
     },
+    relatedProject: {
+      badge: 'Inny projekt open source',
+      title: 'Poznaj Tickist',
+      description:
+        'Uporządkuj zadania, projekty, terminy i powtarzalne obowiązki w drugim otwartym narzędziu twórcy Spendist.',
+      visit: 'Otwórz Tickist',
+      github: 'Zobacz kod Tickist',
+    },
     footer: {
       madeWith: 'Stworzone z',
       tagline: 'dla świadomych finansowo',

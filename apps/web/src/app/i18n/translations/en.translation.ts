@@ -258,6 +258,14 @@ const en = {
       button: 'Create free account',
       github: 'Explore the source',
     },
+    relatedProject: {
+      badge: 'Another open-source project',
+      title: 'Meet Tickist',
+      description:
+        'Organize tasks, projects, deadlines, and recurring responsibilities in another open tool from the creator of Spendist.',
+      visit: 'Open Tickist',
+      github: 'View Tickist source',
+    },
     footer: {
       madeWith: 'Made with',
       tagline: 'for mindful spenders',

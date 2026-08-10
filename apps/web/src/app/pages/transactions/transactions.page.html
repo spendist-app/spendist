@@ -371,7 +371,7 @@
           </div>
 
           <div class="grid gap-4 sm:grid-cols-2">
-            <label class="form-control sm:col-span-2">
+            <label class="form-control w-full sm:col-span-2">
               <span
                 class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60"
               >
@@ -380,7 +380,7 @@
               <input
                 type="search"
                 data-testid="transaction-search-filter"
-                class="input input-bordered"
+                class="input input-bordered w-full"
                 [value]="filtersVm.searchTerm"
                 (input)="onSearchInput($event)"
                 [placeholder]="'transactions.filters.searchPlaceholder' | transloco"
@@ -455,11 +455,16 @@
                   [value]="selectedYearValue()"
                   (change)="onYearSelect($event)"
                 >
-                  <option value="">
+                  <option value="" [selected]="!selectedYearValue()">
                     {{ 'transactions.filters.yearPlaceholder' | transloco }}
                   </option>
                   @for (year of yearOptions(); track year) {
-                  <option [value]="year">{{ year }}</option>
+                  <option
+                    [value]="year"
+                    [selected]="selectedYearValue() === year.toString()"
+                  >
+                    {{ year }}
+                  </option>
                   }
                 </select>
               </label>
@@ -477,11 +482,16 @@
                   [disabled]="monthSelectionDisabled()"
                   (change)="onMonthSelect($event)"
                 >
-                  <option value="">
+                  <option value="" [selected]="!selectedMonthValue()">
                     {{ 'transactions.filters.monthPlaceholder' | transloco }}
                   </option>
                   @for (option of monthOptions(); track option.value) {
-                  <option [value]="option.value">{{ option.label }}</option>
+                  <option
+                    [value]="option.value"
+                    [selected]="selectedMonthValue() === option.value"
+                  >
+                    {{ option.label }}
+                  </option>
                   }
                 </select>
               </label>

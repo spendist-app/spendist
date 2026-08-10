@@ -494,6 +494,38 @@ describe('TransactionsPageComponent', () => {
     expect(month.options).toHaveLength(13);
   });
 
+  it('shows the matching year for a selected month range', () => {
+    const fixture = TestBed.createComponent(TransactionsPageComponent);
+    const store = fixture.debugElement.injector.get(
+      TransactionsStore
+    ) as unknown as TransactionsStoreStub;
+    store.activeFilters.update((filters) => ({
+      ...filters,
+      from: new Date(Date.UTC(2026, 4, 1)),
+      to: new Date(Date.UTC(2026, 4, 31, 23, 59, 59, 999)),
+      preset: 'custom',
+    }));
+
+    fixture.detectChanges();
+    (
+      fixture.nativeElement.querySelector(
+        '[data-testid="transaction-advanced-filters-toggle"]'
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
+    const year = fixture.nativeElement.querySelector(
+      '[data-testid="transaction-year-filter"]'
+    ) as HTMLSelectElement;
+    const month = fixture.nativeElement.querySelector(
+      '[data-testid="transaction-month-filter"]'
+    ) as HTMLSelectElement;
+
+    expect(year.value).toBe('2026');
+    expect(month.value).toBe('4');
+    expect(month.disabled).toBe(false);
+  });
+
   it('passes year, month, and sort selections to the store', () => {
     const fixture = TestBed.createComponent(TransactionsPageComponent);
     fixture.detectChanges();

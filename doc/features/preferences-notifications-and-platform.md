@@ -16,6 +16,8 @@ rolled back to the last stored profile value.
 
 Signed-out navigation presents English and Polish as accessible flag buttons. The active flag is visibly selected, and changing it while browsing the blog opens the other language edition's home page. The compact public header keeps its logo, blog link, language control, and authentication actions in one row, including narrow mobile layouts.
 
+Near its footer, the public landing page presents a compact cross-reference to Tickist, another open-source project from the same creator. Separate external links open the hosted Tickist application and its public GitHub repository in a new tab.
+
 The light/dark theme is saved locally. Without a saved value, the browser's dark-mode preference can be used.
 
 ## Notifications
