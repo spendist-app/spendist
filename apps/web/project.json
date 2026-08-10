@@ -98,7 +98,7 @@
     },
     "test": {
       "executor": "@nx/vitest:test",
-      "outputs": ["{options.reportsDirectory}"],
+      "outputs": ["{workspaceRoot}/coverage/apps/web"],
       "options": {
         "reportsDirectory": "../../coverage/apps/web"
       }

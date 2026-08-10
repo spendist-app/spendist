@@ -52,3 +52,5 @@ vitest.config.*.timestamp*
 
 export_kontomierz/*
 export_kontomierz
+
+.nx/migrate-runs

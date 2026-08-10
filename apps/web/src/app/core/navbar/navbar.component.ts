@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { TranslocoPipe } from '@ngneat/transloco';
 import { AuthService } from '../auth.service';
@@ -18,6 +18,7 @@ import type { LanguageCode } from '../../i18n/languages';
     TranslocoPipe,
     NotificationsMenuComponent,
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './navbar.component.html',
 })
 export class NavbarComponent {

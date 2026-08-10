@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@ngneat/transloco';
 import { NgIcon } from '@ng-icons/core';
@@ -24,6 +24,7 @@ import { LanguageService } from '../../core/language.service';
   selector: 'app-landing-page',
   imports: [RouterLink, TranslocoPipe, NgIcon],
   templateUrl: './landing.page.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './landing.page.css',
 })
 export class LandingPageComponent {

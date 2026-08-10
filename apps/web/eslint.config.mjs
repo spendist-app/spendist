@@ -8,6 +8,8 @@ export default [
   {
     files: ['**/*.ts'],
     rules: {
+      // Newly enabled by the Angular ESLint v22 preset; preserve the Angular migration's compatibility strategy.
+      '@angular-eslint/prefer-on-push-component-change-detection': 'off',
       '@angular-eslint/directive-selector': [
         'error',
         {
