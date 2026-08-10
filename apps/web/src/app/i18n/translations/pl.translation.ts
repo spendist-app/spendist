@@ -1057,6 +1057,33 @@ const pl = {
       pasteDescription:
         'Po wklejeniu zawartość zostanie automatycznie rozpoznana i sprawdzona.',
       pasteLabel: 'Wklej zawartość CSV',
+      ai: {
+        action: 'Przygotuj prompt dla AI',
+        badge: 'Pomoc AI',
+        title: 'Utwórz CSV z pomocą AI',
+        description:
+          'Skopiuj przygotowaną instrukcję do wybranego czatu AI i dodaj dokument jednego zakupu.',
+        privacyTitle: 'Przed skopiowaniem:',
+        privacyDescription:
+          'prompt zawiera nazwy Twoich kategorii, tagów oraz portfeli z walutami. Spendist niczego nie wysyła. Wklejając prompt i dokument do zewnętrznego AI, korzystasz z zasad prywatności tego dostawcy.',
+        promptLabel: 'Prompt dla AI',
+        copy: 'Kopiuj prompt',
+        copied: 'Prompt został skopiowany.',
+        copyFailed:
+          'Nie udało się skopiować promptu. Zaznacz jego treść i skopiuj ją ręcznie.',
+        missingWallets:
+          'Dodaj co najmniej jeden portfel, aby przygotować prompt.',
+        missingCategories:
+          'Dodaj co najmniej jedną kategorię, aby przygotować prompt.',
+        steps: {
+          copy: 'Skopiuj prompt poniższym przyciskiem.',
+          open: 'Otwórz wybrany czat AI, np. ChatGPT, Claude lub Grok.',
+          attach:
+            'Wklej prompt i dodaj zdjęcie paragonu lub faktury, zrzut zamówienia albo treść e-maila.',
+          return:
+            'Pobierz otrzymany CSV albo skopiuj jego zawartość i wróć do importu w Spendist.',
+        },
+      },
       readingFile: 'Odczytujemy plik i rozpoznajemy format…',
       validating: 'Sprawdzamy CSV…',
       removeFile: 'Usuń plik',

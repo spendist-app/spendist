@@ -701,6 +701,18 @@ test('imports pasted Spendist CSV through bulk review and skips a repeat', async
       name: 'Import transactions',
     });
     await importDialog.getByRole('button', { name: 'Paste CSV' }).click();
+    const aiPromptButton = importDialog.getByRole('button', {
+      name: 'Prepare an AI prompt',
+    });
+    await expect(aiPromptButton).toBeEnabled();
+    await aiPromptButton.click();
+    const aiPromptDialog = page.getByRole('dialog', {
+      name: 'Create CSV with AI assistance',
+    });
+    await expect(
+      aiPromptDialog.getByTestId('transaction-import-ai-prompt')
+    ).toHaveValue(/MANDATORY VERIFICATION/);
+    await aiPromptDialog.getByRole('button', { name: 'Close' }).last().click();
     await importDialog.getByTestId('csv-schema-help').click();
     const schemaDialog = page.getByRole('dialog', {
       name: 'Spendist CSV schema',

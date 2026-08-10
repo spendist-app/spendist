@@ -39,6 +39,21 @@ The review action remains unavailable until the batch is valid, an existing
 wallet is selected, and Biedronka imports have a common category. An optional
 place can also be applied to every Biedronka item before review.
 
+The pasted-CSV tab can prepare a provider-neutral AI prompt for expense
+documents. The prompt contains the user's category paths, tag names, and wallet
+names with currencies, but never identifiers, balances, transaction history, or
+profile data. Spendist only copies the prompt locally: the user chooses an
+external AI chat, supplies one receipt, invoice, order screenshot, or purchase
+email, and returns the generated CSV to the normal validator. No document or
+catalog data is sent by Spendist, and there is no LLM API or token integration.
+
+The prompt requires one existing wallet whose currency matches the document,
+one existing category per gross line item, and expenses only. It also requires
+the model to reconcile line amounts to the final payable total in minor currency
+units. The model must ask for clarification instead of inventing missing data or
+adding a balancing row when the document cannot be reconciled. Imported output
+still opens the bulk review editor before saving.
+
 Every import is limited to 500 transactions and opens the existing bulk editor
 before saving. A Spendist CSV batch must use one wallet and one direction. The
 wallet is matched to an existing wallet by name; unknown categories and tags

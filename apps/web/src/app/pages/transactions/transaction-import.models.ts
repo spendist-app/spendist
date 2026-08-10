@@ -21,6 +21,7 @@ export interface TransactionImportDraftRow {
   readonly description: string;
   readonly amount: number;
   readonly currency: string;
+  readonly categoryGroup: string;
   readonly categoryPath: readonly string[];
   readonly categoryId: string;
   readonly tags: readonly string[];

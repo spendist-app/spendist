@@ -1,3 +1,4 @@
+import { DOCUMENT } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -13,11 +14,18 @@ import { FormsModule } from '@angular/forms';
 import { NgIcon } from '@ng-icons/core';
 import {
   heroArrowUpTray,
+  heroClipboardDocument,
   heroQuestionMarkCircle,
+  heroSparkles,
   heroXMark,
 } from '@ng-icons/heroicons/outline';
 import { TranslocoPipe } from '@ngneat/transloco';
+import { LanguageService } from '../../core/language.service';
 import { SPENDIST_CSV_HEADERS } from '../settings/spendist-csv-transfer.parser';
+import {
+  SPENDIST_UNGROUPED_CATEGORY,
+  buildAiReceiptCsvPrompt,
+} from './transaction-import-ai-prompt';
 import {
   TRANSACTION_IMPORT_ADAPTERS,
   detectTransactionImport,
@@ -40,8 +48,11 @@ import { TransactionsStore } from './transactions.store';
 })
 export class TransactionImportFormComponent implements OnDestroy {
   private pasteValidationTimer: ReturnType<typeof setTimeout> | null = null;
+  private copyStatusTimer: ReturnType<typeof setTimeout> | null = null;
   private fileReadVersion = 0;
   protected readonly store = inject(TransactionsStore);
+  private readonly languageService = inject(LanguageService);
+  private readonly document = inject(DOCUMENT);
   protected readonly csvHeaders = SPENDIST_CSV_HEADERS;
   protected readonly sourceMode = signal<'file' | 'paste'>('file');
   protected readonly pastedCsv = signal('');
@@ -54,6 +65,9 @@ export class TransactionImportFormComponent implements OnDestroy {
   protected readonly placeId = signal('');
   protected readonly errorKey = signal<string | null>(null);
   protected readonly schemaOpen = signal(false);
+  protected readonly aiPromptOpen = signal(false);
+  protected readonly aiPromptCopied = signal(false);
+  protected readonly aiPromptCopyFailed = signal(false);
   protected readonly processing = signal(false);
   protected readonly dragActive = signal(false);
   private readonly fileInput =
@@ -65,6 +79,8 @@ export class TransactionImportFormComponent implements OnDestroy {
   protected readonly closeIcon = heroXMark;
   protected readonly helpIcon = heroQuestionMarkCircle;
   protected readonly uploadIcon = heroArrowUpTray;
+  protected readonly aiIcon = heroSparkles;
+  protected readonly copyIcon = heroClipboardDocument;
   protected readonly acceptedFileTypes = Array.from(
     new Set(
       TRANSACTION_IMPORT_ADAPTERS.flatMap((adapter) =>
@@ -85,9 +101,73 @@ export class TransactionImportFormComponent implements OnDestroy {
       (parsed.format !== 'biedronka_e_receipt' || !!this.categoryId())
     );
   });
+  protected readonly aiPromptReady = computed(
+    () => this.store.wallets().length > 0 && this.store.categories().length > 0
+  );
+  protected readonly aiPromptActionTitleKey = computed(() =>
+    this.store.wallets().length === 0
+      ? 'transactions.import.ai.missingWallets'
+      : this.store.categories().length === 0
+      ? 'transactions.import.ai.missingCategories'
+      : 'transactions.import.ai.action'
+  );
+  protected readonly aiPrompt = computed(() =>
+    buildAiReceiptCsvPrompt({
+      language: this.languageService.currentLanguage(),
+      wallets: this.store.wallets().map((wallet) => ({
+        name: wallet.name,
+        currency: wallet.currency,
+        isDefault: wallet.isDefault,
+      })),
+      groups: this.store.groups().map((group) => ({
+        id: group.id,
+        name: group.name,
+      })),
+      categories: this.store.categories().map((category) => ({
+        id: category.id,
+        name: category.name,
+        groupId: category.groupId,
+        parentId: category.parentId,
+      })),
+      tags: this.store.tags().map((tag) => tag.name),
+    })
+  );
 
   ngOnDestroy(): void {
     this.clearPasteValidationTimer();
+    this.clearCopyStatusTimer();
+  }
+
+  protected openAiPrompt(): void {
+    if (!this.aiPromptReady()) return;
+    this.aiPromptCopied.set(false);
+    this.aiPromptCopyFailed.set(false);
+    this.aiPromptOpen.set(true);
+  }
+
+  protected closeAiPrompt(): void {
+    this.aiPromptOpen.set(false);
+    this.clearCopyStatusTimer();
+  }
+
+  protected async copyAiPrompt(): Promise<void> {
+    this.clearCopyStatusTimer();
+    this.aiPromptCopied.set(false);
+    this.aiPromptCopyFailed.set(false);
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(this.aiPrompt());
+      } else if (!this.copyWithTextarea(this.aiPrompt())) {
+        throw new Error('Clipboard copy is unavailable.');
+      }
+      this.aiPromptCopied.set(true);
+      this.copyStatusTimer = setTimeout(() => {
+        this.aiPromptCopied.set(false);
+        this.copyStatusTimer = null;
+      }, 2500);
+    } catch {
+      this.aiPromptCopyFailed.set(true);
+    }
   }
 
   protected selectSourceMode(mode: 'file' | 'paste'): void {
@@ -204,7 +284,9 @@ export class TransactionImportFormComponent implements OnDestroy {
       this.normalize(batch.walletName) === this.normalize(selectedWallet.name);
     const rows = batch.rows.map((row) => ({
       ...row,
-      categoryId: commonCategory || this.matchCategory(row.categoryPath),
+      categoryId:
+        commonCategory ||
+        this.matchCategory(row.categoryGroup, row.categoryPath),
       placeId:
         batch.format === 'biedronka_e_receipt' ? this.placeId() : row.placeId,
       importContext: {
@@ -251,13 +333,25 @@ export class TransactionImportFormComponent implements OnDestroy {
     );
   }
 
-  private matchCategory(path: readonly string[]): string {
+  private matchCategory(groupName: string, path: readonly string[]): string {
     if (path.length === 0) return '';
     const expected = path.map((part) => this.normalize(part));
     const leaf = expected.at(-1);
-    const matches = this.store
+    const leafMatches = this.store
       .categories()
       .filter((category) => this.normalize(category.name) === leaf);
+    const normalizedGroupName = this.normalize(groupName);
+    const matchingGroup = this.store
+      .groups()
+      .find((group) => this.normalize(group.name) === normalizedGroupName);
+    const matches =
+      normalizedGroupName === this.normalize(SPENDIST_UNGROUPED_CATEGORY)
+        ? leafMatches.filter((category) => !category.groupId)
+        : matchingGroup
+        ? leafMatches.filter(
+            (category) => category.groupId === matchingGroup.id
+          )
+        : leafMatches;
     if (matches.length === 1) return matches[0].id;
     return (
       matches.find((category) => {
@@ -303,5 +397,26 @@ export class TransactionImportFormComponent implements OnDestroy {
     if (this.pasteValidationTimer === null) return;
     clearTimeout(this.pasteValidationTimer);
     this.pasteValidationTimer = null;
+  }
+
+  private copyWithTextarea(value: string): boolean {
+    const textarea = this.document.createElement('textarea');
+    textarea.value = value;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    this.document.body.appendChild(textarea);
+    textarea.select();
+    try {
+      return this.document.execCommand('copy');
+    } finally {
+      textarea.remove();
+    }
+  }
+
+  private clearCopyStatusTimer(): void {
+    if (this.copyStatusTimer === null) return;
+    clearTimeout(this.copyStatusTimer);
+    this.copyStatusTimer = null;
   }
 }

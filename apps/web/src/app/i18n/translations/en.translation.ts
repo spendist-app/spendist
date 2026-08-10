@@ -1050,6 +1050,31 @@ const en = {
       pasteDescription:
         'The content is detected and validated automatically after you paste it.',
       pasteLabel: 'Paste CSV content',
+      ai: {
+        action: 'Prepare an AI prompt',
+        badge: 'AI assistance',
+        title: 'Create CSV with AI assistance',
+        description:
+          'Copy the prepared instructions to an AI chat of your choice and attach one purchase document.',
+        privacyTitle: 'Before copying:',
+        privacyDescription:
+          'the prompt contains your category, tag, and wallet names with their currencies. Spendist sends nothing. Pasting the prompt and document into external AI is subject to that provider’s privacy terms.',
+        promptLabel: 'AI prompt',
+        copy: 'Copy prompt',
+        copied: 'The prompt was copied.',
+        copyFailed:
+          'The prompt could not be copied. Select its contents and copy it manually.',
+        missingWallets: 'Add at least one wallet to prepare the prompt.',
+        missingCategories: 'Add at least one category to prepare the prompt.',
+        steps: {
+          copy: 'Copy the prompt with the button below.',
+          open: 'Open an AI chat of your choice, such as ChatGPT, Claude, or Grok.',
+          attach:
+            'Paste the prompt and attach a receipt or invoice photo, order screenshot, or email content.',
+          return:
+            'Download the resulting CSV or copy its contents, then return to the Spendist importer.',
+        },
+      },
       readingFile: 'Reading and detecting the file format…',
       validating: 'Validating CSV…',
       removeFile: 'Remove file',

@@ -182,6 +182,7 @@ describe('TransactionBulkCreateFormComponent', () => {
           description: 'Imported row',
           amount: 10,
           currency: 'PLN',
+          categoryGroup: 'Missing group',
           categoryPath: ['Missing category'],
           categoryId: '',
           tags: ['missing-tag'],

@@ -114,6 +114,7 @@ describe('transaction import adapters', () => {
     expect(batch.rows[0]).toMatchObject({
       amount: 12.5,
       currency: 'PLN',
+      categoryGroup: 'Home',
       categoryPath: ['Food'],
     });
     expect(batch.rows[0].importContext.sourceAmountInDefault).toBe(12.5);
