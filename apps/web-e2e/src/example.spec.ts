@@ -38,6 +38,18 @@ test('shows the public landing page with core calls to action', async ({
   await expect(
     page.getByRole('link', { name: 'Blog' }).first()
   ).toHaveAttribute('href', '/en/blog');
+  await expect(page.getByTestId('tickist-link')).toHaveAttribute(
+    'href',
+    'https://tickist.com/'
+  );
+  await expect(page.getByTestId('tickist-link')).toHaveAttribute(
+    'rel',
+    'noopener noreferrer'
+  );
+  await expect(page.getByTestId('tickist-github-link')).toHaveAttribute(
+    'href',
+    'https://github.com/tickist/tickist-app'
+  );
 });
 
 test('serves separate, indexable English and Polish blog indexes', async ({

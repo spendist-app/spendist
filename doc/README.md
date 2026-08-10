@@ -13,6 +13,7 @@ This directory is the English, LLM-oriented source of truth for current user-vis
 - [Preferences, notifications, and platform behavior](features/preferences-notifications-and-platform.md)
 - [Public multilingual blog](features/public-blog.md)
 - [Responsive web images](features/responsive-web-images.md)
+- [Model Context Protocol integration](features/model-context-protocol.md)
 
 ## Operations
 

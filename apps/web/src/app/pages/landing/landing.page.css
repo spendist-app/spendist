@@ -30,6 +30,7 @@
 .latest-section,
 .trust-section,
 .cta-section,
+.related-project-section,
 .landing-footer {
   width: min(1180px, calc(100% - 2rem));
   margin-inline: auto;
@@ -566,6 +567,42 @@
   position: relative;
 }
 
+.related-project-section {
+  display: grid;
+  gap: 1.5rem;
+  align-items: center;
+  margin-bottom: 3rem;
+  padding: 2rem;
+  border: 1px solid
+    color-mix(in srgb, var(--color-primary) 18%, transparent);
+  border-radius: 2rem;
+  background: color-mix(
+    in srgb,
+    var(--color-primary) 6%,
+    var(--color-base-100)
+  );
+}
+
+.related-project-copy h2 {
+  margin-top: 0.9rem;
+  font-size: clamp(1.6rem, 5vw, 2.25rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.related-project-copy p {
+  max-width: 680px;
+  margin-top: 0.65rem;
+  color: color-mix(in srgb, var(--color-base-content) 68%, transparent);
+  line-height: 1.65;
+}
+
+.related-project-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
 .landing-footer {
   display: flex;
   align-items: center;
@@ -609,6 +646,10 @@
     grid-template-columns: auto minmax(0, 1fr) minmax(16rem, 0.7fr);
     align-items: center;
     padding: 3rem;
+  }
+  .related-project-section {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 2.5rem 3rem;
   }
   .landing-footer {
     flex-direction: row;

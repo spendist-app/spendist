@@ -20,6 +20,7 @@ Spendist helps you build a clear picture of personal cash flow without locking y
 - Import historical data from Kontomierz or Spendist CSV exports, then export your data again when needed.
 - Store places connected with spending patterns and expose them in the dashboard.
 - Use the app in Polish or English with light and dark themes.
+- Connect compatible AI clients through a user-authorized MCP server without bypassing Supabase RLS.
 
 ## Product Surface
 
@@ -44,6 +45,7 @@ Spendist helps you build a clear picture of personal cash flow without locking y
 ```text
 apps/web/                 Angular app, Cloudflare Worker, public runtime env
 apps/web-e2e/             Playwright end-to-end tests
+apps/mcp/                 MCP tools, resources, prompts, STDIO, and HTTP Worker
 libs/data-access-*        Generated/shared data access libraries
 supabase/migrations/      Versioned database schema and RPC changes
 supabase/functions/       Supabase Edge Functions
@@ -147,7 +149,24 @@ npm run test               # Vitest unit tests for web
 npm run lint               # ESLint for web
 npm run e2e                # Playwright E2E suite
 npm run format:check       # Prettier check
+npm run mcp:build          # build the local STDIO MCP server
+npm run mcp:test           # focused MCP unit tests
+npm run mcp:worker:check   # production-config Cloudflare Worker dry-run
 ```
+
+## MCP clients
+
+Build the local server with `npm run mcp:build`. The STDIO process needs `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, and a user access token in `SPENDIST_ACCESS_TOKEN`; optional `MCP_CLIENT_ID` labels metadata-only mutation audit entries. Keep the token in the MCP host's secret environment settings, never in a committed config file.
+
+Example command for Codex and other clients that support a command-based STDIO server:
+
+```text
+node /absolute/path/to/spendist/dist/apps/mcp/main.mjs
+```
+
+The production remote endpoint is `https://mcp.spendist.app/mcp` and advertises OAuth protected-resource metadata. Compatible clients should discover Supabase OAuth, dynamically register, use authorization code with PKCE, and send the resulting bearer token. At this early product stage there is no separate staging Worker: local tests protect development, while a small invited group validates OAuth, reads, audited mutations, and guarded deletion directly on production before access is expanded.
+
+The integration supports profiles, reference data, transactions, recurring payments, summaries, places, notifications, read-only Allowance, audit metadata, and portable JSON export. Imports, account credentials, avatars, account deletion, and Allowance mutations remain application-only. MCP entity deletion always requires `prepare_delete` followed by `confirm_delete`.
 
 Supabase workflow:
 

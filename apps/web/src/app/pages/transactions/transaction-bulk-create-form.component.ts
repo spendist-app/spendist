@@ -141,7 +141,9 @@ export class TransactionBulkCreateFormComponent {
         quantity: 1,
         touched: true,
         importContext: row.importContext,
-        sourceCategory: row.categoryPath.join(' / '),
+        sourceCategory: [row.categoryGroup, ...row.categoryPath]
+          .filter(Boolean)
+          .join(' / '),
         financialFieldsChanged: false,
       }))
     );

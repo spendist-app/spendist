@@ -19,7 +19,7 @@ import {
   heroPencilSquare,
   heroTrash,
 } from '@ng-icons/heroicons/outline';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
@@ -66,7 +66,6 @@ function resolveTimezoneOptions(): readonly string[] {
     left.localeCompare(right)
   );
 }
-
 const passwordsMatchValidator = (passwordKey: string, confirmPasswordKey: string) => {
   return (group: { get: (key: string) => { value: string } | null }) => {
     const password = group.get(passwordKey)?.value ?? '';
@@ -118,6 +117,7 @@ interface ParentCategoryOption {
     NgIcon,
     HeroIconPickerComponent,
     TranslocoPipe,
+    RouterLink,
   ],
   providers: [SettingsStore, KontomierzImportStore, SpendistCsvTransferStore],
   templateUrl: './settings.page.html',

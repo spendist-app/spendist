@@ -374,6 +374,114 @@ export type Database = {
           },
         ]
       }
+      mcp_audit_events: {
+        Row: {
+          client_id: string
+          created_at: string
+          error_code: string | null
+          finished_at: string | null
+          id: string
+          outcome: string
+          owner_id: string
+          request_id: string
+          target_id: string | null
+          target_type: string | null
+          tool_name: string
+        }
+        Insert: {
+          client_id?: string
+          created_at?: string
+          error_code?: string | null
+          finished_at?: string | null
+          id?: string
+          outcome?: string
+          owner_id: string
+          request_id: string
+          target_id?: string | null
+          target_type?: string | null
+          tool_name: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          error_code?: string | null
+          finished_at?: string | null
+          id?: string
+          outcome?: string
+          owner_id?: string
+          request_id?: string
+          target_id?: string | null
+          target_type?: string | null
+          tool_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mcp_audit_events_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mcp_audit_events_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_transactions_overview"
+            referencedColumns: ["owner_id"]
+          },
+        ]
+      }
+      mcp_delete_confirmations: {
+        Row: {
+          created_at: string
+          effects: Json
+          entity_id: string
+          entity_type: string
+          entity_updated_at: string
+          expires_at: string
+          owner_id: string
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          effects?: Json
+          entity_id: string
+          entity_type: string
+          entity_updated_at: string
+          expires_at?: string
+          owner_id: string
+          token?: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          effects?: Json
+          entity_id?: string
+          entity_type?: string
+          entity_updated_at?: string
+          expires_at?: string
+          owner_id?: string
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mcp_delete_confirmations_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mcp_delete_confirmations_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_transactions_overview"
+            referencedColumns: ["owner_id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
@@ -1067,6 +1175,7 @@ export type Database = {
         Args: { p_amount: number; p_occurrence_id: string }
         Returns: string
       }
+      confirm_mcp_delete: { Args: { p_token: string }; Returns: Json }
       create_allowance_invitation: { Args: { p_email: string }; Returns: Json }
       create_allowance_transaction: {
         Args: {
@@ -1209,6 +1318,7 @@ export type Database = {
         Args: { p_invitation_id: string; p_status: string }
         Returns: undefined
       }
+      spendist_mcp_access_token_hook: { Args: { event: Json }; Returns: Json }
       update_allowance_transaction: {
         Args: {
           p_amount: number

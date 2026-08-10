@@ -698,9 +698,21 @@ test('imports pasted Spendist CSV through bulk review and skips a repeat', async
     await page.getByTestId('transaction-add-menu-trigger').hover();
     await page.getByTestId('transaction-import-open').click();
     const importDialog = page.getByRole('dialog', {
-      name: 'Add transactions from a file',
+      name: 'Import transactions',
     });
-    await importDialog.getByRole('button', { name: 'Paste CSV' }).click();
+    await importDialog.getByRole('tab', { name: 'Paste CSV' }).click();
+    const aiPromptButton = importDialog.getByRole('button', {
+      name: 'Prepare an AI prompt',
+    });
+    await expect(aiPromptButton).toBeEnabled();
+    await aiPromptButton.click();
+    const aiPromptDialog = page.getByRole('dialog', {
+      name: 'Create CSV with AI assistance',
+    });
+    await expect(
+      aiPromptDialog.getByTestId('transaction-import-ai-prompt')
+    ).toHaveValue(/MANDATORY VERIFICATION/);
+    await aiPromptDialog.getByRole('button', { name: 'Close' }).last().click();
     await importDialog.getByTestId('csv-schema-help').click();
     const schemaDialog = page.getByRole('dialog', {
       name: 'Spendist CSV schema',
@@ -708,7 +720,9 @@ test('imports pasted Spendist CSV through bulk review and skips a repeat', async
     await expect(schemaDialog).toBeVisible();
     await schemaDialog.getByRole('button', { name: 'Close' }).click();
     await importDialog.getByTestId('transaction-import-paste').fill(csv);
-    await importDialog.getByTestId('transaction-import-parse').click();
+    await expect(
+      importDialog.getByText('Spendist CSV', { exact: true })
+    ).toBeVisible();
     await selectFirstRealOption(
       importDialog.getByTestId('transaction-import-wallet')
     );
@@ -769,16 +783,16 @@ test('imports and edits a Biedronka e-receipt before saving', async ({
   await page.getByTestId('transaction-add-menu-trigger').hover();
   await page.getByTestId('transaction-import-open').click();
   const importDialog = page.getByRole('dialog', {
-    name: 'Add transactions from a file',
+    name: 'Import transactions',
   });
-  await importDialog
-    .getByRole('radio', { name: /Biedronka e-receipt/ })
-    .click();
   await importDialog.getByTestId('transaction-import-file').setInputFiles({
     name: 'receipt.json',
     mimeType: 'application/json',
     buffer: Buffer.from(JSON.stringify(receipt)),
   });
+  await expect(
+    importDialog.getByText('Biedronka e-receipt', { exact: true })
+  ).toBeVisible();
   await selectFirstRealOption(
     importDialog.getByTestId('transaction-import-wallet')
   );

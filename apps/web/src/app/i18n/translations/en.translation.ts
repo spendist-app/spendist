@@ -48,6 +48,36 @@ const en = {
         'Icon “{{icon}}” isn’t part of the Heroicons set, but it will be kept as-is.',
     },
   },
+  oauthConsent: {
+    badge: 'External access',
+    title: 'Connect an app to Spendist',
+    subtitle:
+      'Review what this OAuth client can do with your Spendist account.',
+    loading: 'Loading authorization request',
+    accessTitle: 'Requested Spendist access',
+    accessRead:
+      'Read wallets, transactions, categories, recurring payments, summaries, and Allowance state.',
+    accessWrite:
+      'Create and update supported personal-finance records and mark notifications as read.',
+    accessDelete:
+      'Prepare deletions and execute them only after a separate, short-lived confirmation.',
+    scope: 'OAuth scope',
+    warning:
+      'Only continue if you trust this application. You can revoke its OAuth grant later.',
+    deny: 'Deny',
+    approve: 'Allow access',
+  },
+  connectedApps: {
+    back: 'Settings',
+    title: 'Connected applications',
+    subtitle:
+      'Review and revoke applications that can access Spendist through OAuth.',
+    loading: 'Loading connected applications',
+    empty: 'No external applications currently have access.',
+    scopes: 'Scopes',
+    revoke: 'Revoke access',
+    manage: 'Manage access',
+  },
   navbar: {
     settings: 'Settings',
     signOut: 'Sign out',
@@ -227,6 +257,14 @@ const en = {
         'Start with one transaction. Build a clear, portable view of your finances over time.',
       button: 'Create free account',
       github: 'Explore the source',
+    },
+    relatedProject: {
+      badge: 'Another open-source project',
+      title: 'Meet Tickist',
+      description:
+        'Organize tasks, projects, deadlines, and recurring responsibilities in another open tool from the creator of Spendist.',
+      visit: 'Open Tickist',
+      github: 'View Tickist source',
     },
     footer: {
       madeWith: 'Made with',
@@ -1005,23 +1043,57 @@ const en = {
     },
     import: {
       badge: 'Import',
-      title: 'Add transactions from a file',
+      title: 'Import transactions',
       description:
-        'Files are parsed locally in your browser and are not uploaded.',
-      formatLabel: 'Import format',
+        'Files and pasted data are processed locally in your browser and are not uploaded.',
+      sourceLabel: 'Import source',
       fileTab: 'Upload file',
       pasteTab: 'Paste CSV',
-      chooseCsv: 'Choose a Spendist CSV file',
-      chooseJson: 'Choose a Biedronka e-receipt JSON file',
+      fileHeading: 'Choose one file',
+      acceptedFiles:
+        'Accepted: Spendist CSV or a Biedronka e-receipt exported as JSON. Up to 500 transactions.',
+      dropzoneAction: 'Drop a file here or choose a file',
+      dropzoneHint: 'CSV or JSON',
+      pasteHeading: 'Paste Spendist CSV',
+      pasteDescription:
+        'The content is detected and validated automatically after you paste it.',
       pasteLabel: 'Paste CSV content',
-      parse: 'Read transactions',
+      ai: {
+        action: 'Prepare an AI prompt',
+        badge: 'AI assistance',
+        title: 'Create CSV with AI assistance',
+        description:
+          'Copy the prepared instructions to an AI chat of your choice and attach one purchase document.',
+        privacyTitle: 'Before copying:',
+        privacyDescription:
+          'the prompt contains your category, tag, and wallet names with their currencies. Spendist sends nothing. Pasting the prompt and document into external AI is subject to that provider’s privacy terms.',
+        promptLabel: 'AI prompt',
+        copy: 'Copy prompt',
+        copied: 'The prompt was copied.',
+        copyFailed:
+          'The prompt could not be copied. Select its contents and copy it manually.',
+        missingWallets: 'Add at least one wallet to prepare the prompt.',
+        missingCategories: 'Add at least one category to prepare the prompt.',
+        steps: {
+          copy: 'Copy the prompt with the button below.',
+          open: 'Open an AI chat of your choice, such as ChatGPT, Claude, or Grok.',
+          attach:
+            'Paste the prompt and attach a receipt or invoice photo, order screenshot, or email content.',
+          return:
+            'Download the resulting CSV or copy its contents, then return to the Spendist importer.',
+        },
+      },
+      readingFile: 'Reading and detecting the file format…',
+      validating: 'Validating CSV…',
+      removeFile: 'Remove file',
       parsed: '{{ count }} transactions ready for review',
+      mappingTitle: 'Complete import details',
       selectWallet: 'Select an existing wallet',
       selectCategory: 'Select a category',
       noPlace: 'No place',
       walletNotMatched:
         'Wallet “{{ name }}” was not found. Select an existing wallet.',
-      review: 'Review and edit transactions',
+      review: 'Review transactions',
       reviewBadge: 'Import review',
       reviewTitle: 'Review imported transactions',
       sourceCategory: 'CSV category not matched: {{ name }}',
@@ -1038,6 +1110,11 @@ const en = {
           description: 'JSON file exported from the Biedronka application.',
         },
       },
+      detected: {
+        spendist_csv: 'Spendist CSV',
+        biedronka_e_receipt: 'Biedronka e-receipt',
+        unknown: 'Unknown format',
+      },
       schema: {
         action: 'CSV schema',
         title: 'Spendist CSV schema',
@@ -1050,6 +1127,8 @@ const en = {
         invalid_file: 'The CSV file is invalid. Check its schema and values.',
         invalid_receipt:
           'The Biedronka e-receipt is invalid or its totals do not match.',
+        unknown_format:
+          'This file is not a supported Spendist CSV or Biedronka e-receipt.',
         mixed_direction: 'All CSV rows must have the same transaction type.',
         mixed_wallet: 'All CSV rows must use the same wallet.',
         row_limit: 'One import can contain at most 500 transactions.',
