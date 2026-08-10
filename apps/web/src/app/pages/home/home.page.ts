@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { TranslocoPipe } from '@ngneat/transloco';
 import { AuthService } from '../../core/auth.service';
 
@@ -6,6 +6,7 @@ import { AuthService } from '../../core/auth.service';
   standalone: true,
   selector: 'app-home-page',
   imports: [TranslocoPipe],
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `
     <section class="flex flex-col items-center justify-center gap-4 py-24 text-center">
       @if (auth.loading()) {

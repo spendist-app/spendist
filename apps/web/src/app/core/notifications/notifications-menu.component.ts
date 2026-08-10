@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, ChangeDetectionStrategy } from '@angular/core';
 import { NgIcon } from '@ng-icons/core';
 import { heroBell } from '@ng-icons/heroicons/outline';
 import { TranslocoPipe } from '@ngneat/transloco';
@@ -20,6 +20,7 @@ interface RecurringTransactionNotificationPayload {
   standalone: true,
   selector: 'app-notifications-menu',
   imports: [NgIcon, TranslocoPipe],
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './notifications-menu.component.html',
 })
 export class NotificationsMenuComponent {
