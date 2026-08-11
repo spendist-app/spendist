@@ -135,7 +135,7 @@ export type TransactionSortId =
   | 'descriptionAsc'
   | 'descriptionDesc';
 
-interface TransactionsFilters {
+export interface TransactionsFilters {
   readonly selectedCategoryIds: readonly string[];
   readonly selectedTagIds: readonly string[];
   readonly selectedPlaceId: string | null;
@@ -313,6 +313,7 @@ export class TransactionsStore {
   private readonly filters = signal<TransactionsFilters>(
     this.createInitialFilters()
   );
+  private readonly filtersInitialized = signal(false);
   private categorySummaryRequestToken = 0;
   private transactionRequestToken = 0;
   private lastSummaryRangeKey: string | null = null;
@@ -464,6 +465,9 @@ export class TransactionsStore {
 
   constructor() {
     effect(() => {
+      if (!this.filtersInitialized()) {
+        return;
+      }
       if (this.auth.loading()) {
         return;
       }
@@ -508,7 +512,6 @@ export class TransactionsStore {
       }
 
       this.userId.set(currentUserId);
-      this.filters.set(this.createInitialFilters());
       void this.refresh();
     });
   }
@@ -1230,14 +1233,11 @@ export class TransactionsStore {
     return groupIds.length > 0 && groupIds.every((id) => selectedIds.has(id));
   }
 
-  selectAllCategories(): void {
-    this.filters.update((filters) => ({
-      ...filters,
-      selectedCategoryIds: this.state().categories.map(
-        (category) => category.id
-      ),
-    }));
-    void this.reloadTransactionsAfterFilterChange();
+  isCategoryGroupIndeterminate(groupId: string | null): boolean {
+    const selectedIds = new Set(this.filters().selectedCategoryIds);
+    const groupIds = this.categoryIdsForGroup(groupId);
+    const selectedCount = groupIds.filter((id) => selectedIds.has(id)).length;
+    return selectedCount > 0 && selectedCount < groupIds.length;
   }
 
   toggleTagSelection(tagId: string): void {
@@ -1300,6 +1300,54 @@ export class TransactionsStore {
   resetFilters(): void {
     this.filters.set(this.createInitialFilters());
     void this.reloadTransactionsAfterFilterChange();
+  }
+
+  applyFilters(filters: TransactionsFilters): void {
+    if (this.filtersEqual(this.filters(), filters)) {
+      return;
+    }
+    this.setFiltersFromExternalState(filters);
+    void this.reloadTransactionsAfterFilterChange();
+  }
+
+  initializeFilters(filters: TransactionsFilters): boolean {
+    if (this.filtersInitialized()) {
+      return false;
+    }
+    this.setFiltersFromExternalState(filters);
+    this.filtersInitialized.set(true);
+    return true;
+  }
+
+  private setFiltersFromExternalState(filters: TransactionsFilters): void {
+    this.filters.set({
+      ...filters,
+      selectedCategoryIds: [...filters.selectedCategoryIds],
+      selectedTagIds: [...filters.selectedTagIds],
+      from: filters.from ? new Date(filters.from) : null,
+      to: filters.to ? new Date(filters.to) : null,
+    });
+  }
+
+  private filtersEqual(
+    left: TransactionsFilters,
+    right: TransactionsFilters
+  ): boolean {
+    const normalizeIds = (values: readonly string[]) =>
+      [...new Set(values)].sort().join('\u0000');
+    return (
+      normalizeIds(left.selectedCategoryIds) ===
+        normalizeIds(right.selectedCategoryIds) &&
+      normalizeIds(left.selectedTagIds) === normalizeIds(right.selectedTagIds) &&
+      left.selectedPlaceId === right.selectedPlaceId &&
+      left.minimumAmount === right.minimumAmount &&
+      left.maximumAmount === right.maximumAmount &&
+      left.searchTerm === right.searchTerm &&
+      left.from?.getTime() === right.from?.getTime() &&
+      left.to?.getTime() === right.to?.getTime() &&
+      left.preset === right.preset &&
+      left.sort === right.sort
+    );
   }
 
   dismissMutationError(): void {

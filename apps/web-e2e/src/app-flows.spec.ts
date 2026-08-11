@@ -287,7 +287,9 @@ async function openDashboard(page: Page): Promise<void> {
 
 async function openTransactions(page: Page): Promise<void> {
   await page.getByRole('link', { name: 'Transactions' }).click();
-  await expect(page).toHaveURL(/\/transactions$/, { timeout: 15000 });
+  await expect(page).toHaveURL(/\/transactions(?:\?.*)?$/, {
+    timeout: 15000,
+  });
   await expect(
     page.getByRole('heading', { name: 'Transactions', exact: true })
   ).toBeVisible();
@@ -654,6 +656,14 @@ test('exposes bulk entry and applies year, month, and amount sorting', async ({
   );
 
   await page.getByTestId('transaction-sort-filter').selectOption('amountDesc');
+  await expect(page).toHaveURL(new RegExp(`from=${currentMonthStart}`));
+  await expect(page).toHaveURL(new RegExp(`to=${currentMonthEnd}`));
+  await expect(page).toHaveURL(/sort=amountDesc/);
+  await expect(page).toHaveURL(/advanced=1/);
+  await page.goBack();
+  await expect(page.getByTestId('transaction-sort-filter')).toHaveValue('dateDesc');
+  await page.goForward();
+  await expect(page.getByTestId('transaction-sort-filter')).toHaveValue('amountDesc');
   const rows = page
     .locator('#transactions-results ul > li')
     .filter({ hasText: suffix });
@@ -819,11 +829,6 @@ test('filters categories from the sidebar with group checkboxes', async ({
   await ensureAuthenticated(page);
   await openTransactions(page);
 
-  await expect(page.getByTestId('transaction-category-filter')).toHaveCount(0);
-  await expect(page.getByTestId('category-filter-checkbox')).toHaveCount(0);
-
-  await page.getByTestId('category-filter-mode-toggle').check();
-
   const firstGroup = page
     .locator('nav section')
     .filter({
@@ -840,6 +845,10 @@ test('filters categories from the sidebar with group checkboxes', async ({
   await groupCheckbox.check();
   await expect(groupCheckbox).toBeChecked();
 
+  await expect.poll(() =>
+    new URL(page.url()).searchParams.getAll('category').length
+  ).toBe(await categoryCheckboxes.count());
+
   for (const categoryCheckbox of await categoryCheckboxes.all()) {
     await expect(categoryCheckbox).toBeChecked();
   }
@@ -847,10 +856,9 @@ test('filters categories from the sidebar with group checkboxes', async ({
   await page.getByTestId('category-filter-clear-all').click();
   await expect(groupCheckbox).not.toBeChecked();
   await expect(categoryCheckboxes.first()).not.toBeChecked();
-
-  await page.getByTestId('category-filter-select-all').click();
-  await expect(groupCheckbox).toBeChecked();
-  await expect(categoryCheckboxes.first()).toBeChecked();
+  await expect.poll(() =>
+    new URL(page.url()).searchParams.getAll('category').length
+  ).toBe(0);
 });
 
 test('shows transaction tags on the dashboard', async ({ page }, testInfo) => {
