@@ -380,6 +380,10 @@ export class TransactionsStore {
   readonly hasActiveCategoryFilter = computed(
     () => this.filters().selectedCategoryIds.length > 0
   );
+  readonly selectedCategoryCount = computed(() => {
+    const selectedIds = this.filters().selectedCategoryIds;
+    return selectedIds.length || this.state().categories.length;
+  });
   readonly hasActiveTagFilter = computed(
     () => this.filters().selectedTagIds.length > 0
   );
@@ -397,8 +401,7 @@ export class TransactionsStore {
     }
 
     for (const category of this.state().categories) {
-      const categoryIds = this.categoryIdsWithDescendants(category.id);
-      if (this.hasExactlySelectedCategoryIds(selectedIds, categoryIds)) {
+      if (this.hasExactlySelectedCategoryIds(selectedIds, [category.id])) {
         return `category:${category.id}`;
       }
     }
@@ -1174,9 +1177,7 @@ export class TransactionsStore {
   setCategorySelection(categoryId: string | null): void {
     this.filters.update((filters) => ({
       ...filters,
-      selectedCategoryIds: categoryId
-        ? this.categoryIdsWithDescendants(categoryId)
-        : [],
+      selectedCategoryIds: categoryId ? [categoryId] : [],
     }));
     void this.reloadTransactionsAfterFilterChange();
   }
@@ -1192,12 +1193,12 @@ export class TransactionsStore {
   toggleCategorySelection(categoryId: string): void {
     this.filters.update((filters) => {
       const set = new Set(filters.selectedCategoryIds);
-      const categoryIds = this.categoryIdsWithDescendants(categoryId);
-      const allSelected = categoryIds.every((id) => set.has(id));
-      if (allSelected) {
-        categoryIds.forEach((id) => set.delete(id));
+      if (set.size === 0) {
+        set.add(categoryId);
+      } else if (set.has(categoryId)) {
+        set.delete(categoryId);
       } else {
-        categoryIds.forEach((id) => set.add(id));
+        set.add(categoryId);
       }
 
       return {
@@ -1230,11 +1231,17 @@ export class TransactionsStore {
   isCategoryGroupSelected(groupId: string | null): boolean {
     const selectedIds = new Set(this.filters().selectedCategoryIds);
     const groupIds = this.categoryIdsForGroup(groupId);
-    return groupIds.length > 0 && groupIds.every((id) => selectedIds.has(id));
+    return (
+      groupIds.length > 0 &&
+      (selectedIds.size === 0 || groupIds.every((id) => selectedIds.has(id)))
+    );
   }
 
   isCategoryGroupIndeterminate(groupId: string | null): boolean {
     const selectedIds = new Set(this.filters().selectedCategoryIds);
+    if (selectedIds.size === 0) {
+      return false;
+    }
     const groupIds = this.categoryIdsForGroup(groupId);
     const selectedCount = groupIds.filter((id) => selectedIds.has(id)).length;
     return selectedCount > 0 && selectedCount < groupIds.length;
@@ -1263,6 +1270,11 @@ export class TransactionsStore {
       selectedCategoryIds: [],
     }));
     void this.reloadTransactionsAfterFilterChange();
+  }
+
+  isCategorySelected(categoryId: string): boolean {
+    const selectedIds = this.filters().selectedCategoryIds;
+    return selectedIds.length === 0 || selectedIds.includes(categoryId);
   }
 
   clearTagSelection(): void {
@@ -1937,30 +1949,6 @@ export class TransactionsStore {
       .categories.filter((category) =>
         groupId ? category.groupId === groupId : !category.groupId
       )
-      .map((category) => category.id);
-  }
-
-  private categoryIdsWithDescendants(categoryId: string): readonly string[] {
-    const categories = this.state().categories;
-    const selectedIds = new Set<string>([categoryId]);
-    let foundDescendant = true;
-
-    while (foundDescendant) {
-      foundDescendant = false;
-      for (const category of categories) {
-        if (
-          category.parentId &&
-          selectedIds.has(category.parentId) &&
-          !selectedIds.has(category.id)
-        ) {
-          selectedIds.add(category.id);
-          foundDescendant = true;
-        }
-      }
-    }
-
-    return categories
-      .filter((category) => selectedIds.has(category.id))
       .map((category) => category.id);
   }
 

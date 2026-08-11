@@ -823,39 +823,28 @@ test('imports and edits a Biedronka e-receipt before saving', async ({
   });
 });
 
-test('filters categories from the sidebar with group checkboxes', async ({
+test('selects one category from the default all-categories state', async ({
   page,
 }) => {
   await ensureAuthenticated(page);
   await openTransactions(page);
 
-  const firstGroup = page
-    .locator('nav section')
-    .filter({
-      has: page.getByTestId('category-group-filter-checkbox'),
-    })
-    .first();
-  const groupCheckbox = firstGroup.getByTestId(
-    'category-group-filter-checkbox'
-  );
-  const categoryCheckboxes = firstGroup.getByTestId('category-filter-checkbox');
-
-  await expect(groupCheckbox).toBeVisible();
+  const categoryCheckboxes = page.getByTestId('category-filter-checkbox');
   await expect(categoryCheckboxes.first()).toBeVisible();
-  await groupCheckbox.check();
-  await expect(groupCheckbox).toBeChecked();
-
-  await expect.poll(() =>
-    new URL(page.url()).searchParams.getAll('category').length
-  ).toBe(await categoryCheckboxes.count());
-
   for (const categoryCheckbox of await categoryCheckboxes.all()) {
     await expect(categoryCheckbox).toBeChecked();
   }
 
+  await categoryCheckboxes.first().click();
+  await expect(categoryCheckboxes.first()).toBeChecked();
+  await expect(categoryCheckboxes.nth(1)).not.toBeChecked();
+  await expect.poll(() =>
+    new URL(page.url()).searchParams.getAll('category').length
+  ).toBe(1);
+
   await page.getByTestId('category-filter-clear-all').click();
-  await expect(groupCheckbox).not.toBeChecked();
-  await expect(categoryCheckboxes.first()).not.toBeChecked();
+  await expect(categoryCheckboxes.first()).toBeChecked();
+  await expect(categoryCheckboxes.nth(1)).toBeChecked();
   await expect.poll(() =>
     new URL(page.url()).searchParams.getAll('category').length
   ).toBe(0);

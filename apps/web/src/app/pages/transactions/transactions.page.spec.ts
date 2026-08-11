@@ -143,6 +143,16 @@ class TransactionsStoreStub {
     return;
   }
 
+  selectedCategoryCount(): number {
+    const selected = this.activeFilters().selectedCategoryIds;
+    return selected.length || 4;
+  }
+
+  isCategorySelected(categoryId: string): boolean {
+    const selected = this.activeFilters().selectedCategoryIds;
+    return selected.length === 0 || selected.includes(categoryId);
+  }
+
   toggleCategorySelection(): void {
     return;
   }
@@ -152,7 +162,7 @@ class TransactionsStoreStub {
   }
 
   isCategoryGroupSelected(): boolean {
-    return false;
+    return this.activeFilters().selectedCategoryIds.length === 0;
   }
 
   isCategoryGroupIndeterminate(): boolean {
@@ -563,21 +573,24 @@ describe('TransactionsPageComponent', () => {
     expect(setSort).toHaveBeenCalledWith('amountDesc');
   });
 
-  it('always shows category checkboxes and applies a whole group', () => {
+  it('shows every category selected by default and toggles only the clicked category', () => {
     const fixture = TestBed.createComponent(TransactionsPageComponent);
     fixture.detectChanges();
     const store = fixture.debugElement.injector.get(
       TransactionsStore
     ) as unknown as TransactionsStoreStub;
-    const toggleGroup = vi.spyOn(store, 'toggleCategoryGroupSelection');
-    const groupCheckbox = fixture.nativeElement.querySelector(
-      '[data-testid="category-group-filter-checkbox"]'
-    ) as HTMLInputElement;
-    expect(groupCheckbox).not.toBeNull();
-    groupCheckbox.checked = true;
-    groupCheckbox.dispatchEvent(new Event('change'));
+    const toggleCategory = vi.spyOn(store, 'toggleCategorySelection');
+    const categoryCheckboxes = Array.from(
+      fixture.nativeElement.querySelectorAll(
+        '[data-testid="category-filter-checkbox"]'
+      ) as NodeListOf<HTMLInputElement>
+    );
 
-    expect(toggleGroup).toHaveBeenCalledWith('group-1');
+    expect(categoryCheckboxes.length).toBeGreaterThan(0);
+    expect(categoryCheckboxes.every((checkbox) => checkbox.checked)).toBe(true);
+    categoryCheckboxes[0].click();
+
+    expect(toggleCategory).toHaveBeenCalledWith('category-active');
   });
 
   it('offers clear without a select-all action', () => {
