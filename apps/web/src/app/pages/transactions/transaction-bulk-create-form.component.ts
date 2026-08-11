@@ -137,7 +137,7 @@ export class TransactionBulkCreateFormComponent {
         currency: row.currency,
         categoryId: row.categoryId,
         tags: row.tags.join(', '),
-        placeId: row.placeId,
+        placeId: row.placeId || this.resolvePlace(row.placeName ?? '') || '',
         quantity: 1,
         touched: true,
         importContext: row.importContext,

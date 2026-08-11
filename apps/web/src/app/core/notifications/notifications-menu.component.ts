@@ -1,6 +1,6 @@
 import { Component, computed, inject, ChangeDetectionStrategy } from '@angular/core';
 import { NgIcon } from '@ng-icons/core';
-import { heroBell } from '@ng-icons/heroicons/outline';
+import { heroBell, heroCheck } from '@ng-icons/heroicons/outline';
 import { TranslocoPipe } from '@ngneat/transloco';
 import type { NotificationRow } from '@spendist/data-access/supabase-types';
 import { NotificationsStore } from './notifications.store';
@@ -26,6 +26,7 @@ interface RecurringTransactionNotificationPayload {
 export class NotificationsMenuComponent {
   readonly store = inject(NotificationsStore);
   readonly bellIcon = heroBell;
+  readonly markReadIcon = heroCheck;
   readonly unreadLabel = computed(() => {
     const count = this.store.unreadCount();
     return count > 99 ? '99+' : `${count}`;
@@ -33,6 +34,10 @@ export class NotificationsMenuComponent {
 
   async markAllAsRead(): Promise<void> {
     await this.store.markAllAsRead();
+  }
+
+  async markAsRead(notification: NotificationRow): Promise<void> {
+    await this.store.markAsRead(notification.id);
   }
 
   async refresh(): Promise<void> {

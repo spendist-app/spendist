@@ -24,6 +24,7 @@ describe('Spendist CSV transfer parser', () => {
         wallet: 'Main',
         wallet_currency: 'PLN',
         tags: ['home', 'weekly'],
+        place: 'Biedronka',
         is_automatic: false,
         recurring_scheduled_for: '',
         import_source: '',
@@ -53,6 +54,7 @@ describe('Spendist CSV transfer parser', () => {
         wallet: 'Main',
         wallet_currency: 'PLN',
         tags: ['lunch', 'work'],
+        place: 'Biedronka',
         is_automatic: false,
         recurring_scheduled_for: '',
         import_source: '',
@@ -77,6 +79,7 @@ describe('Spendist CSV transfer parser', () => {
       wallet: 'Main',
       walletCurrency: 'PLN',
       tags: ['lunch', 'work'],
+      place: 'Biedronka',
       isAutomatic: false,
     });
   });
@@ -87,6 +90,19 @@ describe('Spendist CSV transfer parser', () => {
     expect(result.rows).toEqual([]);
     expect(result.issues[0]?.message).toContain('Missing required columns');
     expect(result.issues[0]?.message).toContain('direction');
+  });
+
+  it('accepts earlier CSV files that do not contain the optional place column', () => {
+    const headers = SPENDIST_CSV_HEADERS.filter((header) => header !== 'place');
+    const csv = [
+      headers.join(','),
+      'tx-1,2026-02-01T00:00:00.000Z,Lunch,expense,10,PLN,10,Food,Food/Groceries,Groceries,Main,PLN,weekly,false,,,',
+    ].join('\n');
+
+    const result = parseSpendistCsv(csv);
+
+    expect(result.issues).toEqual([]);
+    expect(result.rows[0]?.place).toBeNull();
   });
 
   it('reports invalid data rows without dropping valid rows', () => {

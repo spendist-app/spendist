@@ -181,6 +181,7 @@ function parseCsvImport(text: string): TransactionImportDraftBatch {
         categoryId: '',
         tags: row.tags,
         placeId: '',
+        placeName: row.place,
         importContext: {
           source: SPENDIST_CSV_IMPORT_SOURCE,
           fingerprint:
@@ -204,6 +205,7 @@ function parseCsvImport(text: string): TransactionImportDraftBatch {
             categoryGroup: row.categoryGroup,
             categoryPath: row.categoryPath,
             tags: row.tags,
+            place: row.place,
             wallet: row.wallet,
             walletCurrency: row.walletCurrency,
           },
@@ -283,6 +285,7 @@ function parseBiedronkaImport(text: string): TransactionImportDraftBatch {
           categoryId: '',
           tags: [],
           placeId: '',
+          placeName: null,
           importContext: {
             source: BIEDRONKA_IMPORT_SOURCE,
             fingerprint: `biedronka:${hash(

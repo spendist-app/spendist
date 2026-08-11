@@ -130,6 +130,7 @@ export class TransactionImportFormComponent implements OnDestroy {
         parentId: category.parentId,
       })),
       tags: this.store.tags().map((tag) => tag.name),
+      places: this.store.places().map((place) => ({ name: place.name })),
     })
   );
 

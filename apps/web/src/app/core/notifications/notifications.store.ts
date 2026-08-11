@@ -31,6 +31,7 @@ export class NotificationsStore implements OnDestroy {
 
   private channel: RealtimeChannel | null = null;
   private activeUserId: string | null = null;
+  private readonly pendingReadIds = signal<ReadonlySet<string>>(new Set());
 
   readonly loading = computed(() => this.state().loading);
   readonly markAllPending = computed(() => this.state().markAllPending);
@@ -41,6 +42,10 @@ export class NotificationsStore implements OnDestroy {
   );
   readonly hasUnread = computed(() => this.unreadCount() > 0);
   readonly allowanceResponsePending = signal(false);
+
+  isMarkReadPending(notificationId: string): boolean {
+    return this.pendingReadIds().has(notificationId);
+  }
 
   private readonly sessionEffect = effect(() => {
     const userId = this.auth.session()?.user.id ?? null;
@@ -117,6 +122,50 @@ export class NotificationsStore implements OnDestroy {
         markAllPending: false,
         error: 'notifications.errors.markAllRead',
       }));
+    }
+  }
+
+  async markAsRead(notificationId: string): Promise<void> {
+    const userId = this.activeUserId;
+    const notification = this.state().notifications.find((item) => item.id === notificationId);
+    if (!userId || !notification || notification.read_at || this.isMarkReadPending(notificationId)) {
+      return;
+    }
+
+    this.pendingReadIds.update((ids) => new Set(ids).add(notificationId));
+    this.state.update((state) => ({ ...state, error: null }));
+
+    try {
+      const readAt = new Date().toISOString();
+      const { error } = await this.supabase
+        .from('notifications')
+        .update({ read_at: readAt })
+        .eq('id', notificationId)
+        .eq('owner_id', userId)
+        .is('read_at', null);
+
+      if (error) {
+        throw error;
+      }
+
+      this.state.update((state) => ({
+        ...state,
+        notifications: state.notifications.map((item) =>
+          item.id === notificationId ? { ...item, read_at: readAt } : item
+        ),
+      }));
+    } catch (error) {
+      logError('NotificationsStore', 'Failed to mark notification as read', error);
+      this.state.update((state) => ({
+        ...state,
+        error: 'notifications.errors.markRead',
+      }));
+    } finally {
+      this.pendingReadIds.update((ids) => {
+        const next = new Set(ids);
+        next.delete(notificationId);
+        return next;
+      });
     }
   }
 

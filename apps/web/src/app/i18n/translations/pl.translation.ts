@@ -764,6 +764,7 @@ const pl = {
     unreadCount: 'Nieprzeczytane: {{count}}',
     actions: {
       readAll: 'Przeczytaj wszystko',
+      read: 'Oznacz jako przeczytaną',
       accept: 'Akceptuj',
       decline: 'Odrzuć',
     },
@@ -805,6 +806,7 @@ const pl = {
       generic: 'Coś poszło nie tak. Spróbuj ponownie.',
       load: 'Nie udało się załadować notyfikacji.',
       markAllRead: 'Nie udało się oznaczyć notyfikacji jako przeczytane.',
+      markRead: 'Nie udało się oznaczyć notyfikacji jako przeczytaną.',
       allowanceResponse:
         'Nie udało się zaktualizować zaproszenia do modułu Kieszonkowe.',
     },

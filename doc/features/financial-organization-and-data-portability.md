@@ -19,9 +19,13 @@ The Kontomierz flow imports a user-selected XLSX export into a chosen wallet. Th
 
 Spendist CSV is a separate portable format. Users can export all or filtered transactions; a parent-category filter includes subcategories.
 
-Before importing a Spendist CSV, the app reports valid transactions, duplicate candidates, missing groups/categories/wallets/tags, and file issues. Valid missing reference data can be created during import; duplicate transaction rows are skipped. The readable format includes date, description, direction, amount, currency, category path, wallet, tags, and automatic/recurring metadata.
+Before importing a Spendist CSV, the app reports valid transactions, duplicate candidates, missing groups/categories/wallets/tags, and file issues. Valid missing reference data, including optional places, can be created during import; duplicate transaction rows are skipped. The readable format includes date, description, direction, amount, currency, category path, wallet, tags, place, and automatic/recurring metadata.
 
 Spendist CSV and Kontomierz import metadata stay separate.
+
+## Notifications
+
+The navbar notification menu shows recent user-scoped activity. A notification can be marked as read individually, or all unread notifications can be marked as read together.
 
 ## Quick transaction import and review
 
@@ -48,7 +52,10 @@ email, and returns the generated CSV to the normal validator. No document or
 catalog data is sent by Spendist, and there is no LLM API or token integration.
 
 The prompt requires one existing wallet whose currency matches the document,
-one existing category per gross line item, and expenses only. It also requires
+one existing category per gross line item, and expenses only. It includes saved
+place names: when the document names an exact saved merchant or place, the model
+must put it in the `place` column on every item row and must never treat it as a
+tag. It also requires
 the model to reconcile line amounts to the final payable total in minor currency
 units. The model must ask for clarification instead of inventing missing data or
 adding a balancing row when the document cannot be reconciled. Imported output
@@ -56,9 +63,9 @@ still opens the bulk review editor before saving.
 
 Every import is limited to 500 transactions and opens the existing bulk editor
 before saving. A Spendist CSV batch must use one wallet and one direction. The
-wallet is matched to an existing wallet by name; unknown categories and tags
-must be mapped to existing reference data or cleared in the review editor. This
-quick flow never creates reference data. The CSV schema help lists all 17
+wallet is matched to an existing wallet by name; unknown categories, tags, and
+places must be mapped to existing reference data or cleared in the review editor.
+This quick flow never creates reference data. The CSV schema help lists all 18
 columns and marks the required fields.
 
 Each Biedronka sell line becomes one expense. Discounts immediately following a

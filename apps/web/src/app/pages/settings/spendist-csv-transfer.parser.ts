@@ -16,6 +16,7 @@ export const SPENDIST_CSV_HEADERS = [
   'wallet',
   'wallet_currency',
   'tags',
+  'place',
   'is_automatic',
   'recurring_scheduled_for',
   'import_source',
@@ -38,6 +39,7 @@ export interface SpendistCsvExportRow {
   readonly wallet: string;
   readonly wallet_currency: string;
   readonly tags: readonly string[];
+  readonly place: string;
   readonly is_automatic: boolean;
   readonly recurring_scheduled_for: string;
   readonly import_source: string;
@@ -58,6 +60,7 @@ export interface SpendistCsvImportRow {
   readonly wallet: string;
   readonly walletCurrency: string | null;
   readonly tags: readonly string[];
+  readonly place: string | null;
   readonly isAutomatic: boolean;
   readonly recurringScheduledFor: Date | null;
   readonly sourceImportSource: string | null;
@@ -220,6 +223,7 @@ function parseImportRecord(
   const description = normalizeNullableText(unescapeFormulaValue(read(record, 'description')));
   const sourceId = normalizeNullableText(read(record, 'id'));
   const tags = parseTags(read(record, 'tags'));
+  const place = normalizeNullableText(unescapeFormulaValue(read(record, 'place')));
   const isAutomatic = parseBoolean(read(record, 'is_automatic'));
   const recurringScheduledFor = parseOptionalIsoDate(read(record, 'recurring_scheduled_for'));
   const sourceImportSource = normalizeNullableText(read(record, 'import_source'));
@@ -250,6 +254,7 @@ function parseImportRecord(
       wallet,
       walletCurrency,
       tags,
+      place,
       isAutomatic,
       recurringScheduledFor,
       sourceImportSource,

@@ -760,6 +760,7 @@ const en = {
     unreadCount: 'Unread: {{count}}',
     actions: {
       readAll: 'Read all',
+      read: 'Mark as read',
       accept: 'Accept',
       decline: 'Decline',
     },
@@ -799,6 +800,7 @@ const en = {
       generic: 'Something went wrong. Please try again.',
       load: 'Notifications could not be loaded.',
       markAllRead: 'Notifications could not be marked as read.',
+      markRead: 'Notification could not be marked as read.',
       allowanceResponse: 'The Allowance invitation could not be updated.',
     },
   },
