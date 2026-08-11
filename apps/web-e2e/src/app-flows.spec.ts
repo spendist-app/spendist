@@ -287,7 +287,9 @@ async function openDashboard(page: Page): Promise<void> {
 
 async function openTransactions(page: Page): Promise<void> {
   await page.getByRole('link', { name: 'Transactions' }).click();
-  await expect(page).toHaveURL(/\/transactions$/, { timeout: 15000 });
+  await expect(page).toHaveURL(/\/transactions(?:\?.*)?$/, {
+    timeout: 15000,
+  });
   await expect(
     page.getByRole('heading', { name: 'Transactions', exact: true })
   ).toBeVisible();
