@@ -125,9 +125,15 @@ async function selectFirstRealOption(select: Locator): Promise<string> {
   throw new Error('Missing selectable option value.');
 }
 
-async function selectFirstCategoryOption(page: Page): Promise<string> {
+async function selectFirstCategoryOption(
+  page: Page,
+  categoryButton?: Locator
+): Promise<string> {
   const dialog = page.getByRole('dialog');
-  await dialog.getByRole('button', { name: 'Category', exact: true }).click();
+  await (
+    categoryButton ??
+    dialog.getByRole('button', { name: 'Category', exact: true })
+  ).click();
 
   const search = dialog.getByPlaceholder('Search categories...');
   await expect(search).toBeFocused();
@@ -143,8 +149,11 @@ async function selectFirstCategoryOption(page: Page): Promise<string> {
   return label;
 }
 
-async function selectFirstTransactionCategory(page: Page): Promise<string> {
-  return selectFirstCategoryOption(page);
+async function selectFirstTransactionCategory(
+  page: Page,
+  categoryButton?: Locator
+): Promise<string> {
+  return selectFirstCategoryOption(page, categoryButton);
 }
 
 async function selectTransactionPlace(page: Page, name: string): Promise<void> {
@@ -741,7 +750,13 @@ test('keeps repeated CSV rows on first import and skips a repeat', async ({
     const review = page.getByRole('dialog', {
       name: 'Review imported transactions',
     });
-    await selectFirstTransactionCategory(page);
+    const categoryButtons = review.getByRole('button', {
+      name: 'Category',
+      exact: true,
+    });
+    await expect(categoryButtons).toHaveCount(2);
+    await selectFirstTransactionCategory(page, categoryButtons.nth(0));
+    await selectFirstTransactionCategory(page, categoryButtons.nth(1));
     await review.getByRole('button', { name: 'Save 2' }).click();
   };
 

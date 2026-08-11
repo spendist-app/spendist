@@ -591,6 +591,7 @@ describe('TransactionsPageComponent', () => {
     categoryCheckboxes[0].click();
 
     expect(toggleCategory).toHaveBeenCalledWith('category-active');
+    expect(categoryCheckboxes[0].checked).toBe(true);
   });
 
   it('offers clear without a select-all action', () => {

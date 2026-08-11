@@ -445,12 +445,28 @@ export class TransactionsPageComponent implements OnDestroy {
     this.scrollToTransactionsResults();
   }
 
+  protected onCategoryCheckboxClick(
+    event: MouseEvent,
+    categoryId: string
+  ): void {
+    event.preventDefault();
+    this.toggleCategorySelectionAndScroll(categoryId);
+  }
+
   protected toggleCategoryGroupSelectionAndScroll(
     groupId: string | null
   ): void {
     this.store.toggleCategoryGroupSelection(groupId);
     this.syncQuery('push');
     this.scrollToTransactionsResults();
+  }
+
+  protected onCategoryGroupCheckboxClick(
+    event: MouseEvent,
+    groupId: string | null
+  ): void {
+    event.preventDefault();
+    this.toggleCategoryGroupSelectionAndScroll(groupId);
   }
 
   protected clearCategorySelectionAndScroll(): void {
