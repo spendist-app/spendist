@@ -1609,12 +1609,12 @@ export class TransactionsStore {
     }));
 
     try {
-      const existingKeys = await this.loadExistingImportKeys(
+      const existingCounts = await this.loadExistingImportCounts(
         payload.transactions
       );
       const transactions = excludePreviouslyImportedTransactions(
         payload.transactions,
-        existingKeys
+        existingCounts
       );
       const duplicatesSkipped =
         payload.transactions.length - transactions.length;
@@ -1734,9 +1734,9 @@ export class TransactionsStore {
     }
   }
 
-  private async loadExistingImportKeys(
+  private async loadExistingImportCounts(
     transactions: readonly CreateTransactionBatchItem[]
-  ): Promise<Set<string>> {
+  ): Promise<Map<string, number>> {
     const bySource = new Map<string, Set<string>>();
     for (const transaction of transactions) {
       const context = transaction.importContext;
@@ -1745,7 +1745,7 @@ export class TransactionsStore {
       fingerprints.add(context.fingerprint);
       bySource.set(context.source, fingerprints);
     }
-    const result = new Set<string>();
+    const result = new Map<string, number>();
     for (const [source, fingerprints] of bySource) {
       const { data, error } = await this.supabase.rpc(
         'find_existing_transaction_import_fingerprints',
@@ -1753,8 +1753,10 @@ export class TransactionsStore {
       );
       if (error) throw error;
       for (const row of data ?? []) {
-        if (row.import_fingerprint)
-          result.add(`${source}|${row.import_fingerprint}`);
+        if (row.import_fingerprint) {
+          const key = `${source}|${row.import_fingerprint}`;
+          result.set(key, (result.get(key) ?? 0) + 1);
+        }
       }
     }
     return result;

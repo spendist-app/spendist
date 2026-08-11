@@ -20,18 +20,40 @@ describe('transaction import deduplication', () => {
       { importContext: repeatedImportContext, row: 4 },
     ];
 
-    expect(excludePreviouslyImportedTransactions(rows, new Set())).toEqual(
+    expect(excludePreviouslyImportedTransactions(rows, new Map())).toEqual(
       rows
     );
   });
 
-  it('skips every matching row when the fingerprint already exists', () => {
+  it('imports only missing copies after a partial earlier import', () => {
+    const rows = [
+      { importContext: repeatedImportContext, row: 1 },
+      { importContext: repeatedImportContext, row: 2 },
+      { importContext: repeatedImportContext, row: 3 },
+      { importContext: repeatedImportContext, row: 4 },
+    ];
+    const existing = new Map([
+      [
+        `${repeatedImportContext.source}|${repeatedImportContext.fingerprint}`,
+        1,
+      ],
+    ]);
+
+    expect(excludePreviouslyImportedTransactions(rows, existing)).toEqual(
+      rows.slice(1)
+    );
+  });
+
+  it('skips every matching row when all copies already exist', () => {
     const rows = [
       { importContext: repeatedImportContext },
       { importContext: repeatedImportContext },
     ];
-    const existing = new Set([
-      `${repeatedImportContext.source}|${repeatedImportContext.fingerprint}`,
+    const existing = new Map([
+      [
+        `${repeatedImportContext.source}|${repeatedImportContext.fingerprint}`,
+        2,
+      ],
     ]);
 
     expect(excludePreviouslyImportedTransactions(rows, existing)).toEqual([]);
@@ -40,7 +62,7 @@ describe('transaction import deduplication', () => {
   it('does not deduplicate ordinary manually entered transactions', () => {
     const rows = [{ row: 1 }, { row: 2 }];
 
-    expect(excludePreviouslyImportedTransactions(rows, new Set())).toEqual(
+    expect(excludePreviouslyImportedTransactions(rows, new Map())).toEqual(
       rows
     );
   });
