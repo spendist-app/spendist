@@ -6,6 +6,8 @@ import type {
   CategoryInsert,
   CategoryRow,
   Json,
+  PlaceInsert,
+  PlaceRow,
   TagRow,
   TransactionInsert,
   TransactionRow,
@@ -78,6 +80,7 @@ interface TransferLookups {
   readonly categories: readonly CategoryRow[];
   readonly wallets: readonly WalletRow[];
   readonly tags: readonly TagRow[];
+  readonly places: readonly PlaceRow[];
   readonly currencies: readonly CurrencyRow[];
 }
 
@@ -253,6 +256,7 @@ export class SpendistCsvTransferStore {
       const categories = await this.ensureCategories(userId, prepared.rows, groups);
       const wallets = await this.ensureWallets(userId, prepared.rows);
       const tags = await this.ensureTags(userId, prepared.rows);
+      const places = await this.ensurePlaces(userId, prepared.rows);
 
       let imported = 0;
       let duplicatesSkipped = 0;
@@ -263,7 +267,7 @@ export class SpendistCsvTransferStore {
         duplicatesSkipped += freshDuplicates.size;
 
         if (rowsToInsert.length > 0) {
-          const inserted = await this.insertTransactions(userId, rowsToInsert, categories, wallets);
+          const inserted = await this.insertTransactions(userId, rowsToInsert, categories, wallets, places);
           await this.insertTransactionTags(userId, rowsToInsert, inserted, tags);
           imported += inserted.length;
         }
@@ -339,15 +343,16 @@ export class SpendistCsvTransferStore {
   }
 
   private async loadLookups(userId: string): Promise<TransferLookups> {
-    const [groups, categories, wallets, tags, currencies] = await Promise.all([
+    const [groups, categories, wallets, tags, places, currencies] = await Promise.all([
       this.supabase.from('categories_group').select('*').eq('owner_id', userId),
       this.supabase.from('categories').select('*').eq('owner_id', userId),
       this.supabase.from('wallets').select('*').eq('owner_id', userId),
       this.supabase.from('tags').select('*').eq('owner_id', userId),
+      this.supabase.from('places').select('*').eq('owner_id', userId),
       this.supabase.from('currencies').select('*'),
     ]);
 
-    for (const result of [groups, categories, wallets, tags, currencies]) {
+    for (const result of [groups, categories, wallets, tags, places, currencies]) {
       if (result.error) {
         throw result.error;
       }
@@ -358,6 +363,7 @@ export class SpendistCsvTransferStore {
       categories: (categories.data ?? []) as CategoryRow[],
       wallets: (wallets.data ?? []) as WalletRow[],
       tags: (tags.data ?? []) as TagRow[],
+      places: (places.data ?? []) as PlaceRow[],
       currencies: (currencies.data ?? []) as CurrencyRow[],
     };
   }
@@ -372,6 +378,7 @@ export class SpendistCsvTransferStore {
     const walletsById = new Map(lookups.wallets.map((wallet) => [wallet.id, wallet]));
     const currenciesById = new Map(lookups.currencies.map((currency) => [currency.id, currency.symbol.toUpperCase()]));
     const tagsById = new Map(lookups.tags.map((tag) => [tag.id, tag]));
+    const placesById = new Map(lookups.places.map((place) => [place.id, place]));
     const tagsByTransaction = new Map<string, string[]>();
     for (const tagRow of tagRows) {
       const tag = tagsById.get(tagRow.tag_id);
@@ -402,6 +409,7 @@ export class SpendistCsvTransferStore {
         wallet: wallet?.name ?? '',
         wallet_currency: walletCurrency,
         tags: [...(tagsByTransaction.get(transaction.id) ?? [])].sort((a, b) => a.localeCompare(b)),
+        place: transaction.place_id ? placesById.get(transaction.place_id)?.name ?? '' : '',
         is_automatic: transaction.is_automatic,
         recurring_scheduled_for: transaction.recurring_scheduled_for ?? '',
         import_source: transaction.import_source ?? '',
@@ -602,11 +610,27 @@ export class SpendistCsvTransferStore {
     return new Map((await this.loadTags(userId)).map((tag) => [normalizeLookupKey(tag.name), tag]));
   }
 
+  private async ensurePlaces(userId: string, rows: readonly SpendistCsvImportRow[]): Promise<ReadonlyMap<string, PlaceRow>> {
+    const places = await this.loadPlaces(userId);
+    const existing = new Set(places.map((place) => normalizeLookupKey(place.name)));
+    const missing = collectMissingNames(rows.map((row) => row.place ?? ''), existing);
+    if (missing.length > 0) {
+      const insertRows: PlaceInsert[] = missing.map((name) => ({ owner_id: userId, name }));
+      const { error } = await this.supabase.from('places').insert(insertRows);
+      if (error && error.code !== '23505') {
+        throw error;
+      }
+    }
+
+    return new Map((await this.loadPlaces(userId)).map((place) => [normalizeLookupKey(place.name), place]));
+  }
+
   private async insertTransactions(
     userId: string,
     rows: readonly SpendistCsvImportRow[],
     categories: ReadonlyMap<string, CategoryRow>,
     wallets: ReadonlyMap<string, WalletRow>,
+    places: ReadonlyMap<string, PlaceRow>,
   ): Promise<readonly Pick<TransactionTagRow, 'transaction_id'>[]> {
     const now = new Date().toISOString();
     const transactionRows: TransactionInsert[] = rows.map((row) => {
@@ -615,11 +639,13 @@ export class SpendistCsvTransferStore {
       if (!category || !wallet) {
         throw new Error(`Missing category or wallet for row ${row.sourceRowNumber}.`);
       }
+      const place = row.place ? places.get(normalizeLookupKey(row.place)) : null;
 
       return {
         owner_id: userId,
         category_id: category.id,
         wallet_id: wallet.id,
+        place_id: place?.id ?? null,
         occurred_at: row.occurredAt.toISOString(),
         description: row.description,
         amount: row.amount,
@@ -639,6 +665,7 @@ export class SpendistCsvTransferStore {
           source_imported_at: row.sourceImportedAt,
           category_path: row.categoryPath,
           tags: row.tags,
+          place: row.place,
         } as unknown as Json,
         imported_at: now,
       };
@@ -758,6 +785,14 @@ export class SpendistCsvTransferStore {
       throw error;
     }
     return (data ?? []) as TagRow[];
+  }
+
+  private async loadPlaces(userId: string): Promise<readonly PlaceRow[]> {
+    const { data, error } = await this.supabase.from('places').select('*').eq('owner_id', userId);
+    if (error) {
+      throw error;
+    }
+    return (data ?? []) as PlaceRow[];
   }
 
   private async loadCurrencies(): Promise<readonly CurrencyRow[]> {

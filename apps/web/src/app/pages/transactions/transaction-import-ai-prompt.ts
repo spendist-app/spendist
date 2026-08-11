@@ -22,12 +22,17 @@ export interface AiPromptCategory {
   readonly parentId: string | null;
 }
 
+export interface AiPromptPlace {
+  readonly name: string;
+}
+
 export interface AiReceiptPromptInput {
   readonly language: LanguageCode;
   readonly wallets: readonly AiPromptWallet[];
   readonly groups: readonly AiPromptCategoryGroup[];
   readonly categories: readonly AiPromptCategory[];
   readonly tags: readonly string[];
+  readonly places: readonly AiPromptPlace[];
 }
 
 interface AiPromptCategoryOption {
@@ -46,6 +51,9 @@ export function buildAiReceiptCsvPrompt(input: AiReceiptPromptInput): string {
     categories: buildCategoryOptions(input.groups, input.categories),
     tags: [
       ...new Set(input.tags.map((tag) => tag.trim()).filter(Boolean)),
+    ].sort(compareText),
+    places: [
+      ...new Set(input.places.map((place) => place.name.trim()).filter(Boolean)),
     ].sort(compareText),
   };
   const context = JSON.stringify(catalog, null, 2);
@@ -113,7 +121,7 @@ CEL
 Utwórz plik spendist-import.csv. Każda pozycja zakupu, koszt dostawy lub opłata ma być osobną transakcją typu expense. Dokument może mieć kilka stron, ale wszystkie strony muszą dotyczyć jednego zakupu.
 
 DOZWOLONE DANE SPENDIST
-Używaj wyłącznie dokładnych nazw z poniższego JSON. Nie wymyślaj portfeli, kategorii, grup ani tagów.
+Używaj wyłącznie dokładnych nazw z poniższego JSON. Nie wymyślaj portfeli, kategorii, grup, tagów ani miejsc.
 ${context}
 
 SCHEMAT CSV
@@ -130,7 +138,8 @@ REGUŁY WIERSZY
 - Wybierz dokładnie jeden portfel dla całego pliku. Jego wallet_currency musi być zgodne z walutą dokumentu. Jeśli dokument nie wskazuje portfela, wybierz domyślny portfel w tej walucie; jeśli takiego nie ma, użyj jedynego pasującego. Gdy nie ma pasującego portfela albo nadal istnieje kilka możliwych wyborów, nie twórz CSV i poproś o wybór portfela.
 - amount_in_default: taka sama wartość jak amount, ponieważ waluta dokumentu i portfela muszą być zgodne.
 - category_group, category_path i category: skopiuj dokładnie z jednej pozycji katalogu categories. Dobieraj kategorię według znaczenia produktu, np. ser do właściwej kategorii żywności, a proszek do prania do właściwej kategorii chemii, jeśli takie kategorie istnieją. Nie twórz nowych kategorii.
-- tags: tylko pasujące istniejące tagi, rozdzielone średnikiem; w przeciwnym razie puste.
+- tags: wybierz wyłącznie pasujące istniejące tagi opisujące produkt lub zakup, rozdzielone średnikami; w przeciwnym razie puste. Nazwa sprzedawcy lub miejsca nigdy nie jest tagiem, nawet jeśli identyczna nazwa występuje w katalogu tags.
+- place: nazwa miejsca lub sprzedawcy z dokumentu. Jeśli sprzedawca jest widoczny i jego dokładna nazwa znajduje się w katalogu places, wpisz ją obowiązkowo w każdej pozycji, np. Biedronka wpisz jako place: Biedronka. Nigdy nie wpisuj nazwy miejsca ani sprzedawcy do tags. Jeśli dokument nie wskazuje miejsca albo nie ma dokładnego dopasowania w places, pozostaw place puste; nie twórz nowego miejsca.
 - is_automatic: false.
 - recurring_scheduled_for: puste.
 - import_source: ${SPENDIST_AI_PROMPT_IMPORT_SOURCE}.
@@ -159,7 +168,7 @@ GOAL
 Create a file named spendist-import.csv. Every purchased item, delivery charge, or fee must be a separate expense transaction. A document may have multiple pages, but every page must belong to the same purchase.
 
 ALLOWED SPENDIST DATA
-Use only exact names from the JSON below. Never invent wallets, categories, groups, or tags.
+Use only exact names from the JSON below. Never invent wallets, categories, groups, tags, or places.
 ${context}
 
 CSV SCHEMA
@@ -176,7 +185,8 @@ ROW RULES
 - Choose exactly one wallet for the entire file. Its wallet_currency must match the document currency. If the document does not identify a wallet, choose the default wallet in that currency; if none is default, use the only matching wallet. If no wallet matches or multiple choices remain, do not create CSV and ask the user to choose a wallet.
 - amount_in_default: equal to amount because the document and wallet currencies must match.
 - category_group, category_path, and category: copy exactly from one categories entry. Classify by product meaning, for example cheese into an available food category and laundry detergent into an available household-chemicals category. Never create categories.
-- tags: only relevant existing tags separated with semicolons; otherwise empty.
+- tags: choose only relevant existing tags that describe the item or purchase, separated with semicolons; otherwise empty. A merchant or place name is never a tag, even if the same name appears in the tags catalog.
+- place: the merchant or place name from the document. If the merchant is visible and its exact name appears in the places catalog, it is mandatory in every item row; for example, put Biedronka in place as Biedronka. Never put a merchant or place name in tags. If the document does not identify a place or places has no exact match, leave place empty; never create a place.
 - is_automatic: false.
 - recurring_scheduled_for: empty.
 - import_source: ${SPENDIST_AI_PROMPT_IMPORT_SOURCE}.

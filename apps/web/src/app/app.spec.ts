@@ -52,6 +52,7 @@ class NotificationsStoreStub {
   readonly unreadCount = signal(0);
   readonly hasUnread = signal(false);
   markAllCalls = 0;
+  markReadCalls: string[] = [];
 
   async refresh(): Promise<void> {
     return;
@@ -60,6 +61,14 @@ class NotificationsStoreStub {
   async markAllAsRead(): Promise<void> {
     this.markAllCalls += 1;
     return;
+  }
+
+  isMarkReadPending(): boolean {
+    return false;
+  }
+
+  async markAsRead(notificationId: string): Promise<void> {
+    this.markReadCalls.push(notificationId);
   }
 }
 
@@ -241,5 +250,27 @@ describe('App', () => {
     readAllButton?.click();
 
     expect(notificationsStub.markAllCalls).toBe(1);
+  });
+
+  it('should mark one notification as read from the popup', () => {
+    const fixture = TestBed.createComponent(App);
+    authStub.setAuthenticated(true);
+    notificationsStub.notifications.set([
+      {
+        id: 'notification-1',
+        type: 'recurring_transaction_created',
+        payload: { description: 'Rent', amount: 1200, currency: 'PLN' },
+        read_at: null,
+        created_at: '2026-06-02T20:00:00.000Z',
+      },
+    ]);
+    fixture.detectChanges();
+
+    const button = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>(
+      'app-notifications-menu li button[aria-label]'
+    );
+    button?.click();
+
+    expect(notificationsStub.markReadCalls).toEqual(['notification-1']);
   });
 });

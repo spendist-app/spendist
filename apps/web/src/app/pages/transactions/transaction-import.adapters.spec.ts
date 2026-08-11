@@ -6,7 +6,7 @@ import {
 import { TransactionImportError } from './transaction-import.models';
 
 const CSV_HEADER =
-  'id,occurred_at,description,direction,amount,currency,amount_in_default,category_group,category_path,category,wallet,wallet_currency,tags,is_automatic,recurring_scheduled_for,import_source,imported_at';
+  'id,occurred_at,description,direction,amount,currency,amount_in_default,category_group,category_path,category,wallet,wallet_currency,tags,place,is_automatic,recurring_scheduled_for,import_source,imported_at';
 
 function csvRow(overrides: Partial<Record<string, string>> = {}): string {
   const values: Record<string, string> = {
@@ -23,6 +23,7 @@ function csvRow(overrides: Partial<Record<string, string>> = {}): string {
     wallet: 'Main wallet',
     wallet_currency: 'PLN',
     tags: 'weekly',
+    place: 'Biedronka',
     is_automatic: 'false',
     recurring_scheduled_for: '',
     import_source: '',
@@ -116,6 +117,7 @@ describe('transaction import adapters', () => {
       currency: 'PLN',
       categoryGroup: 'Home',
       categoryPath: ['Food'],
+      placeName: 'Biedronka',
     });
     expect(batch.rows[0].importContext.sourceAmountInDefault).toBe(12.5);
   });

@@ -26,6 +26,7 @@ export interface TransactionImportDraftRow {
   readonly categoryId: string;
   readonly tags: readonly string[];
   readonly placeId: string;
+  readonly placeName: string | null;
   readonly importContext: TransactionImportContext;
 }
 
