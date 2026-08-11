@@ -12,11 +12,13 @@ import {
   viewChild,
 } from '@angular/core';
 import { DOCUMENT, isPlatformBrowser } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@ngneat/transloco';
 import { NgIcon } from '@ng-icons/core';
 import {
   heroDocumentDuplicate,
   heroDocumentPlus,
+  heroFunnel,
   heroArrowUpTray,
   heroPencilSquare,
   heroPlus,
@@ -40,6 +42,12 @@ import type { TransactionFormSaveResult } from './transaction-create-form.compon
 import { TransactionBulkCreateFormComponent } from './transaction-bulk-create-form.component';
 import { TransactionImportFormComponent } from './transaction-import-form.component';
 import type { TransactionBulkPrefill } from './transaction-import.models';
+import {
+  TRANSACTION_QUERY_KEYS,
+  parseTransactionQuery,
+  serializeTransactionQuery,
+  type TransactionSidebarPanel,
+} from './transactions-query.codec';
 
 interface MonthOption {
   readonly value: string;
@@ -97,6 +105,10 @@ export class TransactionsPageComponent implements OnDestroy {
   private readonly document = inject(DOCUMENT);
   private readonly transloco = inject(TranslocoService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly route = inject(ActivatedRoute, { optional: true });
+  private readonly router = inject(Router, { optional: true });
+  private pendingNavigationKey: string | null = null;
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
   private toastId = 0;
   private readonly toastTimers = new Map<
     number,
@@ -112,6 +124,7 @@ export class TransactionsPageComponent implements OnDestroy {
   protected readonly addSingleIcon = heroDocumentPlus;
   protected readonly addBulkIcon = heroTableCells;
   protected readonly addImportIcon = heroArrowUpTray;
+  protected readonly filterIcon = heroFunnel;
 
   protected readonly filters = computed(() => this.store.activeFilters());
   protected readonly locale = computed(() =>
@@ -171,8 +184,7 @@ export class TransactionsPageComponent implements OnDestroy {
     },
   ];
   protected readonly showOnlyCategoriesWithTransactions = signal(false);
-  protected readonly categoryFilterMode = signal(false);
-  protected readonly sidebarTab = signal<'categories' | 'tags'>('categories');
+  protected readonly sidebarTab = signal<TransactionSidebarPanel>('categories');
   protected readonly advancedFiltersExpanded = signal(false);
   protected readonly visibleGroupedCategories = computed(() =>
     this.store
@@ -225,6 +237,7 @@ export class TransactionsPageComponent implements OnDestroy {
   });
 
   constructor() {
+    this.route?.queryParams.subscribe((params) => this.applyRouteQuery(params));
     if (!isPlatformBrowser(this.platformId)) {
       return;
     }
@@ -316,16 +329,29 @@ export class TransactionsPageComponent implements OnDestroy {
 
   protected onSearchInput(event: Event): void {
     const target = event.target as HTMLInputElement | null;
-    this.store.setSearchTerm(target?.value ?? '');
+    const value = target?.value ?? '';
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => {
+      this.searchTimer = null;
+      this.store.setSearchTerm(value);
+      this.syncQuery('replace');
+    }, 300);
   }
 
   protected toggleAdvancedFilters(): void {
     this.advancedFiltersExpanded.update((expanded) => !expanded);
+    this.syncQuery('replace');
+  }
+
+  protected selectSidebarTab(panel: TransactionSidebarPanel): void {
+    this.sidebarTab.set(panel);
+    this.syncQuery('replace');
   }
 
   protected onPlaceFilterChange(event: Event): void {
     const select = event.target as HTMLSelectElement | null;
     this.store.setPlaceFilter(select?.value || null);
+    this.syncQuery('push');
   }
 
   protected onAmountChange(kind: 'minimum' | 'maximum', event: Event): void {
@@ -339,6 +365,7 @@ export class TransactionsPageComponent implements OnDestroy {
       kind === 'minimum' ? parsedValue : filters.minimumAmount,
       kind === 'maximum' ? parsedValue : filters.maximumAmount
     );
+    this.syncQuery('push');
   }
 
   protected onDateChange(kind: 'from' | 'to', event: Event): void {
@@ -349,10 +376,12 @@ export class TransactionsPageComponent implements OnDestroy {
     const from = kind === 'from' ? value : filters.from;
     const to = kind === 'to' ? value : filters.to;
     this.store.setCustomDateRange(from, to);
+    this.syncQuery('push');
   }
 
   protected onPresetClick(preset: TransactionPresetId): void {
     this.store.applyPreset(preset);
+    this.syncQuery('push');
   }
 
   protected onMonthSelect(event: Event): void {
@@ -371,6 +400,7 @@ export class TransactionsPageComponent implements OnDestroy {
     }
 
     this.store.setSelectedMonth(year, month);
+    this.syncQuery('push');
     this.scrollToTransactionsResults();
   }
 
@@ -384,6 +414,7 @@ export class TransactionsPageComponent implements OnDestroy {
     const year = Number(rawValue);
     if (Number.isInteger(year)) {
       this.store.setSelectedYear(year);
+      this.syncQuery('push');
       this.scrollToTransactionsResults();
     }
   }
@@ -396,30 +427,21 @@ export class TransactionsPageComponent implements OnDestroy {
     }
 
     this.store.setSort(sort);
+    this.syncQuery('push');
     this.scrollToTransactionsResults();
   }
 
-  protected onCategoryActivityFilterChange(event: Event): void {
-    const input = event.target as HTMLInputElement | null;
-    this.showOnlyCategoriesWithTransactions.set(!!input?.checked);
-  }
-
-  protected onCategoryFilterModeChange(event: Event): void {
-    const input = event.target as HTMLInputElement | null;
-    const enabled = Boolean(input?.checked);
-    this.categoryFilterMode.set(enabled);
-    if (!enabled && this.store.hasActiveCategoryFilter()) {
-      this.clearCategorySelectionAndScroll();
-    }
-  }
-
-  protected selectAllCategoriesAndScroll(): void {
-    this.store.selectAllCategories();
-    this.scrollToTransactionsResults();
+  protected onCategoryActivityFilterChange(value: boolean | Event): void {
+    const enabled = typeof value === 'boolean'
+      ? value
+      : Boolean((value.target as HTMLInputElement | null)?.checked);
+    this.showOnlyCategoriesWithTransactions.set(enabled);
+    this.syncQuery('replace');
   }
 
   protected toggleCategorySelectionAndScroll(categoryId: string): void {
     this.store.toggleCategorySelection(categoryId);
+    this.syncQuery('push');
     this.scrollToTransactionsResults();
   }
 
@@ -427,21 +449,25 @@ export class TransactionsPageComponent implements OnDestroy {
     groupId: string | null
   ): void {
     this.store.toggleCategoryGroupSelection(groupId);
+    this.syncQuery('push');
     this.scrollToTransactionsResults();
   }
 
   protected clearCategorySelectionAndScroll(): void {
     this.store.clearCategorySelection();
+    this.syncQuery('push');
     this.scrollToTransactionsResults();
   }
 
   protected toggleTagSelectionAndScroll(tagId: string): void {
     this.store.toggleTagSelection(tagId);
+    this.syncQuery('push');
     this.scrollToTransactionsResults();
   }
 
   protected clearTagSelectionAndScroll(): void {
     this.store.clearTagSelection();
+    this.syncQuery('push');
     this.scrollToTransactionsResults();
   }
 
@@ -676,6 +702,87 @@ export class TransactionsPageComponent implements OnDestroy {
       clearTimeout(timer);
     }
     this.toastTimers.clear();
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+  }
+
+  protected resetFilters(): void {
+    this.store.resetFilters();
+    this.syncQuery('push');
+  }
+
+  private applyRouteQuery(params: Record<string, unknown>): void {
+    if (this.searchTimer) {
+      clearTimeout(this.searchTimer);
+      this.searchTimer = null;
+    }
+    const state = parseTransactionQuery(params);
+    const canonical = serializeTransactionQuery(state);
+    const key = this.queryKey(canonical);
+    this.sidebarTab.set(state.panel);
+    this.showOnlyCategoriesWithTransactions.set(state.hideEmpty);
+    this.advancedFiltersExpanded.set(state.advanced);
+
+    if (this.pendingNavigationKey === key) {
+      this.pendingNavigationKey = null;
+    } else {
+      if (!this.store.initializeFilters(state.filters)) {
+        this.store.applyFilters(state.filters);
+      }
+    }
+
+    if (this.queryKey(this.ownedParams(params)) !== key) {
+      this.navigateToQuery(canonical, true);
+    }
+  }
+
+  private syncQuery(mode: 'push' | 'replace'): void {
+    const query = serializeTransactionQuery({
+      filters: this.store.activeFilters(),
+      panel: this.sidebarTab(),
+      hideEmpty: this.showOnlyCategoriesWithTransactions(),
+      advanced: this.advancedFiltersExpanded(),
+    });
+    this.navigateToQuery(query, mode === 'replace');
+  }
+
+  private navigateToQuery(query: Record<string, string | readonly string[]>, replaceUrl: boolean): void {
+    if (!this.router || !this.route) return;
+    const unrelated = Object.fromEntries(
+      Object.entries(this.route.snapshot.queryParams).filter(
+        ([key]) => !(TRANSACTION_QUERY_KEYS as readonly string[]).includes(key)
+      )
+    );
+    const params = { ...unrelated, ...query };
+    this.pendingNavigationKey = this.queryKey(query);
+    const key = this.queryKey(query);
+    void this.router.navigate([], { relativeTo: this.route, queryParams: params, replaceUrl })
+      .then((navigated) => {
+        if (!navigated && this.pendingNavigationKey === key) this.pendingNavigationKey = null;
+      })
+      .catch(() => {
+        if (this.pendingNavigationKey === key) this.pendingNavigationKey = null;
+      });
+  }
+
+  private ownedParams(params: Record<string, unknown>): Record<string, unknown> {
+    const owned = Object.fromEntries(
+      Object.entries(params).filter(([key]) =>
+        (TRANSACTION_QUERY_KEYS as readonly string[]).includes(key)
+      )
+    );
+    for (const key of ['category', 'tag'] as const) {
+      const value = owned[key];
+      if (typeof value === 'string') {
+        owned[key] = [value];
+      } else if (Array.isArray(value)) {
+        owned[key] = [...value].sort();
+      }
+    }
+    return owned;
+  }
+
+  private queryKey(params: Record<string, unknown>): string {
+    return JSON.stringify(Object.entries(params).sort(([left], [right]) => left.localeCompare(right)));
   }
 
   private buildMonthOptions(): readonly MonthOption[] {

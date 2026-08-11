@@ -8,7 +8,11 @@ Users can create, edit, duplicate, and delete individual records. Bulk entry can
 
 ## Browsing and analysis
 
-The transaction page supports search, filters, period presets (current/previous month and year), and sorting by date, amount, or description. It loads matching records incrementally and shows category/tag spending context. Money formatting follows the active application language.
+The transaction page supports search, category and tag multi-select filters, place and amount filters, exact date ranges, period presets (current/previous month and year), and sorting by date, amount, or description. Selecting a category includes its descendants, and selecting a group includes all categories in that group. Group checkboxes show a partial state when only some categories are selected. Empty categories can be hidden with a pressed filter button.
+
+The complete browsing state is shareable and restorable from `/transactions` query parameters: `category`, `tag`, `place`, `q`, `min`, `max`, `from`, `to`, `period=all`, `sort`, `panel`, `hideEmpty`, and `advanced`. A bare route is replaced with the exact current-month range. Invalid owned values are canonicalized while unrelated query parameters are preserved. Discrete filter changes add browser history entries; search is debounced for 300 ms and view-only panel controls replace the current entry. Browser Back and Forward apply the restored filter set atomically.
+
+Matching records load incrementally and the sidebar shows category/tag spending context. Money formatting follows the active application language.
 
 ## Currencies and boundary
 

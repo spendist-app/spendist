@@ -30,7 +30,7 @@
               class="tab"
               [class.tab-active]="sidebarTab() === 'categories'"
               [attr.aria-selected]="sidebarTab() === 'categories'"
-              (click)="sidebarTab.set('categories')"
+              (click)="selectSidebarTab('categories')"
             >
               {{ 'transactions.filters.categoriesTab' | transloco }}
             </button>
@@ -40,7 +40,7 @@
               class="tab"
               [class.tab-active]="sidebarTab() === 'tags'"
               [attr.aria-selected]="sidebarTab() === 'tags'"
-              (click)="sidebarTab.set('tags')"
+              (click)="selectSidebarTab('tags')"
             >
               {{ 'transactions.filters.tagsTab' | transloco }}
             </button>
@@ -59,44 +59,14 @@
         </div>
 
         @if (sidebarTab() === 'categories') {
-        <label
-          class="flex cursor-pointer items-center gap-3 rounded-2xl border border-base-200 bg-base-200/40 p-3"
-        >
-          <span class="min-w-0 flex-1">
-            <span class="block text-sm font-semibold text-base-content">
-              {{ 'transactions.filters.categoryFilterMode' | transloco }}
-            </span>
-            <span class="block text-xs text-base-content/60">
-              @if (categoryFilterMode()) {
-              {{ 'transactions.filters.categoryFilterActive' | transloco: {
-              count: filtersVm.selectedCategoryIds.length } }}
-              } @else {
-              {{ 'transactions.filters.categoryFilterInactive' | transloco }}
-              }
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-xs text-base-content/60">
+            {{ 'transactions.filters.selectedCategoryCount' | transloco: {
+            count: filtersVm.selectedCategoryIds.length } }}
           </span>
-          </span>
-          <input
-            type="checkbox"
-            class="toggle toggle-primary toggle-sm"
-            data-testid="category-filter-mode-toggle"
-            [checked]="categoryFilterMode()"
-            (change)="onCategoryFilterModeChange($event)"
-          />
-        </label>
-
-        @if (categoryFilterMode()) {
-        <div class="join grid grid-cols-2">
           <button
             type="button"
-            class="btn btn-outline btn-sm join-item"
-            data-testid="category-filter-select-all"
-            (click)="selectAllCategoriesAndScroll()"
-          >
-            {{ 'transactions.filters.selectAllCategories' | transloco }}
-          </button>
-          <button
-            type="button"
-            class="btn btn-outline btn-sm join-item"
+            class="btn btn-ghost btn-xs"
             data-testid="category-filter-clear-all"
             [disabled]="!store.hasActiveCategoryFilter()"
             (click)="clearCategorySelectionAndScroll()"
@@ -104,43 +74,38 @@
             {{ 'transactions.filters.clearAllCategories' | transloco }}
           </button>
         </div>
-        }
 
-        <label
-          class="flex items-center gap-3 rounded-xl border border-base-200 bg-base-100/70 px-3 py-2 text-sm"
+        <button
+          type="button"
+          class="btn btn-sm justify-start"
+          [class.btn-primary]="showOnlyCategoriesWithTransactions()"
+          [class.btn-ghost]="!showOnlyCategoriesWithTransactions()"
+          [attr.aria-pressed]="showOnlyCategoriesWithTransactions()"
+          data-testid="category-hide-empty-filter"
+          (click)="onCategoryActivityFilterChange(!showOnlyCategoriesWithTransactions())"
         >
-          <input
-            type="checkbox"
-            class="toggle toggle-primary toggle-sm"
-            [checked]="showOnlyCategoriesWithTransactions()"
-            (change)="onCategoryActivityFilterChange($event)"
-          />
-          <span class="min-w-0 flex-1 text-base-content/80">
-            {{ 'transactions.filters.onlyCategoriesWithTransactions' | transloco
-            }}
-          </span>
-        </label>
+          <ng-icon [svg]="filterIcon" size="16" aria-hidden="true" />
+          {{ 'transactions.filters.onlyCategoriesWithTransactions' | transloco }}
+        </button>
 
         <nav class="space-y-5">
           @for (group of visibleGroupedCategories(); track group.id) {
           <section>
             <label
               [attr.for]="'category-group-filter-' + group.id"
-              class="grid w-full grid-cols-[minmax(0,1fr)_auto] items-start gap-3 rounded-xl px-2 py-2 text-left transition hover:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-              [class.cursor-pointer]="categoryFilterMode()"
-              [class.bg-primary/10]="categoryFilterMode() && store.isCategoryGroupSelected(group.id)"
+              class="grid w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-start gap-3 rounded-xl px-2 py-2 text-left transition hover:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              [class.bg-primary/10]="store.isCategoryGroupSelected(group.id)"
             >
               <div class="flex min-w-0 items-start gap-2">
-                @if (categoryFilterMode()) {
                 <input
                   [id]="'category-group-filter-' + group.id"
                   type="checkbox"
                   class="checkbox checkbox-primary checkbox-sm mt-0.5 shrink-0"
                   data-testid="category-group-filter-checkbox"
                   [checked]="store.isCategoryGroupSelected(group.id)"
+                  [indeterminate]="store.isCategoryGroupIndeterminate(group.id)"
                   (change)="toggleCategoryGroupSelectionAndScroll(group.id)"
                 />
-                }
                 <span
                   class="mt-1.5 size-2 shrink-0 rounded-full"
                   [style.backgroundColor]="group.color ?? '#CBD5F5'"
@@ -167,13 +132,11 @@
               <label
                 [attr.for]="'category-filter-' + category.id"
                 data-testid="category-filter-row"
-                class="grid min-h-11 w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition hover:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-                [class.cursor-pointer]="categoryFilterMode()"
-                [class.bg-base-200]="categoryFilterMode() && filtersVm.selectedCategoryIds.includes(category.id)"
-                [class.text-primary]="categoryFilterMode() && filtersVm.selectedCategoryIds.includes(category.id)"
+                class="grid min-h-11 w-full cursor-pointer grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition hover:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                [class.bg-base-200]="filtersVm.selectedCategoryIds.includes(category.id)"
+                [class.text-primary]="filtersVm.selectedCategoryIds.includes(category.id)"
               >
                 <span class="flex items-center gap-2">
-                  @if (categoryFilterMode()) {
                   <input
                     [id]="'category-filter-' + category.id"
                     type="checkbox"
@@ -182,7 +145,6 @@
                     [checked]="filtersVm.selectedCategoryIds.includes(category.id)"
                     (change)="toggleCategorySelectionAndScroll(category.id)"
                   />
-                  }
                   <span
                     class="size-2 shrink-0 rounded-full"
                     [style.backgroundColor]="category.color ?? group.color ?? '#CBD5F5'"
@@ -209,21 +171,19 @@
         <section class="rounded-xl border border-dashed border-base-200 p-3">
           <label
             for="category-group-filter-ungrouped"
-            class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-lg px-1 py-1"
-            [class.cursor-pointer]="categoryFilterMode()"
-            [class.bg-primary/10]="categoryFilterMode() && store.isCategoryGroupSelected(null)"
+            class="grid cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-lg px-1 py-1"
+            [class.bg-primary/10]="store.isCategoryGroupSelected(null)"
           >
             <span class="flex min-w-0 items-center gap-2">
-              @if (categoryFilterMode()) {
               <input
                 id="category-group-filter-ungrouped"
                 type="checkbox"
                 class="checkbox checkbox-primary checkbox-sm shrink-0"
                 data-testid="category-group-filter-checkbox"
                 [checked]="store.isCategoryGroupSelected(null)"
+                [indeterminate]="store.isCategoryGroupIndeterminate(null)"
                 (change)="toggleCategoryGroupSelectionAndScroll(null)"
               />
-              }
               <span
                 class="truncate text-xs font-semibold uppercase tracking-wide text-base-content/50"
               >
@@ -241,12 +201,10 @@
             <label
               [attr.for]="'category-filter-' + category.id"
               data-testid="category-filter-row"
-              class="grid min-h-10 w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition hover:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-              [class.cursor-pointer]="categoryFilterMode()"
-              [class.bg-base-200]="categoryFilterMode() && filtersVm.selectedCategoryIds.includes(category.id)"
+              class="grid min-h-10 w-full cursor-pointer grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition hover:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              [class.bg-base-200]="filtersVm.selectedCategoryIds.includes(category.id)"
             >
               <span class="flex items-center gap-2">
-                @if (categoryFilterMode()) {
                 <input
                   [id]="'category-filter-' + category.id"
                   type="checkbox"
@@ -255,7 +213,6 @@
                   [checked]="filtersVm.selectedCategoryIds.includes(category.id)"
                   (change)="toggleCategorySelectionAndScroll(category.id)"
                 />
-                }
                 <span
                   class="size-2 shrink-0 rounded-full bg-primary"
                   aria-hidden="true"
@@ -350,7 +307,7 @@
             <button
               type="button"
               class="btn btn-link btn-sm self-start px-0 sm:shrink-0"
-              (click)="store.resetFilters()"
+              (click)="resetFilters()"
             >
               {{ 'transactions.filters.reset' | transloco }}
             </button>
