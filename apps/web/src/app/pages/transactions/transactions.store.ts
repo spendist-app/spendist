@@ -16,6 +16,7 @@ import type {
   Tables,
 } from '@spendist/data-access/supabase-types';
 import type { TransactionImportContext } from './transaction-import.models';
+import { excludePreviouslyImportedTransactions } from './transaction-import-deduplication';
 import type {
   CategoryEntity,
   CategoryGroupEntity,
@@ -1611,15 +1612,10 @@ export class TransactionsStore {
       const existingKeys = await this.loadExistingImportKeys(
         payload.transactions
       );
-      const seenImportKeys = new Set(existingKeys);
-      const transactions = payload.transactions.filter((transaction) => {
-        const context = transaction.importContext;
-        if (!context) return true;
-        const key = `${context.source}|${context.fingerprint}`;
-        if (seenImportKeys.has(key)) return false;
-        seenImportKeys.add(key);
-        return true;
-      });
+      const transactions = excludePreviouslyImportedTransactions(
+        payload.transactions,
+        existingKeys
+      );
       const duplicatesSkipped =
         payload.transactions.length - transactions.length;
       if (transactions.length === 0) {

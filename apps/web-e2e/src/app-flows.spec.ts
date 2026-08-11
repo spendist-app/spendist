@@ -672,7 +672,7 @@ test('exposes bulk entry and applies year, month, and amount sorting', async ({
   await expect(rows.nth(1)).toContainText(lowerAmountDescription);
 });
 
-test('imports pasted Spendist CSV through bulk review and skips a repeat', async ({
+test('keeps repeated CSV rows on first import and skips a repeat', async ({
   page,
 }, testInfo) => {
   const suffix = uniqueSuffix(testInfo);
@@ -699,7 +699,7 @@ test('imports pasted Spendist CSV through bulk review and skips a repeat', async
     '',
     '',
   ].join(',');
-  const csv = `${header}\n${row}`;
+  const csv = `${header}\n${row}\n${row}`;
 
   await ensureAuthenticated(page);
   await openTransactions(page);
@@ -742,18 +742,20 @@ test('imports pasted Spendist CSV through bulk review and skips a repeat', async
       name: 'Review imported transactions',
     });
     await selectFirstTransactionCategory(page);
-    await review.getByRole('button', { name: 'Save 1' }).click();
+    await review.getByRole('button', { name: 'Save 2' }).click();
   };
 
   await importOnce();
-  await expect(page.getByText(description)).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText(description).first()).toBeVisible({
+    timeout: 15000,
+  });
   await expect(
-    page.getByText(/1 transactions imported; 0 duplicates skipped/)
+    page.getByText(/2 transactions imported; 0 duplicates skipped/)
   ).toBeVisible();
 
   await importOnce();
   await expect(
-    page.getByText(/0 transactions imported; 1 duplicates skipped/)
+    page.getByText(/0 transactions imported; 2 duplicates skipped/)
   ).toBeVisible();
 });
 

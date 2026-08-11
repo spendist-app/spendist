@@ -14,7 +14,7 @@ The complete browsing state is shareable and restorable from `/transactions` que
 
 Matching records load incrementally and the sidebar shows category/tag spending context. Money formatting follows the active application language.
 
-The local AI prompt helper asks an external chat for CSV content in one copyable code block, not for a downloadable file. Its `tags` values may come only from the filtered saved-tag catalog; category names, category paths, category groups, merchants, and places are explicitly excluded from tags. Because the CSV schema has no quantity column, a document line with multiple units must expand to one transaction per physical unit at the unit price. Indexed descriptions such as `[1/2]` and `[2/2]` keep equal units distinct for duplicate detection, while minor-unit remainder allocation preserves the exact line total.
+The local AI prompt helper asks an external chat for CSV content in one copyable code block, not for a downloadable file. Its `tags` values may come only from the filtered saved-tag catalog; category names, category paths, category groups, merchants, and places are explicitly excluded from tags. Because the CSV schema has no quantity column, a document line with multiple units must expand to one transaction per physical unit at the unit price. Indexed descriptions such as `[1/2]` and `[2/2]` make the units clearer, while minor-unit remainder allocation preserves the exact line total. Identical rows within one new CSV are intentionally all imported; duplicate detection compares the batch only with fingerprints already stored by an earlier import, so re-importing the same CSV still skips every row.
 
 ## Currencies and boundary
 
