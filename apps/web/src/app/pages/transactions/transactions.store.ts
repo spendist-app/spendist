@@ -2166,10 +2166,11 @@ export class TransactionsStore {
     let query = this.supabase
       .from('transaction_tags')
       .select(
-        'tag_id, tags!inner(name, color, icon), transactions!inner(amount_in_default, occurred_at, direction)'
+        'tag_id, tags!inner(name, color, icon), transactions!inner(amount_in_default, occurred_at, direction, transaction_state)'
       )
       .eq('owner_id', userId)
-      .eq('transactions.direction', 'expense');
+      .eq('transactions.direction', 'expense')
+      .eq('transactions.transaction_state', 'completed');
 
     if (fromIso) {
       query = query.gte('transactions.occurred_at', fromIso);

@@ -41,6 +41,14 @@ begin
       and transaction_state = 'planned' and source_module = 'mortgage') then
     raise exception 'Future mortgage installment was not planned';
   end if;
+  if exists(
+    select 1
+    from public.category_expense_summary(null, null)
+    where category_id = v_category
+      and (category_transaction_count <> 0 or category_total_amount <> 0)
+  ) then
+    raise exception 'Planned mortgage installment leaked into category filters';
+  end if;
 
   begin
     update public.transactions set amount = 1 where mortgage_schedule_entry_id = v_entry;

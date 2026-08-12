@@ -844,9 +844,17 @@ test('imports and edits a Biedronka e-receipt before saving', async ({
 
 test('selects one category from the default all-categories state', async ({
   page,
-}) => {
+}, testInfo) => {
+  const description = `E2E category filter ${uniqueSuffix(testInfo)}`;
   await ensureAuthenticated(page);
   await openTransactions(page);
+
+  await openTransactionCreateForm(page);
+  await page.locator('input[formcontrolname="description"]').fill(description);
+  const categoryLabel = await selectFirstTransactionCategory(page);
+  await page.locator('input[formcontrolname="amount"]').fill('19.75');
+  await page.getByRole('button', { name: 'Save transaction' }).click();
+  await expect(page.getByText(description)).toBeVisible({ timeout: 15000 });
 
   const categoryCheckboxes = page.getByTestId('category-filter-checkbox');
   await expect(categoryCheckboxes.first()).toBeVisible();
@@ -856,14 +864,22 @@ test('selects one category from the default all-categories state', async ({
     await expect(categoryCheckbox).toBeChecked();
   }
 
-  await categoryCheckboxes.first().click();
-  await expect(categoryCheckboxes.first()).toBeChecked();
+  const selectedCategoryRow = page
+    .getByTestId('category-filter-row')
+    .filter({ hasText: categoryLabel })
+    .first();
+  const selectedCategoryCheckbox = selectedCategoryRow.getByTestId(
+    'category-filter-checkbox'
+  );
+  await selectedCategoryCheckbox.click();
+  await expect(selectedCategoryCheckbox).toBeChecked();
   await expect(
     page.locator('[data-testid="category-filter-checkbox"]:checked')
   ).toHaveCount(1);
   await expect.poll(() =>
     new URL(page.url()).searchParams.getAll('category').length
   ).toBe(1);
+  await expect(page.getByText(description)).toBeVisible({ timeout: 15000 });
 
   await page.getByTestId('category-filter-clear-all').click();
   await expect(categoryCheckboxes.first()).toBeChecked();
