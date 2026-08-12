@@ -482,6 +482,274 @@ export type Database = {
           },
         ]
       }
+      mortgage_holidays: {
+        Row: {
+          ends_on: string
+          id: string
+          mortgage_id: string
+          owner_id: string
+          starts_on: string
+        }
+        Insert: {
+          ends_on: string
+          id?: string
+          mortgage_id: string
+          owner_id: string
+          starts_on: string
+        }
+        Update: {
+          ends_on?: string
+          id?: string
+          mortgage_id?: string
+          owner_id?: string
+          starts_on?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mortgage_holiday_mortgage_fk"
+            columns: ["owner_id", "mortgage_id"]
+            isOneToOne: false
+            referencedRelation: "mortgage_loans"
+            referencedColumns: ["owner_id", "id"]
+          },
+        ]
+      }
+      mortgage_loans: {
+        Row: {
+          category_id: string
+          created_at: string
+          currency: string
+          disbursed_on: string
+          first_installment_on: string
+          id: string
+          installment_type: string
+          margin: number
+          name: string
+          owner_id: string
+          principal: number
+          revision: number
+          term_months: number
+          transactions_attached: boolean
+          updated_at: string
+          upfront_cost: number
+          wallet_id: string
+          wibor_tenor: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          currency?: string
+          disbursed_on: string
+          first_installment_on: string
+          id?: string
+          installment_type: string
+          margin?: number
+          name: string
+          owner_id: string
+          principal: number
+          revision?: number
+          term_months: number
+          transactions_attached?: boolean
+          updated_at?: string
+          upfront_cost?: number
+          wallet_id: string
+          wibor_tenor: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          currency?: string
+          disbursed_on?: string
+          first_installment_on?: string
+          id?: string
+          installment_type?: string
+          margin?: number
+          name?: string
+          owner_id?: string
+          principal?: number
+          revision?: number
+          term_months?: number
+          transactions_attached?: boolean
+          updated_at?: string
+          upfront_cost?: number
+          wallet_id?: string
+          wibor_tenor?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mortgage_category_owner_fk"
+            columns: ["owner_id", "category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["owner_id", "id"]
+          },
+          {
+            foreignKeyName: "mortgage_loans_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mortgage_loans_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_transactions_overview"
+            referencedColumns: ["owner_id"]
+          },
+          {
+            foreignKeyName: "mortgage_wallet_owner_fk"
+            columns: ["owner_id", "wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["owner_id", "id"]
+          },
+        ]
+      }
+      mortgage_overpayments: {
+        Row: {
+          amount: number
+          id: string
+          mortgage_id: string
+          occurs_on: string
+          owner_id: string
+          strategy: string
+        }
+        Insert: {
+          amount: number
+          id?: string
+          mortgage_id: string
+          occurs_on: string
+          owner_id: string
+          strategy: string
+        }
+        Update: {
+          amount?: number
+          id?: string
+          mortgage_id?: string
+          occurs_on?: string
+          owner_id?: string
+          strategy?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mortgage_overpayment_mortgage_fk"
+            columns: ["owner_id", "mortgage_id"]
+            isOneToOne: false
+            referencedRelation: "mortgage_loans"
+            referencedColumns: ["owner_id", "id"]
+          },
+        ]
+      }
+      mortgage_rate_periods: {
+        Row: {
+          ends_on: string | null
+          fixed_rate: number | null
+          id: string
+          mortgage_id: string
+          owner_id: string
+          position: number
+          rate_type: string
+          starts_on: string
+        }
+        Insert: {
+          ends_on?: string | null
+          fixed_rate?: number | null
+          id?: string
+          mortgage_id: string
+          owner_id: string
+          position: number
+          rate_type: string
+          starts_on: string
+        }
+        Update: {
+          ends_on?: string | null
+          fixed_rate?: number | null
+          id?: string
+          mortgage_id?: string
+          owner_id?: string
+          position?: number
+          rate_type?: string
+          starts_on?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mortgage_rate_period_mortgage_fk"
+            columns: ["owner_id", "mortgage_id"]
+            isOneToOne: false
+            referencedRelation: "mortgage_loans"
+            referencedColumns: ["owner_id", "id"]
+          },
+        ]
+      }
+      mortgage_schedule_entries: {
+        Row: {
+          annual_rate: number
+          created_at: string
+          entry_type: string
+          id: string
+          interest_part: number
+          mortgage_id: string
+          opening_balance: number
+          owner_id: string
+          payment: number
+          principal_part: number
+          rate_status: string
+          remaining_principal: number
+          revision: number
+          scheduled_for: string
+          sequence: number
+          wibor_rate_date: string | null
+          wibor_value: number | null
+        }
+        Insert: {
+          annual_rate: number
+          created_at?: string
+          entry_type: string
+          id?: string
+          interest_part: number
+          mortgage_id: string
+          opening_balance: number
+          owner_id: string
+          payment: number
+          principal_part: number
+          rate_status: string
+          remaining_principal: number
+          revision: number
+          scheduled_for: string
+          sequence: number
+          wibor_rate_date?: string | null
+          wibor_value?: number | null
+        }
+        Update: {
+          annual_rate?: number
+          created_at?: string
+          entry_type?: string
+          id?: string
+          interest_part?: number
+          mortgage_id?: string
+          opening_balance?: number
+          owner_id?: string
+          payment?: number
+          principal_part?: number
+          rate_status?: string
+          remaining_principal?: number
+          revision?: number
+          scheduled_for?: string
+          sequence?: number
+          wibor_rate_date?: string | null
+          wibor_value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mortgage_schedule_mortgage_fk"
+            columns: ["owner_id", "mortgage_id"]
+            isOneToOne: false
+            referencedRelation: "mortgage_loans"
+            referencedColumns: ["owner_id", "id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
@@ -960,12 +1228,16 @@ export type Database = {
           import_source: string | null
           imported_at: string | null
           is_automatic: boolean
+          mortgage_entry_type: string | null
+          mortgage_loan_id: string | null
+          mortgage_schedule_entry_id: string | null
           occurred_at: string
           owner_id: string
           place_id: string | null
           recurring_scheduled_for: string | null
           recurring_transaction_id: string | null
           source_module: string
+          transaction_state: string
           updated_at: string
           wallet_id: string
         }
@@ -987,12 +1259,16 @@ export type Database = {
           import_source?: string | null
           imported_at?: string | null
           is_automatic?: boolean
+          mortgage_entry_type?: string | null
+          mortgage_loan_id?: string | null
+          mortgage_schedule_entry_id?: string | null
           occurred_at: string
           owner_id: string
           place_id?: string | null
           recurring_scheduled_for?: string | null
           recurring_transaction_id?: string | null
           source_module?: string
+          transaction_state?: string
           updated_at?: string
           wallet_id: string
         }
@@ -1014,12 +1290,16 @@ export type Database = {
           import_source?: string | null
           imported_at?: string | null
           is_automatic?: boolean
+          mortgage_entry_type?: string | null
+          mortgage_loan_id?: string | null
+          mortgage_schedule_entry_id?: string | null
           occurred_at?: string
           owner_id?: string
           place_id?: string | null
           recurring_scheduled_for?: string | null
           recurring_transaction_id?: string | null
           source_module?: string
+          transaction_state?: string
           updated_at?: string
           wallet_id?: string
         }
@@ -1036,6 +1316,20 @@ export type Database = {
             columns: ["owner_id", "category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["owner_id", "id"]
+          },
+          {
+            foreignKeyName: "transactions_mortgage_owner_fk"
+            columns: ["owner_id", "mortgage_loan_id"]
+            isOneToOne: false
+            referencedRelation: "mortgage_loans"
+            referencedColumns: ["owner_id", "id"]
+          },
+          {
+            foreignKeyName: "transactions_mortgage_schedule_owner_fk"
+            columns: ["owner_id", "mortgage_schedule_entry_id"]
+            isOneToOne: false
+            referencedRelation: "mortgage_schedule_entries"
             referencedColumns: ["owner_id", "id"]
           },
           {
@@ -1127,6 +1421,30 @@ export type Database = {
           },
         ]
       }
+      wibor_rates: {
+        Row: {
+          created_at: string
+          rate_date: string
+          source: string | null
+          tenor: string
+          value: number
+        }
+        Insert: {
+          created_at?: string
+          rate_date: string
+          source?: string | null
+          tenor: string
+          value: number
+        }
+        Update: {
+          created_at?: string
+          rate_date?: string
+          source?: string | null
+          tenor?: string
+          value?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       recurring_transactions_overview: {
@@ -1143,6 +1461,14 @@ export type Database = {
       accept_allowance_invitation: {
         Args: { p_token: string }
         Returns: string
+      }
+      activate_all_due_mortgage_transactions: {
+        Args: { p_as_of?: string }
+        Returns: number
+      }
+      activate_due_mortgage_transactions: {
+        Args: { p_as_of?: string }
+        Returns: number
       }
       available_transaction_months: {
         Args: { p_wallet_id?: string }
@@ -1211,6 +1537,10 @@ export type Database = {
       delete_allowance_transaction: {
         Args: { p_transaction_id: string }
         Returns: undefined
+      }
+      detach_mortgage_transactions: {
+        Args: { p_mortgage_id: string }
+        Returns: number
       }
       disconnect_allowance_connection: {
         Args: { p_connection_id: string }
@@ -1319,6 +1649,10 @@ export type Database = {
         Returns: undefined
       }
       spendist_mcp_access_token_hook: { Args: { event: Json }; Returns: Json }
+      sync_mortgage_transactions: {
+        Args: { p_mortgage_id: string }
+        Returns: number
+      }
       update_allowance_transaction: {
         Args: {
           p_amount: number

@@ -37,13 +37,15 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   /* Run your local dev server before starting the tests */
-  webServer: {
-    command: `npx dotenv -e ${e2eEnvFile} -- npx nx serve web`,
-    url: 'http://localhost:4200',
-    reuseExistingServer: true,
-    timeout: 180_000,
-    cwd: workspaceRoot,
-  },
+  webServer: process.env['PLAYWRIGHT_SKIP_WEBSERVER']
+    ? undefined
+    : {
+        command: `npx dotenv -e ${e2eEnvFile} -- npx nx serve web`,
+        url: 'http://localhost:4200',
+        reuseExistingServer: true,
+        timeout: 180_000,
+        cwd: workspaceRoot,
+      },
   projects: [
     {
       name: 'chromium',

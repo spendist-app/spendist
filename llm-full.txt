@@ -13,6 +13,7 @@ The hosted application is `https://spendist.app`. The source is an Nx workspace 
 - **Financial organization:** an always-editable autosaving profile/avatar, wallets with currencies/default status, category groups, nested categories, colors, Heroicons, and reusable tags.
 - **Recurring payments:** scheduled income/expense with fixed or variable amount, category, wallet, currency, tags, schedule, and optional end date. Scheduled Supabase work creates automatic transaction records; it never makes a real payment.
 - **Allowance:** directional email-confirmed connections between a payer and recipient. Manual and recurring allowance creates two ordinary owner-scoped transactions atomically, keeps amount/currency synchronized, and never transfers real money.
+- **Mortgages:** a guided PLN mortgage module creates revisioned ACT/365 schedules for equal or decreasing installments, consecutive fixed or WIBOR 1M/3M/6M/1Y periods, per-event overpayment strategies, initial costs, and full payment holidays. Future variable resets reuse the latest known rate as a labeled projection; the app does not ingest or seed WIBOR. A reviewed revision can atomically replace or detach all protected mortgage-linked wallet entries, while future entries remain planned and excluded from completed transactions.
 - **Places:** reusable locations/merchants with optional address and note metadata. Users can attach them to transactions and inspect annual spending totals.
 - **Dashboard:** up to 12 calendar months of cash flow, selected-month category/tag totals, recurring-created transaction totals, and yearly place spending, scoped by wallet where relevant.
 - **Notifications:** user-scoped Realtime notifications for recurring activity, exchange-rate-sync failure, Allowance invitations, and received allowance. Each notification can be marked as read individually or together through Read all. Invitation notifications include accept/decline actions.
@@ -40,7 +41,7 @@ Read `doc/features/` for feature-level details and deliberate limits.
 | `/login`, `/signup` | Authentication entry points. | Not indexed |
 | `/forgot-password`, `/reset-password` | Password recovery utilities. | Not indexed |
 | `/dashboard`, `/home`, `/transactions`, `/settings` | Authenticated product pages. | Not indexed |
-| `/modules/recurring-payments`, `/modules/places`, `/modules/allowance` | Authenticated modules. | Not indexed |
+| `/modules/recurring-payments`, `/modules/places`, `/modules/allowance`, `/modules/mortgages` | Authenticated modules. | Not indexed |
 | `/allowance/invite` | Utility handoff for a single-use Allowance email link. | Not indexed |
 | `/oauth/consent` | Authenticated Supabase OAuth client consent screen used by MCP and other approved OAuth clients. | Not indexed |
 | `/settings/connected-apps` | Authenticated OAuth grant list and revocation screen. | Not indexed |

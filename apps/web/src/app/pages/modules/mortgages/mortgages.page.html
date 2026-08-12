@@ -1,0 +1,74 @@
+<main class="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6">
+  <header class="flex flex-wrap items-start justify-between gap-4">
+    <div><span class="badge badge-primary badge-outline">{{ 'mortgages.badge' | transloco }}</span>
+      <h1 class="mt-3 text-3xl font-bold">{{ 'mortgages.title' | transloco }}</h1>
+      <p class="mt-2 max-w-3xl text-base-content/70">{{ 'mortgages.description' | transloco }}</p></div>
+    <button class="btn btn-primary" type="button" (click)="openCreate()">{{ 'mortgages.actions.add' | transloco }}</button>
+  </header>
+
+  @if (store.error()) { <div class="alert alert-error" role="alert">{{ store.error() }}</div> }
+  <div class="grid gap-6 lg:grid-cols-[20rem_1fr]">
+    <aside class="card border border-base-200 bg-base-100 shadow-sm"><div class="card-body p-4">
+      <h2 class="card-title text-lg">{{ 'mortgages.list.title' | transloco }}</h2>
+      @if (!store.loading() && store.loans().length === 0) { <p class="text-sm text-base-content/60">{{ 'mortgages.list.empty' | transloco }}</p> }
+      @for (loan of store.loans(); track loan.id) {
+        <button type="button" class="rounded-xl border border-base-200 p-4 text-left hover:border-primary" (click)="edit(loan)">
+          <strong class="block">{{ loan.name }}</strong><span class="text-sm text-base-content/60">{{ loan.principal }} PLN · {{ loan.termMonths }} {{ 'mortgages.months' | transloco }}</span>
+          @if (loan.transactionsAttached) { <span class="badge badge-success badge-sm mt-2">{{ 'mortgages.list.attached' | transloco }}</span> }
+        </button>
+      }
+    </div></aside>
+
+    <section class="card border border-base-200 bg-base-100 shadow-sm"><div class="card-body">
+      @if (!formOpen()) { <div class="py-16 text-center"><h2 class="text-xl font-semibold">{{ 'mortgages.empty.title' | transloco }}</h2><p class="mt-2 text-base-content/60">{{ 'mortgages.empty.body' | transloco }}</p></div> }
+      @else {
+        <ul class="steps steps-horizontal w-full text-xs sm:text-sm">
+          @for (number of [1,2,3,4]; track number) { <li class="step" [class.step-primary]="step() >= number">{{ ('mortgages.steps.' + number) | transloco }}</li> }
+        </ul>
+        <form [formGroup]="form" class="mt-6 space-y-6" (ngSubmit)="simulate()">
+          @if (step() === 1) {
+            <fieldset class="grid gap-4 sm:grid-cols-2"><legend class="sr-only">{{ 'mortgages.steps.1' | transloco }}</legend>
+              <label class="form-control sm:col-span-2"><span class="label-text">{{ 'mortgages.fields.name' | transloco }}</span><input class="input input-bordered" formControlName="name" /></label>
+              <label class="form-control"><span class="label-text">{{ 'mortgages.fields.principal' | transloco }}</span><input class="input input-bordered" type="number" min="0.01" step="0.01" formControlName="principal" /></label>
+              <label class="form-control"><span class="label-text">{{ 'mortgages.fields.currency' | transloco }}</span><input class="input input-bordered" value="PLN" disabled /></label>
+              <label class="form-control"><span class="label-text">{{ 'mortgages.fields.disbursedOn' | transloco }}</span><input class="input input-bordered" type="date" formControlName="disbursedOn" /></label>
+              <label class="form-control"><span class="label-text">{{ 'mortgages.fields.firstInstallmentOn' | transloco }}</span><input class="input input-bordered" type="date" formControlName="firstInstallmentOn" /></label>
+              <label class="form-control"><span class="label-text">{{ 'mortgages.fields.termMonths' | transloco }}</span><input class="input input-bordered" type="number" min="1" max="600" formControlName="termMonths" /></label>
+              <label class="form-control"><span class="label-text">{{ 'mortgages.fields.installmentType' | transloco }}</span><select class="select select-bordered" formControlName="installmentType"><option value="equal">{{ 'mortgages.options.equal' | transloco }}</option><option value="decreasing">{{ 'mortgages.options.decreasing' | transloco }}</option></select></label>
+              <label class="form-control"><span class="label-text">{{ 'mortgages.fields.wallet' | transloco }}</span><select class="select select-bordered" formControlName="walletId"><option value="">—</option>@for (item of store.wallets(); track item.id) { <option [value]="item.id">{{ item.name }}</option> }</select></label>
+              <label class="form-control"><span class="label-text">{{ 'mortgages.fields.category' | transloco }}</span><select class="select select-bordered" formControlName="categoryId"><option value="">—</option>@for (item of store.categories(); track item.id) { <option [value]="item.id">{{ item.name }}</option> }</select></label>
+              <label class="form-control"><span class="label-text">{{ 'mortgages.fields.upfrontCost' | transloco }}</span><input class="input input-bordered" type="number" min="0" step="0.01" formControlName="upfrontCost" /></label>
+            </fieldset>
+          }
+          @if (step() === 2) {
+            <div class="alert alert-info text-sm">{{ 'mortgages.rateHelp' | transloco }}</div>
+            <div class="grid gap-4 sm:grid-cols-2"><label class="form-control"><span class="label-text">{{ 'mortgages.fields.margin' | transloco }}</span><input class="input input-bordered" type="number" min="0" step="0.01" formControlName="margin" /></label>
+            <label class="form-control"><span class="label-text">{{ 'mortgages.fields.wiborTenor' | transloco }}</span><select class="select select-bordered" formControlName="wiborTenor">@for (tenor of ['1M','3M','6M','1Y']; track tenor) { <option [value]="tenor">WIBOR {{ tenor }}</option> }</select></label></div>
+            <div formArrayName="ratePeriods" class="space-y-3">@for (group of ratePeriods.controls; track $index) { <div class="grid gap-3 rounded-xl border border-base-200 p-4 sm:grid-cols-5" [formGroupName]="$index">
+              <input class="input input-bordered" type="date" formControlName="startsOn" [attr.aria-label]="'Start'" /><input class="input input-bordered" type="date" formControlName="endsOn" [attr.aria-label]="'End'" />
+              <select class="select select-bordered" formControlName="type"><option value="fixed">{{ 'mortgages.options.fixed' | transloco }}</option><option value="variable">{{ 'mortgages.options.variable' | transloco }}</option></select>
+              <input class="input input-bordered" type="number" min="0" step="0.01" formControlName="fixedRate" [placeholder]="'mortgages.fields.fixedRate' | transloco" />
+              <button class="btn btn-ghost" type="button" (click)="remove(ratePeriods, $index)" [disabled]="ratePeriods.length === 1">{{ 'common.actions.remove' | transloco }}</button>
+            </div> }</div><button class="btn btn-outline btn-sm" type="button" (click)="addRatePeriod()">{{ 'mortgages.actions.addPeriod' | transloco }}</button>
+          }
+          @if (step() === 3) {
+            <section><div class="flex justify-between"><h3 class="font-semibold">{{ 'mortgages.overpayments.title' | transloco }}</h3><button type="button" class="btn btn-outline btn-sm" (click)="addOverpayment()">{{ 'mortgages.actions.addOverpayment' | transloco }}</button></div>
+              <div formArrayName="overpayments" class="mt-3 space-y-3">@for (group of overpayments.controls; track $index) { <div class="grid gap-3 sm:grid-cols-4" [formGroupName]="$index"><input class="input input-bordered" type="date" formControlName="occursOn" /><input class="input input-bordered" type="number" formControlName="amount" /><select class="select select-bordered" formControlName="strategy"><option value="shorten_term">{{ 'mortgages.options.shorten' | transloco }}</option><option value="reduce_payment">{{ 'mortgages.options.reduce' | transloco }}</option></select><button type="button" class="btn btn-ghost" (click)="remove(overpayments,$index)">{{ 'common.actions.remove' | transloco }}</button></div> }</div>
+            </section><div class="divider"></div>
+            <section><div class="flex justify-between"><h3 class="font-semibold">{{ 'mortgages.holidays.title' | transloco }}</h3><button type="button" class="btn btn-outline btn-sm" (click)="addHoliday()">{{ 'mortgages.actions.addHoliday' | transloco }}</button></div>
+              <p class="mt-1 text-sm text-base-content/60">{{ 'mortgages.holidays.help' | transloco }}</p><div formArrayName="holidays" class="mt-3 space-y-3">@for (group of holidays.controls; track $index) { <div class="grid gap-3 sm:grid-cols-3" [formGroupName]="$index"><input class="input input-bordered" type="date" formControlName="startsOn" /><input class="input input-bordered" type="date" formControlName="endsOn" /><button type="button" class="btn btn-ghost" (click)="remove(holidays,$index)">{{ 'common.actions.remove' | transloco }}</button></div> }</div>
+            </section>
+          }
+          @if (step() === 4) {
+            <div class="stats stats-vertical w-full border border-base-200 sm:stats-horizontal"><div class="stat"><div class="stat-title">{{ 'mortgages.summary.total' | transloco }}</div><div class="stat-value text-xl">{{ totals().payment.toFixed(2) }} PLN</div></div><div class="stat"><div class="stat-title">{{ 'mortgages.summary.interest' | transloco }}</div><div class="stat-value text-xl">{{ totals().interest.toFixed(2) }} PLN</div></div></div>
+            @if (chartPoints()) { <figure><figcaption class="mb-2 font-semibold">{{ 'mortgages.chart' | transloco }}</figcaption><svg class="h-48 w-full overflow-visible rounded-xl bg-base-200 p-4" viewBox="0 0 100 100" role="img" [attr.aria-label]="'mortgages.chart' | transloco" preserveAspectRatio="none"><polyline [attr.points]="chartPoints()" fill="none" stroke="currentColor" stroke-width="2" class="text-primary" vector-effect="non-scaling-stroke" /></svg></figure> }
+            <div class="max-h-96 overflow-auto"><table class="table table-pin-rows table-sm"><thead><tr><th>{{ 'mortgages.table.date' | transloco }}</th><th>{{ 'mortgages.table.payment' | transloco }}</th><th>{{ 'mortgages.table.principal' | transloco }}</th><th>{{ 'mortgages.table.interest' | transloco }}</th><th>{{ 'mortgages.table.remaining' | transloco }}</th><th>{{ 'mortgages.table.rate' | transloco }}</th></tr></thead><tbody>@for (row of store.schedule(); track row.sequence) { <tr><td>{{ row.scheduledFor }}</td><td>{{ row.payment.toFixed(2) }}</td><td>{{ row.principal.toFixed(2) }}</td><td>{{ row.interest.toFixed(2) }}</td><td>{{ row.remainingPrincipal.toFixed(2) }}</td><td>{{ row.annualRate.toFixed(2) }}% @if (row.rateStatus === 'projected') { <span class="badge badge-warning badge-xs">{{ 'mortgages.projected' | transloco }}</span> }</td></tr> }</tbody></table></div>
+            <div class="alert alert-warning text-sm">{{ 'mortgages.disclaimer' | transloco }}</div>
+            <div class="flex flex-wrap gap-2"><button class="btn btn-primary" type="button" (click)="sync()" [disabled]="store.pending()">{{ (selectedLoan()?.transactionsAttached ? 'mortgages.actions.updateTransactions' : 'mortgages.actions.attachTransactions') | transloco }}</button>@if (selectedLoan()?.transactionsAttached) { <button class="btn btn-outline" type="button" (click)="detach()">{{ 'mortgages.actions.detachTransactions' | transloco }}</button> }@if (selectedLoan(); as loan) { <button class="btn btn-error btn-outline ms-auto" type="button" (click)="deleteLoan(loan)">{{ 'mortgages.actions.delete' | transloco }}</button> }</div>
+          }
+          <div class="flex justify-between border-t border-base-200 pt-4">@if (step() > 1) { <button class="btn btn-ghost" type="button" (click)="previous()">{{ 'common.actions.back' | transloco }}</button> } @else { <span></span> } @if (step() < 3) { <button class="btn btn-primary" type="button" (click)="next()">{{ 'common.actions.next' | transloco }}</button> } @if (step() === 3) { <button class="btn btn-primary" type="submit" [disabled]="store.pending()">{{ 'mortgages.actions.simulate' | transloco }}</button> }</div>
+        </form>
+      }
+    </div></section>
+  </div>
+</main>

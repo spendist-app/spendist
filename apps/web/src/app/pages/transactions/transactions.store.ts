@@ -47,7 +47,7 @@ interface TransactionEntity {
   readonly exchangeRate: number | null;
   readonly walletId: string;
   readonly placeId: string | null;
-  readonly sourceModule: 'standard' | 'allowance';
+  readonly sourceModule: 'standard' | 'allowance' | 'mortgage';
   readonly allowancePairId: string | null;
   readonly allowanceRole: 'payer' | 'recipient' | null;
   readonly allowanceConnectionId: string | null;
@@ -852,7 +852,8 @@ export class TransactionsStore {
     let query = this.supabase
       .from('transactions')
       .select('*, recurring_transactions(name)', { count: 'exact' })
-      .eq('owner_id', userId);
+      .eq('owner_id', userId)
+      .eq('transaction_state', 'completed');
 
     if (filters.from) {
       query = query.gte(
@@ -2369,7 +2370,9 @@ export class TransactionsStore {
       walletId: row.wallet_id,
       placeId: row.place_id ?? null,
       sourceModule:
-        row.source_module === 'allowance' ? 'allowance' : 'standard',
+        row.source_module === 'allowance' || row.source_module === 'mortgage'
+          ? row.source_module
+          : 'standard',
       allowancePairId: row.allowance_pair_id ?? null,
       allowanceRole:
         row.allowance_role === 'payer' || row.allowance_role === 'recipient'

@@ -43,6 +43,11 @@
             class="menu menu-sm mt-1 rounded-xl border border-base-200 bg-base-100 p-2 shadow"
           >
             <li>
+              <a class="rounded-lg px-3 py-2 text-sm" routerLink="/modules/mortgages">
+                {{ 'navbar.modulesMortgages' | transloco }}
+              </a>
+            </li>
+            <li>
               <a
                 class="rounded-lg px-3 py-2 text-sm"
                 routerLink="/modules/recurring-payments"
@@ -132,6 +137,16 @@
           (mouseenter)="openModulesMenu()"
           (mouseleave)="scheduleCloseModulesMenu()"
         >
+          <li>
+            <a
+              class="rounded-lg px-3 py-2 text-sm"
+              routerLink="/modules/mortgages"
+              routerLinkActive="active"
+              (click)="closeModulesMenu()"
+            >
+              {{ 'navbar.modulesMortgages' | transloco }}
+            </a>
+          </li>
           <li>
             <a
               class="rounded-lg px-3 py-2 text-sm"

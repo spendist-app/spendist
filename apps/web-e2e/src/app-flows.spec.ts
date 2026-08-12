@@ -314,7 +314,7 @@ async function openTransactionCreateForm(page: Page): Promise<void> {
 
 async function openModule(
   page: Page,
-  linkName: 'Places' | 'Recurring payments',
+  linkName: 'Places' | 'Recurring payments' | 'Mortgages',
   heading: string
 ): Promise<void> {
   await page.getByRole('button', { name: 'Modules' }).click();
@@ -322,7 +322,9 @@ async function openModule(
   await expect(page).toHaveURL(
     linkName === 'Places'
       ? /\/modules\/places$/
-      : /\/modules\/recurring-payments$/,
+      : linkName === 'Mortgages'
+        ? /\/modules\/mortgages$/
+        : /\/modules\/recurring-payments$/,
     { timeout: 15000 }
   );
   await expect(
@@ -1286,4 +1288,38 @@ test('creates category group and category', async ({ page }, testInfo) => {
   await expect(
     page.locator('article').filter({ hasText: groupName })
   ).toBeVisible();
+});
+
+test('creates a mortgage simulation and attaches planned installments', async ({
+  page,
+}, testInfo) => {
+  const name = `E2E mortgage ${uniqueSuffix(testInfo)}`;
+  await ensureAuthenticated(page);
+  await openModule(page, 'Mortgages', 'Mortgage loans');
+  await page.getByRole('button', { name: 'Create mortgage' }).click();
+
+  await page.locator('input[formcontrolname="name"]').fill(name);
+  await page.locator('input[formcontrolname="principal"]').fill('120000');
+  await page.locator('input[formcontrolname="disbursedOn"]').fill('2026-01-01');
+  await page.locator('input[formcontrolname="firstInstallmentOn"]').fill('2026-02-01');
+  await page.locator('input[formcontrolname="termMonths"]').fill('12');
+  await selectFirstRealOption(page.locator('select[formcontrolname="walletId"]'));
+  await selectFirstRealOption(page.locator('select[formcontrolname="categoryId"]'));
+  await page.getByRole('button', { name: 'Next' }).click();
+
+  await page.locator('input[formcontrolname="startsOn"]').fill('2026-01-01');
+  await page.locator('select[formcontrolname="type"]').selectOption('fixed');
+  await page.locator('input[formcontrolname="fixedRate"]').fill('6');
+  await page.getByRole('button', { name: 'Next' }).click();
+  await page.getByRole('button', { name: 'Generate repayment simulation' }).click();
+
+  await expect(page.getByRole('img', { name: 'Remaining mortgage principal over time' })).toBeVisible();
+  await expect(page.locator('tbody tr')).toHaveCount(12);
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByRole('button', { name: 'Add transactions to wallet' }).click();
+  await expect(page.getByText('In wallet')).toBeVisible();
+
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByRole('button', { name: 'Remove from transactions' }).click();
+  await expect(page.getByRole('button', { name: 'Add transactions to wallet' })).toBeVisible();
 });
