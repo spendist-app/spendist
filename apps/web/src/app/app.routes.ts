@@ -102,6 +102,14 @@ export const appRoutes: Route[] = [
       ),
   },
   {
+    path: 'modules/mortgages',
+    canActivate: [requireAuthGuard],
+    loadComponent: () =>
+      import('./pages/modules/mortgages/mortgages.page').then(
+        (m) => m.MortgagesPage
+      ),
+  },
+  {
     path: 'modules/places',
     canActivate: [requireAuthGuard],
     loadComponent: () =>

@@ -667,6 +667,11 @@
                       }}
                     </span>
                     }
+                    @if (transaction.sourceModule === 'mortgage') {
+                    <span class="badge badge-accent badge-outline badge-sm text-xs">
+                      {{ 'transactions.list.mortgage' | transloco }}
+                    </span>
+                    }
                   </div>
                   <p class="text-sm text-base-content/70">
                     {{ formatDate(transaction.occurredAt) }} · {{
@@ -697,6 +702,7 @@
                     [attr.aria-label]="'transactions.list.actions.edit' | transloco"
                     [attr.title]="'transactions.list.actions.edit' | transloco"
                     [attr.data-tip]="'transactions.list.actions.edit' | transloco"
+                    [disabled]="transaction.sourceModule === 'mortgage'"
                     (click)="openEditForm(transaction)"
                   >
                     <ng-icon
@@ -725,7 +731,7 @@
                     [attr.aria-label]="'transactions.list.actions.delete' | transloco"
                     [attr.title]="'transactions.list.actions.delete' | transloco"
                     [attr.data-tip]="'transactions.list.actions.delete' | transloco"
-                    [disabled]="store.transactionMutationPending() || transaction.allowanceRole === 'recipient'"
+                    [disabled]="store.transactionMutationPending() || transaction.allowanceRole === 'recipient' || transaction.sourceModule === 'mortgage'"
                     (click)="confirmDelete(transaction)"
                   >
                     <ng-icon

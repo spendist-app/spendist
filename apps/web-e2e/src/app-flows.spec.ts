@@ -314,7 +314,7 @@ async function openTransactionCreateForm(page: Page): Promise<void> {
 
 async function openModule(
   page: Page,
-  linkName: 'Places' | 'Recurring payments',
+  linkName: 'Places' | 'Recurring payments' | 'Mortgages',
   heading: string
 ): Promise<void> {
   await page.getByRole('button', { name: 'Modules' }).click();
@@ -322,7 +322,9 @@ async function openModule(
   await expect(page).toHaveURL(
     linkName === 'Places'
       ? /\/modules\/places$/
-      : /\/modules\/recurring-payments$/,
+      : linkName === 'Mortgages'
+        ? /\/modules\/mortgages$/
+        : /\/modules\/recurring-payments$/,
     { timeout: 15000 }
   );
   await expect(
@@ -842,9 +844,17 @@ test('imports and edits a Biedronka e-receipt before saving', async ({
 
 test('selects one category from the default all-categories state', async ({
   page,
-}) => {
+}, testInfo) => {
+  const description = `E2E category filter ${uniqueSuffix(testInfo)}`;
   await ensureAuthenticated(page);
   await openTransactions(page);
+
+  await openTransactionCreateForm(page);
+  await page.locator('input[formcontrolname="description"]').fill(description);
+  const categoryLabel = await selectFirstTransactionCategory(page);
+  await page.locator('input[formcontrolname="amount"]').fill('19.75');
+  await page.getByRole('button', { name: 'Save transaction' }).click();
+  await expect(page.getByText(description)).toBeVisible({ timeout: 15000 });
 
   const categoryCheckboxes = page.getByTestId('category-filter-checkbox');
   await expect(categoryCheckboxes.first()).toBeVisible();
@@ -854,14 +864,22 @@ test('selects one category from the default all-categories state', async ({
     await expect(categoryCheckbox).toBeChecked();
   }
 
-  await categoryCheckboxes.first().click();
-  await expect(categoryCheckboxes.first()).toBeChecked();
+  const selectedCategoryRow = page
+    .getByTestId('category-filter-row')
+    .filter({ hasText: categoryLabel })
+    .first();
+  const selectedCategoryCheckbox = selectedCategoryRow.getByTestId(
+    'category-filter-checkbox'
+  );
+  await selectedCategoryCheckbox.click();
+  await expect(selectedCategoryCheckbox).toBeChecked();
   await expect(
     page.locator('[data-testid="category-filter-checkbox"]:checked')
   ).toHaveCount(1);
   await expect.poll(() =>
     new URL(page.url()).searchParams.getAll('category').length
   ).toBe(1);
+  await expect(page.getByText(description)).toBeVisible({ timeout: 15000 });
 
   await page.getByTestId('category-filter-clear-all').click();
   await expect(categoryCheckboxes.first()).toBeChecked();
@@ -1286,4 +1304,38 @@ test('creates category group and category', async ({ page }, testInfo) => {
   await expect(
     page.locator('article').filter({ hasText: groupName })
   ).toBeVisible();
+});
+
+test('creates a mortgage simulation and attaches planned installments', async ({
+  page,
+}, testInfo) => {
+  const name = `E2E mortgage ${uniqueSuffix(testInfo)}`;
+  await ensureAuthenticated(page);
+  await openModule(page, 'Mortgages', 'Mortgage loans');
+  await page.getByRole('button', { name: 'Create mortgage' }).click();
+
+  await page.locator('input[formcontrolname="name"]').fill(name);
+  await page.locator('input[formcontrolname="principal"]').fill('120000');
+  await page.locator('input[formcontrolname="disbursedOn"]').fill('2026-01-01');
+  await page.locator('input[formcontrolname="firstInstallmentOn"]').fill('2026-02-01');
+  await page.locator('input[formcontrolname="termMonths"]').fill('12');
+  await selectFirstRealOption(page.locator('select[formcontrolname="walletId"]'));
+  await selectFirstRealOption(page.locator('select[formcontrolname="categoryId"]'));
+  await page.getByRole('button', { name: 'Next' }).click();
+
+  await page.locator('input[formcontrolname="startsOn"]').fill('2026-01-01');
+  await page.locator('select[formcontrolname="type"]').selectOption('fixed');
+  await page.locator('input[formcontrolname="fixedRate"]').fill('6');
+  await page.getByRole('button', { name: 'Next' }).click();
+  await page.getByRole('button', { name: 'Generate repayment simulation' }).click();
+
+  await expect(page.getByRole('img', { name: 'Remaining mortgage principal over time' })).toBeVisible();
+  await expect(page.locator('tbody tr')).toHaveCount(12);
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByRole('button', { name: 'Add transactions to wallet' }).click();
+  await expect(page.getByText('In wallet')).toBeVisible();
+
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByRole('button', { name: 'Remove from transactions' }).click();
+  await expect(page.getByRole('button', { name: 'Add transactions to wallet' })).toBeVisible();
 });
