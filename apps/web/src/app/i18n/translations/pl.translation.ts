@@ -1088,7 +1088,7 @@ const pl = {
           attach:
             'Wklej prompt i dodaj zdjęcie paragonu lub faktury, zrzut zamówienia albo treść e-maila.',
           return:
-            'Pobierz otrzymany CSV albo skopiuj jego zawartość i wróć do importu w Spendist.',
+            'Skopiuj otrzymaną zawartość CSV, wróć do importu w Spendist i wklej ją w polu tekstowym.',
         },
       },
       readingFile: 'Odczytujemy plik i rozpoznajemy format…',

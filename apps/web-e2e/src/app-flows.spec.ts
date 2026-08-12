@@ -125,9 +125,15 @@ async function selectFirstRealOption(select: Locator): Promise<string> {
   throw new Error('Missing selectable option value.');
 }
 
-async function selectFirstCategoryOption(page: Page): Promise<string> {
+async function selectFirstCategoryOption(
+  page: Page,
+  categoryButton?: Locator
+): Promise<string> {
   const dialog = page.getByRole('dialog');
-  await dialog.getByRole('button', { name: 'Category', exact: true }).click();
+  await (
+    categoryButton ??
+    dialog.getByRole('button', { name: 'Category', exact: true })
+  ).click();
 
   const search = dialog.getByPlaceholder('Search categories...');
   await expect(search).toBeFocused();
@@ -143,8 +149,11 @@ async function selectFirstCategoryOption(page: Page): Promise<string> {
   return label;
 }
 
-async function selectFirstTransactionCategory(page: Page): Promise<string> {
-  return selectFirstCategoryOption(page);
+async function selectFirstTransactionCategory(
+  page: Page,
+  categoryButton?: Locator
+): Promise<string> {
+  return selectFirstCategoryOption(page, categoryButton);
 }
 
 async function selectTransactionPlace(page: Page, name: string): Promise<void> {
@@ -672,7 +681,7 @@ test('exposes bulk entry and applies year, month, and amount sorting', async ({
   await expect(rows.nth(1)).toContainText(lowerAmountDescription);
 });
 
-test('imports pasted Spendist CSV through bulk review and skips a repeat', async ({
+test('keeps repeated CSV rows on first import and skips a repeat', async ({
   page,
 }, testInfo) => {
   const suffix = uniqueSuffix(testInfo);
@@ -699,7 +708,7 @@ test('imports pasted Spendist CSV through bulk review and skips a repeat', async
     '',
     '',
   ].join(',');
-  const csv = `${header}\n${row}`;
+  const csv = `${header}\n${row}\n${row}`;
 
   await ensureAuthenticated(page);
   await openTransactions(page);
@@ -741,19 +750,27 @@ test('imports pasted Spendist CSV through bulk review and skips a repeat', async
     const review = page.getByRole('dialog', {
       name: 'Review imported transactions',
     });
-    await selectFirstTransactionCategory(page);
-    await review.getByRole('button', { name: 'Save 1' }).click();
+    const categoryButtons = review.getByRole('button', {
+      name: 'Category',
+      exact: true,
+    });
+    await expect(categoryButtons).toHaveCount(2);
+    await selectFirstTransactionCategory(page, categoryButtons.nth(0));
+    await selectFirstTransactionCategory(page, categoryButtons.nth(1));
+    await review.getByRole('button', { name: 'Save 2' }).click();
   };
 
   await importOnce();
-  await expect(page.getByText(description)).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText(description).first()).toBeVisible({
+    timeout: 15000,
+  });
   await expect(
-    page.getByText(/1 transactions imported; 0 duplicates skipped/)
+    page.getByText(/2 transactions imported; 0 duplicates skipped/)
   ).toBeVisible();
 
   await importOnce();
   await expect(
-    page.getByText(/0 transactions imported; 1 duplicates skipped/)
+    page.getByText(/0 transactions imported; 2 duplicates skipped/)
   ).toBeVisible();
 });
 
@@ -823,39 +840,34 @@ test('imports and edits a Biedronka e-receipt before saving', async ({
   });
 });
 
-test('filters categories from the sidebar with group checkboxes', async ({
+test('selects one category from the default all-categories state', async ({
   page,
 }) => {
   await ensureAuthenticated(page);
   await openTransactions(page);
 
-  const firstGroup = page
-    .locator('nav section')
-    .filter({
-      has: page.getByTestId('category-group-filter-checkbox'),
-    })
-    .first();
-  const groupCheckbox = firstGroup.getByTestId(
-    'category-group-filter-checkbox'
-  );
-  const categoryCheckboxes = firstGroup.getByTestId('category-filter-checkbox');
-
-  await expect(groupCheckbox).toBeVisible();
+  const categoryCheckboxes = page.getByTestId('category-filter-checkbox');
   await expect(categoryCheckboxes.first()).toBeVisible();
-  await groupCheckbox.check();
-  await expect(groupCheckbox).toBeChecked();
-
-  await expect.poll(() =>
-    new URL(page.url()).searchParams.getAll('category').length
-  ).toBe(await categoryCheckboxes.count());
-
+  const categoryCount = await categoryCheckboxes.count();
+  expect(categoryCount).toBeGreaterThan(0);
   for (const categoryCheckbox of await categoryCheckboxes.all()) {
     await expect(categoryCheckbox).toBeChecked();
   }
 
+  await categoryCheckboxes.first().click();
+  await expect(categoryCheckboxes.first()).toBeChecked();
+  await expect(
+    page.locator('[data-testid="category-filter-checkbox"]:checked')
+  ).toHaveCount(1);
+  await expect.poll(() =>
+    new URL(page.url()).searchParams.getAll('category').length
+  ).toBe(1);
+
   await page.getByTestId('category-filter-clear-all').click();
-  await expect(groupCheckbox).not.toBeChecked();
-  await expect(categoryCheckboxes.first()).not.toBeChecked();
+  await expect(categoryCheckboxes.first()).toBeChecked();
+  await expect(
+    page.locator('[data-testid="category-filter-checkbox"]:checked')
+  ).toHaveCount(categoryCount);
   await expect.poll(() =>
     new URL(page.url()).searchParams.getAll('category').length
   ).toBe(0);

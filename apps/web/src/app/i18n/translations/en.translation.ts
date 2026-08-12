@@ -1079,7 +1079,7 @@ const en = {
           attach:
             'Paste the prompt and attach a receipt or invoice photo, order screenshot, or email content.',
           return:
-            'Download the resulting CSV or copy its contents, then return to the Spendist importer.',
+            'Copy the resulting CSV content, return to the Spendist importer, and paste it into the text field.',
         },
       },
       readingFile: 'Reading and detecting the file format…',

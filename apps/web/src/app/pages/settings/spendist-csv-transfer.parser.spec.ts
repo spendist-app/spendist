@@ -144,4 +144,41 @@ describe('Spendist CSV transfer parser', () => {
 
     expect(first).toBe(second);
   });
+
+  it('gives repeated rows stable unique fingerprints', () => {
+    const row = {
+      id: 'tx-1',
+      occurred_at: '2026-02-01T00:00:00.000Z',
+      description: 'Lunch',
+      direction: 'expense' as const,
+      amount: 10,
+      currency: 'PLN',
+      amount_in_default: 10,
+      category_group: 'Food',
+      category_path: 'Food/Groceries',
+      category: 'Groceries',
+      wallet: 'Main',
+      wallet_currency: 'PLN',
+      tags: ['weekly'],
+      place: '',
+      is_automatic: false,
+      recurring_scheduled_for: '',
+      import_source: '',
+      imported_at: '',
+    };
+    const csv = generateSpendistCsv([row, row]);
+
+    const first = parseSpendistCsv(csv);
+    const second = parseSpendistCsv(csv);
+
+    expect(first.issues).toEqual([]);
+    expect(first.rows).toHaveLength(2);
+    expect(first.rows[0].fingerprint).not.toBe(first.rows[1].fingerprint);
+    expect(first.rows.map((item) => item.fingerprint)).toEqual(
+      second.rows.map((item) => item.fingerprint),
+    );
+    expect(first.rows[1].fingerprint).toBe(
+      `${first.rows[0].fingerprint}:2`,
+    );
+  });
 });

@@ -62,7 +62,7 @@
         <div class="flex items-center justify-between gap-3">
           <span class="text-xs text-base-content/60">
             {{ 'transactions.filters.selectedCategoryCount' | transloco: {
-            count: filtersVm.selectedCategoryIds.length } }}
+            count: store.selectedCategoryCount() } }}
           </span>
           <button
             type="button"
@@ -94,7 +94,7 @@
             <label
               [attr.for]="'category-group-filter-' + group.id"
               class="grid w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-start gap-3 rounded-xl px-2 py-2 text-left transition hover:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-              [class.bg-primary/10]="store.isCategoryGroupSelected(group.id)"
+              [class.bg-primary/10]="store.hasActiveCategoryFilter() && store.isCategoryGroupSelected(group.id)"
             >
               <div class="flex min-w-0 items-start gap-2">
                 <input
@@ -104,7 +104,7 @@
                   data-testid="category-group-filter-checkbox"
                   [checked]="store.isCategoryGroupSelected(group.id)"
                   [indeterminate]="store.isCategoryGroupIndeterminate(group.id)"
-                  (change)="toggleCategoryGroupSelectionAndScroll(group.id)"
+                  (click)="onCategoryGroupCheckboxClick($event, group.id)"
                 />
                 <span
                   class="mt-1.5 size-2 shrink-0 rounded-full"
@@ -133,8 +133,8 @@
                 [attr.for]="'category-filter-' + category.id"
                 data-testid="category-filter-row"
                 class="grid min-h-11 w-full cursor-pointer grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition hover:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-                [class.bg-base-200]="filtersVm.selectedCategoryIds.includes(category.id)"
-                [class.text-primary]="filtersVm.selectedCategoryIds.includes(category.id)"
+                [class.bg-base-200]="store.hasActiveCategoryFilter() && store.isCategorySelected(category.id)"
+                [class.text-primary]="store.hasActiveCategoryFilter() && store.isCategorySelected(category.id)"
               >
                 <span class="flex items-center gap-2">
                   <input
@@ -142,8 +142,8 @@
                     type="checkbox"
                     class="checkbox checkbox-primary checkbox-sm shrink-0"
                     data-testid="category-filter-checkbox"
-                    [checked]="filtersVm.selectedCategoryIds.includes(category.id)"
-                    (change)="toggleCategorySelectionAndScroll(category.id)"
+                    [checked]="store.isCategorySelected(category.id)"
+                    (click)="onCategoryCheckboxClick($event, category.id)"
                   />
                   <span
                     class="size-2 shrink-0 rounded-full"
@@ -172,7 +172,7 @@
           <label
             for="category-group-filter-ungrouped"
             class="grid cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-lg px-1 py-1"
-            [class.bg-primary/10]="store.isCategoryGroupSelected(null)"
+            [class.bg-primary/10]="store.hasActiveCategoryFilter() && store.isCategoryGroupSelected(null)"
           >
             <span class="flex min-w-0 items-center gap-2">
               <input
@@ -182,7 +182,7 @@
                 data-testid="category-group-filter-checkbox"
                 [checked]="store.isCategoryGroupSelected(null)"
                 [indeterminate]="store.isCategoryGroupIndeterminate(null)"
-                (change)="toggleCategoryGroupSelectionAndScroll(null)"
+                (click)="onCategoryGroupCheckboxClick($event, null)"
               />
               <span
                 class="truncate text-xs font-semibold uppercase tracking-wide text-base-content/50"
@@ -202,7 +202,7 @@
               [attr.for]="'category-filter-' + category.id"
               data-testid="category-filter-row"
               class="grid min-h-10 w-full cursor-pointer grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition hover:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-              [class.bg-base-200]="filtersVm.selectedCategoryIds.includes(category.id)"
+              [class.bg-base-200]="store.hasActiveCategoryFilter() && store.isCategorySelected(category.id)"
             >
               <span class="flex items-center gap-2">
                 <input
@@ -210,8 +210,8 @@
                   type="checkbox"
                   class="checkbox checkbox-primary checkbox-sm shrink-0"
                   data-testid="category-filter-checkbox"
-                  [checked]="filtersVm.selectedCategoryIds.includes(category.id)"
-                  (change)="toggleCategorySelectionAndScroll(category.id)"
+                  [checked]="store.isCategorySelected(category.id)"
+                  (click)="onCategoryCheckboxClick($event, category.id)"
                 />
                 <span
                   class="size-2 shrink-0 rounded-full bg-primary"
