@@ -848,20 +848,26 @@ test('selects one category from the default all-categories state', async ({
 
   const categoryCheckboxes = page.getByTestId('category-filter-checkbox');
   await expect(categoryCheckboxes.first()).toBeVisible();
+  const categoryCount = await categoryCheckboxes.count();
+  expect(categoryCount).toBeGreaterThan(0);
   for (const categoryCheckbox of await categoryCheckboxes.all()) {
     await expect(categoryCheckbox).toBeChecked();
   }
 
   await categoryCheckboxes.first().click();
   await expect(categoryCheckboxes.first()).toBeChecked();
-  await expect(categoryCheckboxes.nth(1)).not.toBeChecked();
+  await expect(
+    page.locator('[data-testid="category-filter-checkbox"]:checked')
+  ).toHaveCount(1);
   await expect.poll(() =>
     new URL(page.url()).searchParams.getAll('category').length
   ).toBe(1);
 
   await page.getByTestId('category-filter-clear-all').click();
   await expect(categoryCheckboxes.first()).toBeChecked();
-  await expect(categoryCheckboxes.nth(1)).toBeChecked();
+  await expect(
+    page.locator('[data-testid="category-filter-checkbox"]:checked')
+  ).toHaveCount(categoryCount);
   await expect.poll(() =>
     new URL(page.url()).searchParams.getAll('category').length
   ).toBe(0);

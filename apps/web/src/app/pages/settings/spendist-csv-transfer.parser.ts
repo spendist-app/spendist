@@ -149,7 +149,28 @@ export function parseSpendistCsv(text: string): SpendistCsvParseResult {
     }
   });
 
-  return { rows, totalDataRows, issues };
+  return {
+    rows: disambiguateRepeatedFingerprints(rows),
+    totalDataRows,
+    issues,
+  };
+}
+
+function disambiguateRepeatedFingerprints(
+  rows: readonly SpendistCsvImportRow[],
+): readonly SpendistCsvImportRow[] {
+  const occurrences = new Map<string, number>();
+
+  return rows.map((row) => {
+    const occurrence = (occurrences.get(row.fingerprint) ?? 0) + 1;
+    occurrences.set(row.fingerprint, occurrence);
+    if (occurrence === 1) return row;
+
+    return {
+      ...row,
+      fingerprint: `${row.fingerprint}:${occurrence}`,
+    };
+  });
 }
 
 export function createSpendistCsvFingerprint(input: {
