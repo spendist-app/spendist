@@ -9,7 +9,8 @@ import {
 const DEFAULT_EMAIL = 'e2e-shared-user@gmail.com';
 const DEFAULT_PASSWORD = 'Test1234!';
 const DASHBOARD_HEADING = 'Your personalised command centre';
-const MAILPIT_API_URL = 'http://127.0.0.1:55324/api/v1';
+const MAILPIT_URL = 'http://127.0.0.1:55324';
+const MAILPIT_API_URL = `${MAILPIT_URL}/api/v1`;
 
 interface MailpitAddress {
   Address?: string;
@@ -18,6 +19,28 @@ interface MailpitAddress {
 interface MailpitMessage {
   ID?: string;
   To?: MailpitAddress[];
+}
+
+function extractConfirmationUrl(messageHtml: string): string | null {
+  const decodedHtml = messageHtml.split('&amp;').join('&');
+  const candidates = decodedHtml.match(/https?:\/\/[^"'\s<>]+/g) ?? [];
+
+  for (const candidate of candidates) {
+    try {
+      const url = new URL(candidate);
+      if (
+        url.pathname.endsWith('/auth/v1/verify') &&
+        url.searchParams.has('token') &&
+        url.searchParams.get('type')
+      ) {
+        return url.toString();
+      }
+    } catch {
+      // Ignore unrelated URLs from the rendered email.
+    }
+  }
+
+  return null;
 }
 
 async function waitForConfirmationEmail(
@@ -53,15 +76,10 @@ async function waitForConfirmationEmail(
   }
 
   const response = await page.request.get(
-    `${MAILPIT_API_URL}/message/${encodeURIComponent(messageId)}`
+    `${MAILPIT_URL}/view/${encodeURIComponent(messageId)}.html`
   );
   expect(response.ok()).toBe(true);
-  const message = JSON.stringify(await response.json())
-    .split('&amp;')
-    .join('&');
-  const confirmationUrl = message
-    .match(/https?:\/\/[^"'\\s<>]+/g)
-    ?.find((url: string) => url.includes('/auth/v1/verify'));
+  const confirmationUrl = extractConfirmationUrl(await response.text());
 
   if (!confirmationUrl) {
     throw new Error(`Confirmation email for ${email} has no verification URL.`);

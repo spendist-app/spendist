@@ -2,8 +2,8 @@
 
 Spendist is a personal finance app for tracking everyday money, recurring payments, wallets, categories, imports, and spending insights in one place.
 
-[![Angular](https://img.shields.io/badge/Angular-21-DD0031?logo=angular&logoColor=white)](https://angular.dev/)
-[![Nx](https://img.shields.io/badge/Nx-22-143055?logo=nx&logoColor=white)](https://nx.dev/)
+[![Angular](https://img.shields.io/badge/Angular-22-DD0031?logo=angular&logoColor=white)](https://angular.dev/)
+[![Nx](https://img.shields.io/badge/Nx-23-143055?logo=nx&logoColor=white)](https://nx.dev/)
 [![Supabase](https://img.shields.io/badge/Supabase-Postgres%20%2B%20Auth-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com/)
 [![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-F38020?logo=cloudflare&logoColor=white)](https://workers.cloudflare.com/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
@@ -33,8 +33,8 @@ Spendist helps you build a clear picture of personal cash flow without locking y
 
 ## Tech Stack
 
-- **Frontend**: Angular 21, standalone components, signals, zoneless change detection, Angular Router, SSR-ready build.
-- **Workspace**: Nx 22 with inferred targets, Vitest, Playwright, ESLint, and Prettier.
+- **Frontend**: Angular 22, standalone components, signals, zoneless change detection, Angular Router, SSR-ready build, and TypeScript 6.
+- **Workspace**: Nx 23 with inferred targets, Vitest, Playwright, ESLint, and Prettier.
 - **UI**: Tailwind CSS 4, DaisyUI 5, `@ng-icons/core`, and Heroicons.
 - **Backend**: Supabase Auth, Postgres, RLS, Storage, Realtime, Edge Functions, `pg_cron`, `pg_net`, and Vault-backed scheduled jobs.
 - **Runtime**: Cloudflare Worker in production or the production-like Docker image serving `dist/apps/web/browser`.
@@ -57,7 +57,7 @@ tools/docker/             Container runtime and guarded local orchestration
 
 ### Prerequisites
 
-- Node.js 22.x
+- Node.js 22.x or 24.x (CI uses Node.js 24; the Docker build uses Node.js 22)
 - npm
 - Docker Desktop or Docker Engine with the supported Docker Compose v2 plugin
 - Git

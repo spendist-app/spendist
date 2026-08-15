@@ -2,6 +2,8 @@ import { TestBed } from '@angular/core/testing';
 import { signal, computed } from '@angular/core';
 import { By } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
+import { TranslocoService } from '@ngneat/transloco';
+import { firstValueFrom } from 'rxjs';
 import { App } from './app';
 import { AuthService } from './core/auth.service';
 import { NavbarComponent } from './core/navbar/navbar.component';
@@ -121,6 +123,9 @@ describe('App', () => {
   it('shows and dismisses a global success notice', async () => {
     const fixture = TestBed.createComponent(App);
     const notices = TestBed.inject(GlobalNoticeService);
+    const transloco = TestBed.inject(TranslocoService);
+    transloco.setActiveLang('en');
+    await firstValueFrom(transloco.selectTranslate('auth.confirm.success'));
     notices.showSuccess('auth.confirm.success');
 
     fixture.detectChanges();
