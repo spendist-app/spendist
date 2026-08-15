@@ -1,9 +1,17 @@
-import { EnvironmentInjector, Injectable, OnDestroy, computed, inject, signal } from '@angular/core';
+import {
+  EnvironmentInjector,
+  Injectable,
+  OnDestroy,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { PostgrestError, Session, User } from '@supabase/supabase-js';
 import { SUPABASE_CLIENT } from './supabase';
 import { ensureDefaultCategoriesForUser } from './default-categories';
 import { DEFAULT_LANGUAGE, LanguageCode } from '../i18n/languages';
 import { logError } from './logger';
+import { safeAuthReturnUrl } from './auth-return-url';
 
 const DEFAULT_CURRENCY_ID = 1;
 
@@ -31,6 +39,14 @@ export interface SignUpPayload {
 export interface AuthResult {
   user?: User;
   error?: string;
+}
+
+export interface SignUpResult extends AuthResult {
+  confirmationRequired?: boolean;
+}
+
+export interface EmailConfirmationResult {
+  error?: 'invalid_or_expired';
 }
 
 export interface PasswordRecoveryResult {
@@ -63,18 +79,20 @@ export class AuthService implements OnDestroy {
   readonly loading = computed(() => this.authState().loading);
   readonly isAuthenticated = computed(() => !!this.session());
 
-  private readonly subscription = this.supabase.auth.onAuthStateChange((event, session) => {
-    this.runInContext(() => {
-      this.state.set({
-        session: session ?? null,
-        loading: false,
+  private readonly subscription = this.supabase.auth.onAuthStateChange(
+    (event, session) => {
+      this.runInContext(() => {
+        this.state.set({
+          session: session ?? null,
+          loading: false,
+        });
       });
-    });
 
-    if (session && (event === 'INITIAL_SESSION' || event === 'SIGNED_IN')) {
-      void this.seedDefaultCategories(session);
+      if (session && (event === 'INITIAL_SESSION' || event === 'SIGNED_IN')) {
+        void this.seedDefaultCategories(session);
+      }
     }
-  }).data.subscription;
+  ).data.subscription;
 
   constructor() {
     this.syncInitialSession();
@@ -191,7 +209,9 @@ export class AuthService implements OnDestroy {
   ): Promise<PasswordRecoveryResult> {
     const email = this.session()?.user.email;
     if (!email) {
-      return { error: 'You need to sign in again before changing your password.' };
+      return {
+        error: 'You need to sign in again before changing your password.',
+      };
     }
 
     const reauthResult = await this.signInWithPassword({
@@ -208,12 +228,9 @@ export class AuthService implements OnDestroy {
 
   async deleteAccount(password: string): Promise<AccountDeletionResult> {
     try {
-      const { error } = await this.supabase.functions.invoke(
-        'delete-account',
-        {
-          body: { password },
-        }
-      );
+      const { error } = await this.supabase.functions.invoke('delete-account', {
+        body: { password },
+      });
 
       if (error) {
         return { error: await this.accountDeletionError(error) };
@@ -232,18 +249,25 @@ export class AuthService implements OnDestroy {
     }
   }
 
-  async signUp(payload: SignUpPayload): Promise<AuthResult> {
+  async signUp(
+    payload: SignUpPayload,
+    returnUrl?: string | null
+  ): Promise<SignUpResult> {
     try {
+      const emailRedirectTo = this.resolveEmailConfirmationUrl(returnUrl);
       const { data, error } = await this.supabase.auth.signUp({
         email: payload.email,
         password: payload.password,
         options: {
+          emailRedirectTo,
           data: {
             username: payload.username,
             full_name: payload.fullName,
             language: payload.language ?? 'en',
-            default_currency_id: payload.defaultCurrencyId ?? DEFAULT_CURRENCY_ID,
-            wallet_currency_id: payload.defaultCurrencyId ?? DEFAULT_CURRENCY_ID,
+            default_currency_id:
+              payload.defaultCurrencyId ?? DEFAULT_CURRENCY_ID,
+            wallet_currency_id:
+              payload.defaultCurrencyId ?? DEFAULT_CURRENCY_ID,
             timezone: payload.timezone,
             avatar_url: payload.avatarUrl ?? null,
           },
@@ -262,14 +286,12 @@ export class AuthService implements OnDestroy {
       if (data.session) {
         const { error: profileError } = await this.supabase
           .from('profiles')
-          .update(
-          {
+          .update({
             full_name: payload.fullName,
             avatar_url: payload.avatarUrl ?? null,
             language: payload.language ?? 'en',
             timezone: payload.timezone,
-          }
-          )
+          })
           .eq('id', user.id);
 
         if (profileError) {
@@ -279,9 +301,103 @@ export class AuthService implements OnDestroy {
         await this.seedDefaultCategories(data.session);
       }
 
-      return { user };
+      return { user, confirmationRequired: !data.session };
     } catch (error) {
       return { error: this.normalizeUnknownError(error) };
+    }
+  }
+
+  async resendSignupConfirmation(
+    email: string,
+    returnUrl?: string | null
+  ): Promise<AuthResult> {
+    try {
+      const { error } = await this.supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: {
+          emailRedirectTo: this.resolveEmailConfirmationUrl(returnUrl),
+        },
+      });
+
+      return error ? { error: error.message } : {};
+    } catch (error) {
+      return { error: this.normalizeUnknownError(error) };
+    }
+  }
+
+  async confirmEmailFromUrl(url: string): Promise<EmailConfirmationResult> {
+    try {
+      const parsedUrl = new URL(url);
+      const params = new URLSearchParams(parsedUrl.search);
+      if (parsedUrl.hash.length > 1) {
+        const hashParams = new URLSearchParams(parsedUrl.hash.slice(1));
+        hashParams.forEach((value, key) => {
+          if (!params.has(key)) {
+            params.set(key, value);
+          }
+        });
+      }
+
+      if (
+        params.has('error') ||
+        params.has('error_code') ||
+        params.has('error_description')
+      ) {
+        return { error: 'invalid_or_expired' };
+      }
+
+      let session: Session | null = null;
+      const code = params.get('code');
+      if (code) {
+        const { data, error } = await this.supabase.auth.exchangeCodeForSession(
+          code
+        );
+        if (error) {
+          return { error: 'invalid_or_expired' };
+        }
+        session = data.session;
+      } else {
+        const accessToken = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
+        if (accessToken && refreshToken) {
+          const { data, error } = await this.supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (error) {
+            return { error: 'invalid_or_expired' };
+          }
+          session = data.session;
+        } else {
+          const tokenHash = params.get('token_hash');
+          const type = params.get('type');
+          if (tokenHash && (type === 'signup' || type === 'email')) {
+            const { data, error } = await this.supabase.auth.verifyOtp({
+              token_hash: tokenHash,
+              type,
+            });
+            if (error) {
+              return { error: 'invalid_or_expired' };
+            }
+            session = data.session;
+          } else {
+            return { error: 'invalid_or_expired' };
+          }
+        }
+      }
+
+      if (!session) {
+        return { error: 'invalid_or_expired' };
+      }
+
+      this.runInContext(() => {
+        this.state.set({ session, loading: false });
+      });
+      await this.seedDefaultCategories(session);
+      return {};
+    } catch {
+      return { error: 'invalid_or_expired' };
     }
   }
 
@@ -341,7 +457,11 @@ export class AuthService implements OnDestroy {
     ) as LanguageCode;
 
     try {
-      await ensureDefaultCategoriesForUser(this.supabase, session.user.id, userLanguage);
+      await ensureDefaultCategoriesForUser(
+        this.supabase,
+        session.user.id,
+        userLanguage
+      );
     } catch (seedError) {
       logError('AuthService', 'Failed to seed default categories', seedError);
     }
@@ -368,8 +488,7 @@ export class AuthService implements OnDestroy {
   }
 
   private async accountDeletionError(error: unknown): Promise<string> {
-    const genericKey =
-      'settings.panels.profile.accountDeletion.errors.generic';
+    const genericKey = 'settings.panels.profile.accountDeletion.errors.generic';
     if (!error || typeof error !== 'object' || !('context' in error)) {
       return genericKey;
     }
@@ -400,5 +519,16 @@ export class AuthService implements OnDestroy {
     }
 
     return new URL(path, window.location.origin).toString();
+  }
+
+  private resolveEmailConfirmationUrl(returnUrl?: string | null): string {
+    const redirectUrl = new URL(
+      this.resolveAuthRedirectUrl('/auth/confirm'),
+      typeof window === 'undefined'
+        ? 'http://localhost'
+        : window.location.origin
+    );
+    redirectUrl.searchParams.set('returnUrl', safeAuthReturnUrl(returnUrl));
+    return redirectUrl.toString();
   }
 }

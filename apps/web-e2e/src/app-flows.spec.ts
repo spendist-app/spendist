@@ -9,6 +9,66 @@ import {
 const DEFAULT_EMAIL = 'e2e-shared-user@gmail.com';
 const DEFAULT_PASSWORD = 'Test1234!';
 const DASHBOARD_HEADING = 'Your personalised command centre';
+const MAILPIT_API_URL = 'http://127.0.0.1:55324/api/v1';
+
+interface MailpitAddress {
+  Address?: string;
+}
+
+interface MailpitMessage {
+  ID?: string;
+  To?: MailpitAddress[];
+}
+
+async function waitForConfirmationEmail(
+  page: Page,
+  email: string,
+  minimumCount = 1
+): Promise<string> {
+  let matchingMessages: MailpitMessage[] = [];
+
+  await expect
+    .poll(
+      async () => {
+        const response = await page.request.get(`${MAILPIT_API_URL}/messages`);
+        expect(response.ok()).toBe(true);
+        const payload = (await response.json()) as {
+          messages?: MailpitMessage[];
+        };
+        matchingMessages = (payload.messages ?? []).filter((message) =>
+          message.To?.some(
+            (recipient) =>
+              recipient.Address?.toLowerCase() === email.toLowerCase()
+          )
+        );
+        return matchingMessages.length;
+      },
+      { timeout: 15000 }
+    )
+    .toBeGreaterThanOrEqual(minimumCount);
+
+  const messageId = matchingMessages[0]?.ID;
+  if (!messageId) {
+    throw new Error(`Missing confirmation email for ${email}.`);
+  }
+
+  const response = await page.request.get(
+    `${MAILPIT_API_URL}/message/${encodeURIComponent(messageId)}`
+  );
+  expect(response.ok()).toBe(true);
+  const message = JSON.stringify(await response.json())
+    .split('&amp;')
+    .join('&');
+  const confirmationUrl = message
+    .match(/https?:\/\/[^"'\\s<>]+/g)
+    ?.find((url: string) => url.includes('/auth/v1/verify'));
+
+  if (!confirmationUrl) {
+    throw new Error(`Confirmation email for ${email} has no verification URL.`);
+  }
+
+  return confirmationUrl;
+}
 
 function uniqueSuffix(testInfo: TestInfo): string {
   const randomPart = Math.random().toString(36).slice(2, 8);
@@ -385,7 +445,7 @@ test('shows password change validation in settings', async ({ page }) => {
   await expect(page.getByText('Passwords must match.')).toBeVisible();
 });
 
-test('registers a new account and opens dashboard', async ({
+test('confirms a new account, signs in once, and rejects a reused link', async ({
   page,
 }, testInfo) => {
   const suffix = uniqueSuffix(testInfo);
@@ -400,22 +460,34 @@ test('registers a new account and opens dashboard', async ({
   await page.getByLabel('First wallet currency').selectOption({ label: 'PLN' });
   await page.getByRole('button', { name: 'Sign up' }).click();
 
-  try {
-    await expect(page).toHaveURL(/\/dashboard$/, { timeout: 15000 });
-    await expect(
-      page.getByRole('heading', { name: DASHBOARD_HEADING })
-    ).toBeVisible();
-  } catch (error) {
-    const alerts = await page
-      .locator('[role="alert"], .alert, .text-error')
-      .allTextContents()
-      .catch(() => []);
-    throw new Error(
-      `Signup did not reach dashboard. Current URL: ${page.url()}. Alerts: ${
-        alerts.join(' | ') || 'none'
-      }. ${error instanceof Error ? error.message : String(error)}`
-    );
-  }
+  await expect(page).toHaveURL(/\/signup$/);
+  await expect(
+    page.getByRole('heading', { name: 'Check your email' })
+  ).toBeVisible();
+  await expect(page.getByText(email, { exact: true })).toBeVisible();
+
+  await waitForConfirmationEmail(page, email);
+  await page.waitForTimeout(1100);
+  await page
+    .getByRole('button', { name: 'Send the confirmation email again' })
+    .click();
+  await expect(
+    page.getByText(
+      'If the account still needs confirmation, a new email has been sent.'
+    )
+  ).toBeVisible();
+  const confirmationUrl = await waitForConfirmationEmail(page, email, 2);
+
+  await page.goto(confirmationUrl);
+  await expect(page).toHaveURL(/\/dashboard$/, { timeout: 15000 });
+  await expect(
+    page.getByText(
+      'Email confirmed. You are signed in and can start using Spendist.'
+    )
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: DASHBOARD_HEADING })
+  ).toBeVisible();
 
   await openSettingsPanel(page, 'Categories');
   await expect(page.getByText('Food').first()).toBeVisible();
@@ -424,6 +496,22 @@ test('registers a new account and opens dashboard', async ({
 
   await expectDefaultCategoryGroups(page);
 
+  await page.getByRole('button', { name: 'Settings' }).click();
+  await page.getByRole('menuitem', { name: 'Sign out' }).click();
+  await page.goto(confirmationUrl);
+  await expect(
+    page.getByRole('heading', {
+      name: 'This confirmation link cannot be used',
+    })
+  ).toBeVisible({ timeout: 15000 });
+
+  await page.getByRole('link', { name: 'Back to login' }).click();
+  await fillStableInput(page.locator('#email'), email);
+  await fillStableInput(page.locator('#password'), DEFAULT_PASSWORD);
+  await page.getByRole('button', { name: 'Log in' }).click();
+  await expect(page).toHaveURL(/\/dashboard$/, { timeout: 15000 });
+
+  await openSettings(page);
   await page.getByRole('button', { name: /^Profile\b/ }).click();
   await page.getByRole('button', { name: 'Delete my account' }).click();
 

@@ -339,8 +339,31 @@ const en = {
         'We preselect this from your browser language or region, but you can change it.',
       submitIdle: 'Sign up',
       submitBusy: 'Creating account...',
+      confirmationTitle: 'Check your email',
+      confirmationDescription:
+        'We sent an account confirmation link to this address:',
+      confirmationSpamHint:
+        'Open the link to activate your account. Check your spam folder if it does not arrive.',
+      resendIdle: 'Send the confirmation email again',
+      resendBusy: 'Sending...',
+      resendSuccess:
+        'If the account still needs confirmation, a new email has been sent.',
+      resendError:
+        'We could not send another confirmation email. Wait a moment and try again.',
+      backToLogin: 'Back to login',
       tosNotice:
         'By continuing you agree to our future Terms of Service and Privacy Policy.',
+    },
+    confirm: {
+      processingTitle: 'Confirming your email',
+      processingDescription: 'This will only take a moment.',
+      success:
+        'Email confirmed. You are signed in and can start using Spendist.',
+      errorTitle: 'This confirmation link cannot be used',
+      errorDescription:
+        'It may have expired or already been used. Register again to request a new link, or log in if the account is already active.',
+      signupAgain: 'Register again',
+      backToLogin: 'Back to login',
     },
   },
   settings: {
@@ -1225,22 +1248,79 @@ const en = {
   mortgages: {
     badge: 'Modules',
     title: 'Mortgage loans',
-    description: 'Build an understandable repayment projection, test overpayments and payment holidays, then synchronize protected planned installments with a wallet.',
+    description:
+      'Build an understandable repayment projection, test overpayments and payment holidays, then synchronize protected planned installments with a wallet.',
     months: 'months',
     projected: 'projection',
     chart: 'Remaining mortgage principal over time',
-    disclaimer: 'This is an estimate for personal planning, not a bank statement or financial advice. Future variable rates use the latest available WIBOR value and remain planned until a fixing is confirmed.',
+    disclaimer:
+      'This is an estimate for personal planning, not a bank statement or financial advice. Future variable rates use the latest available WIBOR value and remain planned until a fixing is confirmed.',
     steps: { 1: 'Loan', 2: 'Interest', 3: 'Events', 4: 'Simulation' },
-    list: { title: 'Your mortgages', empty: 'No mortgage has been created yet.', attached: 'In wallet' },
-    empty: { title: 'Create or select a mortgage', body: 'The guided form explains each decision and ends with a repayment simulation.' },
-    fields: { name: 'Mortgage name', principal: 'Loan amount', currency: 'Currency', disbursedOn: 'Disbursement date', firstInstallmentOn: 'First installment date', termMonths: 'Loan term in months', installmentType: 'Installment type', wallet: 'Wallet', category: 'Expense category', upfrontCost: 'Initial loan cost', margin: 'Bank margin (%)', wiborTenor: 'Reference rate', fixedRate: 'Fixed rate (%)' },
-    options: { equal: 'Equal installments', decreasing: 'Decreasing installments', fixed: 'Fixed interest', variable: 'Variable interest', shorten: 'Shorten the term', reduce: 'Reduce the installment' },
-    rateHelp: 'Add consecutive periods covering the whole loan. A fixed period uses its nominal rate. A variable period uses the margin plus the selected WIBOR tenor.',
+    list: {
+      title: 'Your mortgages',
+      empty: 'No mortgage has been created yet.',
+      attached: 'In wallet',
+    },
+    empty: {
+      title: 'Create or select a mortgage',
+      body: 'The guided form explains each decision and ends with a repayment simulation.',
+    },
+    fields: {
+      name: 'Mortgage name',
+      principal: 'Loan amount',
+      currency: 'Currency',
+      disbursedOn: 'Disbursement date',
+      firstInstallmentOn: 'First installment date',
+      termMonths: 'Loan term in months',
+      installmentType: 'Installment type',
+      wallet: 'Wallet',
+      category: 'Expense category',
+      upfrontCost: 'Initial loan cost',
+      margin: 'Bank margin (%)',
+      wiborTenor: 'Reference rate',
+      fixedRate: 'Fixed rate (%)',
+    },
+    options: {
+      equal: 'Equal installments',
+      decreasing: 'Decreasing installments',
+      fixed: 'Fixed interest',
+      variable: 'Variable interest',
+      shorten: 'Shorten the term',
+      reduce: 'Reduce the installment',
+    },
+    rateHelp:
+      'Add consecutive periods covering the whole loan. A fixed period uses its nominal rate. A variable period uses the margin plus the selected WIBOR tenor.',
     overpayments: { title: 'Overpayments' },
-    holidays: { title: 'Payment holidays', help: 'A full payment holiday has no capital or interest payment and extends the schedule.' },
+    holidays: {
+      title: 'Payment holidays',
+      help: 'A full payment holiday has no capital or interest payment and extends the schedule.',
+    },
     summary: { total: 'Total payments', interest: 'Total interest' },
-    table: { date: 'Date', payment: 'Payment', principal: 'Principal', interest: 'Interest', remaining: 'Remaining', rate: 'Rate' },
-    actions: { add: 'Create mortgage', addPeriod: 'Add interest period', addOverpayment: 'Add overpayment', addHoliday: 'Add holiday', simulate: 'Generate repayment simulation', attachTransactions: 'Add transactions to wallet', updateTransactions: 'Recalculate wallet transactions', detachTransactions: 'Remove from transactions', delete: 'Delete mortgage', attachConfirm: 'Add all generated entries to the selected wallet?', updateConfirm: 'Replace all linked mortgage transactions, including historical entries, with this simulation?', detachConfirm: 'Remove all linked mortgage transactions without deleting the mortgage?', deleteConfirm: 'Delete “{{ name }}” and its simulation?' },
+    table: {
+      date: 'Date',
+      payment: 'Payment',
+      principal: 'Principal',
+      interest: 'Interest',
+      remaining: 'Remaining',
+      rate: 'Rate',
+    },
+    actions: {
+      add: 'Create mortgage',
+      addPeriod: 'Add interest period',
+      addOverpayment: 'Add overpayment',
+      addHoliday: 'Add holiday',
+      simulate: 'Generate repayment simulation',
+      attachTransactions: 'Add transactions to wallet',
+      updateTransactions: 'Recalculate wallet transactions',
+      detachTransactions: 'Remove from transactions',
+      delete: 'Delete mortgage',
+      attachConfirm: 'Add all generated entries to the selected wallet?',
+      updateConfirm:
+        'Replace all linked mortgage transactions, including historical entries, with this simulation?',
+      detachConfirm:
+        'Remove all linked mortgage transactions without deleting the mortgage?',
+      deleteConfirm: 'Delete “{{ name }}” and its simulation?',
+    },
   },
   places: {
     badge: 'Modules',
