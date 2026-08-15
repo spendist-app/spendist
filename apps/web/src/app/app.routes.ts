@@ -64,6 +64,13 @@ export const appRoutes: Route[] = [
       ),
   },
   {
+    path: 'auth/confirm',
+    loadComponent: () =>
+      import('./pages/auth-confirm/auth-confirm.page').then(
+        (m) => m.AuthConfirmPageComponent
+      ),
+  },
+  {
     path: 'signup',
     canActivate: [redirectAuthenticatedToHomeGuard],
     loadComponent: () =>

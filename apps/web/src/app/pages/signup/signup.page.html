@@ -4,6 +4,55 @@
   <div
     class="w-full max-w-md space-y-8 rounded-2xl bg-base-100/70 p-8 shadow-xl backdrop-blur"
   >
+    @if (pendingEmail(); as email) {
+    <header class="space-y-3 text-center" role="status" aria-live="polite">
+      <div
+        class="mx-auto flex size-14 items-center justify-center rounded-full bg-success/15 text-2xl text-success"
+        aria-hidden="true"
+      >
+        ✓
+      </div>
+      <h1 class="text-3xl font-semibold leading-tight">
+        {{ 'auth.signup.confirmationTitle' | transloco }}
+      </h1>
+      <p class="text-base-content/70">
+        {{ 'auth.signup.confirmationDescription' | transloco }}
+      </p>
+      <p class="break-all font-semibold">{{ email }}</p>
+      <p class="text-sm text-base-content/60">
+        {{ 'auth.signup.confirmationSpamHint' | transloco }}
+      </p>
+    </header>
+
+    @if (resendStatus() === 'success') {
+    <p class="alert alert-success text-sm" role="status">
+      {{ 'auth.signup.resendSuccess' | transloco }}
+    </p>
+    } @else if (resendStatus() === 'error') {
+    <p class="alert alert-error text-sm" role="alert">
+      {{ 'auth.signup.resendError' | transloco }}
+    </p>
+    }
+
+    <button
+      class="btn btn-primary w-full"
+      type="button"
+      [disabled]="resending()"
+      (click)="resendConfirmation()"
+    >
+      @if (resending()) {
+      <span
+        class="loading loading-spinner loading-sm"
+        aria-hidden="true"
+      ></span>
+      {{ 'auth.signup.resendBusy' | transloco }} } @else { {{
+      'auth.signup.resendIdle' | transloco }} }
+    </button>
+
+    <a class="btn btn-ghost w-full" routerLink="/login">
+      {{ 'auth.signup.backToLogin' | transloco }}
+    </a>
+    } @else {
     <header class="space-y-2 text-center">
       <h1 class="text-3xl font-semibold leading-tight">
         {{ 'auth.signup.title' | transloco }}
@@ -148,5 +197,6 @@
     <p class="text-xs text-base-content/60 text-center">
       {{ 'auth.signup.tosNotice' | transloco }}
     </p>
+    }
   </div>
 </section>

@@ -339,8 +339,30 @@ const pl = {
         'Podpowiadamy ją na podstawie języka lub regionu przeglądarki, ale możesz ją zmienić.',
       submitIdle: 'Zarejestruj się',
       submitBusy: 'Tworzenie konta...',
+      confirmationTitle: 'Sprawdź pocztę',
+      confirmationDescription: 'Wysłaliśmy link potwierdzający konto na adres:',
+      confirmationSpamHint:
+        'Otwórz link, aby aktywować konto. Jeśli wiadomości nie ma, sprawdź folder spam.',
+      resendIdle: 'Wyślij wiadomość ponownie',
+      resendBusy: 'Wysyłanie...',
+      resendSuccess:
+        'Jeśli konto nadal wymaga potwierdzenia, wysłaliśmy nową wiadomość.',
+      resendError:
+        'Nie udało się wysłać kolejnej wiadomości. Poczekaj chwilę i spróbuj ponownie.',
+      backToLogin: 'Wróć do logowania',
       tosNotice:
         'Kontynuując, akceptujesz przyszły regulamin oraz politykę prywatności.',
+    },
+    confirm: {
+      processingTitle: 'Potwierdzamy Twój adres e-mail',
+      processingDescription: 'To potrwa tylko chwilę.',
+      success:
+        'Adres e-mail został potwierdzony. Jesteś zalogowany i możesz zacząć korzystać ze Spendist.',
+      errorTitle: 'Nie można użyć tego linku potwierdzającego',
+      errorDescription:
+        'Link mógł wygasnąć lub został już użyty. Zarejestruj się ponownie, aby otrzymać nowy link, albo zaloguj się, jeśli konto jest już aktywne.',
+      signupAgain: 'Zarejestruj się ponownie',
+      backToLogin: 'Wróć do logowania',
     },
   },
   settings: {
@@ -1236,22 +1258,80 @@ const pl = {
   mortgages: {
     badge: 'Moduły',
     title: 'Kredyty hipoteczne',
-    description: 'Przygotuj zrozumiałą prognozę spłaty, sprawdź nadpłaty i wakacje kredytowe, a potem zsynchronizuj chronione planowane raty z portfelem.',
+    description:
+      'Przygotuj zrozumiałą prognozę spłaty, sprawdź nadpłaty i wakacje kredytowe, a potem zsynchronizuj chronione planowane raty z portfelem.',
     months: 'miesięcy',
     projected: 'prognoza',
     chart: 'Pozostały kapitał kredytu w czasie',
-    disclaimer: 'To szacunek do planowania finansów, a nie harmonogram banku ani porada finansowa. Przyszłe raty zmienne korzystają z ostatniej dostępnej wartości WIBOR i pozostają planowane do potwierdzenia stawki.',
+    disclaimer:
+      'To szacunek do planowania finansów, a nie harmonogram banku ani porada finansowa. Przyszłe raty zmienne korzystają z ostatniej dostępnej wartości WIBOR i pozostają planowane do potwierdzenia stawki.',
     steps: { 1: 'Kredyt', 2: 'Oprocentowanie', 3: 'Zdarzenia', 4: 'Symulacja' },
-    list: { title: 'Twoje kredyty', empty: 'Nie utworzono jeszcze kredytu.', attached: 'W portfelu' },
-    empty: { title: 'Utwórz lub wybierz kredyt', body: 'Prosty formularz prowadzi przez decyzje i kończy się symulacją spłaty.' },
-    fields: { name: 'Nazwa kredytu', principal: 'Kwota kredytu', currency: 'Waluta', disbursedOn: 'Data uruchomienia', firstInstallmentOn: 'Data pierwszej raty', termMonths: 'Okres kredytowania w miesiącach', installmentType: 'Rodzaj rat', wallet: 'Portfel', category: 'Kategoria wydatku', upfrontCost: 'Początkowy koszt kredytu', margin: 'Marża banku (%)', wiborTenor: 'Stawka referencyjna', fixedRate: 'Stałe oprocentowanie (%)' },
-    options: { equal: 'Raty stałe', decreasing: 'Raty malejące', fixed: 'Oprocentowanie stałe', variable: 'Oprocentowanie zmienne', shorten: 'Skróć okres', reduce: 'Zmniejsz ratę' },
-    rateHelp: 'Dodaj kolejne okresy obejmujące cały kredyt. Okres stały używa podanego oprocentowania nominalnego. Okres zmienny używa marży i wybranego WIBOR-u.',
+    list: {
+      title: 'Twoje kredyty',
+      empty: 'Nie utworzono jeszcze kredytu.',
+      attached: 'W portfelu',
+    },
+    empty: {
+      title: 'Utwórz lub wybierz kredyt',
+      body: 'Prosty formularz prowadzi przez decyzje i kończy się symulacją spłaty.',
+    },
+    fields: {
+      name: 'Nazwa kredytu',
+      principal: 'Kwota kredytu',
+      currency: 'Waluta',
+      disbursedOn: 'Data uruchomienia',
+      firstInstallmentOn: 'Data pierwszej raty',
+      termMonths: 'Okres kredytowania w miesiącach',
+      installmentType: 'Rodzaj rat',
+      wallet: 'Portfel',
+      category: 'Kategoria wydatku',
+      upfrontCost: 'Początkowy koszt kredytu',
+      margin: 'Marża banku (%)',
+      wiborTenor: 'Stawka referencyjna',
+      fixedRate: 'Stałe oprocentowanie (%)',
+    },
+    options: {
+      equal: 'Raty stałe',
+      decreasing: 'Raty malejące',
+      fixed: 'Oprocentowanie stałe',
+      variable: 'Oprocentowanie zmienne',
+      shorten: 'Skróć okres',
+      reduce: 'Zmniejsz ratę',
+    },
+    rateHelp:
+      'Dodaj kolejne okresy obejmujące cały kredyt. Okres stały używa podanego oprocentowania nominalnego. Okres zmienny używa marży i wybranego WIBOR-u.',
     overpayments: { title: 'Nadpłaty' },
-    holidays: { title: 'Wakacje kredytowe', help: 'Pełne wakacje nie naliczają raty kapitałowej ani odsetkowej i wydłużają harmonogram.' },
+    holidays: {
+      title: 'Wakacje kredytowe',
+      help: 'Pełne wakacje nie naliczają raty kapitałowej ani odsetkowej i wydłużają harmonogram.',
+    },
     summary: { total: 'Suma płatności', interest: 'Suma odsetek' },
-    table: { date: 'Data', payment: 'Rata', principal: 'Kapitał', interest: 'Odsetki', remaining: 'Pozostało', rate: 'Oprocentowanie' },
-    actions: { add: 'Utwórz kredyt', addPeriod: 'Dodaj okres oprocentowania', addOverpayment: 'Dodaj nadpłatę', addHoliday: 'Dodaj wakacje', simulate: 'Wygeneruj symulację rat', attachTransactions: 'Dodaj transakcje do portfela', updateTransactions: 'Przelicz transakcje w portfelu', detachTransactions: 'Usuń z transakcji', delete: 'Usuń kredyt', attachConfirm: 'Dodać wszystkie wygenerowane wpisy do wybranego portfela?', updateConfirm: 'Zastąpić wszystkie transakcje kredytu, także historyczne, tą symulacją?', detachConfirm: 'Usunąć wszystkie powiązane transakcje bez usuwania kredytu?', deleteConfirm: 'Usunąć „{{ name }}” wraz z symulacją?' },
+    table: {
+      date: 'Data',
+      payment: 'Rata',
+      principal: 'Kapitał',
+      interest: 'Odsetki',
+      remaining: 'Pozostało',
+      rate: 'Oprocentowanie',
+    },
+    actions: {
+      add: 'Utwórz kredyt',
+      addPeriod: 'Dodaj okres oprocentowania',
+      addOverpayment: 'Dodaj nadpłatę',
+      addHoliday: 'Dodaj wakacje',
+      simulate: 'Wygeneruj symulację rat',
+      attachTransactions: 'Dodaj transakcje do portfela',
+      updateTransactions: 'Przelicz transakcje w portfelu',
+      detachTransactions: 'Usuń z transakcji',
+      delete: 'Usuń kredyt',
+      attachConfirm:
+        'Dodać wszystkie wygenerowane wpisy do wybranego portfela?',
+      updateConfirm:
+        'Zastąpić wszystkie transakcje kredytu, także historyczne, tą symulacją?',
+      detachConfirm:
+        'Usunąć wszystkie powiązane transakcje bez usuwania kredytu?',
+      deleteConfirm: 'Usunąć „{{ name }}” wraz z symulacją?',
+    },
   },
   places: {
     badge: 'Moduły',

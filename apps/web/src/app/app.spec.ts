@@ -2,12 +2,15 @@ import { TestBed } from '@angular/core/testing';
 import { signal, computed } from '@angular/core';
 import { By } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
+import { TranslocoService } from '@ngneat/transloco';
+import { firstValueFrom } from 'rxjs';
 import { App } from './app';
 import { AuthService } from './core/auth.service';
 import { NavbarComponent } from './core/navbar/navbar.component';
 import { NotificationsStore } from './core/notifications/notifications.store';
 import { ProfileService } from './core/profile.service';
 import { provideAppTransloco } from './i18n/transloco.providers';
+import { GlobalNoticeService } from './core/global-notice.service';
 
 class AuthServiceStub {
   private readonly state = signal({
@@ -103,14 +106,41 @@ describe('App', () => {
       ],
     }).compileComponents();
     authStub = TestBed.inject(AuthService) as AuthServiceStub;
-    notificationsStub = TestBed.inject(NotificationsStore) as unknown as NotificationsStoreStub;
-    profileStub = TestBed.inject(ProfileService) as unknown as ProfileServiceStub;
+    notificationsStub = TestBed.inject(
+      NotificationsStore
+    ) as unknown as NotificationsStoreStub;
+    profileStub = TestBed.inject(
+      ProfileService
+    ) as unknown as ProfileServiceStub;
   });
 
   it('should create app shell', () => {
     const fixture = TestBed.createComponent(App);
     const appInstance = fixture.componentInstance;
     expect(appInstance).toBeTruthy();
+  });
+
+  it('shows and dismisses a global success notice', async () => {
+    const fixture = TestBed.createComponent(App);
+    const notices = TestBed.inject(GlobalNoticeService);
+    const transloco = TestBed.inject(TranslocoService);
+    transloco.setActiveLang('en');
+    await firstValueFrom(transloco.selectTranslate('auth.confirm.success'));
+    notices.showSuccess('auth.confirm.success');
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const status = compiled.querySelector('[role="status"]');
+    expect(status?.textContent).toContain('Email confirmed');
+
+    const dismissButton = status?.querySelector('button');
+    dismissButton?.click();
+    fixture.detectChanges();
+
+    expect(compiled.querySelector('[role="status"]')).toBeFalsy();
   });
 
   it('should show guest navigation when signed out', () => {
@@ -121,7 +151,9 @@ describe('App', () => {
     expect(compiled.querySelector('a[href="/signup"]')).toBeTruthy();
     expect(compiled.querySelector('a[href="/dashboard"]')).toBeFalsy();
     expect(compiled.querySelector('a[href="/transactions"]')).toBeFalsy();
-    expect(compiled.querySelector('a[href="/modules/recurring-payments"]')).toBeFalsy();
+    expect(
+      compiled.querySelector('a[href="/modules/recurring-payments"]')
+    ).toBeFalsy();
   });
 
   it('should switch guest language with accessible flag buttons', async () => {
@@ -175,9 +207,7 @@ describe('App', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    const avatarImage = compiled.querySelector<HTMLImageElement>(
-      '.avatar img'
-    );
+    const avatarImage = compiled.querySelector<HTMLImageElement>('.avatar img');
 
     expect(avatarImage?.src).toBe('https://cdn.example.test/avatar.png?v=1');
   });
@@ -188,7 +218,9 @@ describe('App', () => {
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('app-notifications-menu')).toBeTruthy();
-    expect(compiled.querySelector('app-notifications-menu button.btn-circle')).toBeTruthy();
+    expect(
+      compiled.querySelector('app-notifications-menu button.btn-circle')
+    ).toBeTruthy();
   });
 
   it('should show unread notification badge', () => {
@@ -198,7 +230,9 @@ describe('App', () => {
     notificationsStub.hasUnread.set(true);
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('.badge-primary')?.textContent?.trim()).toBe('3');
+    expect(compiled.querySelector('.badge-primary')?.textContent?.trim()).toBe(
+      '3'
+    );
   });
 
   it('should show notification empty state', () => {
@@ -206,7 +240,9 @@ describe('App', () => {
     authStub.setAuthenticated(true);
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('app-notifications-menu .text-center')).toBeTruthy();
+    expect(
+      compiled.querySelector('app-notifications-menu .text-center')
+    ).toBeTruthy();
   });
 
   it('should show build commit in about dialog', () => {
@@ -246,7 +282,9 @@ describe('App', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    const readAllButton = compiled.querySelector('app-notifications-menu button.btn-xs') as HTMLButtonElement | null;
+    const readAllButton = compiled.querySelector(
+      'app-notifications-menu button.btn-xs'
+    ) as HTMLButtonElement | null;
     readAllButton?.click();
 
     expect(notificationsStub.markAllCalls).toBe(1);
@@ -266,7 +304,9 @@ describe('App', () => {
     ]);
     fixture.detectChanges();
 
-    const button = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>(
+    const button = (
+      fixture.nativeElement as HTMLElement
+    ).querySelector<HTMLButtonElement>(
       'app-notifications-menu li button[aria-label]'
     );
     button?.click();

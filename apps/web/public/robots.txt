@@ -8,6 +8,7 @@ Disallow: /login
 Disallow: /signup
 Disallow: /forgot-password
 Disallow: /reset-password
+Disallow: /auth/
 Disallow: /dashboard
 Disallow: /home
 Disallow: /transactions

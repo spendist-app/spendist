@@ -1,0 +1,22 @@
+@if (notices.notice(); as notice) {
+<aside
+  class="toast toast-top toast-end top-20 z-[80] w-full max-w-sm px-4"
+  aria-live="polite"
+  aria-atomic="true"
+>
+  <div
+    class="alert alert-success grid grid-cols-[1fr_auto] items-start gap-3 rounded-2xl shadow-2xl"
+    role="status"
+  >
+    <p class="font-medium">{{ notice.messageKey | transloco }}</p>
+    <button
+      type="button"
+      class="btn btn-ghost btn-xs btn-circle"
+      [attr.aria-label]="'common.actions.dismiss' | transloco"
+      (click)="notices.dismiss()"
+    >
+      ✕
+    </button>
+  </div>
+</aside>
+}
