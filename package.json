@@ -10,6 +10,7 @@
     "build:worker": "nx build web --configuration production",
     "deploy:worker": "npx --yes wrangler@4 deploy --config wrangler.toml",
     "test": "nx test web",
+    "test:recurring-edge": "node supabase/functions/process-recurring-payments/schedule.test.mts",
     "lint": "nx lint web",
     "e2e": "nx e2e web-e2e",
     "format": "nx format:write",

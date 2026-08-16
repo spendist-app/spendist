@@ -146,6 +146,7 @@ npm run docker:test        # Docker orchestration unit tests
 npm run build              # production Angular build
 npm run build:worker       # Cloudflare Worker-ready production build
 npm run test               # Vitest unit tests for web
+npm run test:recurring-edge # recurring scheduling unit tests
 npm run lint               # ESLint for web
 npm run e2e                # Playwright E2E suite
 npm run format:check       # Prettier check

@@ -100,8 +100,21 @@ function futureDateInput(daysFromToday: number): string {
 }
 
 function previousMonthStartInput(): string {
+  return monthStartInput(1);
+}
+
+function monthStartInput(monthsAgo: number): string {
   const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1))
+  return new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - monthsAgo, 1)
+  )
+    .toISOString()
+    .slice(0, 10);
+}
+
+function previousMonthEndInput(): string {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 0))
     .toISOString()
     .slice(0, 10);
 }
@@ -1291,12 +1304,12 @@ test('adds recurring payment with selected currency', async ({
   await expect(page.getByText('USD')).toBeVisible();
 });
 
-test('backfills transactions for a recurring payment started in the past', async ({
+test('backfills transactions for a recurring payment ended in the past', async ({
   page,
 }, testInfo) => {
   const name = `E2E recurring history ${uniqueSuffix(testInfo)}`;
-  const startDate = previousMonthStartInput();
-  const today = futureDateInput(0);
+  const startDate = monthStartInput(2);
+  const endDate = previousMonthEndInput();
 
   await ensureAuthenticated(page);
   await openModule(page, 'Recurring payments', 'Active recurring payments');
@@ -1313,6 +1326,7 @@ test('backfills transactions for a recurring payment started in the past', async
   await page.locator('#recurring-schedule-frequency').selectOption('monthly');
   await page.locator('input[formcontrolname="scheduleDayOfMonth"]').fill('1');
   await page.locator('#recurring-start-date').fill(startDate);
+  await page.locator('#recurring-end-date').fill(endDate);
 
   const backfillResponse = page.waitForResponse(
     (response) =>
@@ -1338,7 +1352,7 @@ test('backfills transactions for a recurring payment started in the past', async
   ).toHaveCount(0);
 
   await openTransactions(page);
-  await filterTransactionsByRange(page, startDate, today);
+  await filterTransactionsByRange(page, startDate, endDate);
   await expect(
     page.locator('#transactions-results > ul > li').filter({ hasText: name })
   ).toHaveCount(2);
