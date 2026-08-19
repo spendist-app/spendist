@@ -1,5 +1,7 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { TranslocoService } from '@ngneat/transloco';
+import { firstValueFrom } from 'rxjs';
 import { provideAppTransloco } from '../../i18n/transloco.providers';
 import { TransactionCreateFormComponent } from './transaction-create-form.component';
 import { TransactionsStore } from './transactions.store';
@@ -69,10 +71,15 @@ class TransactionsStoreStub {
   ]);
   readonly defaultCurrency = signal('PLN');
   readonly defaultWalletId = signal('wallet-1');
+  readonly allowanceConnections = signal([
+    { id: 'connection-1', counterpartName: 'Ada' },
+  ]);
   readonly transactionMutationPending = signal(false);
   readonly mutationError = signal(null);
   getExchangeRateCalls = 0;
   createTransactionsCalls = 0;
+  createTransactionsPayload: Record<string, unknown> | null = null;
+  recipientExpensePayload: Record<string, unknown> | null = null;
 
   dismissMutationError(): void {
     return;
@@ -87,8 +94,18 @@ class TransactionsStoreStub {
     return 4;
   }
 
-  async createTransactions(): Promise<{ success: true }> {
+  async createTransactions(
+    payload: Record<string, unknown>
+  ): Promise<{ success: true }> {
     this.createTransactionsCalls += 1;
+    this.createTransactionsPayload = payload;
+    return { success: true };
+  }
+
+  async createAllowanceRecipientExpense(
+    payload: Record<string, unknown>
+  ): Promise<{ success: true }> {
+    this.recipientExpensePayload = payload;
     return { success: true };
   }
 
@@ -132,6 +149,80 @@ describe('TransactionCreateFormComponent', () => {
     );
 
     expect(options).toEqual(['PLN', 'EUR', 'USD']);
+  });
+
+  it('provides the Polish allowance recipient field label', async () => {
+    const transloco = TestBed.inject(TranslocoService);
+    transloco.setActiveLang('pl');
+    const label = await firstValueFrom(
+      transloco.selectTranslate('transactions.form.fields.allowanceRecipient')
+    );
+
+    expect(label).toBe('Odbiorca kieszonkowego');
+  });
+
+  it('creates an expense only on the selected child account', async () => {
+    const fixture = TestBed.createComponent(TransactionCreateFormComponent);
+    const store = TestBed.inject(
+      TransactionsStore
+    ) as unknown as TransactionsStoreStub;
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance;
+    component['form'].patchValue({
+      description: 'Ice cream',
+      amount: '12.50',
+      currency: 'PLN',
+      direction: 'income',
+      quantity: 4,
+    });
+    component['form'].controls.transactionTarget.setValue(
+      'recipient-expense:connection-1'
+    );
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('app-category-select')).toBeNull();
+    expect(compiled.querySelector('app-tag-picker')).toBeNull();
+    expect(compiled.querySelector('[formControlName="walletId"]')).toBeNull();
+    expect(component['form'].controls.direction.value).toBe('expense');
+    expect(component['form'].controls.quantity.value).toBe(1);
+
+    await component['submit']();
+
+    expect(store.recipientExpensePayload).toMatchObject({
+      connectionId: 'connection-1',
+      description: 'Ice cream',
+      amount: 12.5,
+      currency: 'PLN',
+    });
+    expect(store.createTransactionsCalls).toBe(0);
+  });
+
+  it('keeps the existing paired Allowance transaction target', async () => {
+    const fixture = TestBed.createComponent(TransactionCreateFormComponent);
+    const store = TestBed.inject(
+      TransactionsStore
+    ) as unknown as TransactionsStoreStub;
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance;
+    component['form'].patchValue({
+      transactionTarget: 'allowance-transfer:connection-1',
+      description: 'Weekly allowance',
+      amount: '25',
+      categoryId: 'category-1',
+      walletId: 'wallet-1',
+    });
+
+    await component['submit']();
+
+    expect(store.createTransactionsPayload).toMatchObject({
+      allowanceConnectionId: 'connection-1',
+      direction: 'expense',
+      quantity: 1,
+    });
+    expect(store.recipientExpensePayload).toBeNull();
   });
 
   it('focuses the full-width description field when creating a transaction', async () => {

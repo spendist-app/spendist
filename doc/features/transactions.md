@@ -6,6 +6,15 @@ Transactions are Spendist's core financial records. A transaction is income or e
 
 Users can create, edit, duplicate, and delete individual records. Bulk entry can add multiple transactions from pasted rows. Clipboard table parsing is enabled by default and splits tab-, comma-, or semicolon-delimited data into columns. Users can turn it off per bulk-entry session to paste the complete clipboard text into the focused field.
 
+When the signed-in user has an active Allowance connection as a payer, the
+single-transaction form includes a `Where should it be recorded?` target. The
+user can record the transaction only on their own account, create the existing
+paired allowance expense and recipient income, or create an expense only on
+the recipient's account. A recipient-only expense uses the recipient's default
+wallet and system Allowance spending category and does not affect the payer's
+transaction history or totals. The payer manages these delegated entries from
+the Allowance module while the connection is active.
+
 ## Browsing and analysis
 
 The transaction page supports search, category and tag multi-select filters, place and amount filters, exact date ranges, period presets (current/previous month and year), and sorting by date, amount, or description. With no category restriction, every category checkbox is shown as selected. Clicking a category activates only that category; further clicks can build a multi-category selection without implicitly adding descendants. Selecting a group includes all categories in that group, and group checkboxes show a partial state when only some categories are selected. Clearing the category filter restores the all-selected state. Empty categories can be hidden with a pressed filter button. Category and tag totals use the same completed-transaction scope as the visible list, so planned mortgage entries do not advertise results that the list intentionally hides.

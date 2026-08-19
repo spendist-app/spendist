@@ -20,6 +20,19 @@ identifier supplies the Allowance badge and keeps amount and currency in sync.
 The payer can remove both entries; the recipient can organize local category,
 wallet, tags, place, description, and date without exposing those choices.
 
+A payer can also record a purchase directly on a recipient's account, for
+example when a child pays for an item from their allowance while the payer is
+signed in. This creates only an expense owned by the recipient, so it never
+appears in the payer's transaction list, balances, or analysis. Spendist uses
+the recipient's current default wallet and a localized system expense category
+named `Allowance spending` (`Wydatki z kieszonkowego` in Polish), then notifies
+the recipient.
+
+While the connection remains active, the payer can review, edit, and delete
+expenses they created this way from the Allowance module. The recipient can
+also manage the transaction as an ordinary expense. Disconnecting preserves
+the transaction but removes the payer's access to it.
+
 Allowance schedules reuse recurring payments, including daily, weekly, monthly,
 fixed, and variable amount behavior. They remain visible in Recurring payments
 with an Allowance badge. Editing a schedule affects future occurrences only.

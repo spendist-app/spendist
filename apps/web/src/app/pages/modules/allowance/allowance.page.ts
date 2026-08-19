@@ -1,11 +1,24 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, effect, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  NonNullableFormBuilder,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { TranslocoPipe, TranslocoService } from '@ngneat/transloco';
 import { TransactionsStore } from '../../transactions/transactions.store';
 import { nextScheduledOccurrence } from '../recurring-payments/recurring-schedule';
 import {
   AllowanceConnection,
+  AllowanceRecipientExpense,
   AllowanceSchedule,
   AllowanceService,
 } from './allowance.service';
@@ -65,6 +78,20 @@ export class AllowancePageComponent implements OnInit {
   readonly incoming = computed(() =>
     this.allowance.connections().filter((item) => item.role === 'recipient')
   );
+  readonly editingRecipientExpenseId = signal<string | null>(null);
+
+  readonly recipientExpenseForm = this.formBuilder.group({
+    description: this.formBuilder.control('', Validators.maxLength(120)),
+    occurredOn: this.formBuilder.control('', Validators.required),
+    amount: this.formBuilder.control(0, [
+      Validators.required,
+      Validators.min(0.01),
+    ]),
+    currency: this.formBuilder.control('PLN', [
+      Validators.required,
+      Validators.pattern(/^[A-Z]{3}$/),
+    ]),
+  });
 
   constructor() {
     effect(() => {
@@ -136,6 +163,74 @@ export class AllowancePageComponent implements OnInit {
     }
   }
 
+  beginRecipientExpenseEdit(expense: AllowanceRecipientExpense): void {
+    this.editingRecipientExpenseId.set(expense.transactionId);
+    this.recipientExpenseForm.reset({
+      description: expense.description ?? '',
+      occurredOn: this.toDateInput(expense.occurredAt),
+      amount: expense.amount,
+      currency: expense.currency,
+    });
+  }
+
+  cancelRecipientExpenseEdit(): void {
+    this.editingRecipientExpenseId.set(null);
+    this.recipientExpenseForm.reset({
+      description: '',
+      occurredOn: '',
+      amount: 0,
+      currency: 'PLN',
+    });
+  }
+
+  async saveRecipientExpense(): Promise<void> {
+    const transactionId = this.editingRecipientExpenseId();
+    if (!transactionId || this.recipientExpenseForm.invalid) {
+      this.recipientExpenseForm.markAllAsTouched();
+      return;
+    }
+    const value = this.recipientExpenseForm.getRawValue();
+    const occurredAt = new Date(`${value.occurredOn}T00:00:00.000Z`);
+    if (Number.isNaN(occurredAt.getTime())) {
+      this.recipientExpenseForm.controls.occurredOn.setErrors({
+        invalid: true,
+      });
+      return;
+    }
+    const success = await this.allowance.updateRecipientExpense(transactionId, {
+      occurredAt,
+      description: value.description.trim() || null,
+      amount: value.amount,
+      currency: value.currency,
+    });
+    if (success) this.cancelRecipientExpenseEdit();
+  }
+
+  async deleteRecipientExpense(
+    expense: AllowanceRecipientExpense
+  ): Promise<void> {
+    const confirmed = window.confirm(
+      this.transloco.translate(
+        'modules.allowance.recipientExpenses.deleteConfirm',
+        { description: expense.description ?? '' }
+      )
+    );
+    if (!confirmed) return;
+    const success = await this.allowance.deleteRecipientExpense(
+      expense.transactionId
+    );
+    if (success && this.editingRecipientExpenseId() === expense.transactionId) {
+      this.cancelRecipientExpenseEdit();
+    }
+  }
+
+  formatRecipientExpenseDate(value: Date): string {
+    const locale = this.transloco.getActiveLang() === 'pl' ? 'pl-PL' : 'en';
+    return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(
+      value
+    );
+  }
+
   counterpart(connectionId: string): AllowanceConnection | undefined {
     return this.allowance
       .connections()
@@ -156,9 +251,7 @@ export class AllowancePageComponent implements OnInit {
       new Date(now.getTime() + 370 * 24 * 60 * 60 * 1000)
     );
     if (!next) {
-      return this.transloco.translate(
-        'modules.allowance.schedule.noUpcoming'
-      );
+      return this.transloco.translate('modules.allowance.schedule.noUpcoming');
     }
     const locale = this.transloco.getActiveLang() === 'pl' ? 'pl-PL' : 'en';
     return this.transloco.translate('modules.allowance.schedule.nextRun', {
@@ -222,6 +315,14 @@ export class AllowancePageComponent implements OnInit {
       now.getFullYear(),
       String(now.getMonth() + 1).padStart(2, '0'),
       String(now.getDate()).padStart(2, '0'),
+    ].join('-');
+  }
+
+  private toDateInput(date: Date): string {
+    return [
+      date.getUTCFullYear(),
+      String(date.getUTCMonth() + 1).padStart(2, '0'),
+      String(date.getUTCDate()).padStart(2, '0'),
     ].join('-');
   }
 }

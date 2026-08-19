@@ -13,6 +13,7 @@ interface RecurringTransactionNotificationPayload {
   readonly error?: unknown;
   readonly invitation_id?: unknown;
   readonly inviter_name?: unknown;
+  readonly payer_name?: unknown;
   readonly recipient_name?: unknown;
 }
 
@@ -57,6 +58,7 @@ export class NotificationsMenuComponent {
       endDate: this.stringify(payload?.end_date, ''),
       error: this.stringify(payload?.error, ''),
       inviterName: this.stringify(payload?.inviter_name, ''),
+      payerName: this.stringify(payload?.payer_name, ''),
       recipientName: this.stringify(payload?.recipient_name, ''),
     };
   }

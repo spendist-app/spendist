@@ -126,6 +126,41 @@
             </button>
           </label>
 
+          @if (!isEditMode() && allowanceConnections().length > 0) {
+          <label class="form-control sm:col-span-2">
+            <span class="label-text text-sm font-semibold text-base-content">
+              {{ 'transactions.form.fields.transactionTarget' | transloco }}
+            </span>
+            <select
+              formControlName="transactionTarget"
+              class="select select-bordered"
+              data-testid="transaction-target"
+            >
+              <option value="self">
+                {{ 'transactions.form.targets.self' | transloco }}
+              </option>
+              @for (connection of allowanceConnections(); track connection.id) {
+              <option [value]="'allowance-transfer:' + connection.id">
+                {{ 'transactions.form.targets.allowanceTransfer' | transloco:
+                { name: connection.counterpartName } }}
+              </option>
+              <option [value]="'recipient-expense:' + connection.id">
+                {{ 'transactions.form.targets.recipientExpense' | transloco:
+                { name: connection.counterpartName } }}
+              </option>
+              }
+            </select>
+            <span class="mt-1 text-xs text-base-content/60">
+              @if (transactionTargetKind() === 'allowance-transfer') {
+              {{ 'transactions.form.help.allowanceTransfer' | transloco }}
+              } @else if (isRecipientExpenseTarget()) {
+              {{ 'transactions.form.help.recipientExpense' | transloco }}
+              }
+            </span>
+          </label>
+          }
+
+          @if (!isRecipientExpenseTarget()) {
           <div class="form-control sm:col-span-2">
             <span class="label-text text-sm font-semibold text-base-content">
               {{ 'transactions.form.fields.category' | transloco }}
@@ -140,7 +175,9 @@
               (opened)="closePlaceDropdown()"
             />
           </div>
+          }
 
+          @if (!isRecipientExpenseTarget()) {
           <div class="form-control sm:col-span-2">
             <span class="label-text text-sm font-semibold text-base-content">
               {{ 'transactions.form.fields.place' | transloco }}
@@ -243,6 +280,7 @@
               }
             </div>
           </div>
+          }
 
           <label class="form-control">
             <span class="label-text text-sm font-semibold text-base-content">
@@ -292,7 +330,7 @@
                 [class.btn-outline]="
                   form.controls.direction.value !== 'expense'
                 "
-                [disabled]="isAllowanceRecipient()"
+                [disabled]="isAllowanceRecipient() || hasAllowanceTarget()"
                 (click)="selectDirection('expense')"
               >
                 {{ 'transactions.form.directions.expense' | transloco }}
@@ -302,7 +340,7 @@
                 class="btn"
                 [class.btn-success]="form.controls.direction.value === 'income'"
                 [class.btn-outline]="form.controls.direction.value !== 'income'"
-                [disabled]="isAllowanceRecipient()"
+                [disabled]="isAllowanceRecipient() || hasAllowanceTarget()"
                 (click)="selectDirection('income')"
               >
                 {{ 'transactions.form.directions.income' | transloco }}
@@ -310,7 +348,7 @@
             </div>
           </div>
 
-          @if (!isEditMode()) {
+          @if (!isEditMode() && !isRecipientExpenseTarget()) {
           <label class="form-control">
             <span class="label-text text-sm font-semibold text-base-content">
               {{ 'transactions.form.fields.quantity' | transloco }}
@@ -329,13 +367,16 @@
           }
         </fieldset>
 
+        @if (!isRecipientExpenseTarget()) {
         <app-tag-picker
           [tags]="tags()"
           [value]="form.controls.tags.value"
           [recentTags]="recentTags()"
           (valueChange)="updateTagSelections($event)"
         />
+        }
 
+        @if (!isRecipientExpenseTarget()) {
         <section class="border-t border-dashed border-base-300 pt-3">
           <button
             type="button"
@@ -414,41 +455,13 @@
               </select>
             </label>
 
-            @if (!isEditMode()) {
-            <label class="form-control">
-              <span
-                class="label-text text-xs font-semibold uppercase tracking-wide text-base-content/60"
-              >
-                {{ 'transactions.form.fields.allowanceRecipient' | transloco }}
-              </span>
-              <select
-                formControlName="allowanceConnectionId"
-                class="select select-bordered"
-              >
-                <option value="">
-                  {{ 'transactions.form.placeholders.allowanceRecipient' | transloco }}
-                </option>
-                @for (connection of allowanceConnections(); track connection.id) {
-                <option [value]="connection.id">
-                  {{ connection.counterpartName }}
-                </option>
-                }
-              </select>
-              <span class="mt-1 text-xs text-base-content/55">
-                @if (allowanceConnections().length === 0) {
-                {{ 'transactions.form.help.allowanceEmpty' | transloco }}
-                } @else {
-                {{ 'transactions.form.help.allowanceRecipient' | transloco }}
-                }
-              </span>
-            </label>
-            }
           </div>
           <p class="mt-3 text-xs text-base-content/50">
             {{ 'transactions.form.help.advancedDisclaimer' | transloco }}
           </p>
           }
         </section>
+        }
       </div>
 
       <footer
