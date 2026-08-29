@@ -136,7 +136,6 @@
     "@angular/router": "22.0.8",
     "@angular/service-worker": "22.0.8",
     "@angular/ssr": "22.0.9",
-    "@modelcontextprotocol/hono": "^2.0.0",
     "@modelcontextprotocol/server": "^2.0.0",
     "@ng-icons/bootstrap-icons": "^32.5.0",
     "@ng-icons/core": "^32.5.0",

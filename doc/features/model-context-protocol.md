@@ -1,6 +1,6 @@
 # Model Context Protocol integration
 
-Spendist provides an MCP server for user-authorized personal-finance workflows. It uses the official TypeScript MCP SDK and exposes the same server contract over local STDIO and remote, stateless Streamable HTTP.
+Spendist provides an MCP server for user-authorized personal-finance workflows. It uses the official TypeScript MCP SDK and exposes the same server contract over local STDIO and remote Streamable HTTP. Both transports support the stable MCP `2026-07-28` revision and retain a compatibility path for 2025-era clients.
 
 ## User-visible behavior
 
@@ -13,11 +13,20 @@ Spendist provides an MCP server for user-authorized personal-finance workflows. 
 
 ## Authorization and data ownership
 
-The remote server is an OAuth 2.1 protected resource. Supabase Auth provides authorization-code flow with PKCE, dynamic client registration, consent, refresh tokens, and grant revocation. Access tokens for OAuth clients receive the MCP audience and a `spendist_mcp` claim through the custom access-token hook.
+The remote server is an OAuth 2.1 protected resource. Supabase Auth provides authorization-code flow with PKCE, dynamic client registration, consent, refresh tokens, and grant revocation. Dynamic registration remains advertised because it is the registration mechanism currently provided by Supabase Auth; Spendist does not advertise Client ID Metadata Document support. Access tokens for OAuth clients receive the MCP audience and a `spendist_mcp` claim through the custom access-token hook.
 
 The Cloudflare Worker verifies issuer, audience, expiry, MCP claim, user identity, and the token with Supabase Auth. Every database operation then uses the user's bearer token plus the public publishable key. The server has no service-role key, so existing RLS ownership policies remain authoritative.
 
 STDIO uses a user-supplied access token from `SPENDIST_ACCESS_TOKEN`. It writes protocol messages only to stdout and diagnostics only to stderr.
+
+## Protocol and transport compatibility
+
+- Modern HTTP requests use MCP `2026-07-28`: each request carries its own protocol version, client capabilities, and optional client identity. The Worker exposes `server/discover`, requires the standard MCP request headers, and does not create protocol sessions or return `Mcp-Session-Id`.
+- The Worker uses the SDK's per-request handler and keeps its stateless 2025-era fallback enabled. Older compatible clients can still perform the `initialize` handshake, but no user or application state is stored in an MCP transport session.
+- STDIO uses the SDK's `serveStdio` entry. The opening exchange selects the modern or legacy era for that process connection.
+- Modern list and discovery responses use private cache hints. Tool schemas are emitted as JSON Schema 2020-12, and tools stay in deterministic registration order.
+- The MCP endpoint validates `Host` and any browser-supplied `Origin` against the canonical resource host and configured allowlist before token verification. Non-browser clients may omit `Origin`.
+- OAuth protected-resource metadata is available at the path-aware RFC 9728 URL, is referenced by bearer challenges, and identifies Supabase Auth as the authorization server.
 
 ## Audit and privacy
 
