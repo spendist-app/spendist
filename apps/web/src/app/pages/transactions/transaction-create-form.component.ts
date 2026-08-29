@@ -43,6 +43,13 @@ interface CurrencyOptionView {
   readonly symbol: string;
 }
 
+type TransactionTarget =
+  | { readonly kind: 'self' }
+  | {
+      readonly kind: 'allowance-transfer' | 'recipient-expense';
+      readonly connectionId: string;
+    };
+
 export type TransactionFormSaveResult = 'created' | 'updated';
 
 @Component({
@@ -81,6 +88,14 @@ export class TransactionCreateFormComponent {
   protected readonly showAdvanced = signal(false);
   protected readonly exchangeRateRefreshPending = signal(false);
   protected readonly isEditMode = computed(() => this.mode() === 'edit');
+  protected readonly transactionTargetKind =
+    signal<TransactionTarget['kind']>('self');
+  protected readonly isRecipientExpenseTarget = computed(
+    () => this.transactionTargetKind() === 'recipient-expense'
+  );
+  protected readonly hasAllowanceTarget = computed(
+    () => this.transactionTargetKind() !== 'self'
+  );
   protected readonly wasEdited = computed(() => {
     const transaction = this.transaction();
     return transaction
@@ -98,9 +113,7 @@ export class TransactionCreateFormComponent {
       )
   );
   protected readonly isAllowanceRecipient = computed(
-    () =>
-      this.isEditMode() &&
-      this.transaction()?.allowanceRole === 'recipient'
+    () => this.isEditMode() && this.transaction()?.allowanceRole === 'recipient'
   );
   protected readonly tags = computed<readonly TagEntity[]>(() =>
     this.store.tags()
@@ -111,8 +124,8 @@ export class TransactionCreateFormComponent {
   protected readonly places = computed<readonly PlaceEntity[]>(() =>
     this.store.places()
   );
-  protected readonly allowanceConnections = computed(() =>
-    this.store.allowanceConnections?.() ?? []
+  protected readonly allowanceConnections = computed(
+    () => this.store.allowanceConnections?.() ?? []
   );
   private readonly selectedWalletCurrency = signal(
     this.store.defaultCurrency()
@@ -186,7 +199,7 @@ export class TransactionCreateFormComponent {
       validators: [Validators.required],
       nonNullable: true,
     }),
-    allowanceConnectionId: this.formBuilder.control<string>('', {
+    transactionTarget: this.formBuilder.control<string>('self', {
       nonNullable: true,
     }),
   });
@@ -427,13 +440,11 @@ export class TransactionCreateFormComponent {
         this.syncWalletCurrency(typeof walletId === 'string' ? walletId : null);
       });
 
-    this.form.controls.allowanceConnectionId.valueChanges
+    this.form.controls.transactionTarget.valueChanges
       .pipe(takeUntilDestroyed())
-      .subscribe((connectionId) => {
-        if (!connectionId) return;
-        this.form.controls.direction.setValue('expense');
-        this.form.controls.quantity.setValue(1);
-      });
+      .subscribe((target) => this.applyTransactionTarget(target));
+
+    this.applyTransactionTarget(this.form.controls.transactionTarget.value);
 
     this.syncWalletCurrency(
       typeof this.form.controls.walletId.value === 'string'
@@ -540,7 +551,7 @@ export class TransactionCreateFormComponent {
   }
 
   protected selectDirection(direction: TransactionDirection): void {
-    if (this.isAllowanceRecipient()) {
+    if (this.isAllowanceRecipient() || this.hasAllowanceTarget()) {
       return;
     }
     this.form.controls.direction.setValue(direction);
@@ -596,6 +607,33 @@ export class TransactionCreateFormComponent {
       return;
     }
 
+    const target = this.parseTransactionTarget(raw.transactionTarget);
+    const currencyInput = (raw.currency ?? '').toUpperCase().trim();
+    if (!/^[A-Z]{3}$/.test(currencyInput)) {
+      this.form.controls.currency.setErrors({ invalid: true });
+      return;
+    }
+
+    if (mode === 'create' && target.kind === 'recipient-expense') {
+      const result = await this.store.createAllowanceRecipientExpense({
+        connectionId: target.connectionId,
+        description: raw.description?.trim() ? raw.description.trim() : null,
+        occurredAt,
+        amount,
+        currency: currencyInput,
+      });
+      if (result.success) {
+        this.saved.emit('created');
+        if (afterCreate === 'continue') {
+          this.resetForm();
+          this.focusDescriptionInput();
+          return;
+        }
+        this.onClose();
+      }
+      return;
+    }
+
     const quantity =
       mode === 'create' ? this.clampQuantity(raw.quantity ?? 1) : 1;
     if (mode === 'create') {
@@ -627,7 +665,6 @@ export class TransactionCreateFormComponent {
       return;
     }
     const defaultCurrency = this.walletCurrency().toUpperCase();
-    const currencyInput = (raw.currency ?? '').toUpperCase().trim();
     const currency = /^[A-Z]{3}$/.test(currencyInput)
       ? currencyInput
       : defaultCurrency;
@@ -668,7 +705,9 @@ export class TransactionCreateFormComponent {
       walletId,
       placeId: raw.placeId || null,
       allowanceConnectionId:
-        mode === 'create' ? raw.allowanceConnectionId || null : null,
+        mode === 'create' && target.kind === 'allowance-transfer'
+          ? target.connectionId
+          : null,
     };
 
     if (mode === 'create') {
@@ -728,7 +767,7 @@ export class TransactionCreateFormComponent {
       tags: [] as TagPickerSelection[],
       foreignAmount: '',
       walletId: this.store.defaultWalletId() ?? '',
-      allowanceConnectionId: '',
+      transactionTarget: 'self',
     });
     this.form.markAsPristine();
     this.form.markAsUntouched();
@@ -738,6 +777,48 @@ export class TransactionCreateFormComponent {
     this.store.dismissMutationError();
     this.syncWalletCurrency(this.form.controls.walletId.value, true);
     this.syncAmountInDefault();
+  }
+
+  private applyTransactionTarget(value: string): void {
+    const target = this.parseTransactionTarget(value);
+    this.transactionTargetKind.set(target.kind);
+
+    const categoryControl = this.form.controls.categoryId;
+    const walletControl = this.form.controls.walletId;
+    if (target.kind === 'recipient-expense') {
+      categoryControl.clearValidators();
+      walletControl.clearValidators();
+      this.form.controls.direction.setValue('expense');
+      this.form.controls.quantity.setValue(1);
+      this.showAdvanced.set(false);
+      this.closeFormDropdowns();
+    } else {
+      categoryControl.setValidators([Validators.required]);
+      walletControl.setValidators([Validators.required]);
+      if (target.kind === 'allowance-transfer') {
+        this.form.controls.direction.setValue('expense');
+        this.form.controls.quantity.setValue(1);
+      }
+    }
+    categoryControl.updateValueAndValidity({ emitEvent: false });
+    walletControl.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private parseTransactionTarget(value: string): TransactionTarget {
+    for (const kind of ['allowance-transfer', 'recipient-expense'] as const) {
+      const prefix = `${kind}:`;
+      if (!value.startsWith(prefix)) continue;
+      const connectionId = value.slice(prefix.length);
+      if (
+        connectionId &&
+        this.allowanceConnections().some(
+          (connection) => connection.id === connectionId
+        )
+      ) {
+        return { kind, connectionId };
+      }
+    }
+    return { kind: 'self' };
   }
 
   private persistRecentDefaults(
@@ -864,7 +945,7 @@ export class TransactionCreateFormComponent {
       tags: this.mapTagIdsToSelections(transaction.tagIds),
       foreignAmount: this.formatAmountInDefault(transaction),
       walletId: transaction.walletId,
-      allowanceConnectionId: '',
+      transactionTarget: 'self',
     });
     this.form.markAsPristine();
     this.form.markAsUntouched();
@@ -896,7 +977,7 @@ export class TransactionCreateFormComponent {
       tags: this.mapTagIdsToSelections(transaction.tagIds),
       foreignAmount: this.formatAmountInDefault(transaction),
       walletId: transaction.walletId,
-      allowanceConnectionId: '',
+      transactionTarget: 'self',
     });
     this.form.markAsPristine();
     this.form.markAsUntouched();

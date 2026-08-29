@@ -824,6 +824,10 @@ const pl = {
         title:
           'Otrzymano kieszonkowe: {{description}} ({{amount}} {{currency}})',
       },
+      allowance_expense_added: {
+        title:
+          '{{payerName}} dodał(a) wydatek: {{description}} ({{amount}} {{currency}})',
+      },
       allowance_transfer_failed: {
         title: 'Nie udało się zapisać kieszonkowego: {{error}}',
       },
@@ -1208,6 +1212,13 @@ const pl = {
         quantity: 'Ile pozycji?',
         tags: 'Tagi',
         wallet: 'Portfel',
+        allowanceRecipient: 'Odbiorca kieszonkowego',
+        transactionTarget: 'Gdzie zapisać?',
+      },
+      targets: {
+        self: 'Tylko na moim koncie',
+        allowanceTransfer: 'Przekaż kieszonkowe: {{name}}',
+        recipientExpense: 'Wydatek dziecka: {{name}}',
       },
       directions: {
         income: 'Przychód',
@@ -1245,6 +1256,10 @@ const pl = {
           'Każda transakcja trafia domyślnie do głównego portfela — zmień go tutaj, jeśli ma być zaksięgowana gdzie indziej.',
         allowanceRecipient:
           'Tworzy odpowiadający przychód na koncie wybranego odbiorcy.',
+        allowanceTransfer:
+          'Tworzy wydatek na Twoim koncie i odpowiadający przychód na koncie dziecka.',
+        recipientExpense:
+          'Tworzy wydatek tylko na koncie dziecka, używając jego domyślnego portfela i kategorii „Wydatki z kieszonkowego”.',
         allowanceEmpty:
           'Połącz odbiorcę w module Kieszonkowe, aby użyć tej opcji.',
       },
@@ -1418,6 +1433,13 @@ const pl = {
           payer: 'Wysyłasz kieszonkowe',
           recipient: 'Otrzymujesz kieszonkowe',
         },
+      },
+      recipientExpenses: {
+        title: 'Wydatki dzieci',
+        help: 'Tutaj możesz poprawić lub usunąć wydatki dodane przez Ciebie bezpośrednio na kontach dzieci. Nie wpływają one na Twój budżet.',
+        empty: 'Nie dodałeś jeszcze żadnych wydatków dzieci.',
+        edit: 'Edytuj',
+        deleteConfirm: 'Usunąć wydatek „{{description}}” z konta dziecka?',
       },
       schedule: {
         title: 'Zaplanuj kieszonkowe',

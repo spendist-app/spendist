@@ -22,6 +22,7 @@ export type Database = {
           id: string
           payer_id: string
           recipient_category_id: string
+          recipient_expense_category_id: string
           recipient_id: string
           status: string
           updated_at: string
@@ -34,6 +35,7 @@ export type Database = {
           id?: string
           payer_id: string
           recipient_category_id: string
+          recipient_expense_category_id: string
           recipient_id: string
           status?: string
           updated_at?: string
@@ -46,6 +48,7 @@ export type Database = {
           id?: string
           payer_id?: string
           recipient_category_id?: string
+          recipient_expense_category_id?: string
           recipient_id?: string
           status?: string
           updated_at?: string
@@ -61,6 +64,13 @@ export type Database = {
           {
             foreignKeyName: "allowance_connections_category_fk"
             columns: ["recipient_id", "recipient_category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["owner_id", "id"]
+          },
+          {
+            foreignKeyName: "allowance_connections_expense_category_fk"
+            columns: ["recipient_id", "recipient_expense_category_id"]
             isOneToOne: false
             referencedRelation: "categories"
             referencedColumns: ["owner_id", "id"]
@@ -92,6 +102,39 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "recurring_transactions_overview"
             referencedColumns: ["owner_id"]
+          },
+        ]
+      }
+      allowance_delegated_expenses: {
+        Row: {
+          connection_id: string
+          created_at: string
+          transaction_id: string
+        }
+        Insert: {
+          connection_id: string
+          created_at?: string
+          transaction_id: string
+        }
+        Update: {
+          connection_id?: string
+          created_at?: string
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "allowance_delegated_expenses_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "allowance_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "allowance_delegated_expenses_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1503,6 +1546,16 @@ export type Database = {
       }
       confirm_mcp_delete: { Args: { p_token: string }; Returns: Json }
       create_allowance_invitation: { Args: { p_email: string }; Returns: Json }
+      create_allowance_recipient_expense: {
+        Args: {
+          p_amount: number
+          p_connection_id: string
+          p_currency: string
+          p_description: string
+          p_occurred_at: string
+        }
+        Returns: string
+      }
       create_allowance_transaction: {
         Args: {
           p_amount: number
@@ -1534,6 +1587,10 @@ export type Database = {
         }
         Returns: Json
       }
+      delete_allowance_recipient_expense: {
+        Args: { p_transaction_id: string }
+        Returns: undefined
+      }
       delete_allowance_transaction: {
         Args: { p_transaction_id: string }
         Returns: undefined
@@ -1558,6 +1615,10 @@ export type Database = {
         Args: { p_invitation_id: string; p_recipient_id: string }
         Returns: string
       }
+      ensure_allowance_expense_category: {
+        Args: { p_recipient_id: string }
+        Returns: string
+      }
       find_existing_transaction_import_fingerprints: {
         Args: { p_import_fingerprints: string[]; p_import_source: string }
         Returns: {
@@ -1574,6 +1635,20 @@ export type Database = {
           id: string
           role: string
           status: string
+        }[]
+      }
+      get_allowance_recipient_expenses: {
+        Args: never
+        Returns: {
+          amount: number
+          connection_id: string
+          created_at: string
+          currency: string
+          description: string
+          occurred_at: string
+          recipient_name: string
+          transaction_id: string
+          updated_at: string
         }[]
       }
       get_exchange_rate: {
@@ -1652,6 +1727,16 @@ export type Database = {
       sync_mortgage_transactions: {
         Args: { p_mortgage_id: string }
         Returns: number
+      }
+      update_allowance_recipient_expense: {
+        Args: {
+          p_amount: number
+          p_currency: string
+          p_description: string
+          p_occurred_at: string
+          p_transaction_id: string
+        }
+        Returns: string
       }
       update_allowance_transaction: {
         Args: {

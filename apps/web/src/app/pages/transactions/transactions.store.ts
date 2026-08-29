@@ -234,6 +234,14 @@ export interface CreateTransactionPayload {
   readonly allowanceConnectionId?: string | null;
 }
 
+export interface CreateAllowanceRecipientExpensePayload {
+  readonly connectionId: string;
+  readonly description: string | null;
+  readonly occurredAt: Date;
+  readonly amount: number;
+  readonly currency: string;
+}
+
 export interface CreateTransactionBatchItem
   extends Omit<CreateTransactionPayload, 'quantity'> {
   readonly importContext?: TransactionImportContext;
@@ -1352,7 +1360,8 @@ export class TransactionsStore {
     return (
       normalizeIds(left.selectedCategoryIds) ===
         normalizeIds(right.selectedCategoryIds) &&
-      normalizeIds(left.selectedTagIds) === normalizeIds(right.selectedTagIds) &&
+      normalizeIds(left.selectedTagIds) ===
+        normalizeIds(right.selectedTagIds) &&
       left.selectedPlaceId === right.selectedPlaceId &&
       left.minimumAmount === right.minimumAmount &&
       left.maximumAmount === right.maximumAmount &&
@@ -1575,6 +1584,67 @@ export class TransactionsStore {
     } catch (error) {
       const message = this.describeError(error);
       logError('TransactionsStore', 'Failed to create transaction', error);
+      this.state.update((state) => ({
+        ...state,
+        transactionMutationPending: false,
+        mutationError: message,
+      }));
+      return { success: false, error: message };
+    }
+  }
+
+  async createAllowanceRecipientExpense(
+    payload: CreateAllowanceRecipientExpensePayload
+  ): Promise<{ success: boolean; error?: string }> {
+    const userId = this.userId();
+    const connectionId = payload.connectionId.trim();
+    const currency = payload.currency.trim().toUpperCase();
+    if (
+      !userId ||
+      !connectionId ||
+      !(payload.occurredAt instanceof Date) ||
+      Number.isNaN(payload.occurredAt.getTime()) ||
+      !Number.isFinite(payload.amount) ||
+      payload.amount <= 0 ||
+      !/^[A-Z]{3}$/.test(currency)
+    ) {
+      const message =
+        'Invalid transaction data. Please review the form and try again.';
+      return { success: false, error: message };
+    }
+
+    this.state.update((state) => ({
+      ...state,
+      transactionMutationPending: true,
+      mutationError: null,
+    }));
+
+    try {
+      const { error } = await this.supabase.rpc(
+        'create_allowance_recipient_expense',
+        {
+          p_connection_id: connectionId,
+          p_occurred_at: payload.occurredAt.toISOString(),
+          p_description: payload.description,
+          p_amount: payload.amount,
+          p_currency: currency,
+        }
+      );
+      if (error) throw error;
+
+      this.state.update((state) => ({
+        ...state,
+        transactionMutationPending: false,
+        mutationError: null,
+      }));
+      return { success: true };
+    } catch (error) {
+      const message = this.describeError(error);
+      logError(
+        'TransactionsStore',
+        'Failed to create delegated Allowance expense',
+        error
+      );
       this.state.update((state) => ({
         ...state,
         transactionMutationPending: false,

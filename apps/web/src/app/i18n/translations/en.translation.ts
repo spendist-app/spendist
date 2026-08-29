@@ -819,6 +819,10 @@ const en = {
       allowance_received: {
         title: 'Allowance received: {{description}} ({{amount}} {{currency}})',
       },
+      allowance_expense_added: {
+        title:
+          '{{payerName}} added an expense: {{description}} ({{amount}} {{currency}})',
+      },
       allowance_transfer_failed: {
         title: 'Allowance could not be recorded: {{error}}',
       },
@@ -1198,6 +1202,13 @@ const en = {
         quantity: 'How many entries?',
         tags: 'Tags',
         wallet: 'Wallet',
+        allowanceRecipient: 'Allowance recipient',
+        transactionTarget: 'Where should it be recorded?',
+      },
+      targets: {
+        self: 'Only on my account',
+        allowanceTransfer: 'Send allowance: {{name}}',
+        recipientExpense: "Child's expense: {{name}}",
       },
       directions: {
         income: 'Income',
@@ -1235,6 +1246,10 @@ const en = {
           'Transactions default to your primary wallet — choose another if this one should be tracked elsewhere.',
         allowanceRecipient:
           'Creates a matching income entry for the selected recipient.',
+        allowanceTransfer:
+          "Creates an expense on your account and matching income on the child's account.",
+        recipientExpense:
+          "Creates an expense only on the child's account, using their default wallet and the “Allowance spending” category.",
         allowanceEmpty:
           'Connect a recipient in the Allowance module to use this option.',
       },
@@ -1406,6 +1421,13 @@ const en = {
           payer: 'You send allowance',
           recipient: 'You receive allowance',
         },
+      },
+      recipientExpenses: {
+        title: "Children's expenses",
+        help: "Edit or remove expenses you added directly to children's accounts. They do not affect your budget.",
+        empty: "You haven't added any child expenses yet.",
+        edit: 'Edit',
+        deleteConfirm: "Remove “{{description}}” from the child's account?",
       },
       schedule: {
         title: 'Plan allowance',

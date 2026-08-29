@@ -23,7 +23,7 @@ Files in `brand/social/` are ready to upload:
 | `social-profile-master-1080x1080.png`    | 1080 × 1080 | High-resolution square master  |
 | `social-share-1200x630.png`              |  1200 × 630 | Open Graph/social link preview |
 
-The square exports keep the mark inside the central safe area for circular crops. Regenerate all favicon, PWA, and social PNG files with `node tools/scripts/generate-brand-assets.mjs`.
+The square exports keep the mark inside the central safe area for circular crops. PWA exports use `spendist-` filenames so browsers do not reuse obsolete scaffold icons cached under generic names. Regenerate all favicon, PWA, and social PNG files with `node tools/scripts/generate-brand-assets.mjs`.
 
 ## Core palette
 

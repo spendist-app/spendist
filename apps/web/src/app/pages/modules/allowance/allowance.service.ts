@@ -44,6 +44,25 @@ export interface CreateAllowanceSchedulePayload {
   readonly walletId: string;
 }
 
+export interface AllowanceRecipientExpense {
+  readonly transactionId: string;
+  readonly connectionId: string;
+  readonly recipientName: string;
+  readonly occurredAt: Date;
+  readonly description: string | null;
+  readonly amount: number;
+  readonly currency: string;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+}
+
+export interface UpdateAllowanceRecipientExpensePayload {
+  readonly occurredAt: Date;
+  readonly description: string | null;
+  readonly amount: number;
+  readonly currency: string;
+}
+
 type RecurringRow = Tables<'recurring_transactions'>;
 
 interface AllowanceState {
@@ -53,6 +72,7 @@ interface AllowanceState {
   readonly connections: readonly AllowanceConnection[];
   readonly invitations: readonly AllowanceInvitationRow[];
   readonly schedules: readonly AllowanceSchedule[];
+  readonly recipientExpenses: readonly AllowanceRecipientExpense[];
 }
 
 interface AllowanceConnectionRpcRow {
@@ -63,6 +83,18 @@ interface AllowanceConnectionRpcRow {
   readonly counterpart_email: string | null;
   readonly status: string | null;
   readonly connected_at: string | null;
+}
+
+interface AllowanceRecipientExpenseRpcRow {
+  readonly transaction_id: string | null;
+  readonly connection_id: string | null;
+  readonly recipient_name: string | null;
+  readonly occurred_at: string | null;
+  readonly description: string | null;
+  readonly amount: number | string | null;
+  readonly currency: string | null;
+  readonly created_at: string | null;
+  readonly updated_at: string | null;
 }
 
 @Injectable()
@@ -77,6 +109,7 @@ export class AllowanceService {
     connections: [],
     invitations: [],
     schedules: [],
+    recipientExpenses: [],
   });
 
   readonly loading = computed(() => this.state().loading);
@@ -85,6 +118,7 @@ export class AllowanceService {
   readonly connections = computed(() => this.state().connections);
   readonly invitations = computed(() => this.state().invitations);
   readonly schedules = computed(() => this.state().schedules);
+  readonly recipientExpenses = computed(() => this.state().recipientExpenses);
   readonly activePayerConnections = computed(() =>
     this.connections().filter(
       (connection) =>
@@ -99,22 +133,28 @@ export class AllowanceService {
     }
     this.state.update((state) => ({ ...state, loading: true, error: null }));
     try {
-      const [connectionsResult, invitationsResult, schedulesResult] =
-        await Promise.all([
-          this.client.rpc('get_allowance_connections'),
-          this.client
-            .from('allowance_invitations')
-            .select('*')
-            .order('created_at', { ascending: false }),
-          this.client
-            .from('recurring_transactions')
-            .select('*')
-            .eq('source_module', 'allowance')
-            .order('creation_date', { ascending: false }),
-        ]);
+      const [
+        connectionsResult,
+        invitationsResult,
+        schedulesResult,
+        recipientExpensesResult,
+      ] = await Promise.all([
+        this.client.rpc('get_allowance_connections'),
+        this.client
+          .from('allowance_invitations')
+          .select('*')
+          .order('created_at', { ascending: false }),
+        this.client
+          .from('recurring_transactions')
+          .select('*')
+          .eq('source_module', 'allowance')
+          .order('creation_date', { ascending: false }),
+        this.client.rpc('get_allowance_recipient_expenses'),
+      ]);
       if (connectionsResult.error) throw connectionsResult.error;
       if (invitationsResult.error) throw invitationsResult.error;
       if (schedulesResult.error) throw schedulesResult.error;
+      if (recipientExpensesResult.error) throw recipientExpensesResult.error;
 
       this.state.update((state) => ({
         ...state,
@@ -146,6 +186,20 @@ export class AllowanceService {
             isPaused: row.is_paused,
           })
         ),
+        recipientExpenses: (
+          (recipientExpensesResult.data ??
+            []) as AllowanceRecipientExpenseRpcRow[]
+        ).map((row) => ({
+          transactionId: row.transaction_id ?? '',
+          connectionId: row.connection_id ?? '',
+          recipientName: row.recipient_name ?? '',
+          occurredAt: new Date(row.occurred_at ?? Date.now()),
+          description: row.description,
+          amount: Number(row.amount ?? 0),
+          currency: row.currency ?? '',
+          createdAt: new Date(row.created_at ?? Date.now()),
+          updatedAt: new Date(row.updated_at ?? Date.now()),
+        })),
       }));
     } catch (error) {
       logError('AllowanceService', 'Failed to load allowance data', error);
@@ -255,6 +309,35 @@ export class AllowanceService {
         .delete()
         .eq('id', scheduleId)
         .eq('source_module', 'allowance');
+      if (error) throw error;
+    });
+  }
+
+  async updateRecipientExpense(
+    transactionId: string,
+    payload: UpdateAllowanceRecipientExpensePayload
+  ): Promise<boolean> {
+    return this.mutate(async () => {
+      const { error } = await this.client.rpc(
+        'update_allowance_recipient_expense',
+        {
+          p_transaction_id: transactionId,
+          p_occurred_at: payload.occurredAt.toISOString(),
+          p_description: payload.description,
+          p_amount: payload.amount,
+          p_currency: payload.currency.trim().toUpperCase(),
+        }
+      );
+      if (error) throw error;
+    });
+  }
+
+  async deleteRecipientExpense(transactionId: string): Promise<boolean> {
+    return this.mutate(async () => {
+      const { error } = await this.client.rpc(
+        'delete_allowance_recipient_expense',
+        { p_transaction_id: transactionId }
+      );
       if (error) throw error;
     });
   }

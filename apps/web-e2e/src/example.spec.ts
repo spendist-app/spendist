@@ -375,12 +375,12 @@ test('exposes installable PWA metadata', async ({ page }) => {
   expect(manifest.icons).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
-        src: '/icons/icon-192x192.png',
+        src: '/icons/spendist-icon-192x192.png',
         sizes: '192x192',
         type: 'image/png',
       }),
       expect.objectContaining({
-        src: '/icons/icon-maskable-512x512.png',
+        src: '/icons/spendist-icon-maskable-512x512.png',
         sizes: '512x512',
         purpose: 'maskable',
       }),

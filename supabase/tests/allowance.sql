@@ -35,6 +35,11 @@ declare
   v_pair jsonb;
   v_payer_transaction_id uuid;
   v_recipient_transaction_id uuid;
+  v_delegated_transaction_id uuid;
+  v_disconnected_delegated_id uuid;
+  v_child_expense_category_id uuid;
+  v_child_wallet_id uuid;
+  v_parent_delegated_count integer;
   v_recurring_id uuid;
   v_variable_recurring_id uuid;
   v_occurrence_id uuid;
@@ -97,6 +102,142 @@ begin
   ) then
     raise exception 'Recipient allowance transaction was not created correctly';
   end if;
+
+  perform set_config('request.jwt.claim.sub', v_parent::text, true);
+  v_delegated_transaction_id := public.create_allowance_recipient_expense(
+    v_connection_id,
+    '2026-05-20 10:00:00+00',
+    'Ice cream',
+    12.50,
+    'PLN'
+  );
+
+  if exists (
+    select 1 from public.transactions
+    where id = v_delegated_transaction_id
+  ) then
+    raise exception 'Delegated expense leaked into the payer transaction scope';
+  end if;
+
+  select count(*) into v_parent_delegated_count
+  from public.get_allowance_recipient_expenses()
+  where transaction_id = v_delegated_transaction_id
+    and connection_id = v_connection_id
+    and recipient_name = 'Allowance Child'
+    and description = 'Ice cream'
+    and amount = 12.50
+    and currency = 'PLN';
+  if v_parent_delegated_count <> 1 then
+    raise exception 'Payer delegated expense list is incomplete';
+  end if;
+
+  perform set_config('request.jwt.claim.sub', v_child::text, true);
+  select recipient_expense_category_id into v_child_expense_category_id
+  from public.allowance_connections
+  where id = v_connection_id;
+  select id into v_child_wallet_id
+  from public.wallets
+  where owner_id = v_child and is_default
+  limit 1;
+
+  if not exists (
+    select 1 from public.transactions
+    where id = v_delegated_transaction_id
+      and owner_id = v_child
+      and category_id = v_child_expense_category_id
+      and wallet_id = v_child_wallet_id
+      and direction = 'expense'
+      and source_module = 'standard'
+      and description = 'Ice cream'
+      and amount = 12.50
+  ) then
+    raise exception 'Recipient-owned delegated expense was not created correctly';
+  end if;
+  if not exists (
+    select 1 from public.categories
+    where id = v_child_expense_category_id
+      and owner_id = v_child
+      and system_key = 'allowance_expense'
+      and name = 'Allowance spending'
+  ) then
+    raise exception 'Recipient Allowance expense category was not created';
+  end if;
+  if not exists (
+    select 1 from public.notifications
+    where owner_id = v_child
+      and type = 'allowance_expense_added'
+      and payload ->> 'transaction_id' = v_delegated_transaction_id::text
+      and payload ->> 'payer_name' = 'Allowance Parent'
+  ) then
+    raise exception 'Delegated expense notification was not created';
+  end if;
+
+  v_blocked := false;
+  begin
+    perform public.update_allowance_recipient_expense(
+      v_delegated_transaction_id,
+      '2026-05-21 10:00:00+00',
+      'Changed by child',
+      20,
+      'PLN'
+    );
+  exception when no_data_found then
+    v_blocked := true;
+  end;
+  if not v_blocked then
+    raise exception 'Recipient could manage the delegated expense as payer';
+  end if;
+
+  update public.transactions
+  set description = 'Child note'
+  where id = v_delegated_transaction_id;
+
+  perform set_config('request.jwt.claim.sub', v_parent::text, true);
+  if not exists (
+    select 1 from public.get_allowance_recipient_expenses()
+    where transaction_id = v_delegated_transaction_id
+      and description = 'Child note'
+  ) then
+    raise exception 'Payer list did not reflect the recipient edit';
+  end if;
+
+  perform public.update_allowance_recipient_expense(
+    v_delegated_transaction_id,
+    '2026-05-21 10:00:00+00',
+    'Ice cream corrected',
+    15,
+    'PLN'
+  );
+
+  perform set_config('request.jwt.claim.sub', v_child::text, true);
+  if not exists (
+    select 1 from public.transactions
+    where id = v_delegated_transaction_id
+      and description = 'Ice cream corrected'
+      and amount = 15
+      and category_id = v_child_expense_category_id
+      and wallet_id = v_child_wallet_id
+  ) then
+    raise exception 'Payer delegated expense update was not applied safely';
+  end if;
+
+  perform set_config('request.jwt.claim.sub', v_parent::text, true);
+  perform public.delete_allowance_recipient_expense(v_delegated_transaction_id);
+  perform set_config('request.jwt.claim.sub', v_child::text, true);
+  if exists (
+    select 1 from public.transactions where id = v_delegated_transaction_id
+  ) then
+    raise exception 'Payer delegated expense delete did not remove the child row';
+  end if;
+
+  perform set_config('request.jwt.claim.sub', v_parent::text, true);
+  v_disconnected_delegated_id := public.create_allowance_recipient_expense(
+    v_connection_id,
+    '2026-05-22 10:00:00+00',
+    'Book',
+    25,
+    'PLN'
+  );
 
   perform set_config('request.jwt.claim.sub', v_parent::text, true);
   perform public.update_allowance_transaction(
@@ -242,6 +383,27 @@ begin
     raise exception 'Allowance connection was not disconnected';
   end if;
   perform set_config('request.jwt.claim.sub', v_parent::text, true);
+  if exists (
+    select 1 from public.get_allowance_recipient_expenses()
+    where transaction_id = v_disconnected_delegated_id
+  ) then
+    raise exception 'Disconnected delegated expenses remained visible to payer';
+  end if;
+  v_blocked := false;
+  begin
+    perform public.update_allowance_recipient_expense(
+      v_disconnected_delegated_id,
+      '2026-05-22 10:00:00+00',
+      'Book changed',
+      30,
+      'PLN'
+    );
+  exception when no_data_found then
+    v_blocked := true;
+  end;
+  if not v_blocked then
+    raise exception 'Disconnected payer retained delegated expense access';
+  end if;
   if exists (
     select 1 from public.recurring_transactions
     where allowance_connection_id = v_connection_id and is_paused = false

@@ -1,4 +1,10 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.89.0';
+import {
+  dueOccurrences,
+  parseCron,
+  parseDateStart,
+  shouldFinalizeRecurring,
+} from './schedule.mts';
 
 type RecurringTransaction = {
   id: string;
@@ -9,7 +15,6 @@ type RecurringTransaction = {
   is_paused: boolean;
 };
 
-type CronField = ReadonlySet<number>;
 type RequestBody = {
   recurringId?: string;
   backfill?: boolean;
@@ -119,11 +124,65 @@ Deno.serve(async (request) => {
       continue;
     }
 
-    if (shouldFinalizeRecurring(recurring, now)) {
-      const { data: transactionId, error: rpcError } = await supabase.rpc('enqueue_recurring_transaction', {
-        p_recurring_id: recurring.id,
-        p_run_at: now.toISOString(),
+    const schedule = parseCron(recurring.schedule);
+    if (!schedule) {
+      skipped.push({ recurringId: recurring.id, reason: 'invalid_schedule' });
+      continue;
+    }
+
+    const remainingRuns = maxRuns - processed.length;
+    const dueRunCandidates = dueOccurrences(
+      recurring,
+      schedule,
+      body.backfill || body.recurringId
+        ? parseDateStart(recurring.start_date)
+        : earliest,
+      now,
+      remainingRuns + 1
+    );
+    const hasMoreDueRuns = dueRunCandidates.length > remainingRuns;
+    const dueRuns = dueRunCandidates.slice(0, remainingRuns);
+    let allDueRunsSucceeded = true;
+
+    for (const runAt of dueRuns) {
+      const { data: transactionId, error: rpcError } = await supabase.rpc(
+        'enqueue_recurring_transaction',
+        {
+          p_recurring_id: recurring.id,
+          p_run_at: runAt.toISOString(),
+        }
+      );
+
+      if (rpcError) {
+        skipped.push({ recurringId: recurring.id, reason: rpcError.message });
+        allDueRunsSucceeded = false;
+        break;
+      }
+
+      processed.push({
+        recurringId: recurring.id,
+        runAt: runAt.toISOString(),
+        transactionId: transactionId as string | null,
       });
+    }
+
+    if (hasMoreDueRuns) {
+      skipped.push({ recurringId: recurring.id, reason: 'max_runs_reached' });
+      continue;
+    }
+
+    if (
+      allDueRunsSucceeded &&
+      shouldFinalizeRecurring(recurring, now) &&
+      processed.length < maxRuns
+    ) {
+      const { data: transactionId, error: rpcError } = await supabase.rpc(
+        'enqueue_recurring_transaction',
+        {
+          p_recurring_id: recurring.id,
+          p_run_at: now.toISOString(),
+        }
+      );
 
       if (rpcError) {
         skipped.push({ recurringId: recurring.id, reason: rpcError.message });
@@ -133,43 +192,6 @@ Deno.serve(async (request) => {
       processed.push({
         recurringId: recurring.id,
         runAt: now.toISOString(),
-        transactionId: transactionId as string | null,
-      });
-      continue;
-    }
-
-    if (isRecurringEnded(recurring, now)) {
-      continue;
-    }
-
-    const schedule = parseCron(recurring.schedule);
-    if (!schedule) {
-      skipped.push({ recurringId: recurring.id, reason: 'invalid_schedule' });
-      continue;
-    }
-
-    const dueRuns = dueOccurrences(
-      recurring,
-      schedule,
-      body.backfill || body.recurringId ? parseDateStart(recurring.start_date) : earliest,
-      now,
-      maxRuns - processed.length,
-    );
-
-    for (const runAt of dueRuns) {
-      const { data: transactionId, error: rpcError } = await supabase.rpc('enqueue_recurring_transaction', {
-        p_recurring_id: recurring.id,
-        p_run_at: runAt.toISOString(),
-      });
-
-      if (rpcError) {
-        skipped.push({ recurringId: recurring.id, reason: rpcError.message });
-        continue;
-      }
-
-      processed.push({
-        recurringId: recurring.id,
-        runAt: runAt.toISOString(),
         transactionId: transactionId as string | null,
       });
     }
@@ -185,122 +207,10 @@ Deno.serve(async (request) => {
   });
 });
 
-function dueOccurrences(
-  recurring: RecurringTransaction,
-  schedule: readonly [CronField, CronField, CronField, CronField, CronField],
-  earliest: Date,
-  now: Date,
-  maxRuns: number,
-): Date[] {
-  const startDate = parseDateStart(recurring.start_date);
-  const lastRun = recurring.last_run_at ? new Date(recurring.last_run_at) : null;
-  const start = floorToMinute(new Date(Math.max(
-    earliest.getTime(),
-    startDate.getTime(),
-    lastRun ? lastRun.getTime() + 60_000 : startDate.getTime(),
-  )));
-  const endDate = recurring.end_date ? parseDateEnd(recurring.end_date) : now;
-  const end = new Date(Math.min(now.getTime(), endDate.getTime()));
-  const runs: Date[] = [];
-
-  for (let cursor = start; cursor <= end && runs.length < maxRuns; cursor = new Date(cursor.getTime() + 60_000)) {
-    if (matchesCron(cursor, schedule)) {
-      runs.push(new Date(cursor));
-    }
-  }
-
-  return runs;
-}
-
-function shouldFinalizeRecurring(recurring: RecurringTransaction, now: Date): boolean {
-  if (!isRecurringEnded(recurring, now)) {
-    return false;
-  }
-
-  if (!recurring.last_run_at) {
-    return true;
-  }
-
-  return new Date(recurring.last_run_at).getTime() <= parseDateEnd(recurring.end_date as string).getTime();
-}
-
-function isRecurringEnded(recurring: RecurringTransaction, now: Date): boolean {
-  if (!recurring.end_date) {
-    return false;
-  }
-
-  return now.getTime() > parseDateEnd(recurring.end_date).getTime();
-}
-
-function parseCron(expression: string): readonly [CronField, CronField, CronField, CronField, CronField] | null {
-  const fields = expression.trim().split(/\s+/);
-  if (fields.length !== 5) {
-    return null;
-  }
-
-  const parsed = [
-    parseCronField(fields[0], 0, 59),
-    parseCronField(fields[1], 0, 23),
-    parseCronField(fields[2], 1, 31),
-    parseCronField(fields[3], 1, 12),
-    parseCronField(fields[4], 0, 7),
-  ] as const;
-
-  return parsed.every((field) => field.size > 0) ? parsed : null;
-}
-
-function parseCronField(field: string, min: number, max: number): CronField {
-  const values = new Set<number>();
-
-  for (const part of field.split(',')) {
-    const [rangePart, stepPart] = part.split('/');
-    const step = stepPart ? Number(stepPart) : 1;
-    if (!Number.isInteger(step) || step < 1) {
-      continue;
-    }
-
-    const range = rangePart === '*'
-      ? [min, max]
-      : rangePart.includes('-')
-        ? rangePart.split('-').map(Number)
-        : [Number(rangePart), Number(rangePart)];
-
-    const [start, end] = range;
-    if (!Number.isInteger(start) || !Number.isInteger(end) || start < min || end > max || start > end) {
-      continue;
-    }
-
-    for (let value = start; value <= end; value += step) {
-      values.add(max === 7 && value === 7 ? 0 : value);
-    }
-  }
-
-  return values;
-}
-
-function matchesCron(
-  value: Date,
-  [minutes, hours, daysOfMonth, months, daysOfWeek]: readonly [CronField, CronField, CronField, CronField, CronField],
-): boolean {
-  return minutes.has(value.getUTCMinutes()) &&
-    hours.has(value.getUTCHours()) &&
-    daysOfMonth.has(value.getUTCDate()) &&
-    months.has(value.getUTCMonth() + 1) &&
-    daysOfWeek.has(value.getUTCDay());
-}
-
 function floorToMinute(value: Date): Date {
   const next = new Date(value);
   next.setUTCSeconds(0, 0);
   return next;
-}
-
-function parseDateStart(value: string): Date {
-  return new Date(`${value}T00:00:00.000Z`);
-}
-
-function parseDateEnd(value: string): Date {
-  return new Date(`${value}T23:59:59.999Z`);
 }
 
 function isoDate(value: Date): string {
