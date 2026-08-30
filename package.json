@@ -54,7 +54,8 @@
     "mcp:build": "nx build mcp",
     "mcp:test": "nx test mcp",
     "mcp:stdio": "node dist/apps/mcp/main.mjs",
-    "mcp:worker:check": "nx run mcp:worker:dry-run"
+    "mcp:worker:check": "nx run mcp:worker:dry-run",
+    "mcp:worker:deploy": "wrangler deploy --config wrangler.mcp.toml"
   },
   "repository": {
     "type": "git",
