@@ -195,7 +195,14 @@
     </form>
 
     <p class="text-xs text-base-content/60 text-center">
-      {{ 'auth.signup.tosNotice' | transloco }}
+      {{ 'auth.signup.tosPrefix' | transloco }}
+      <a class="link" routerLink="/regulamin"
+        >{{ 'legal.terms' | transloco }}</a
+      >
+      {{ 'auth.signup.tosJoin' | transloco }}
+      <a class="link" routerLink="/polityka-prywatnosci"
+        >{{ 'legal.privacy' | transloco }}</a
+      >.
     </p>
     }
   </div>

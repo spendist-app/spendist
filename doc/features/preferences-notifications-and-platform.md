@@ -30,4 +30,4 @@ Current notification types include automatic recurring transaction creation, a r
 
 The application is mobile-first Angular with SSR/hydration, zoneless change detection, and a production service worker. A Cloudflare Worker serves it, adds security headers, and exposes public runtime configuration through `/env.js`.
 
-Static assets, including `robots.txt` and `sitemap.xml`, are in `apps/web/public/`. The landing page at `/` is currently the only indexable content route.
+Static assets, including `robots.txt` and `sitemap.xml`, are in `apps/web/public/`. Indexable public content includes the landing page, localized blog routes, and the Polish privacy-policy and terms pages generated from `docs/legal/`.

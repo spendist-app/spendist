@@ -81,6 +81,12 @@ const en = {
     revoke: 'Revoke access',
     manage: 'Manage access',
   },
+  legal: {
+    privacy: 'Privacy Policy',
+    terms: 'Terms of Service',
+    navigation: 'Legal documents',
+    backToSpendist: 'Back to Spendist',
+  },
   navbar: {
     settings: 'Settings',
     signOut: 'Sign out',
@@ -351,8 +357,8 @@ const en = {
       resendError:
         'We could not send another confirmation email. Wait a moment and try again.',
       backToLogin: 'Back to login',
-      tosNotice:
-        'By continuing you agree to our future Terms of Service and Privacy Policy.',
+      tosPrefix: 'Before signing up, you can read the Polish drafts:',
+      tosJoin: 'and',
     },
     confirm: {
       processingTitle: 'Confirming your email',

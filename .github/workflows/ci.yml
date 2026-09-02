@@ -35,6 +35,12 @@ jobs:
       - name: Unit tests
         run: npx nx test web
 
+      - name: Verify MCP
+        run: |
+          npx nx lint mcp
+          npx nx test mcp
+          npm run mcp:worker:check
+
       - name: Recurring Edge Function tests
         run: npm run test:recurring-edge
 

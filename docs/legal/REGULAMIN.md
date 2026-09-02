@@ -2,13 +2,13 @@
 
 **Wersja robocza 0.1 z 17 lipca 2026 r.**
 
-> Dokument wymaga uzupełnienia danych Operatora oznaczonych nawiasami kwadratowymi i weryfikacji prawnej przed publikacją.
+> Dokument wymaga weryfikacji prawnej przed publikacją.
 
 ## 1. Informacje ogólne
 
 1. Niniejszy regulamin określa zasady korzystania z aplikacji internetowej Spendist dostępnej pod adresem `https://spendist.app` („Aplikacja”).
 2. Aplikacja służy do samodzielnego zapisywania i analizowania informacji o finansach osobistych, w szczególności transakcji, portfeli, kategorii i płatności cyklicznych.
-3. Usługodawcą i operatorem hostowanej wersji Aplikacji jest **[imię i nazwisko albo pełna nazwa podmiotu]**, adres: **[adres pocztowy]**, e-mail: **[adres e-mail Operatora]** („Operator”).
+3. Usługodawcą i operatorem hostowanej wersji Aplikacji jest **Bartłomiej Borzucki**, osoba fizyczna, adres: **ul. Zakładowa 11u/5, 50-231 Wrocław**, e-mail: **hello@spendist.app** („Operator”).
 4. Regulamin jest udostępniany bezpłatnie w sposób umożliwiający jego zapisanie i odtworzenie.
 
 ## 2. Charakter projektu open source
@@ -85,18 +85,18 @@
    - wprowadzenia przez Użytkownika nieprawidłowych danych;
    - utraty dostępu spowodowanej naruszeniem bezpieczeństwa urządzenia, poczty lub hasła Użytkownika;
    - działania zewnętrznych usług i instancji oprogramowania niezależnych od Operatora.
-3. Postanowienia Regulaminu nie ograniczają praw konsumenta ani odpowiedzialności, której nie można wyłączyć na mocy prawa.
+3. Postanowienia Regulaminu nie ograniczają praw Użytkownika ani odpowiedzialności, których nie można wyłączyć na mocy bezwzględnie obowiązujących przepisów prawa.
 
 ## 11. Rezygnacja i usunięcie Konta
 
-1. Użytkownik może w każdej chwili zaprzestać korzystania z Aplikacji i zażądać usunięcia Konta, kontaktując się z Operatorem pod adresem **[adres e-mail Operatora]**. Docelowo usunięcie może być dostępne również w ustawieniach Konta.
+1. Użytkownik może w każdej chwili zaprzestać korzystania z Aplikacji i zażądać usunięcia Konta, kontaktując się z Operatorem pod adresem **hello@spendist.app**. Docelowo usunięcie może być dostępne również w ustawieniach Konta.
 2. Usunięcie Konta oznacza rozwiązanie umowy i rozpoczęcie usuwania danych zgodnie z Polityką prywatności oraz obowiązującymi okresami retencji i kopii zapasowych.
 3. Przed usunięciem Konta Użytkownik powinien wyeksportować potrzebne dane. Usunięcie może być nieodwracalne.
 4. Operator może rozwiązać umowę w przypadku istotnego lub powtarzającego się naruszenia Regulaminu, po uprzednim wezwaniu do zaprzestania naruszeń, chyba że natychmiastowe działanie jest konieczne dla bezpieczeństwa lub wymagane prawem.
 
 ## 12. Reklamacje
 
-1. Reklamacje dotyczące działania Aplikacji można składać na adres **[adres e-mail Operatora]** lub pisemnie na adres Operatora.
+1. Reklamacje dotyczące działania Aplikacji można składać na adres **hello@spendist.app** lub pisemnie na adres Operatora.
 2. Zgłoszenie powinno zawierać opis problemu, datę jego wystąpienia i dane umożliwiające udzielenie odpowiedzi. Nie należy przesyłać hasła.
 3. Operator odpowie na reklamację w terminie 14 dni od jej otrzymania. Jeżeli rozpatrzenie wymaga dodatkowych informacji, Operator poprosi o ich uzupełnienie.
 
@@ -108,7 +108,7 @@
 
 ## 14. Postanowienia końcowe
 
-1. Do Regulaminu stosuje się prawo polskie, z zastrzeżeniem bezwzględnie obowiązujących przepisów chroniących konsumenta właściwych dla jego miejsca zamieszkania.
-2. Spory mogą być rozstrzygane przez właściwy sąd powszechny. Konsument może również korzystać z dostępnych pozasądowych metod rozpatrywania sporów.
-3. W sprawach nieuregulowanych zastosowanie mają odpowiednie przepisy, w tym ustawa o świadczeniu usług drogą elektroniczną oraz przepisy o prawach konsumenta.
+1. Do Regulaminu stosuje się prawo polskie, z zastrzeżeniem bezwzględnie obowiązujących przepisów, których zastosowania nie można wyłączyć umową.
+2. Spory mogą być rozstrzygane przez właściwy sąd powszechny. Użytkownik może również korzystać z dostępnych pozasądowych metod rozpatrywania sporów, jeżeli przewidują je właściwe przepisy.
+3. W sprawach nieuregulowanych zastosowanie mają odpowiednie bezwzględnie obowiązujące przepisy prawa, w tym ustawa o świadczeniu usług drogą elektroniczną, jeżeli znajduje zastosowanie do Operatora i Aplikacji.
 4. Regulamin obowiązuje od **[data publikacji]**.

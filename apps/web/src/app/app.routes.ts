@@ -21,6 +21,18 @@ export const appRoutes: Route[] = [
   ...blogRoutes('pl'),
   ...blogRoutes('en'),
   {
+    path: 'polityka-prywatnosci',
+    data: { legalDocument: 'privacy' },
+    loadComponent: () =>
+      import('./pages/legal/legal.page').then((m) => m.LegalPage),
+  },
+  {
+    path: 'regulamin',
+    data: { legalDocument: 'terms' },
+    loadComponent: () =>
+      import('./pages/legal/legal.page').then((m) => m.LegalPage),
+  },
+  {
     path: 'dashboard',
     canActivate: [requireAuthGuard],
     loadComponent: () =>

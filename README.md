@@ -153,6 +153,7 @@ npm run format:check       # Prettier check
 npm run mcp:build          # build the local STDIO MCP server
 npm run mcp:test           # focused MCP unit tests
 npm run mcp:worker:check   # production-config Cloudflare Worker dry-run
+npm run mcp:worker:deploy  # deploy the authenticated remote MCP Worker
 ```
 
 ## MCP clients
@@ -166,6 +167,8 @@ node /absolute/path/to/spendist/dist/apps/mcp/main.mjs
 ```
 
 The production remote endpoint is `https://mcp.spendist.app/mcp` and advertises OAuth protected-resource metadata. It serves the stable MCP `2026-07-28` stateless protocol and keeps a stateless 2025-era fallback for older compatible clients; STDIO negotiates either era per connection. Compatible remote clients should discover Supabase OAuth, dynamically register, use authorization code with PKCE, and send the resulting bearer token. At this early product stage there is no separate staging Worker: local tests protect development, while a small invited group validates OAuth, reads, audited mutations, and guarded deletion directly on production before access is expanded.
+
+`mcp.spendist.app` is a proxied Cloudflare DNS hostname with a zone Worker Route attached to the separate `spendist-mcp` Worker, not an alias to the web application. The DNS record is managed in the zone, while `npm run mcp:worker:deploy` deploys the Worker and attaches its route. The production workflow supplies the Supabase URL, publishable key, and derived OAuth issuer through an ephemeral secrets file during the same deploy, then verifies the health and OAuth metadata endpoints.
 
 The integration supports profiles, reference data, transactions, recurring payments, summaries, places, notifications, read-only Allowance, audit metadata, and portable JSON export. Imports, account credentials, avatars, account deletion, and Allowance mutations remain application-only. MCP entity deletion always requires `prepare_delete` followed by `confirm_delete`.
 

@@ -1,0 +1,18 @@
+<div class="legal-shell">
+  <header class="legal-header">
+    <a class="legal-brand" routerLink="/">
+      <img src="/brand/spendist-mark.svg" alt="" width="42" height="42" />
+      <span>Spendist</span>
+    </a>
+    <nav [attr.aria-label]="'legal.navigation' | transloco">
+      <a [routerLink]="alternateDocument.path">{{ alternateDocument.title }}</a>
+    </nav>
+  </header>
+
+  <article class="legal-content" [innerHTML]="legalDocument.html"></article>
+
+  <footer class="legal-footer">
+    <a routerLink="/">{{ 'legal.backToSpendist' | transloco }}</a>
+    <a href="mailto:hello@spendist.app">hello@spendist.app</a>
+  </footer>
+</div>

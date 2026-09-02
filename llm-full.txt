@@ -38,6 +38,7 @@ Read `doc/features/` for feature-level details and deliberate limits.
 | `/{locale}/blog/feed.xml` | Locale-specific RSS 2.0 feed. | Discovery file, not an HTML page |
 | `/llm.txt`, `/llms.txt` | Concise public project knowledge file; the plural path is a Worker alias. | Plain UTF-8 text |
 | `/llm-full.txt`, `/llms-full.txt` | Detailed public project knowledge file; the plural path is a Worker alias. | Plain UTF-8 text |
+| `/polityka-prywatnosci`, `/regulamin` | Public Polish legal documents generated from the canonical Markdown drafts in `docs/legal/`. | Indexable and prerendered |
 | `/login`, `/signup` | Authentication entry points. | Not indexed |
 | `/forgot-password`, `/reset-password` | Password recovery utilities. | Not indexed |
 | `/auth/confirm` | One-time email-confirmation callback and automatic first sign-in. | Not indexed |
@@ -59,6 +60,7 @@ Routes live in `apps/web/src/app/app.routes.ts`. Public SEO files live in `apps/
 - The Nx build depends on `responsive-images-check` and `blog-content-check`, so stale generated artifacts fail the build. Commit source and generated files together.
 - Blog pages set canonical, robots, Open Graph, Twitter card, RSS discovery, and JSON-LD metadata. Blog homes use reciprocal PL/EN alternates; articles do not because they are editorially independent.
 - Public blog routes are statically prerendered. The Cloudflare Worker returns the localized branded blog fallback with HTTP 404 for unknown blog URLs.
+- Public legal routes are statically prerendered from sanitized generated HTML. `npm run legal:generate` updates the Angular module, while `legal:check` protects the build from drift against `docs/legal/`.
 
 ## Architecture
 

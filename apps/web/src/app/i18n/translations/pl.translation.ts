@@ -81,6 +81,12 @@ const pl = {
     revoke: 'Cofnij dostęp',
     manage: 'Zarządzaj dostępem',
   },
+  legal: {
+    privacy: 'Polityka prywatności',
+    terms: 'Regulamin',
+    navigation: 'Dokumenty prawne',
+    backToSpendist: 'Wróć do Spendist',
+  },
   navbar: {
     settings: 'Ustawienia',
     signOut: 'Wyloguj się',
@@ -350,8 +356,8 @@ const pl = {
       resendError:
         'Nie udało się wysłać kolejnej wiadomości. Poczekaj chwilę i spróbuj ponownie.',
       backToLogin: 'Wróć do logowania',
-      tosNotice:
-        'Kontynuując, akceptujesz przyszły regulamin oraz politykę prywatności.',
+      tosPrefix: 'Przed rejestracją możesz przeczytać wersje robocze:',
+      tosJoin: 'oraz',
     },
     confirm: {
       processingTitle: 'Potwierdzamy Twój adres e-mail',

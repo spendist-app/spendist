@@ -10,8 +10,8 @@ MCP_ALLOWED_AUDIENCE = "https://mcp.spendist.app/mcp"
 MCP_ALLOWED_HOSTS = "mcp.spendist.app"
 
 [[routes]]
-pattern = "mcp.spendist.app"
-custom_domain = true
+pattern = "mcp.spendist.app/*"
+zone_name = "spendist.app"
 
 # SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, and MCP_OAUTH_ISSUER are environment
 # secrets/vars configured in Cloudflare. Early production access is limited to

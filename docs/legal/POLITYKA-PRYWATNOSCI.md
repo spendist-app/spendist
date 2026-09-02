@@ -2,12 +2,12 @@
 
 **Wersja robocza 0.1 z 17 lipca 2026 r.**
 
-> Dokument wymaga uzupełnienia danych Administratora oznaczonych nawiasami kwadratowymi, potwierdzenia okresów retencji i weryfikacji prawnej przed publikacją.
+> Dokument wymaga potwierdzenia okresów retencji i weryfikacji prawnej przed publikacją.
 
 ## 1. Administrator danych
 
-1. Administratorem danych osobowych użytkowników hostowanej wersji Spendist jest **[imię i nazwisko albo pełna nazwa podmiotu]**, adres: **[adres pocztowy]**, e-mail: **[adres e-mail Administratora]** („Administrator”).
-2. W sprawach dotyczących prywatności i realizacji praw można kontaktować się pod adresem **[adres e-mail ds. prywatności]** lub listownie na adres Administratora.
+1. Administratorem danych osobowych użytkowników hostowanej wersji Spendist jest **Bartłomiej Borzucki**, adres: **ul. Zakładowa 11u/5, 50-231 Wrocław**, e-mail: **hello@spendist.app** („Administrator”).
+2. W sprawach dotyczących prywatności i realizacji praw można kontaktować się pod adresem **hello@spendist.app** lub listownie na adres Administratora.
 3. Niniejsza Polityka dotyczy Aplikacji dostępnej pod adresem `https://spendist.app`. Własne instancje oprogramowania prowadzone przez osoby trzecie mają odrębnych administratorów i własne zasady.
 
 ## 2. Najważniejsze zasady
@@ -117,7 +117,7 @@ Użytkownik ma – w zakresie przewidzianym przez RODO – prawo do:
 - wycofania zgody w dowolnym momencie;
 - wniesienia skargi do Prezesa Urzędu Ochrony Danych Osobowych.
 
-Wniosek można złożyć na adres **[adres e-mail ds. prywatności]**. Administrator może poprosić o potwierdzenie tożsamości, jeżeli jest to potrzebne do ochrony Konta i danych.
+Wniosek można złożyć na adres **hello@spendist.app**. Administrator może poprosić o potwierdzenie tożsamości, jeżeli jest to potrzebne do ochrony Konta i danych.
 
 ## 10. Zautomatyzowane decyzje
 
@@ -132,7 +132,7 @@ Dane Użytkowników nie są wykorzystywane do podejmowania decyzji wywołującyc
    - ograniczanie uprawnień administracyjnych;
    - aktualizacje, kopie zapasowe i monitorowanie zdarzeń bezpieczeństwa.
 2. Żaden system nie zapewnia całkowitego braku ryzyka. Użytkownik powinien stosować unikalne hasło, chronić skrzynkę e-mail i wylogowywać się na urządzeniach współdzielonych.
-3. Podejrzenie naruszenia bezpieczeństwa można zgłosić na adres **[adres e-mail ds. bezpieczeństwa]**.
+3. Podejrzenie naruszenia bezpieczeństwa można zgłosić na adres **hello@spendist.app**.
 
 ## 12. Zmiany Polityki
 

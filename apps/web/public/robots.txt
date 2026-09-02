@@ -3,6 +3,8 @@ User-agent: *
 Allow: /
 Allow: /pl/blog
 Allow: /en/blog
+Allow: /polityka-prywatnosci
+Allow: /regulamin
 
 Disallow: /login
 Disallow: /signup
