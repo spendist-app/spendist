@@ -8,7 +8,11 @@
   "targets": {
     "build": {
       "executor": "@angular/build:application",
-      "dependsOn": ["responsive-images-check", "blog-content-check"],
+      "dependsOn": [
+        "responsive-images-check",
+        "blog-content-check",
+        "legal-content-check"
+      ],
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/apps/web",
@@ -66,6 +70,12 @@
       "executor": "nx:run-commands",
       "options": {
         "command": "npm run blog:check"
+      }
+    },
+    "legal-content-check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm run legal:check"
       }
     },
     "responsive-images-check": {

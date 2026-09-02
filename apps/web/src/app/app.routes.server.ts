@@ -8,6 +8,8 @@ import {
 export const serverRoutes: ServerRoute[] = [
   ...blogServerRoutes('pl'),
   ...blogServerRoutes('en'),
+  { path: 'polityka-prywatnosci', renderMode: RenderMode.Prerender },
+  { path: 'regulamin', renderMode: RenderMode.Prerender },
   {
     path: '**',
     renderMode: RenderMode.Prerender,

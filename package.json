@@ -18,6 +18,8 @@
     "graph": "nx graph",
     "blog:generate": "node tools/scripts/generate-blog-content.mjs",
     "blog:check": "node tools/scripts/generate-blog-content.mjs --check",
+    "legal:generate": "node tools/scripts/generate-legal-content.mjs",
+    "legal:check": "node tools/scripts/generate-legal-content.mjs --check",
     "images:generate": "node tools/scripts/generate-responsive-images.mjs",
     "images:check": "node tools/scripts/generate-responsive-images.mjs --check",
     "demo:seed": "node tools/demo-seed/cli.mjs",
