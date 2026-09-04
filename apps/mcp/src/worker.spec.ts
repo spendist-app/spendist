@@ -66,6 +66,20 @@ describe('Spendist MCP Worker', () => {
     });
   });
 
+  it('advertises the Supabase dynamic client registration endpoint', async () => {
+    const response = await app.request(
+      'https://mcp.spendist.app/.well-known/oauth-authorization-server',
+      undefined,
+      env
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      issuer: env.MCP_OAUTH_ISSUER,
+      registration_endpoint: `${env.MCP_OAUTH_ISSUER}/oauth/clients/register`,
+    });
+  });
+
   it('challenges unauthenticated requests with RFC 9728 metadata', async () => {
     const response = await app.request(
       env.MCP_RESOURCE_URL,

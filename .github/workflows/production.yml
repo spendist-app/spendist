@@ -73,6 +73,63 @@ jobs:
 
           supabase db push --db-url "$db_url"
 
+      - name: Configure Supabase MCP access token hook
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
+            echo "::error::Missing required GitHub secret: SUPABASE_ACCESS_TOKEN"
+            exit 1
+          fi
+
+          if [ -z "$SUPABASE_PROJECT_REF" ]; then
+            echo "::error::Missing required GitHub secret: SUPABASE_PROJECT_REF"
+            exit 1
+          fi
+
+          management_url="https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/config/auth"
+          hook_uri="pg-functions://postgres/public/spendist_mcp_access_token_hook"
+          payload_file="$(mktemp)"
+          response_file="$(mktemp)"
+          trap 'rm -f "$payload_file" "$response_file"' EXIT
+
+          jq -n \
+            --arg hookUri "$hook_uri" \
+            '{
+              hook_custom_access_token_enabled: true,
+              hook_custom_access_token_uri: $hookUri
+            }' > "$payload_file"
+
+          curl --fail --silent --show-error \
+            --retry 3 \
+            --retry-all-errors \
+            --connect-timeout 10 \
+            --max-time 30 \
+            --request PATCH \
+            --header "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            --header "Content-Type: application/json" \
+            --data-binary "@${payload_file}" \
+            --output "$response_file" \
+            "$management_url"
+
+          curl --fail --silent --show-error \
+            --retry 3 \
+            --retry-all-errors \
+            --connect-timeout 10 \
+            --max-time 30 \
+            --header "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            --output "$response_file" \
+            "$management_url"
+
+          if ! jq -e \
+            --arg hookUri "$hook_uri" \
+            '.hook_custom_access_token_enabled == true and
+             .hook_custom_access_token_uri == $hookUri' \
+            "$response_file" > /dev/null; then
+            echo "::error::Supabase MCP custom access token hook verification failed."
+            exit 1
+          fi
+
+          echo "Supabase MCP custom access token hook is enabled."
+
       - name: Deploy Supabase Edge Functions
         run: |
           if [ -z "$SUPABASE_PROJECT_REF" ]; then
