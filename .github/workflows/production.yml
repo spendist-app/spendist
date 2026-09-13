@@ -16,32 +16,13 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    env:
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
-      SUPABASE_PSQL_DB_URL: ${{ secrets.SUPABASE_PSQL_DB_URL }}
-      SUPABASE_REMOTE_DB_URL: ${{ secrets.SUPABASE_REMOTE_DB_URL }}
-      SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
-      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      CLOUDFLARE_PRODUCTION_URL: ${{ secrets.CLOUDFLARE_PRODUCTION_URL }}
-      NG_APP_SUPABASE_URL: ${{ secrets.NG_APP_SUPABASE_URL }}
-      NG_APP_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NG_APP_SUPABASE_PUBLISHABLE_KEY }}
-      NG_APP_SUPABASE_FUNCTIONS_URL: ${{ secrets.NG_APP_SUPABASE_FUNCTIONS_URL }}
-      INTERNAL_FUNCTION_SECRET: ${{ secrets.INTERNAL_FUNCTION_SECRET }}
-      ROUTINE_RUNNER_SECRET: ${{ secrets.ROUTINE_RUNNER_SECRET }}
-      RECURRING_PAYMENTS_SECRET: ${{ secrets.RECURRING_PAYMENTS_SECRET }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_REGION: ${{ secrets.AWS_REGION }}
-      EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
+          persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
           cache: npm
@@ -58,11 +39,10 @@ jobs:
           npx nx test mcp
           npm run mcp:worker:check
 
-      - uses: supabase/setup-cli@v1
-        with:
-          version: latest
-
       - name: Push production DB migrations
+        env:
+          SUPABASE_PSQL_DB_URL: ${{ secrets.SUPABASE_PSQL_DB_URL }}
+          SUPABASE_REMOTE_DB_URL: ${{ secrets.SUPABASE_REMOTE_DB_URL }}
         run: |
           db_url="${SUPABASE_PSQL_DB_URL:-${SUPABASE_REMOTE_DB_URL:-}}"
           if [ -z "$db_url" ]; then
@@ -71,9 +51,17 @@ jobs:
             exit 1
           fi
 
-          supabase db push --db-url "$db_url"
+          export DEPLOY_DB_URL="$db_url"
+          node tools/scripts/run-with-secret-redaction.mjs \
+            --secret-env SUPABASE_PSQL_DB_URL \
+            --secret-env SUPABASE_REMOTE_DB_URL \
+            --secret-env DEPLOY_DB_URL \
+            -- npm exec -- supabase db push --db-url '{ENV:DEPLOY_DB_URL}'
 
       - name: Configure Supabase MCP access token hook
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: |
           if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
             echo "::error::Missing required GitHub secret: SUPABASE_ACCESS_TOKEN"
@@ -98,24 +86,30 @@ jobs:
               hook_custom_access_token_uri: $hookUri
             }' > "$payload_file"
 
-          curl --fail --silent --show-error \
+          node tools/scripts/run-with-secret-redaction.mjs \
+            --secret-env SUPABASE_ACCESS_TOKEN \
+            --secret-env SUPABASE_PROJECT_REF \
+            -- curl --fail --silent --show-error \
             --retry 3 \
             --retry-all-errors \
             --connect-timeout 10 \
             --max-time 30 \
             --request PATCH \
-            --header "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            --header 'Authorization: Bearer {ENV:SUPABASE_ACCESS_TOKEN}' \
             --header "Content-Type: application/json" \
             --data-binary "@${payload_file}" \
             --output "$response_file" \
             "$management_url"
 
-          curl --fail --silent --show-error \
+          node tools/scripts/run-with-secret-redaction.mjs \
+            --secret-env SUPABASE_ACCESS_TOKEN \
+            --secret-env SUPABASE_PROJECT_REF \
+            -- curl --fail --silent --show-error \
             --retry 3 \
             --retry-all-errors \
             --connect-timeout 10 \
             --max-time 30 \
-            --header "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            --header 'Authorization: Bearer {ENV:SUPABASE_ACCESS_TOKEN}' \
             --output "$response_file" \
             "$management_url"
 
@@ -131,25 +125,48 @@ jobs:
           echo "Supabase MCP custom access token hook is enabled."
 
       - name: Deploy Supabase Edge Functions
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: |
           if [ -z "$SUPABASE_PROJECT_REF" ]; then
             echo "::error::Missing required GitHub secret: SUPABASE_PROJECT_REF"
             exit 1
           fi
 
-          supabase functions deploy process-recurring-payments \
-            --project-ref "$SUPABASE_PROJECT_REF" \
+          node tools/scripts/run-with-secret-redaction.mjs \
+            --secret-env SUPABASE_ACCESS_TOKEN \
+            --secret-env SUPABASE_PROJECT_REF \
+            -- npm exec -- supabase functions deploy process-recurring-payments \
+            --project-ref '{ENV:SUPABASE_PROJECT_REF}' \
             --no-verify-jwt
 
-          supabase functions deploy sync-exchange-rates \
-            --project-ref "$SUPABASE_PROJECT_REF" \
+          node tools/scripts/run-with-secret-redaction.mjs \
+            --secret-env SUPABASE_ACCESS_TOKEN \
+            --secret-env SUPABASE_PROJECT_REF \
+            -- npm exec -- supabase functions deploy sync-exchange-rates \
+            --project-ref '{ENV:SUPABASE_PROJECT_REF}' \
             --no-verify-jwt
 
-          supabase functions deploy send-allowance-invitation \
-            --project-ref "$SUPABASE_PROJECT_REF" \
+          node tools/scripts/run-with-secret-redaction.mjs \
+            --secret-env SUPABASE_ACCESS_TOKEN \
+            --secret-env SUPABASE_PROJECT_REF \
+            -- npm exec -- supabase functions deploy send-allowance-invitation \
+            --project-ref '{ENV:SUPABASE_PROJECT_REF}' \
             --no-verify-jwt
 
       - name: Sync Supabase Edge Function Secrets
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          INTERNAL_FUNCTION_SECRET: ${{ secrets.INTERNAL_FUNCTION_SECRET }}
+          ROUTINE_RUNNER_SECRET: ${{ secrets.ROUTINE_RUNNER_SECRET }}
+          RECURRING_PAYMENTS_SECRET: ${{ secrets.RECURRING_PAYMENTS_SECRET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          CLOUDFLARE_PRODUCTION_URL: ${{ secrets.CLOUDFLARE_PRODUCTION_URL }}
         run: |
           if [ -z "$SUPABASE_PROJECT_REF" ]; then
             echo "::error::Missing required GitHub secret: SUPABASE_PROJECT_REF"
@@ -172,23 +189,54 @@ jobs:
             fi
           done
 
-          secret_args=(
-            INTERNAL_FUNCTION_SECRET="$internal_function_secret"
-            AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID"
-            AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY"
-            AWS_REGION="$AWS_REGION"
-            EMAIL_FROM="$EMAIL_FROM"
-            APP_URL="${app_url%/}"
-          )
+          secrets_file="$(mktemp)"
+          trap 'rm -f "$secrets_file"' EXIT
+          chmod 600 "$secrets_file"
 
-          supabase secrets set \
-            --project-ref "$SUPABASE_PROJECT_REF" \
-            "${secret_args[@]}"
+          dotenv_value() {
+            jq -Rn --arg value "$1" '$value | @json'
+          }
+
+          {
+            printf 'INTERNAL_FUNCTION_SECRET=%s\n' "$(dotenv_value "$internal_function_secret")"
+            printf 'AWS_ACCESS_KEY_ID=%s\n' "$(dotenv_value "$AWS_ACCESS_KEY_ID")"
+            printf 'AWS_SECRET_ACCESS_KEY=%s\n' "$(dotenv_value "$AWS_SECRET_ACCESS_KEY")"
+            printf 'AWS_REGION=%s\n' "$(dotenv_value "$AWS_REGION")"
+            printf 'EMAIL_FROM=%s\n' "$(dotenv_value "$EMAIL_FROM")"
+            printf 'APP_URL=%s\n' "$(dotenv_value "${app_url%/}")"
+          } > "$secrets_file"
+
+          node tools/scripts/run-with-secret-redaction.mjs \
+            --secret-env SUPABASE_ACCESS_TOKEN \
+            --secret-env SUPABASE_PROJECT_REF \
+            --secret-env INTERNAL_FUNCTION_SECRET \
+            --secret-env ROUTINE_RUNNER_SECRET \
+            --secret-env RECURRING_PAYMENTS_SECRET \
+            --secret-env AWS_ACCESS_KEY_ID \
+            --secret-env AWS_SECRET_ACCESS_KEY \
+            --secret-env AWS_REGION \
+            --secret-env EMAIL_FROM \
+            -- npm exec -- supabase secrets set \
+              --project-ref '{ENV:SUPABASE_PROJECT_REF}' \
+              --env-file "$secrets_file"
 
       - name: Sync Supabase Vault Secrets
+        env:
+          SUPABASE_REMOTE_DB_URL: ${{ secrets.SUPABASE_REMOTE_DB_URL }}
+          NG_APP_SUPABASE_URL: ${{ secrets.NG_APP_SUPABASE_URL }}
+          NG_APP_SUPABASE_FUNCTIONS_URL: ${{ secrets.NG_APP_SUPABASE_FUNCTIONS_URL }}
+          INTERNAL_FUNCTION_SECRET: ${{ secrets.INTERNAL_FUNCTION_SECRET }}
+          ROUTINE_RUNNER_SECRET: ${{ secrets.ROUTINE_RUNNER_SECRET }}
+          RECURRING_PAYMENTS_SECRET: ${{ secrets.RECURRING_PAYMENTS_SECRET }}
         run: node tools/scripts/sync-supabase-vault-secrets.mjs
 
       - name: Write production runtime env
+        env:
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          NG_APP_SUPABASE_URL: ${{ secrets.NG_APP_SUPABASE_URL }}
+          NG_APP_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NG_APP_SUPABASE_PUBLISHABLE_KEY }}
+          NG_APP_SUPABASE_FUNCTIONS_URL: ${{ secrets.NG_APP_SUPABASE_FUNCTIONS_URL }}
         run: |
           supabase_url="$NG_APP_SUPABASE_URL"
           publishable_key="${NG_APP_SUPABASE_PUBLISHABLE_KEY:-${SUPABASE_PUBLISHABLE_KEY:-${SUPABASE_ANON_KEY:-}}}"
@@ -236,12 +284,34 @@ jobs:
         run: npm run build:worker
 
       - name: Verify Cloudflare authentication
-        run: npx wrangler whoami
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          node tools/scripts/run-with-secret-redaction.mjs \
+            --secret-env CLOUDFLARE_API_TOKEN \
+            --secret-env CLOUDFLARE_ACCOUNT_ID \
+            -- npm exec -- wrangler whoami
 
       - name: Deploy Cloudflare Worker
-        run: npm run deploy:worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          node tools/scripts/run-with-secret-redaction.mjs \
+            --secret-env CLOUDFLARE_API_TOKEN \
+            --secret-env CLOUDFLARE_ACCOUNT_ID \
+            -- npm run deploy:worker
 
       - name: Sync Cloudflare Worker Secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          NG_APP_SUPABASE_URL: ${{ secrets.NG_APP_SUPABASE_URL }}
+          NG_APP_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NG_APP_SUPABASE_PUBLISHABLE_KEY }}
+          NG_APP_SUPABASE_FUNCTIONS_URL: ${{ secrets.NG_APP_SUPABASE_FUNCTIONS_URL }}
         run: |
           publishable_key="${NG_APP_SUPABASE_PUBLISHABLE_KEY:-${SUPABASE_PUBLISHABLE_KEY:-${SUPABASE_ANON_KEY:-}}}"
 
@@ -279,10 +349,17 @@ jobs:
               NG_APP_BUILD_COMMIT: $buildCommit
             }' > "$secrets_file"
 
-          npx --yes wrangler@4 secret bulk "$secrets_file" --config wrangler.toml
-          rm -f "$secrets_file"
+          trap 'rm -f "$secrets_file"' EXIT
+          chmod 600 "$secrets_file"
+
+          node tools/scripts/run-with-secret-redaction.mjs \
+            --secret-env CLOUDFLARE_API_TOKEN \
+            --secret-env CLOUDFLARE_ACCOUNT_ID \
+            -- npm exec -- wrangler secret bulk "$secrets_file" --config wrangler.toml
 
       - name: Verify Cloudflare runtime env
+        env:
+          CLOUDFLARE_PRODUCTION_URL: ${{ secrets.CLOUDFLARE_PRODUCTION_URL }}
         run: |
           production_url="${CLOUDFLARE_PRODUCTION_URL:-https://spendist.app}"
           runtime_env=""
@@ -317,6 +394,13 @@ jobs:
           fi
 
       - name: Deploy MCP Cloudflare Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          NG_APP_SUPABASE_URL: ${{ secrets.NG_APP_SUPABASE_URL }}
+          NG_APP_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NG_APP_SUPABASE_PUBLISHABLE_KEY }}
         run: |
           publishable_key="${NG_APP_SUPABASE_PUBLISHABLE_KEY:-${SUPABASE_PUBLISHABLE_KEY:-${SUPABASE_ANON_KEY:-}}}"
 
@@ -332,6 +416,7 @@ jobs:
 
           secrets_file="$(mktemp)"
           trap 'rm -f "$secrets_file"' EXIT
+          chmod 600 "$secrets_file"
 
           jq -n \
             --arg supabaseUrl "${NG_APP_SUPABASE_URL%/}" \
@@ -343,9 +428,14 @@ jobs:
               MCP_OAUTH_ISSUER: $oauthIssuer
             }' > "$secrets_file"
 
-          npm run mcp:worker:deploy -- --secrets-file "$secrets_file"
+          node tools/scripts/run-with-secret-redaction.mjs \
+            --secret-env CLOUDFLARE_API_TOKEN \
+            --secret-env CLOUDFLARE_ACCOUNT_ID \
+            -- npm run mcp:worker:deploy -- --secrets-file "$secrets_file"
 
       - name: Verify MCP Cloudflare Worker
+        env:
+          NG_APP_SUPABASE_URL: ${{ secrets.NG_APP_SUPABASE_URL }}
         run: |
           mcp_origin="https://mcp.spendist.app"
           health_payload=""
