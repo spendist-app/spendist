@@ -505,9 +505,10 @@ const pl = {
       },
       categories: {
         label: 'Kategorie',
-        description: 'Etykiety, grupy, automatyzacje',
+        description: 'Dodawanie i edycja kategorii',
         header: 'Kategorie i grupy',
-        text: 'Porządkuj etykiety wydatków i grupuj je w tematy. Wyszukuj i filtruj, aby szybko znaleźć to, czego potrzebujesz.',
+        text: 'Wyszukuj, filtruj i edytuj kategorie używane w transakcjach.',
+        discardChanges: 'Odrzucić niezapisane zmiany?',
         addCategory: 'Dodaj kategorię',
         addGroup: 'Nowa grupa kategorii',
         tabs: {
@@ -546,7 +547,7 @@ const pl = {
             'Użyj maksymalnie trzech poziomów, np. Jedzenie / Spożywcze / Biedronka.',
           colorLabel: 'Kolor akcentu',
           colorPlaceholder: '#0EA5A5',
-          iconLabel: 'Ikona Heroicon',
+          iconLabel: 'Ikona',
         },
         details: {
           selectedHeading: 'Wybrana kategoria',
@@ -589,6 +590,17 @@ const pl = {
           confirmGroupDelete:
             'Usunąć tę grupę kategorii? Przenieś przypisane kategorie przed usunięciem.',
         },
+      },
+      categoryGroups: {
+        label: 'Grupy kategorii',
+        description: 'Porządkowanie kategorii',
+        help: 'Grupa łączy powiązane kategorie, np. Dom: czynsz, prąd, naprawy.',
+        filterLabel: 'Grupa',
+        createFirst: 'Utwórz pierwszą grupę',
+        empty: 'Utwórz pierwszą grupę, aby dodawać do niej kategorie.',
+        edit: 'Edytuj',
+        appearance: 'Wygląd',
+        changeIcon: 'Zmień ikonę',
       },
       spendistCsv: {
         label: 'Export/import Spendist',

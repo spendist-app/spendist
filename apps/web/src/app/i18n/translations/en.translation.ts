@@ -505,9 +505,10 @@ const en = {
       },
       categories: {
         label: 'Categories',
-        description: 'Labels, groups, automation',
+        description: 'Add and edit categories',
         header: 'Categories & groups',
-        text: 'Organize spending labels and cluster them into grouped themes. Use search or filters to jump to what matters.',
+        text: 'Search, filter, and edit categories used in transactions.',
+        discardChanges: 'Discard unsaved changes?',
         addCategory: 'Add category',
         addGroup: 'New category group',
         tabs: {
@@ -547,7 +548,7 @@ const en = {
             'Use up to three levels, for example Food / Groceries / Biedronka.',
           colorLabel: 'Accent color',
           colorPlaceholder: '#0EA5A5',
-          iconLabel: 'Heroicon',
+          iconLabel: 'Icon',
         },
         details: {
           selectedHeading: 'Selected category',
@@ -590,6 +591,17 @@ const en = {
           confirmGroupDelete:
             'Delete this category group? Categories assigned to it must be moved first.',
         },
+      },
+      categoryGroups: {
+        label: 'Category groups',
+        description: 'Organize categories',
+        help: 'A group connects related categories, such as Home: rent, electricity, and repairs.',
+        filterLabel: 'Group',
+        createFirst: 'Create the first group',
+        empty: 'Create the first group before adding categories.',
+        edit: 'Edit',
+        appearance: 'Appearance',
+        changeIcon: 'Change icon',
       },
       spendistCsv: {
         label: 'Export/import Spendist',
