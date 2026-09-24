@@ -6,6 +6,10 @@ Transactions are Spendist's core financial records. A transaction is income or e
 
 Users can create, edit, duplicate, and delete individual records. Bulk entry can add multiple transactions from pasted rows. Clipboard table parsing is enabled by default and splits tab-, comma-, or semicolon-delimited data into columns. Users can turn it off per bulk-entry session to paste the complete clipboard text into the focused field.
 
+The single-transaction form keeps typed fields while categories and other
+reference data finish loading. Saving and adding another transaction starts a
+fresh form only after the previous entry has been saved.
+
 When the signed-in user has an active Allowance connection as a payer, the
 single-transaction form includes a `Where should it be recorded?` target. The
 user can record the transaction only on their own account, create the existing

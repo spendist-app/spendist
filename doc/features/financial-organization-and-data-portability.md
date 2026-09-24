@@ -11,6 +11,16 @@ Settings maintains the reference data used by transactions and recurring payment
 - nested categories, colors, and Heroicons;
 - reusable tags.
 
+Settings has separate **Categories** and **Category groups** sections. Categories
+can be searched and filtered by group; selecting a category opens its editor.
+The group list shows each group's category count and can open the category list
+with that group selected. A group must exist before a category can be added.
+Category editors require a name and group and allow an optional parent within
+the existing hierarchy. Group editors require a name. Color and icon controls
+are under an optional Appearance section, and the icon grid opens on request.
+Unsubmitted changes prompt before the editor closes. Deletion retains its
+confirmation and existing ownership constraints.
+
 ## Kontomierz XLSX import
 
 The Kontomierz flow imports a user-selected XLSX export into a chosen wallet. The file is parsed in the browser, then valid transactions, categories, and tags are saved. It is a migration path, not a continuous bank synchronisation.

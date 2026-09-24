@@ -21,6 +21,7 @@ This directory is the English, LLM-oriented source of truth for current user-vis
 
 - [Demo data seeding](operations/demo-data-seeding.md)
 - [Encrypted database backups](operations/encrypted-database-backups.md)
+- [Scheduler observability retention](operations/scheduler-observability.md)
 
 ## Maintenance
 

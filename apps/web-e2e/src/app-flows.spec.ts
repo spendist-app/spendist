@@ -330,19 +330,20 @@ async function stubRecurringBackfill(page: Page): Promise<void> {
 
 async function openSettingsPanel(
   page: Page,
-  panel: 'Wallets' | 'Categories'
+  panel: 'Wallets' | 'Categories' | 'Category groups'
 ): Promise<void> {
   await openSettings(page);
   await page.getByRole('button', { name: new RegExp(`^${panel}\\b`) }).click();
 
-  const heading = panel === 'Categories' ? 'Categories & groups' : panel;
-  await expect(page.getByRole('heading', { name: heading })).toBeVisible();
+  const heading = panel === 'Wallets' ? 'Wallets & balances' : panel;
+  await expect(
+    page.getByRole('heading', { name: heading, exact: true })
+  ).toBeVisible();
   if (panel === 'Categories') {
-    await page.getByRole('tab', { name: 'Manage categories' }).click();
     await expect(page.locator('#settings-category-search')).toBeVisible({
       timeout: 15000,
     });
-  } else {
+  } else if (panel === 'Wallets') {
     await expect(page.getByRole('button', { name: 'Add wallet' })).toBeVisible({
       timeout: 15000,
     });
@@ -350,16 +351,14 @@ async function openSettingsPanel(
 }
 
 async function expectDefaultCategoryGroups(page: Page): Promise<void> {
-  await page.getByRole('tab', { name: 'Category groups' }).click();
+  await page.getByRole('button', { name: /^Category groups\b/ }).click();
 
   for (let attempt = 0; attempt < 5; attempt += 1) {
-    const groupsPanel = page.locator('#settings-categories-panel-groups');
-    const essentials = groupsPanel.locator('article').filter({
-      has: page.getByRole('heading', { name: 'Essentials', exact: true }),
+    const essentials = page.getByRole('heading', {
+      name: 'Essentials',
+      exact: true,
     });
-    const income = groupsPanel.locator('article').filter({
-      has: page.getByRole('heading', { name: 'Income', exact: true }),
-    });
+    const income = page.getByRole('heading', { name: 'Income', exact: true });
 
     try {
       await expect(essentials).toBeVisible({ timeout: 3000 });
@@ -372,7 +371,7 @@ async function expectDefaultCategoryGroups(page: Page): Promise<void> {
 
       await page.reload();
       await openSettingsPanel(page, 'Categories');
-      await page.getByRole('tab', { name: 'Category groups' }).click();
+      await page.getByRole('button', { name: /^Category groups\b/ }).click();
     }
   }
 }
@@ -529,6 +528,7 @@ test('confirms a new account, signs in once, and rejects a reused link', async (
 
   await page.getByRole('button', { name: 'Settings' }).click();
   await page.getByRole('menuitem', { name: 'Sign out' }).click();
+  await expect(page).toHaveURL(/\/$/, { timeout: 15000 });
   await page.goto(confirmationUrl);
   await expect(
     page.getByRole('heading', {
@@ -1390,20 +1390,19 @@ test('creates category group and category', async ({ page }, testInfo) => {
 
   await ensureAuthenticated(page);
   await openSettingsPanel(page, 'Categories');
+  await page.getByRole('button', { name: /^Category groups\b/ }).click();
   await page.getByRole('button', { name: 'New category group' }).click();
 
-  const groupForm = formWithHeading(page, 'Create category group');
+  const groupForm = page.getByRole('dialog').locator('form');
   await groupForm.locator('input[formcontrolname="name"]').fill(groupName);
   await groupForm.getByRole('button', { name: 'Create group' }).click();
 
-  await expect(
-    page.locator('article').filter({ hasText: groupName })
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: groupName })).toBeVisible();
 
-  await page.getByRole('tab', { name: 'Manage categories' }).click();
+  await page.getByRole('button', { name: /^Categories\b/ }).click();
   await page.getByRole('button', { name: 'Add category', exact: true }).click();
 
-  const categoryForm = formWithHeading(page, 'Create category');
+  const categoryForm = page.getByRole('dialog').locator('form');
   await categoryForm
     .locator('input[formcontrolname="name"]')
     .fill(categoryName);
@@ -1413,17 +1412,42 @@ test('creates category group and category', async ({ page }, testInfo) => {
   await categoryForm.getByRole('button', { name: 'Create category' }).click();
 
   await expect(page.getByText(categoryName).first()).toBeVisible();
-  await expect(page.getByText(groupName).first()).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: new RegExp(`${categoryName}.*${groupName}`) })
+  ).toBeVisible();
 
   await page.reload();
   await openSettingsPanel(page, 'Categories');
   await page.locator('#settings-category-search').fill(categoryName);
   await expect(page.getByText(categoryName).first()).toBeVisible();
 
-  await page.getByRole('tab', { name: 'Category groups' }).click();
+  await page.getByRole('button', { name: new RegExp(categoryName) }).click();
+  const editor = page.getByRole('dialog');
   await expect(
-    page.locator('article').filter({ hasText: groupName })
+    editor.getByRole('heading', { name: 'Edit category' })
   ).toBeVisible();
+  await editor.locator('input[name="name"]').fill(`${categoryName} draft`);
+  page.once('dialog', (dialog) => dialog.dismiss());
+  await editor.getByRole('button', { name: 'Cancel' }).click();
+  await expect(editor.locator('input[name="name"]')).toHaveValue(
+    `${categoryName} draft`
+  );
+  page.once('dialog', (dialog) => dialog.accept());
+  await editor.getByRole('button', { name: 'Cancel' }).click();
+  await expect(editor).toHaveCount(0);
+
+  await page.getByRole('button', { name: /^Category groups\b/ }).click();
+  await expect(page.getByRole('heading', { name: groupName })).toBeVisible();
+  await page
+    .getByRole('heading', { name: groupName })
+    .locator('..')
+    .locator('..')
+    .getByRole('button', { name: 'View categories' })
+    .click();
+  await expect(page.getByRole('combobox', { name: 'Group' })).not.toHaveValue(
+    ''
+  );
+  await expect(page.getByText(categoryName).first()).toBeVisible();
 });
 
 test('creates a mortgage simulation and attaches planned installments', async ({

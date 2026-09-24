@@ -151,6 +151,36 @@ describe('TransactionCreateFormComponent', () => {
     expect(options).toEqual(['PLN', 'EUR', 'USD']);
   });
 
+  it('keeps a typed draft when categories finish loading', () => {
+    const fixture = TestBed.createComponent(TransactionCreateFormComponent);
+    const store = TestBed.inject(
+      TransactionsStore
+    ) as unknown as TransactionsStoreStub;
+    fixture.detectChanges();
+
+    const description = (fixture.nativeElement as HTMLElement).querySelector(
+      'input[formControlName="description"]'
+    ) as HTMLInputElement;
+    description.value = 'Lunch';
+    description.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+
+    store.categories.set([
+      ...store.categories(),
+      {
+        id: 'category-3',
+        name: 'Utilities',
+        color: null,
+        icon: null,
+        groupId: null,
+        parentId: null,
+      },
+    ]);
+    fixture.detectChanges();
+
+    expect(description.value).toBe('Lunch');
+  });
+
   it('provides the Polish allowance recipient field label', async () => {
     const transloco = TestBed.inject(TranslocoService);
     transloco.setActiveLang('pl');

@@ -15,10 +15,7 @@ import {
 } from '@angular/forms';
 import { TranslocoPipe, TranslocoService } from '@ngneat/transloco';
 import { NgIcon } from '@ng-icons/core';
-import {
-  heroPencilSquare,
-  heroTrash,
-} from '@ng-icons/heroicons/outline';
+import { heroPencilSquare, heroTrash } from '@ng-icons/heroicons/outline';
 import { Router, RouterLink } from '@angular/router';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -31,10 +28,7 @@ import {
 } from './settings.store';
 import type { ProfileEntity } from '../../core/profile.service';
 import { LanguageService } from '../../core/language.service';
-import {
-  SUPPORTED_LANGUAGES,
-  type LanguageCode,
-} from '../../i18n/languages';
+import { SUPPORTED_LANGUAGES, type LanguageCode } from '../../i18n/languages';
 import {
   canonicalHeroIconName,
   formatHeroIconLabel as formatHeroIconLabelFn,
@@ -47,8 +41,13 @@ import { SpendistCsvTransferStore } from './spendist-csv-transfer.store';
 import { SPENDIST_CSV_HEADERS } from './spendist-csv-transfer.parser';
 import { AuthService } from '../../core/auth.service';
 
-type SettingsPanelId = 'profile' | 'wallets' | 'categories' | 'spendistCsv' | 'kontomierzImport';
-type CategoriesTabId = 'list' | 'groups';
+type SettingsPanelId =
+  | 'profile'
+  | 'wallets'
+  | 'categories'
+  | 'categoryGroups'
+  | 'spendistCsv'
+  | 'kontomierzImport';
 type CategoryEditorMode = 'create' | 'edit';
 type GroupEditorMode = 'create' | 'edit';
 type SpendistCsvRangeMode = 'month' | 'all';
@@ -66,7 +65,10 @@ function resolveTimezoneOptions(): readonly string[] {
     left.localeCompare(right)
   );
 }
-const passwordsMatchValidator = (passwordKey: string, confirmPasswordKey: string) => {
+const passwordsMatchValidator = (
+  passwordKey: string,
+  confirmPasswordKey: string
+) => {
   return (group: { get: (key: string) => { value: string } | null }) => {
     const password = group.get(passwordKey)?.value ?? '';
     const confirmPassword = group.get(confirmPasswordKey)?.value ?? '';
@@ -158,6 +160,11 @@ export class SettingsPageComponent {
       descriptionKey: 'settings.panels.categories.description',
     },
     {
+      id: 'categoryGroups',
+      labelKey: 'settings.panels.categoryGroups.label',
+      descriptionKey: 'settings.panels.categoryGroups.description',
+    },
+    {
       id: 'spendistCsv',
       labelKey: 'settings.panels.spendistCsv.label',
       descriptionKey: 'settings.panels.spendistCsv.description',
@@ -170,18 +177,21 @@ export class SettingsPageComponent {
   ];
 
   protected readonly activePanel = signal<SettingsPanelId>('profile');
-  protected readonly activeCategoriesTab = signal<CategoriesTabId>('list');
   protected readonly categoryEditorMode = signal<CategoryEditorMode | null>(
     null
   );
   protected readonly groupEditorMode = signal<GroupEditorMode | null>(null);
+  protected readonly iconPickerOpen = signal(false);
+  private editorReturnFocus: HTMLElement | null = null;
   protected readonly editingGroupId = signal<string | null>(null);
   protected readonly selectedCategoryId = signal<string | null>(null);
   protected readonly selectedGroupFilter = signal<string | null>(null);
   protected readonly categoryQuery = signal('');
   protected readonly selectedKontomierzFile = signal<File | null>(null);
   protected readonly selectedSpendistCsvFile = signal<File | null>(null);
-  protected readonly selectedSpendistCsvCategoryIds = signal<readonly string[]>([]);
+  protected readonly selectedSpendistCsvCategoryIds = signal<readonly string[]>(
+    []
+  );
   protected readonly spendistCsvHeaders = SPENDIST_CSV_HEADERS;
   protected readonly profileAutosaveStatus =
     signal<ProfileAutosaveStatus>('idle');
@@ -200,8 +210,9 @@ export class SettingsPageComponent {
     language?: LanguageCode;
     timezone?: string;
   } = {};
-  protected readonly failedProfileUpdate =
-    signal<ProfileUpdatePayload | null>(null);
+  protected readonly failedProfileUpdate = signal<ProfileUpdatePayload | null>(
+    null
+  );
   private profileSaveFailed = false;
   private profileSavedTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -225,7 +236,9 @@ export class SettingsPageComponent {
       this.store.groups().map((group) => [group.id, group.name])
     );
     const categories = this.store.categories();
-    const categoryMap = new Map(categories.map((category) => [category.id, category]));
+    const categoryMap = new Map(
+      categories.map((category) => [category.id, category])
+    );
 
     return categories
       .map((category) => ({
@@ -233,7 +246,9 @@ export class SettingsPageComponent {
         groupName: groups.get(category.groupId) ?? 'Unassigned',
         path: this.buildCategoryPath(category, categoryMap),
         depth: this.resolveCategoryDepth(category, categoryMap),
-        parentName: category.parentId ? categoryMap.get(category.parentId)?.name ?? null : null,
+        parentName: category.parentId
+          ? categoryMap.get(category.parentId)?.name ?? null
+          : null,
       }))
       .sort((a, b) => {
         if (a.groupName !== b.groupName) {
@@ -262,8 +277,11 @@ export class SettingsPageComponent {
       return [];
     }
 
-    const editingId = this.categoryEditorMode() === 'edit' ? this.selectedCategoryId() : null;
-    const descendants = editingId ? this.collectDescendantIds(editingId) : new Set<string>();
+    const editingId =
+      this.categoryEditorMode() === 'edit' ? this.selectedCategoryId() : null;
+    const descendants = editingId
+      ? this.collectDescendantIds(editingId)
+      : new Set<string>();
 
     return this.categoriesView()
       .filter(
@@ -279,18 +297,6 @@ export class SettingsPageComponent {
         depth: category.depth,
       }));
   }
-
-  protected readonly selectedCategory = computed<CategoryViewModel | null>(
-    () => {
-      const id = this.selectedCategoryId();
-      if (!id) {
-        return null;
-      }
-      return (
-        this.categoriesView().find((category) => category.id === id) ?? null
-      );
-    }
-  );
 
   protected readonly categoryForm = this.fb.group({
     name: this.fb.control('', {
@@ -334,7 +340,9 @@ export class SettingsPageComponent {
   );
   protected readonly walletError = computed(() => this.store.walletError());
   protected readonly walletCurrencies = computed(() => this.store.currencies());
-  protected readonly kontomierzFileName = computed(() => this.selectedKontomierzFile()?.name ?? null);
+  protected readonly kontomierzFileName = computed(
+    () => this.selectedKontomierzFile()?.name ?? null
+  );
   protected readonly profile = computed(() => this.store.profile());
   protected readonly avatarUploadPending = computed(() =>
     this.store.profileMutationPending()
@@ -364,15 +372,19 @@ export class SettingsPageComponent {
   protected readonly kontomierzImportForm = this.fb.group({
     walletId: this.fb.control('', { validators: [Validators.required] }),
   });
-  protected readonly kontomierzImportFormControls = this.kontomierzImportForm.controls;
+  protected readonly kontomierzImportFormControls =
+    this.kontomierzImportForm.controls;
   protected readonly spendistCsvExportForm = this.fb.group({
     rangeMode: this.fb.control<SpendistCsvRangeMode>('month'),
     month: this.fb.control(this.currentMonthValue(), {
       validators: [Validators.pattern(/^\d{4}-\d{2}$/)],
     }),
   });
-  protected readonly spendistCsvExportFormControls = this.spendistCsvExportForm.controls;
-  protected readonly spendistCsvFileName = computed(() => this.selectedSpendistCsvFile()?.name ?? null);
+  protected readonly spendistCsvExportFormControls =
+    this.spendistCsvExportForm.controls;
+  protected readonly spendistCsvFileName = computed(
+    () => this.selectedSpendistCsvFile()?.name ?? null
+  );
   protected readonly passwordForm = this.fb.group(
     {
       currentPassword: this.fb.control('', {
@@ -389,10 +401,11 @@ export class SettingsPageComponent {
   );
   protected readonly passwordFormControls = this.passwordForm.controls;
   protected readonly passwordFormMismatch = computed(
-    () => this.passwordMismatchSubmitted() ||
+    () =>
+      this.passwordMismatchSubmitted() ||
       (this.passwordsMismatch() &&
-      (this.passwordFormControls.confirmPassword.dirty ||
-        this.passwordFormControls.confirmPassword.touched))
+        (this.passwordFormControls.confirmPassword.dirty ||
+          this.passwordFormControls.confirmPassword.touched))
   );
   protected readonly accountDeletionForm = this.fb.group({
     password: this.fb.control('', {
@@ -475,10 +488,6 @@ export class SettingsPageComponent {
       if (!groups.length && this.categoryEditorMode()) {
         this.categoryEditorMode.set(null);
       }
-
-      if (!groups.length && !this.groupEditorMode()) {
-        this.openGroupCreator();
-      }
     });
 
     effect(() => {
@@ -521,7 +530,10 @@ export class SettingsPageComponent {
         return;
       }
 
-      control.setValue((wallets.find((wallet) => wallet.isDefault) ?? wallets[0]).id, { emitEvent: false });
+      control.setValue(
+        (wallets.find((wallet) => wallet.isDefault) ?? wallets[0]).id,
+        { emitEvent: false }
+      );
       control.markAsPristine();
       control.markAsUntouched();
     });
@@ -565,6 +577,9 @@ export class SettingsPageComponent {
   }
 
   protected selectPanel(panel: SettingsPanelId): void {
+    if (panel !== this.activePanel() && !this.closeEditor()) {
+      return;
+    }
     this.activePanel.set(panel);
     if (
       panel === 'categories' &&
@@ -675,24 +690,95 @@ export class SettingsPageComponent {
       return;
     }
 
-    await this.kontomierzImport.analyzeFile(file, this.kontomierzImportFormControls.walletId.value);
+    await this.kontomierzImport.analyzeFile(
+      file,
+      this.kontomierzImportFormControls.walletId.value
+    );
   }
 
   protected async importKontomierzFile(): Promise<void> {
     await this.kontomierzImport.importPrepared();
   }
 
-  protected selectCategoriesTab(tab: CategoriesTabId): void {
-    this.activeCategoriesTab.set(tab);
-    if (tab === 'groups') {
-      this.categoryEditorMode.set(null);
-    }
+  private rememberEditorTrigger(): void {
+    const active = document.activeElement;
+    this.editorReturnFocus = active instanceof HTMLElement ? active : null;
+    this.iconPickerOpen.set(false);
+    requestAnimationFrame(() => {
+      document
+        .querySelector<HTMLElement>('[data-settings-editor] input[name="name"]')
+        ?.focus();
+    });
   }
 
-  protected selectCategory(categoryId: string): void {
-    this.selectedCategoryId.set(categoryId);
-    this.categoryEditorMode.set(null);
-    this.store.clearError();
+  private restoreEditorFocus(): void {
+    const target = this.editorReturnFocus;
+    this.editorReturnFocus = null;
+    requestAnimationFrame(() => {
+      if (target?.isConnected) {
+        target.focus();
+      } else {
+        document
+          .querySelector<HTMLElement>('[data-settings-groups-add]')
+          ?.focus();
+      }
+    });
+  }
+
+  protected closeEditor(): boolean {
+    if (
+      this.store.categoryMutationPending() ||
+      this.store.groupMutationPending()
+    ) {
+      return false;
+    }
+    const form = this.categoryEditorMode()
+      ? this.categoryForm
+      : this.groupEditorMode()
+      ? this.categoryGroupForm
+      : null;
+    if (!form) {
+      return true;
+    }
+    if (
+      form.dirty &&
+      !window.confirm(
+        this.transloco.translate('settings.panels.categories.discardChanges')
+      )
+    ) {
+      return false;
+    }
+    if (this.categoryEditorMode()) {
+      this.cancelCategoryEdit();
+    } else {
+      this.cancelGroupEdit();
+    }
+    return true;
+  }
+
+  protected onEditorKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.closeEditor();
+    }
+    if (event.key !== 'Tab') {
+      return;
+    }
+    const panel = event.currentTarget as HTMLElement;
+    const focusable = Array.from(
+      panel.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex="0"]'
+      )
+    );
+    const first = focusable[0];
+    const last = focusable.at(-1);
+    if (event.shiftKey && document.activeElement === first && last) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last && first) {
+      event.preventDefault();
+      first.focus();
+    }
   }
 
   protected onCategoryQueryChange(event: Event): void {
@@ -735,16 +821,18 @@ export class SettingsPageComponent {
 
   protected openCategoryCreator(): void {
     if (!this.hasGroups()) {
-      this.selectCategoriesTab('groups');
-      this.openGroupCreator();
+      this.selectPanel('categoryGroups');
       return;
     }
 
+    if (!this.closeEditor()) return;
+    this.rememberEditorTrigger();
     this.store.clearError();
     this.categoryEditorMode.set('create');
 
     const defaultGroup =
-      this.selectedGroupFilter() ?? this.store.groups()[0]?.id ?? '';
+      this.selectedGroupFilter() ??
+      (this.store.groups().length === 1 ? this.store.groups()[0].id : '');
 
     this.categoryForm.setValue({
       name: '',
@@ -766,6 +854,8 @@ export class SettingsPageComponent {
       return;
     }
 
+    if (!this.closeEditor()) return;
+    this.rememberEditorTrigger();
     this.store.clearError();
     this.categoryEditorMode.set('edit');
     this.selectedCategoryId.set(categoryId);
@@ -793,6 +883,7 @@ export class SettingsPageComponent {
       this.selectedCategoryId.set(this.categoriesView()[0].id);
     }
     this.store.clearError();
+    this.restoreEditorFocus();
   }
 
   protected async submitCategoryForm(mode: CategoryEditorMode): Promise<void> {
@@ -821,6 +912,7 @@ export class SettingsPageComponent {
         }
         await this.store.updateCategory(categoryId, payload);
       }
+      this.categoryForm.markAsPristine();
       this.cancelCategoryEdit();
     } catch {
       // Errors are surfaced via store.error signal.
@@ -836,14 +928,18 @@ export class SettingsPageComponent {
     }
     try {
       await this.store.deleteCategory(categoryId);
+      this.categoryForm.markAsPristine();
+      this.cancelCategoryEdit();
     } catch {
       // Error already surfaced via store.error.
     }
   }
 
   protected openGroupCreator(): void {
+    if (!this.closeEditor()) return;
+    this.rememberEditorTrigger();
     this.store.clearError();
-    this.selectCategoriesTab('groups');
+    this.activePanel.set('categoryGroups');
     this.groupEditorMode.set('create');
     this.editingGroupId.set(null);
     this.categoryGroupForm.setValue({
@@ -861,6 +957,8 @@ export class SettingsPageComponent {
       return;
     }
 
+    if (!this.closeEditor()) return;
+    this.rememberEditorTrigger();
     this.store.clearError();
     this.groupEditorMode.set('edit');
     this.editingGroupId.set(groupId);
@@ -877,6 +975,7 @@ export class SettingsPageComponent {
     this.groupEditorMode.set(null);
     this.editingGroupId.set(null);
     this.store.clearError();
+    this.restoreEditorFocus();
   }
 
   protected async submitGroupForm(mode: GroupEditorMode): Promise<void> {
@@ -894,8 +993,7 @@ export class SettingsPageComponent {
 
     try {
       if (mode === 'create') {
-        const group = await this.store.createGroup(payload);
-        this.selectedGroupFilter.set(group.id);
+        await this.store.createGroup(payload);
       } else {
         const groupId = this.editingGroupId();
         if (!groupId) {
@@ -903,6 +1001,7 @@ export class SettingsPageComponent {
         }
         await this.store.updateGroup(groupId, payload);
       }
+      this.categoryGroupForm.markAsPristine();
       this.cancelGroupEdit();
     } catch {
       // Error already surfaced via store.error.
@@ -919,6 +1018,8 @@ export class SettingsPageComponent {
 
     try {
       await this.store.deleteGroup(groupId);
+      this.categoryGroupForm.markAsPristine();
+      this.cancelGroupEdit();
       if (this.selectedGroupFilter() === groupId) {
         this.selectedGroupFilter.set(null);
       }
@@ -928,7 +1029,8 @@ export class SettingsPageComponent {
   }
 
   protected openGroupCategories(groupId: string): void {
-    this.selectCategoriesTab('list');
+    if (!this.closeEditor()) return;
+    this.selectPanel('categories');
     this.selectGroupFilter(groupId);
   }
 
@@ -1159,7 +1261,10 @@ export class SettingsPageComponent {
     this.passwordChangeSuccess.set(false);
 
     try {
-      const result = await this.auth.changePassword(currentPassword, newPassword);
+      const result = await this.auth.changePassword(
+        currentPassword,
+        newPassword
+      );
 
       if (result.error) {
         this.passwordChangeError.set(result.error);
@@ -1410,7 +1515,7 @@ export class SettingsPageComponent {
 
   private buildCategoryPath(
     category: CategoryEntity,
-    categoryMap: ReadonlyMap<string, CategoryEntity>,
+    categoryMap: ReadonlyMap<string, CategoryEntity>
   ): string {
     const names: string[] = [];
     let current: CategoryEntity | undefined = category;
@@ -1419,7 +1524,9 @@ export class SettingsPageComponent {
     while (current && !visited.has(current.id)) {
       visited.add(current.id);
       names.unshift(current.name);
-      current = current.parentId ? categoryMap.get(current.parentId) : undefined;
+      current = current.parentId
+        ? categoryMap.get(current.parentId)
+        : undefined;
     }
 
     return names.join(' / ');
@@ -1427,16 +1534,20 @@ export class SettingsPageComponent {
 
   private resolveCategoryDepth(
     category: CategoryEntity,
-    categoryMap: ReadonlyMap<string, CategoryEntity>,
+    categoryMap: ReadonlyMap<string, CategoryEntity>
   ): number {
     let depth = 1;
-    let current = category.parentId ? categoryMap.get(category.parentId) : undefined;
+    let current = category.parentId
+      ? categoryMap.get(category.parentId)
+      : undefined;
     const visited = new Set<string>([category.id]);
 
     while (current && !visited.has(current.id)) {
       visited.add(current.id);
       depth += 1;
-      current = current.parentId ? categoryMap.get(current.parentId) : undefined;
+      current = current.parentId
+        ? categoryMap.get(current.parentId)
+        : undefined;
     }
 
     return depth;
