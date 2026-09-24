@@ -6,6 +6,7 @@ import {
   effect,
   inject,
   signal,
+  untracked,
   computed,
   OutputEmitterRef,
   output,
@@ -309,7 +310,7 @@ export class TransactionCreateFormComponent {
         return;
       }
 
-      this.resetForm();
+      untracked(() => this.resetForm());
     });
 
     effect(() => {

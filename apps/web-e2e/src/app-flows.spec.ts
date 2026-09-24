@@ -335,8 +335,9 @@ async function openSettingsPanel(
   await openSettings(page);
   await page.getByRole('button', { name: new RegExp(`^${panel}\\b`) }).click();
 
+  const heading = panel === 'Wallets' ? 'Wallets & balances' : panel;
   await expect(
-    page.getByRole('heading', { name: panel, exact: true })
+    page.getByRole('heading', { name: heading, exact: true })
   ).toBeVisible();
   if (panel === 'Categories') {
     await expect(page.locator('#settings-category-search')).toBeVisible({
@@ -527,6 +528,7 @@ test('confirms a new account, signs in once, and rejects a reused link', async (
 
   await page.getByRole('button', { name: 'Settings' }).click();
   await page.getByRole('menuitem', { name: 'Sign out' }).click();
+  await expect(page).toHaveURL(/\/$/, { timeout: 15000 });
   await page.goto(confirmationUrl);
   await expect(
     page.getByRole('heading', {
