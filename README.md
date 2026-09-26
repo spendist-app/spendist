@@ -34,7 +34,7 @@ Spendist helps you build a clear picture of personal cash flow without locking y
 ## Tech Stack
 
 - **Frontend**: Angular 22, standalone components, signals, zoneless change detection, Angular Router, SSR-ready build, and TypeScript 6.
-- **Workspace**: Nx 23 with inferred targets, Vitest, Playwright, ESLint, and Prettier.
+- **Workspace**: Nx 23.2 with inferred targets, Vitest, Playwright, ESLint, Oxlint with vendored anti-slop rules, and Prettier.
 - **UI**: Tailwind CSS 4, DaisyUI 5, `@ng-icons/core`, and Heroicons.
 - **Backend**: Supabase Auth, Postgres, RLS, Storage, Realtime, Edge Functions, `pg_cron`, `pg_net`, and Vault-backed scheduled jobs.
 - **Runtime**: Cloudflare Worker in production or the production-like Docker image serving `dist/apps/web/browser`.
@@ -148,6 +148,7 @@ npm run build:worker       # Cloudflare Worker-ready production build
 npm run test               # Vitest unit tests for web
 npm run test:recurring-edge # recurring scheduling unit tests
 npm run lint               # ESLint for web
+npm run lint:oxlint       # Nx Oxlint tasks plus no-new-findings baseline check
 npm run e2e                # Playwright E2E suite
 npm run format:check       # Prettier check
 npm run mcp:build          # build the local STDIO MCP server
@@ -206,9 +207,17 @@ Before opening a PR, run the relevant checks:
 
 ```bash
 npm run lint
+npm run lint:oxlint
 npm run test
 npm run build
 ```
+
+Oxlint runs beside ESLint; ESLint still checks Angular templates. The anti-slop
+rules are vendored under `tools/oxlint/anti-slop/` and remain enabled as warnings
+for existing code. `.oxlint-baseline.json` records those existing warnings; the
+`lint:oxlint` command fails on any new warning or native Oxlint error. Update the
+baseline only after reviewing intentional changes to the lint policy or fixing
+existing findings.
 
 For database or generated-type changes, also run:
 

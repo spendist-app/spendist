@@ -369,7 +369,7 @@ describe('TransactionsPageComponent', () => {
 
     const component = fixture.componentInstance as unknown as {
       onCategoryActivityFilterChange(event: Event): void;
-      visibleGroupedCategories(): readonly Array<{
+      visibleGroupedCategories(): ReadonlyArray<{
         readonly categories: readonly { readonly id: string }[];
       }>;
       visibleUngroupedCategories(): readonly { readonly id: string }[];
@@ -605,7 +605,9 @@ describe('TransactionsPageComponent', () => {
     fixture.detectChanges();
 
     expect(
-      fixture.nativeElement.querySelector('[data-testid="category-filter-select-all"]')
+      fixture.nativeElement.querySelector(
+        '[data-testid="category-filter-select-all"]'
+      )
     ).toBeNull();
     (
       fixture.nativeElement.querySelector(

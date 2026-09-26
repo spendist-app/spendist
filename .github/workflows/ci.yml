@@ -31,7 +31,9 @@ jobs:
         run: npm run blog:check
 
       - name: Lint
-        run: npx nx lint web
+        run: |
+          npx nx lint web
+          npm run lint:oxlint
 
       - name: Unit tests
         run: npx nx test web

@@ -33,6 +33,7 @@ jobs:
       - name: Verify app and MCP
         run: |
           npx nx lint web
+          npm run lint:oxlint
           npx nx test web
           npx nx build web --configuration production
           npx nx lint mcp

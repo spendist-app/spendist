@@ -1154,7 +1154,7 @@ export class TransactionCreateFormComponent {
   private setExchangeRateUnavailableError(): void {
     const control = this.form.controls.foreignAmount;
     control.setErrors({
-      ...(control.errors ?? {}),
+      ...control.errors,
       exchangeRateUnavailable: true,
     });
     control.markAsTouched();

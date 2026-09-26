@@ -14,14 +14,6 @@ function isLocalDatabaseUrl(value) {
   );
 }
 
-function requiredEnv(name) {
-  const value = process.env[name]?.trim();
-  if (!value) {
-    throw new Error(`Missing ${name}`);
-  }
-  return value;
-}
-
 function resolveDbUrl() {
   return (
     process.env.SUPABASE_DB_URL?.trim() ||
