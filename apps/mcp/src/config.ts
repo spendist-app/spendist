@@ -10,14 +10,24 @@ export interface McpEnvironment {
 export function requireEnvironment(
   env: Partial<McpEnvironment>
 ): McpEnvironment {
-  const keys = [
-    'SUPABASE_URL',
-    'SUPABASE_PUBLISHABLE_KEY',
-    'MCP_RESOURCE_URL',
-    'MCP_ALLOWED_AUDIENCE',
-    'MCP_OAUTH_ISSUER',
-  ] as const;
-  for (const key of keys)
-    if (!env[key]) throw new Error(`Missing environment variable: ${key}`);
-  return env as McpEnvironment;
+  return {
+    ...env,
+    SUPABASE_URL: requireValue(env.SUPABASE_URL, 'SUPABASE_URL'),
+    SUPABASE_PUBLISHABLE_KEY: requireValue(
+      env.SUPABASE_PUBLISHABLE_KEY,
+      'SUPABASE_PUBLISHABLE_KEY'
+    ),
+    MCP_RESOURCE_URL: requireValue(env.MCP_RESOURCE_URL, 'MCP_RESOURCE_URL'),
+    MCP_ALLOWED_AUDIENCE: requireValue(
+      env.MCP_ALLOWED_AUDIENCE,
+      'MCP_ALLOWED_AUDIENCE'
+    ),
+    MCP_OAUTH_ISSUER: requireValue(env.MCP_OAUTH_ISSUER, 'MCP_OAUTH_ISSUER'),
+  };
+}
+
+function requireValue(value: string | undefined, key: string): string {
+  if (!value) throw new Error(`Missing environment variable: ${key}`);
+
+  return value;
 }

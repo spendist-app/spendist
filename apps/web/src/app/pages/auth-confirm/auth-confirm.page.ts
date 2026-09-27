@@ -36,12 +36,14 @@ export class AuthConfirmPageComponent {
 
   private async confirm(): Promise<void> {
     const window = this.document.defaultView;
+
     if (!window) {
       return;
     }
 
     const callbackUrl = window.location.href;
     const parsedUrl = new URL(callbackUrl);
+
     const destination = safeAuthReturnUrl(
       parsedUrl.searchParams.get('returnUrl')
     );
@@ -49,8 +51,10 @@ export class AuthConfirmPageComponent {
     window.history.replaceState(null, '', '/auth/confirm');
 
     const result = await this.auth.confirmEmailFromUrl(callbackUrl);
+
     if (result.error) {
       this.failed.set(true);
+
       return;
     }
 

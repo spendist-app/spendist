@@ -1,12 +1,15 @@
+
+import { z } from 'zod';
 import { FIXTURES } from './fixtures.mjs';
 
 const VALID_LOCALES = new Set(['pl', 'en']);
+
 const VALID_MODES = new Set(['sync', 'replace']);
 
 function firstNonEmpty(environment, names) {
   return names
     .map((name) => environment[name])
-    .find((value) => typeof value === 'string' && value.trim());
+    .find((value) => z.string().trim().min(1).safeParse(value).success);
 }
 
 export function resolveDemoSeedEnvironment(environment = process.env) {
@@ -36,6 +39,7 @@ export function parseArgs(argv) {
     mode: 'sync',
     help: false,
   };
+
   for (const argument of argv) {
     if (argument === '--apply') options.apply = true;
     else if (argument === '--allow-remote') options.allowRemote = true;
@@ -50,12 +54,15 @@ export function parseArgs(argv) {
       options.mode = argument.split('=', 2)[1];
     else throw new Error(`Unknown argument: ${argument}`);
   }
+
   if (options.locale !== 'all' && !VALID_LOCALES.has(options.locale)) {
     throw new Error(`Invalid locale "${options.locale}". Use pl, en, or all.`);
   }
+
   if (!VALID_MODES.has(options.mode)) {
     throw new Error(`Invalid mode "${options.mode}". Use sync or replace.`);
   }
+
   return options;
 }
 
@@ -66,6 +73,7 @@ export function resolveTargetLocales(locale) {
 export function resolveProjectTarget(urlValue) {
   const url = new URL(urlValue);
   const localHosts = new Set(['127.0.0.1', 'localhost']);
+
   if (
     localHosts.has(url.hostname) &&
     url.protocol === 'http:' &&
@@ -78,14 +86,18 @@ export function resolveProjectTarget(urlValue) {
   ) {
     return { isRemote: false, projectRef: 'local' };
   }
+
   const match = url.hostname.match(/^([a-z0-9-]+)\.supabase\.co$/i);
+
   if (!match) {
     throw new Error(
       'Remote demo seed URL must be an exact https://<project-ref>.supabase.co URL.'
     );
   }
+
   if (url.protocol !== 'https:')
     throw new Error('Remote demo seed URL must use HTTPS.');
+
   if (
     url.pathname !== '/' ||
     url.search ||
@@ -98,39 +110,47 @@ export function resolveProjectTarget(urlValue) {
       'Remote demo seed URL must contain only the exact Supabase project origin.'
     );
   }
+
   return { isRemote: true, projectRef: match[1] };
 }
 
 export function assertExecutionAllowed(options, target, configuredProjectRef) {
   if (!options.apply) return;
+
   if (target.isRemote) {
     if (!options.allowRemote)
       throw new Error('Remote writes require --allow-remote.');
+
     if (!configuredProjectRef)
       throw new Error(
         'Remote writes require DEMO_SEED_PROJECT_REF or SUPABASE_PROJECT_REF.'
       );
+
     if (configuredProjectRef !== target.projectRef) {
       throw new Error(
         'The configured project reference does not match the Supabase URL.'
       );
     }
+
     if (options.confirmProjectRef !== target.projectRef) {
       throw new Error(
         `Remote writes require --confirm-project-ref=${target.projectRef}.`
       );
     }
   }
+
   if (options.mode === 'replace') {
     const expected = resolveTargetLocales(options.locale)
       .map((locale) => FIXTURES[locale].email)
       .sort()
       .join(',');
+
     const actual = (options.confirmReplace ?? '')
       .split(',')
       .filter(Boolean)
       .sort()
       .join(',');
+
     if (actual !== expected) {
       throw new Error(`Replace requires --confirm-replace=${expected}.`);
     }
@@ -139,6 +159,7 @@ export function assertExecutionAllowed(options, target, configuredProjectRef) {
 
 export function isMarkedDemoUser(user, locale, seedId) {
   const fixture = FIXTURES[locale];
+
   return (
     user?.email?.toLowerCase() === fixture.email.toLowerCase() &&
     user?.app_metadata?.data_role === 'demo' &&

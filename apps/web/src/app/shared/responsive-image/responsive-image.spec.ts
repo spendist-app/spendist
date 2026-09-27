@@ -1,3 +1,4 @@
+import { requiredValue, fixtureElement } from '../../../testing/dom';
 import { TestBed } from '@angular/core/testing';
 import { ResponsiveImage } from './responsive-image';
 import type { WebImage } from './responsive-image.types';
@@ -28,8 +29,8 @@ describe('ResponsiveImage', () => {
     fixture.componentRef.setInput('priority', true);
     fixture.detectChanges();
 
-    const sources = fixture.nativeElement.querySelectorAll('source');
-    const img = fixture.nativeElement.querySelector('img');
+    const sources = fixtureElement(fixture).querySelectorAll('source');
+    const img = requiredValue(fixtureElement(fixture).querySelector('img'));
     expect(sources[0].getAttribute('srcset')).toContain('480.avif 480w');
     expect(sources[0].getAttribute('sizes')).toBe('50vw');
     expect(img.getAttribute('width')).toBe('1200');

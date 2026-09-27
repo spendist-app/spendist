@@ -3,7 +3,8 @@ import { AuthService } from './auth.service';
 import { SUPABASE_CLIENT } from './supabase';
 
 function createSupabaseMock() {
-  const sessionState: { current: unknown } = { current: null };
+  const sessionState: TestSessionState = { current: null };
+
   return {
     sessionState,
     auth: {
@@ -219,6 +220,7 @@ describe('AuthService password flows', () => {
     const session = {
       user: { id: 'new-user', email: 'new@example.com', user_metadata: {} },
     };
+
     supabase.auth.exchangeCodeForSession.mockResolvedValueOnce({
       data: { session },
       error: null,
@@ -240,6 +242,7 @@ describe('AuthService password flows', () => {
     const session = {
       user: { id: 'new-user', email: 'new@example.com', user_metadata: {} },
     };
+
     supabase.auth.setSession.mockResolvedValueOnce({
       data: { session },
       error: null,
@@ -261,6 +264,7 @@ describe('AuthService password flows', () => {
     const session = {
       user: { id: 'new-user', email: 'new@example.com', user_metadata: {} },
     };
+
     supabase.auth.verifyOtp.mockResolvedValueOnce({
       data: { session },
       error: null,
@@ -306,3 +310,9 @@ describe('AuthService password flows', () => {
     expect(result.error).toBe('invalid_or_expired');
   });
 });
+
+interface TestSessionState {
+  current: {
+    user: { id: string; email?: string; user_metadata?: { language?: string } };
+  } | null;
+}

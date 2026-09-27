@@ -10,9 +10,11 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const serverDistFolder = dirname(fileURLToPath(import.meta.url));
+
 const browserDistFolder = resolve(serverDistFolder, '../browser');
 
 const app = express();
+
 const angularApp = new AngularNodeAppEngine();
 
 const contentSecurityPolicyDirectives = {
@@ -50,7 +52,7 @@ app.use(
 app.use((_req, res, next) => {
   res.setHeader(
     'Permissions-Policy',
-    'camera=(), microphone=(), geolocation=(), payment=(), usb=()',
+    'camera=(), microphone=(), geolocation=(), payment=(), usb=()'
   );
   next();
 });

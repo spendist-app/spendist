@@ -40,9 +40,11 @@ export class LegalPage {
 
   private resolveDocument(): LegalDocument {
     const key: unknown = this.route.snapshot.data['legalDocument'];
+
     if (key !== 'privacy' && key !== 'terms') {
       throw new Error('Missing legalDocument route data.');
     }
+
     return LEGAL_DOCUMENTS[key];
   }
 

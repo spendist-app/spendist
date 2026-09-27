@@ -21,7 +21,9 @@ export class ThemeService {
   }
 
   toggleTheme(): void {
-    const nextTheme = this.themeSignal() === 'spendistLight' ? 'spendistDark' : 'spendistLight';
+    const nextTheme =
+      this.themeSignal() === 'spendistLight' ? 'spendistDark' : 'spendistLight';
+
     this.setTheme(nextTheme);
   }
 
@@ -37,15 +39,17 @@ export class ThemeService {
 
   private getInitialTheme(): ThemeName {
     const storedTheme = this.readStoredTheme();
+
     if (storedTheme) {
       return storedTheme;
     }
 
     if (this.isBrowser) {
       try {
-        const prefersDark = typeof window.matchMedia === 'function'
+        const prefersDark = window.matchMedia
           ? window.matchMedia('(prefers-color-scheme: dark)').matches
           : false;
+
         return prefersDark ? 'spendistDark' : 'spendistLight';
       } catch {
         return 'spendistLight';
@@ -57,9 +61,11 @@ export class ThemeService {
 
   private applyTheme(theme: ThemeName): void {
     const documentElement = this.document?.documentElement;
+
     if (!documentElement) {
       return;
     }
+
     documentElement.setAttribute('data-theme', theme);
   }
 
@@ -82,7 +88,10 @@ export class ThemeService {
 
     try {
       const stored = window.localStorage?.getItem(STORAGE_KEY);
-      return stored === 'spendistLight' || stored === 'spendistDark' ? stored : null;
+
+      return stored === 'spendistLight' || stored === 'spendistDark'
+        ? stored
+        : null;
     } catch {
       return null;
     }

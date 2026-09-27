@@ -21,6 +21,7 @@ const DELETE_ORDER = [
   'categories_group',
   'wallets',
 ];
+
 const AVATAR_BUCKET = 'avatars';
 
 function marker(locale) {
@@ -49,20 +50,25 @@ function failOnError(error, context) {
 
 async function listAllUsers(client) {
   const result = [];
+
   for (let page = 1; page <= 100; page += 1) {
     const { data, error } = await client.auth.admin.listUsers({
       page,
       perPage: 1000,
     });
+
     failOnError(error, 'Could not list Auth users');
     result.push(...data.users);
+
     if (data.users.length < 1000) return result;
   }
+
   throw new Error('Auth user scan exceeded the safety pagination limit.');
 }
 
 async function findUser(client, email) {
   const users = await listAllUsers(client);
+
   return (
     users.find((user) => user.email?.toLowerCase() === email.toLowerCase()) ??
     null
@@ -76,10 +82,13 @@ async function waitForProfile(client, userId) {
       .select('id')
       .eq('id', userId)
       .maybeSingle();
+
     failOnError(error, 'Could not check the generated profile');
+
     if (data?.id) return;
     await new Promise((resolve) => setTimeout(resolve, 150));
   }
+
   throw new Error(
     'Auth user was created, but its profile trigger did not finish.'
   );
@@ -91,6 +100,7 @@ async function createDemoUser(client, locale, password) {
       'DEMO_SEED_INITIAL_PASSWORD is required when creating a demo account.'
     );
   const fixture = FIXTURES[locale];
+
   const { data, error } = await client.auth.admin.createUser({
     email: fixture.email,
     password,
@@ -98,10 +108,13 @@ async function createDemoUser(client, locale, password) {
     user_metadata: userMetadata(fixture),
     app_metadata: marker(locale),
   });
+
   failOnError(error, `Could not create ${fixture.email}`);
+
   if (!data.user?.id)
     throw new Error(`Auth did not return an ID for ${fixture.email}.`);
   await waitForProfile(client, data.user.id);
+
   return data.user;
 }
 
@@ -113,24 +126,30 @@ async function removeDemoAvatar(client, userId) {
   const { error } = await client.storage
     .from(AVATAR_BUCKET)
     .remove([avatarObjectPath(userId)]);
+
   failOnError(error, 'Could not remove the replaced demo avatar');
 }
 
 async function resolveDemoUser(client, locale, mode, password) {
   const fixture = FIXTURES[locale];
   const existing = await findUser(client, fixture.email);
+
   if (existing && !isMarkedDemoUser(existing, locale, DEMO_SEED_ID)) {
     throw new Error(
       `Safety stop: ${fixture.email} exists without the expected demo marker.`
     );
   }
+
   if (mode === 'replace' && existing) {
     await removeDemoAvatar(client, existing.id);
     const { error } = await client.auth.admin.deleteUser(existing.id, false);
     failOnError(error, `Could not replace ${fixture.email}`);
+
     return createDemoUser(client, locale, password);
   }
+
   if (!existing) return createDemoUser(client, locale, password);
+
   return existing;
 }
 
@@ -138,7 +157,9 @@ async function seedDemoAvatar(client, fixture, userId) {
   const avatar = await readFile(
     new URL(`./assets/${fixture.avatarFile}`, import.meta.url)
   );
+
   const objectPath = avatarObjectPath(userId);
+
   const { error: uploadError } = await client.storage
     .from(AVATAR_BUCKET)
     .upload(objectPath, avatar, {
@@ -146,14 +167,18 @@ async function seedDemoAvatar(client, fixture, userId) {
       contentType: 'image/png',
       upsert: true,
     });
+
   failOnError(uploadError, `Could not upload avatar for ${fixture.email}`);
   const { data } = client.storage.from(AVATAR_BUCKET).getPublicUrl(objectPath);
   const avatarUrl = `${data.publicUrl}?v=${DATASET_VERSION}`;
+
   const { error: profileError } = await client
     .from('profiles')
     .update({ avatar_url: avatarUrl })
     .eq('id', userId);
+
   failOnError(profileError, `Could not set avatar for ${fixture.email}`);
+
   return avatarUrl;
 }
 
@@ -162,6 +187,7 @@ async function insertRows(client, table, rows) {
     const { error } = await client
       .from(table)
       .insert(rows.slice(index, index + 400));
+
     failOnError(error, `Could not insert ${table}`);
   }
 }
@@ -175,10 +201,12 @@ async function clearDomainData(client, ownerId) {
 
 async function writeDataset(client, dataset) {
   await clearDomainData(client, dataset.profile.id);
+
   const { error: profileError } = await client
     .from('profiles')
     .update(dataset.profile)
     .eq('id', dataset.profile.id);
+
   failOnError(profileError, 'Could not update the demo profile');
 
   await insertRows(client, 'wallets', dataset.wallets);
@@ -211,7 +239,9 @@ async function verifyCount(client, table, ownerId, expected) {
     .from(table)
     .select('*', { count: 'exact', head: true })
     .eq('owner_id', ownerId);
+
   failOnError(error, `Could not verify ${table}`);
+
   if (count !== expected)
     throw new Error(
       `Verification failed for ${table}: expected ${expected}, got ${count}.`
@@ -257,12 +287,15 @@ async function verifyDataset(client, dataset, avatarUrl) {
     dataset.profile.id,
     dataset.notifications.length
   );
+
   const { data: profile, error: profileError } = await client
     .from('profiles')
     .select('avatar_url')
     .eq('id', dataset.profile.id)
     .single();
+
   failOnError(profileError, 'Could not verify the demo avatar');
+
   if (profile.avatar_url !== avatarUrl) {
     throw new Error('Verification failed for the demo avatar URL.');
   }
@@ -288,12 +321,14 @@ export async function applyDemoSeed({
 }) {
   const client = createAdminClient(url, serviceRoleKey);
   const summaries = [];
+
   for (const locale of locales) {
     const user = await resolveDemoUser(client, locale, mode, password);
     const dataset = generateDemoDataset(locale, user.id);
     validateDataset(dataset);
     await writeDataset(client, dataset);
     const avatarUrl = await seedDemoAvatar(client, FIXTURES[locale], user.id);
+
     const { error: metadataError } = await client.auth.admin.updateUserById(
       user.id,
       {
@@ -301,6 +336,7 @@ export async function applyDemoSeed({
         app_metadata: marker(locale),
       }
     );
+
     failOnError(
       metadataError,
       `Could not update markers for ${FIXTURES[locale].email}`
@@ -312,5 +348,6 @@ export async function applyDemoSeed({
       `Seeded ${FIXTURES[locale].email}: ${summary.transactions} transactions, checksum ${summary.checksum}.`
     );
   }
+
   return summaries;
 }

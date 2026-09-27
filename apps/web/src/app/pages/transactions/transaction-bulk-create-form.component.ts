@@ -70,10 +70,12 @@ type BulkTransactionField = Exclude<
   keyof BulkTransactionDraftRow,
   'id' | 'touched'
 >;
+
 type CopyableBulkTransactionField = Extract<
   BulkTransactionField,
   'occurredOn' | 'currency' | 'categoryId' | 'tags' | 'placeId'
 >;
+
 type CopyDirection = 'up' | 'down';
 
 @Component({
@@ -103,20 +105,24 @@ export class TransactionBulkCreateFormComponent {
   protected readonly parseClipboardAsTable = signal(true);
   private readonly batchWalletSyncEffect = effect(() => {
     const wallets = this.store.wallets();
+
     if (wallets.length === 0) {
       return;
     }
 
     const currentWalletId = this.batchWalletId();
+
     if (wallets.some((wallet) => wallet.id === currentWalletId)) {
       return;
     }
 
     const walletId = this.defaultWalletId();
+
     const currency =
       wallets
         .find((wallet) => wallet.id === walletId)
         ?.currency.toUpperCase() ?? this.store.defaultCurrency();
+
     this.batchWalletId.set(walletId);
     this.rows.update((rows) =>
       rows.map((row) => (!row.touched ? { ...row, currency } : row))
@@ -124,6 +130,7 @@ export class TransactionBulkCreateFormComponent {
   });
   private readonly importPrefillEffect = effect(() => {
     const prefill = this.prefill();
+
     if (!prefill || this.importPrefillApplied) return;
     this.importPrefillApplied = true;
     this.batchWalletId.set(prefill.walletId);
@@ -165,6 +172,7 @@ export class TransactionBulkCreateFormComponent {
   protected readonly categoryView = computed(() => this.buildCategoryView());
   protected readonly currencyOptions = computed(() => {
     const currencies = this.store.currencies();
+
     return currencies.length > 0
       ? currencies
       : [{ id: -1, symbol: this.selectedWalletCurrency() }];
@@ -234,12 +242,15 @@ export class TransactionBulkCreateFormComponent {
   protected updateBatchWallet(walletId: string): void {
     const previousCurrency = this.selectedWallet()?.currency.toUpperCase();
     this.batchWalletId.set(walletId);
+
     if (this.importMode()) {
       this.rows.update((rows) =>
         rows.map((row) => ({ ...row, financialFieldsChanged: true }))
       );
     }
+
     const nextCurrency = this.selectedWallet()?.currency.toUpperCase();
+
     if (!nextCurrency || nextCurrency === previousCurrency) {
       return;
     }
@@ -256,7 +267,12 @@ export class TransactionBulkCreateFormComponent {
   }
 
   protected updateClipboardParsing(event: Event): void {
-    const checkbox = event.currentTarget as HTMLInputElement;
+    const checkbox =
+      event.currentTarget instanceof HTMLInputElement
+        ? event.currentTarget
+        : null;
+
+    if (!checkbox) return;
     this.parseClipboardAsTable.set(checkbox.checked);
   }
 
@@ -268,6 +284,7 @@ export class TransactionBulkCreateFormComponent {
     const rows = this.rows();
     const sourceIndex = rows.findIndex((row) => row.id === rowId);
     const source = rows[sourceIndex];
+
     if (!source || sourceIndex < 0) {
       return;
     }
@@ -277,6 +294,7 @@ export class TransactionBulkCreateFormComponent {
       rows.map((row, index) => {
         const shouldCopy =
           direction === 'up' ? index < sourceIndex : index > sourceIndex;
+
         return shouldCopy ? { ...row, [field]: source[field] } : row;
       })
     );
@@ -289,7 +307,10 @@ export class TransactionBulkCreateFormComponent {
     event: Event
   ): void {
     this.copyField(rowId, field, direction);
-    const trigger = event.currentTarget as HTMLElement | null;
+
+    const trigger =
+      event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
+
     trigger?.closest('details')?.removeAttribute('open');
   }
 
@@ -303,16 +324,19 @@ export class TransactionBulkCreateFormComponent {
   @HostListener('document:paste', ['$event'])
   protected onPaste(event: ClipboardEvent): void {
     if (this.importMode()) return;
+
     if (!this.parseClipboardAsTable()) {
       return;
     }
 
     const text = event.clipboardData?.getData('text/plain') ?? '';
+
     if (!text.trim()) {
       return;
     }
 
     const parsedRows = this.parsePastedRows(text);
+
     if (parsedRows.length === 0) {
       return;
     }
@@ -322,6 +346,7 @@ export class TransactionBulkCreateFormComponent {
     const startIndex = this.focusedRowIndex();
     this.rows.update((rows) => {
       const next = [...rows];
+
       while (next.length < startIndex + parsedRows.length) {
         next.push(this.createRow(this.nextRowId++));
       }
@@ -329,6 +354,7 @@ export class TransactionBulkCreateFormComponent {
       parsedRows.forEach((row, offset) => {
         const existing =
           next[startIndex + offset] ?? this.createRow(this.nextRowId++);
+
         next[startIndex + offset] = {
           ...existing,
           ...row,
@@ -360,6 +386,7 @@ export class TransactionBulkCreateFormComponent {
     const knownTags = new Set(
       this.store.tags().map((tag) => tag.name.trim().toLocaleLowerCase('pl-PL'))
     );
+
     return this.parseTagNames(raw).filter(
       (tag) => !knownTags.has(tag.toLocaleLowerCase('pl-PL'))
     );
@@ -373,6 +400,7 @@ export class TransactionBulkCreateFormComponent {
     this.submitted.set(true);
     this.asyncIssues.set([]);
     const prepared = this.prepareRows();
+
     if (!prepared || prepared.length === 0) {
       return;
     }
@@ -388,11 +416,14 @@ export class TransactionBulkCreateFormComponent {
 
       const payload: CreateTransactionBatchItem[] = [];
       const exchangeIssues: BulkTransactionIssue[] = [];
+
       for (const item of prepared) {
         const targetCurrency = item.wallet.currency.toUpperCase();
+
         const sourceAmountInDefault = !item.row.financialFieldsChanged
           ? item.row.importContext?.sourceAmountInDefault ?? null
           : null;
+
         const amountInDefault =
           sourceAmountInDefault ??
           (item.currency === targetCurrency
@@ -428,7 +459,9 @@ export class TransactionBulkCreateFormComponent {
               }
             : undefined,
         };
+
         const quantity = this.validQuantity(item.row.quantity) ?? 0;
+
         for (let index = 0; index < quantity; index += 1) {
           payload.push({ ...transaction });
         }
@@ -436,20 +469,24 @@ export class TransactionBulkCreateFormComponent {
 
       if (exchangeIssues.length > 0) {
         this.asyncIssues.set(exchangeIssues);
+
         return;
       }
 
       const result = await this.store.createTransactionBatch({
         transactions: payload,
       });
+
       if (result.success) {
         this.saved.emit(result.created);
+
         if (this.importMode()) {
           this.importCompleted.emit({
             created: result.created,
             duplicatesSkipped: result.duplicatesSkipped,
           });
         }
+
         this.closed.emit();
       }
     } catch (error) {
@@ -462,11 +499,13 @@ export class TransactionBulkCreateFormComponent {
 
   private prepareRows(): readonly PreparedBulkTransaction[] | null {
     const issues = this.validateRows();
+
     if (issues.length > 0) {
       return null;
     }
 
     const wallet = this.selectedWallet();
+
     if (!wallet) {
       return null;
     }
@@ -476,6 +515,7 @@ export class TransactionBulkCreateFormComponent {
         const amount = parseAmountInput(row.amount);
         const occurredAt = this.parseDate(row.occurredOn);
         const currency = row.currency.trim().toUpperCase();
+
         if (
           !amount ||
           !occurredAt ||
@@ -564,8 +604,10 @@ export class TransactionBulkCreateFormComponent {
   private countDuplicateRows(): number {
     const seen = new Set<string>();
     let duplicates = 0;
+
     for (const row of this.activeRows()) {
       const amount = parseAmountInput(row.amount);
+
       if (amount === null) {
         continue;
       }
@@ -579,6 +621,7 @@ export class TransactionBulkCreateFormComponent {
         row.categoryId,
         this.batchWalletId(),
       ].join('|');
+
       if (seen.has(signature)) {
         duplicates += 1;
       } else {
@@ -627,6 +670,7 @@ export class TransactionBulkCreateFormComponent {
 
   private resolveCategory(value: string | undefined): string | null {
     const normalized = this.normalizeLookup(value);
+
     if (!normalized) {
       return null;
     }
@@ -637,6 +681,7 @@ export class TransactionBulkCreateFormComponent {
           this.normalizeLookup(option.label) === normalized ||
           this.normalizeLookup(option.label.split('/').at(-1)) === normalized
       );
+
       if (match) {
         return match.id;
       }
@@ -647,6 +692,7 @@ export class TransactionBulkCreateFormComponent {
 
   private resolvePlace(value: string | undefined): string | null {
     const normalized = this.normalizeLookup(value);
+
     if (!normalized) {
       return null;
     }
@@ -661,9 +707,11 @@ export class TransactionBulkCreateFormComponent {
 
   private resolveTagIds(raw: string): readonly string[] {
     const names = this.parseTagNames(raw);
+
     const lookup = new Map(
       this.store.tags().map((tag) => [tag.name.toLowerCase(), tag])
     );
+
     return Array.from(
       new Set(
         names
@@ -686,6 +734,7 @@ export class TransactionBulkCreateFormComponent {
 
   private sanitizeTagName(name: string | null | undefined): string | null {
     const trimmed = (name ?? '').trim();
+
     if (!trimmed) {
       return null;
     }
@@ -709,6 +758,7 @@ export class TransactionBulkCreateFormComponent {
         targetCurrency,
         occurredAt
       );
+
       return rate === null ? null : amount * rate;
     } catch (error) {
       logError(
@@ -716,6 +766,7 @@ export class TransactionBulkCreateFormComponent {
         'Failed to load exchange rate',
         error
       );
+
       return null;
     }
   }
@@ -748,6 +799,7 @@ export class TransactionBulkCreateFormComponent {
     const year = value.getUTCFullYear();
     const month = String(value.getUTCMonth() + 1).padStart(2, '0');
     const day = String(value.getUTCDate()).padStart(2, '0');
+
     return `${year}-${month}-${day}`;
   }
 
@@ -761,6 +813,7 @@ export class TransactionBulkCreateFormComponent {
 
   private selectedWalletCurrency(): string {
     const wallet = this.selectedWallet();
+
     return wallet?.currency ?? this.store.defaultCurrency();
   }
 
@@ -773,7 +826,7 @@ export class TransactionBulkCreateFormComponent {
   }
 
   private validQuantity(value: number | null): number | null {
-    return typeof value === 'number' &&
+    return value !== null &&
       Number.isInteger(value) &&
       value >= 1 &&
       value <= 100
@@ -787,6 +840,7 @@ export class TransactionBulkCreateFormComponent {
     }
 
     const quantity = Number(value);
+
     return Number.isFinite(quantity) ? quantity : 0;
   }
 
@@ -798,13 +852,16 @@ export class TransactionBulkCreateFormComponent {
     const [year, month, day] = value
       .split('-')
       .map((segment) => Number(segment));
+
     const date = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+
     return Number.isNaN(date.getTime()) ? null : date;
   }
 
   private normalizeDateInput(value: string | undefined): string | null {
     const raw = (value ?? '').trim();
     const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+
     if (!match) {
       return null;
     }
@@ -813,6 +870,7 @@ export class TransactionBulkCreateFormComponent {
     const month = Number(match[2]);
     const day = Number(match[3]);
     const date = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+
     if (
       Number.isNaN(date.getTime()) ||
       date.getUTCFullYear() !== year ||
@@ -827,6 +885,7 @@ export class TransactionBulkCreateFormComponent {
 
   private normalizeCurrency(value: string | undefined): string | null {
     const currency = (value ?? '').trim().toUpperCase();
+
     return /^[A-Z]{3}$/.test(currency) ? currency : null;
   }
 
@@ -839,6 +898,7 @@ export class TransactionBulkCreateFormComponent {
     const year = date.getUTCFullYear();
     const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
     const day = date.getUTCDate().toString().padStart(2, '0');
+
     return `${year}-${month}-${day}`;
   }
 
@@ -848,6 +908,7 @@ export class TransactionBulkCreateFormComponent {
   }[] {
     const grouped = this.store.groupedCategories();
     const ungrouped = this.store.ungroupedCategories();
+
     const categoryNames = new Map(
       this.store.categories().map((category) => [category.id, category.name])
     );
@@ -899,13 +960,17 @@ export class TransactionBulkCreateFormComponent {
     while (currentParentId && !visited.has(currentParentId)) {
       visited.add(currentParentId);
       const parentName = categoryNames.get(currentParentId);
+
       if (!parentName) {
         break;
       }
+
       names.unshift(parentName);
+
       const parent = this.store
         .categories()
         .find((category) => category.id === currentParentId);
+
       currentParentId = parent?.parentId ?? null;
     }
 

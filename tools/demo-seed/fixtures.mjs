@@ -1,5 +1,7 @@
 export const DATASET_VERSION = '2026-07-v2';
+
 export const DEMO_SEED_ID = 'spendist-screenshots';
+
 export const DATE_RANGE = Object.freeze({
   start: '2026-01-01',
   end: '2026-07-28',

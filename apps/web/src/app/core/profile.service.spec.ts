@@ -34,16 +34,16 @@ describe('ProfileService language synchronization', () => {
     TestBed.configureTestingModule({
       providers: [
         ProfileService,
-        { provide: AuthService, useClass: AuthServiceStub },
-        { provide: LanguageService, useClass: LanguageServiceStub },
+        AuthServiceStub,
+        { provide: AuthService, useExisting: AuthServiceStub },
+        LanguageServiceStub,
+        { provide: LanguageService, useExisting: LanguageServiceStub },
         { provide: SUPABASE_CLIENT, useValue: {} },
       ],
     });
 
     service = TestBed.inject(ProfileService);
-    languageService = TestBed.inject(
-      LanguageService
-    ) as unknown as LanguageServiceStub;
+    languageService = TestBed.inject(LanguageServiceStub);
   });
 
   it('applies a supported language from the authenticated profile', () => {

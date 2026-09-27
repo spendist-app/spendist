@@ -38,6 +38,7 @@ export class ConnectedAppsPageComponent {
     this.revoking.set(clientId);
     this.error.set(null);
     const { error } = await this.supabase.auth.oauth.revokeGrant({ clientId });
+
     if (error) this.error.set(error.message);
     else
       this.grants.update((items) =>
@@ -48,6 +49,7 @@ export class ConnectedAppsPageComponent {
 
   private async load(): Promise<void> {
     const { data, error } = await this.supabase.auth.oauth.listGrants();
+
     if (error) this.error.set(error.message);
     else this.grants.set(data ?? []);
     this.loading.set(false);

@@ -1,3 +1,4 @@
+import type { ClientDatabase } from '@spendist/data-access/supabase-types';
 import { EnvironmentProviders, InjectionToken, makeEnvironmentProviders } from '@angular/core';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
@@ -8,7 +9,7 @@ export interface SupabaseConfig {
 
 export const SUPABASE_CONFIG = new InjectionToken<SupabaseConfig>('SUPABASE_CONFIG');
 
-export const SUPABASE_CLIENT = new InjectionToken<SupabaseClient>('SUPABASE_CLIENT');
+export const SUPABASE_CLIENT = new InjectionToken<SupabaseClient<ClientDatabase>>('SUPABASE_CLIENT');
 
 export function provideSupabase(config: SupabaseConfig): EnvironmentProviders {
   return makeEnvironmentProviders([
@@ -17,7 +18,7 @@ export function provideSupabase(config: SupabaseConfig): EnvironmentProviders {
       provide: SUPABASE_CLIENT,
       deps: [SUPABASE_CONFIG],
       useFactory: (supabaseConfig: SupabaseConfig) =>
-        createClient(supabaseConfig.url, supabaseConfig.anonKey, {
+        createClient<ClientDatabase>(supabaseConfig.url, supabaseConfig.anonKey, {
           auth: {
             persistSession: true,
             autoRefreshToken: true,

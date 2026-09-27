@@ -1,13 +1,25 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.89.0';
+import { z } from 'npm:zod@4.4.3';
+import {
+  createClient,
+  type SupabaseClient,
+} from 'https://esm.sh/@supabase/supabase-js@2.89.0';
 
-type NbpTable = {
-  no?: string;
-  effectiveDate?: string;
-  rates?: Array<{
-    code?: string;
-    mid?: number;
-  }>;
-};
+const nbpTablesSchema = z.array(
+  z.object({
+    no: z.string().optional(),
+    effectiveDate: z.string().optional(),
+    rates: z
+      .array(
+        z.object({
+          code: z.string().optional(),
+          mid: z.number().optional().catch(undefined),
+        })
+      )
+      .optional(),
+  })
+);
+
+type NbpTable = z.infer<typeof nbpTablesSchema>[number];
 
 type RequestBody = {
   startDate?: string;
@@ -23,11 +35,17 @@ type ExchangeRateRow = {
 };
 
 const NBP_TABLE = 'A';
+
 const NBP_API_BASE_URL = 'https://api.nbp.pl/api/exchangerates/tables';
+
 const FALLBACK_SYNC_START_DATE = '2026-06-01';
+
 const MAX_RANGE_DAYS = 93;
+
 const MAX_ATTEMPTS = 4;
+
 const RETRY_BASE_DELAY_MS = 500;
+
 const SUPPORTED_CURRENCIES = new Set([
   'USD',
   'EUR',
@@ -54,14 +72,19 @@ Deno.serve(async (request) => {
     'INTERNAL_FUNCTION_SECRET',
     'ROUTINE_RUNNER_SECRET',
     'RECURRING_PAYMENTS_SECRET',
-    'EXCHANGE_RATES_SYNC_SECRET',
+    'EXCHANGE_RATES_SYNC_SECRET'
   );
-  const token = (request.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '').trim();
+
+  const token = (request.headers.get('Authorization') ?? '')
+    .replace(/^Bearer\s+/i, '')
+    .trim();
+
   if (!configuredSecret || token !== configuredSecret) {
     return json({ error: 'Unauthorized' }, 401);
   }
 
   const supabaseUrl = requiredEnv('SUPABASE_URL');
+
   const serviceKey =
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ??
     Deno.env.get('SUPABASE_SECRET_KEY') ??
@@ -82,9 +105,14 @@ Deno.serve(async (request) => {
   const today = startOfUtcDay(new Date());
   const yesterday = addDays(today, -1);
   const latestRateDate = await loadLatestRateDate(supabase);
+
   const defaultStart = latestRateDate
-    ? maxDate(addDays(parseDate(latestRateDate), 1), parseDate(FALLBACK_SYNC_START_DATE))
+    ? maxDate(
+        addDays(parseDate(latestRateDate), 1),
+        parseDate(FALLBACK_SYNC_START_DATE)
+      )
     : parseDate(FALLBACK_SYNC_START_DATE);
+
   const startDate = body.startDate ? parseDate(body.startDate) : defaultStart;
   const endDate = body.endDate ? parseDate(body.endDate) : yesterday;
 
@@ -103,7 +131,11 @@ Deno.serve(async (request) => {
 
   try {
     const rows = await fetchRows(startDate, endDate);
-    const result = rows.length > 0 ? await upsertRows(supabase, rows) : { insertedCount: 0, updatedCount: 0 };
+
+    const result =
+      rows.length > 0
+        ? await upsertRows(supabase, rows)
+        : { insertedCount: 0, updatedCount: 0 };
 
     await finishRun(supabase, run.id, {
       status: 'succeeded',
@@ -122,6 +154,7 @@ Deno.serve(async (request) => {
     });
   } catch (error) {
     const message = describeError(error);
+
     const payload = {
       run_id: run.id,
       range_start: isoDate(startDate),
@@ -144,10 +177,15 @@ Deno.serve(async (request) => {
   }
 });
 
-async function fetchRows(startDate: Date, endDate: Date): Promise<ExchangeRateRow[]> {
+async function fetchRows(
+  startDate: Date,
+  endDate: Date
+): Promise<ExchangeRateRow[]> {
   const rowsByKey = new Map<string, ExchangeRateRow>();
+
   for (const [start, end] of buildRanges(startDate, endDate)) {
     const tables = await fetchNbpRange(start, end);
+
     for (const table of tables) {
       if (!table.effectiveDate) {
         continue;
@@ -155,7 +193,8 @@ async function fetchRows(startDate: Date, endDate: Date): Promise<ExchangeRateRo
 
       for (const rate of table.rates ?? []) {
         const currency = String(rate.code ?? '').toUpperCase();
-        if (!SUPPORTED_CURRENCIES.has(currency) || typeof rate.mid !== 'number') {
+
+        if (!SUPPORTED_CURRENCIES.has(currency) || rate.mid === undefined) {
           continue;
         }
 
@@ -166,6 +205,7 @@ async function fetchRows(startDate: Date, endDate: Date): Promise<ExchangeRateRo
           source: 'nbp_table_a',
           source_no: table.no ?? null,
         };
+
         rowsByKey.set(`${row.currency}:${row.rate_date}`, row);
       }
     }
@@ -173,13 +213,14 @@ async function fetchRows(startDate: Date, endDate: Date): Promise<ExchangeRateRo
 
   return [...rowsByKey.values()].sort((a, b) => {
     const byDate = a.rate_date.localeCompare(b.rate_date);
+
     return byDate !== 0 ? byDate : a.currency.localeCompare(b.currency);
   });
 }
 
 async function fetchNbpRange(start: string, end: string): Promise<NbpTable[]> {
   const url = `${NBP_API_BASE_URL}/${NBP_TABLE}/${start}/${end}/?format=json`;
-  let lastError: unknown = null;
+  let lastError: Error | undefined;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
     try {
@@ -196,23 +237,31 @@ async function fetchNbpRange(start: string, end: string): Promise<NbpTable[]> {
 
       if (!response.ok) {
         const body = await response.text();
-        throw new Error(`NBP ${response.status} ${response.statusText}: ${body.slice(0, 200)}`);
+        throw new Error(
+          `NBP ${response.status} ${response.statusText}: ${body.slice(0, 200)}`
+        );
       }
 
-      return await response.json() as NbpTable[];
+      return nbpTablesSchema.parse(await response.json());
     } catch (error) {
-      lastError = error;
+      lastError = error instanceof Error ? error : new Error(String(error));
+
       if (attempt === MAX_ATTEMPTS) {
         break;
       }
+
       await delay(RETRY_BASE_DELAY_MS * 2 ** (attempt - 1));
     }
   }
 
-  throw new Error(`Failed to fetch NBP range ${start}..${end}: ${describeError(lastError)}`);
+  throw new Error(
+    `Failed to fetch NBP range ${start}..${end}: ${describeError(lastError)}`
+  );
 }
 
-async function loadLatestRateDate(supabase: ReturnType<typeof createClient>): Promise<string | null> {
+async function loadLatestRateDate(
+  supabase: SupabaseClient
+): Promise<string | null> {
   const { data, error } = await supabase
     .from('exchange_rates')
     .select('rate_date')
@@ -224,10 +273,16 @@ async function loadLatestRateDate(supabase: ReturnType<typeof createClient>): Pr
     throw error;
   }
 
-  return typeof data?.rate_date === 'string' ? data.rate_date : null;
+  const parsed = z.object({ rate_date: z.string() }).safeParse(data);
+
+  return parsed.success ? parsed.data.rate_date : null;
 }
 
-async function createRun(supabase: ReturnType<typeof createClient>, startDate: Date, endDate: Date) {
+async function createRun(
+  supabase: SupabaseClient,
+  startDate: Date,
+  endDate: Date
+) {
   const { data, error } = await supabase
     .from('exchange_rate_sync_runs')
     .insert({
@@ -242,19 +297,19 @@ async function createRun(supabase: ReturnType<typeof createClient>, startDate: D
     throw error;
   }
 
-  return data as { id: string };
+  return z.object({ id: z.string() }).parse(data);
 }
 
 async function finishRun(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient,
   runId: string,
   result: {
     status: 'succeeded' | 'failed';
     insertedCount: number;
     updatedCount: number;
     errorMessage?: string;
-    payload?: Record<string, unknown>;
-  },
+    payload?: SyncRunPayload;
+  }
 ): Promise<void> {
   const { error } = await supabase
     .from('exchange_rate_sync_runs')
@@ -274,13 +329,15 @@ async function finishRun(
 }
 
 async function upsertRows(
-  supabase: ReturnType<typeof createClient>,
-  rows: ExchangeRateRow[],
+  supabase: SupabaseClient,
+  rows: ExchangeRateRow[]
 ): Promise<{ insertedCount: number; updatedCount: number }> {
   const existingKeys = new Set<string>();
+
   for (const chunk of chunkRows(rows, 1000)) {
     const dates = [...new Set(chunk.map((row) => row.rate_date))];
     const currencies = [...new Set(chunk.map((row) => row.currency))];
+
     const { data, error } = await supabase
       .from('exchange_rates')
       .select('currency,rate_date')
@@ -306,17 +363,26 @@ async function upsertRows(
     }
   }
 
-  const updatedCount = rows.filter((row) => existingKeys.has(`${row.currency}:${row.rate_date}`)).length;
+  const updatedCount = rows.filter((row) =>
+    existingKeys.has(`${row.currency}:${row.rate_date}`)
+  ).length;
+
   return {
     insertedCount: rows.length - updatedCount,
     updatedCount,
   };
 }
 
-async function notifyAdmins(supabase: ReturnType<typeof createClient>, payload: Record<string, unknown>): Promise<void> {
-  const { error } = await supabase.rpc('notify_admins_exchange_rates_sync_failed', {
-    p_payload: payload,
-  });
+async function notifyAdmins(
+  supabase: SupabaseClient,
+  payload: SyncRunPayload
+): Promise<void> {
+  const { error } = await supabase.rpc(
+    'notify_admins_exchange_rates_sync_failed',
+    {
+      p_payload: payload,
+    }
+  );
 
   if (error) {
     console.error('[sync-exchange-rates] Failed to notify admins', error);
@@ -325,29 +391,46 @@ async function notifyAdmins(supabase: ReturnType<typeof createClient>, payload: 
 
 function buildRanges(startDate: Date, endDate: Date): Array<[string, string]> {
   const ranges: Array<[string, string]> = [];
-  for (let cursor = startDate; cursor <= endDate; cursor = addDays(cursor, MAX_RANGE_DAYS)) {
-    const rangeEnd = new Date(Math.min(addDays(cursor, MAX_RANGE_DAYS - 1).getTime(), endDate.getTime()));
+
+  for (
+    let cursor = startDate;
+    cursor <= endDate;
+    cursor = addDays(cursor, MAX_RANGE_DAYS)
+  ) {
+    const rangeEnd = new Date(
+      Math.min(addDays(cursor, MAX_RANGE_DAYS - 1).getTime(), endDate.getTime())
+    );
+
     ranges.push([isoDate(cursor), isoDate(rangeEnd)]);
   }
+
   return ranges;
 }
 
 function chunkRows<T>(rows: T[], size: number): T[][] {
   const chunks: T[][] = [];
+
   for (let index = 0; index < rows.length; index += size) {
     chunks.push(rows.slice(index, index + size));
   }
+
   return chunks;
 }
 
 async function parseRequestBody(request: Request): Promise<RequestBody> {
   const text = await request.text();
+
   if (!text.trim()) {
     return {};
   }
 
   try {
-    return JSON.parse(text) as RequestBody;
+    return z
+      .object({
+        startDate: z.string().optional().catch(undefined),
+        endDate: z.string().optional().catch(undefined),
+      })
+      .parse(JSON.parse(text));
   } catch {
     return {};
   }
@@ -359,6 +442,7 @@ function parseDate(value: string): Date {
   }
 
   const date = new Date(`${value}T00:00:00.000Z`);
+
   if (Number.isNaN(date.getTime()) || isoDate(date) !== value) {
     throw new Error(`Invalid date: ${value}`);
   }
@@ -367,12 +451,15 @@ function parseDate(value: string): Date {
 }
 
 function startOfUtcDay(date: Date): Date {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  return new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
+  );
 }
 
 function addDays(date: Date, days: number): Date {
   const next = new Date(date);
   next.setUTCDate(next.getUTCDate() + days);
+
   return next;
 }
 
@@ -392,15 +479,18 @@ function delay(ms: number): Promise<void> {
 
 function requiredEnv(name: string): string {
   const value = Deno.env.get(name)?.trim();
+
   if (!value) {
     throw new Error(`Missing ${name}`);
   }
+
   return value;
 }
 
 function firstEnv(...names: string[]): string {
   for (const name of names) {
     const value = Deno.env.get(name)?.trim();
+
     if (value) {
       return value;
     }
@@ -409,15 +499,25 @@ function firstEnv(...names: string[]): string {
   return '';
 }
 
-function describeError(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+function describeError(cause: unknown): string {
+  return cause instanceof Error ? cause.message : String(cause);
 }
 
-function json(body: unknown, status = 200): Response {
+function json<T>(body: T, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: {
       'Content-Type': 'application/json',
     },
   });
+}
+
+interface SyncRunPayload {
+  readonly row_count?: number;
+  readonly run_id?: string;
+  readonly range_start?: string;
+  readonly range_end?: string;
+  readonly source?: string;
+  readonly error?: string;
+  readonly occurred_at?: string;
 }

@@ -47,6 +47,7 @@ export class OAuthConsentPageComponent {
     if (!this.authorizationId || this.deciding()) return;
     this.deciding.set(true);
     this.error.set(null);
+
     const response =
       action === 'approve'
         ? await this.supabase.auth.oauth.approveAuthorization(
@@ -57,11 +58,14 @@ export class OAuthConsentPageComponent {
             this.authorizationId,
             { skipBrowserRedirect: true }
           );
+
     if (response.error || !response.data?.redirect_url) {
       this.error.set(response.error?.message ?? 'OAuth redirect is missing.');
       this.deciding.set(false);
+
       return;
     }
+
     this.document.location.assign(response.data.redirect_url);
   }
 
@@ -69,21 +73,28 @@ export class OAuthConsentPageComponent {
     if (!this.authorizationId) {
       this.error.set('Missing authorization_id.');
       this.loading.set(false);
+
       return;
     }
+
     const { data, error } =
       await this.supabase.auth.oauth.getAuthorizationDetails(
         this.authorizationId
       );
+
     if (error || !data) {
       this.error.set(error?.message ?? 'Authorization request was not found.');
       this.loading.set(false);
+
       return;
     }
+
     if (data.redirect_url) {
       this.document.location.assign(data.redirect_url);
+
       return;
     }
+
     this.details.set(data);
     this.loading.set(false);
   }

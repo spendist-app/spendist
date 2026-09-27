@@ -68,12 +68,14 @@ export class CategorySelectComponent implements ControlValueAccessor {
 
   protected readonly selectedLabel = computed(() => {
     const selected = this.value();
+
     if (!selected) {
       return '';
     }
 
     for (const group of this.groups()) {
       const option = group.options.find((item) => item.id === selected);
+
       if (option) {
         return option.label;
       }
@@ -84,6 +86,7 @@ export class CategorySelectComponent implements ControlValueAccessor {
 
   protected readonly filteredGroups = computed(() => {
     const query = this.search().trim().toLowerCase();
+
     if (!query) {
       return this.groups();
     }
@@ -114,6 +117,7 @@ export class CategorySelectComponent implements ControlValueAccessor {
 
   setDisabledState(isDisabled: boolean): void {
     this.disabled.set(isDisabled);
+
     if (isDisabled) {
       this.closeDropdown();
     }
@@ -126,6 +130,7 @@ export class CategorySelectComponent implements ControlValueAccessor {
 
     if (this.open()) {
       this.closeDropdown();
+
       return;
     }
 
@@ -141,7 +146,9 @@ export class CategorySelectComponent implements ControlValueAccessor {
   }
 
   protected onSearchInput(event: Event): void {
-    const inputElement = event.target as HTMLInputElement | null;
+    const inputElement =
+      event.target instanceof HTMLInputElement ? event.target : null;
+
     this.search.set(inputElement?.value ?? '');
   }
 
@@ -157,8 +164,12 @@ export class CategorySelectComponent implements ControlValueAccessor {
   }
 
   protected onFocusOut(event: FocusEvent): void {
-    const nextTarget = event.relatedTarget as Node | null;
-    const currentTarget = event.currentTarget as HTMLElement | null;
+    const nextTarget =
+      event.relatedTarget instanceof Node ? event.relatedTarget : null;
+
+    const currentTarget =
+      event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
+
     if (!currentTarget || !nextTarget || !currentTarget.contains(nextTarget)) {
       this.closeDropdown();
       this.markTouched();

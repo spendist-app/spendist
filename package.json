@@ -13,7 +13,7 @@
     "test:recurring-edge": "node supabase/functions/process-recurring-payments/schedule.test.mts",
     "test:ci-security": "node --test tools/scripts/run-with-secret-redaction.test.mjs",
     "lint": "nx lint web",
-    "lint:oxlint": "nx run-many -t oxlint -- --quiet && node tools/scripts/check-oxlint-baseline.mjs",
+    "lint:oxlint": "nx run-many -t oxlint -- --deny-warnings && node tools/scripts/check-oxlint.mjs",
     "e2e": "nx e2e web-e2e",
     "format": "nx format:write",
     "format:check": "nx format:check",

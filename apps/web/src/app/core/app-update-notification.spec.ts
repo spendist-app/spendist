@@ -1,3 +1,4 @@
+import { requiredValue, fixtureElement } from '../../testing/dom';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SwUpdate, type VersionEvent } from '@angular/service-worker';
 import { Subject } from 'rxjs';
@@ -9,6 +10,7 @@ describe('AppUpdateNotification', () => {
   let component: AppUpdateNotification;
   let fixture: ComponentFixture<AppUpdateNotification>;
   const versionUpdates = new Subject<VersionEvent>();
+
   const swUpdateStub = {
     isEnabled: true,
     versionUpdates,
@@ -44,9 +46,9 @@ describe('AppUpdateNotification', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('aside')).not.toBeNull();
+    expect(fixtureElement(fixture).querySelector('aside')).not.toBeNull();
     expect(
-      fixture.nativeElement.querySelector('button.btn-primary')
+      fixtureElement(fixture).querySelector('button.btn-primary')
     ).not.toBeNull();
   });
 
@@ -59,13 +61,16 @@ describe('AppUpdateNotification', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    const dismissButton = fixture.nativeElement.querySelector(
-      'button.btn-circle'
-    ) as HTMLButtonElement;
+    const dismissButton = requiredValue(
+      fixtureElement(fixture).querySelector<HTMLButtonElement>(
+        'button.btn-circle'
+      )
+    );
+
     dismissButton.click();
     await fixture.whenStable();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('aside')).toBeNull();
+    expect(fixtureElement(fixture).querySelector('aside')).toBeNull();
   });
 });

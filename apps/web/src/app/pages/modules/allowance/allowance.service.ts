@@ -1,8 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import type {
-  AllowanceInvitationRow,
-  Tables,
-} from '@spendist/data-access/supabase-types';
+import type { AllowanceInvitationRow } from '@spendist/data-access/supabase-types';
 import { AuthService } from '../../../core/auth.service';
 import { LanguageService } from '../../../core/language.service';
 import { logError } from '../../../core/logger';
@@ -63,8 +60,6 @@ export interface UpdateAllowanceRecipientExpensePayload {
   readonly currency: string;
 }
 
-type RecurringRow = Tables<'recurring_transactions'>;
-
 interface AllowanceState {
   readonly loading: boolean;
   readonly pending: boolean;
@@ -73,28 +68,6 @@ interface AllowanceState {
   readonly invitations: readonly AllowanceInvitationRow[];
   readonly schedules: readonly AllowanceSchedule[];
   readonly recipientExpenses: readonly AllowanceRecipientExpense[];
-}
-
-interface AllowanceConnectionRpcRow {
-  readonly id: string | null;
-  readonly role: string | null;
-  readonly counterpart_id: string | null;
-  readonly counterpart_name: string | null;
-  readonly counterpart_email: string | null;
-  readonly status: string | null;
-  readonly connected_at: string | null;
-}
-
-interface AllowanceRecipientExpenseRpcRow {
-  readonly transaction_id: string | null;
-  readonly connection_id: string | null;
-  readonly recipient_name: string | null;
-  readonly occurred_at: string | null;
-  readonly description: string | null;
-  readonly amount: number | string | null;
-  readonly currency: string | null;
-  readonly created_at: string | null;
-  readonly updated_at: string | null;
 }
 
 @Injectable()
@@ -128,10 +101,13 @@ export class AllowanceService {
 
   async load(): Promise<void> {
     const userId = this.auth.session()?.user.id;
+
     if (!userId || !this.supabase) {
       return;
     }
+
     this.state.update((state) => ({ ...state, loading: true, error: null }));
+
     try {
       const [
         connectionsResult,
@@ -151,17 +127,19 @@ export class AllowanceService {
           .order('creation_date', { ascending: false }),
         this.client.rpc('get_allowance_recipient_expenses'),
       ]);
+
       if (connectionsResult.error) throw connectionsResult.error;
+
       if (invitationsResult.error) throw invitationsResult.error;
+
       if (schedulesResult.error) throw schedulesResult.error;
+
       if (recipientExpensesResult.error) throw recipientExpensesResult.error;
 
       this.state.update((state) => ({
         ...state,
         loading: false,
-        connections: (
-          (connectionsResult.data ?? []) as AllowanceConnectionRpcRow[]
-        ).map((row) => ({
+        connections: (connectionsResult.data ?? []).map((row) => ({
           id: row.id ?? '',
           role: row.role === 'recipient' ? 'recipient' : 'payer',
           counterpartId: row.counterpart_id ?? '',
@@ -170,26 +148,20 @@ export class AllowanceService {
           status: row.status === 'disconnected' ? 'disconnected' : 'active',
           connectedAt: new Date(row.connected_at ?? Date.now()),
         })),
-        invitations:
-          (invitationsResult.data as AllowanceInvitationRow[] | null) ?? [],
-        schedules: ((schedulesResult.data ?? []) as RecurringRow[]).map(
-          (row) => ({
-            id: row.id,
-            connectionId: row.allowance_connection_id ?? '',
-            name: row.name,
-            amount: Number(row.amount),
-            amountMode: row.amount_mode === 'variable' ? 'variable' : 'fixed',
-            currency: row.currency,
-            schedule: row.schedule,
-            startDate: row.start_date,
-            endDate: row.end_date,
-            isPaused: row.is_paused,
-          })
-        ),
-        recipientExpenses: (
-          (recipientExpensesResult.data ??
-            []) as AllowanceRecipientExpenseRpcRow[]
-        ).map((row) => ({
+        invitations: invitationsResult.data ?? [],
+        schedules: (schedulesResult.data ?? []).map((row) => ({
+          id: row.id,
+          connectionId: row.allowance_connection_id ?? '',
+          name: row.name,
+          amount: Number(row.amount),
+          amountMode: row.amount_mode === 'variable' ? 'variable' : 'fixed',
+          currency: row.currency,
+          schedule: row.schedule,
+          startDate: row.start_date,
+          endDate: row.end_date,
+          isPaused: row.is_paused,
+        })),
+        recipientExpenses: (recipientExpensesResult.data ?? []).map((row) => ({
           transactionId: row.transaction_id ?? '',
           connectionId: row.connection_id ?? '',
           recipientName: row.recipient_name ?? '',
@@ -222,29 +194,28 @@ export class AllowanceService {
           },
         }
       );
+
       if (error) throw error;
     });
   }
 
   async respond(invitationId: string, accept: boolean): Promise<boolean> {
     return this.mutate(async () => {
-      const { error } = await this.client.rpc(
-        'respond_allowance_invitation',
-        {
-          p_invitation_id: invitationId,
-          p_accept: accept,
-        }
-      );
+      const { error } = await this.client.rpc('respond_allowance_invitation', {
+        p_invitation_id: invitationId,
+        p_accept: accept,
+      });
+
       if (error) throw error;
     });
   }
 
   async acceptToken(token: string): Promise<boolean> {
     return this.mutate(async () => {
-      const { error } = await this.client.rpc(
-        'accept_allowance_invitation',
-        { p_token: token }
-      );
+      const { error } = await this.client.rpc('accept_allowance_invitation', {
+        p_token: token,
+      });
+
       if (error) throw error;
     });
   }
@@ -255,6 +226,7 @@ export class AllowanceService {
         'disconnect_allowance_connection',
         { p_connection_id: connectionId }
       );
+
       if (error) throw error;
     });
   }
@@ -263,7 +235,9 @@ export class AllowanceService {
     payload: CreateAllowanceSchedulePayload
   ): Promise<boolean> {
     const userId = this.auth.session()?.user.id;
+
     if (!userId) return false;
+
     return this.mutate(async () => {
       const { error } = await this.client
         .from('recurring_transactions')
@@ -283,6 +257,7 @@ export class AllowanceService {
           direction: 'expense',
           exchange_rate: null,
         });
+
       if (error) throw error;
     });
   }
@@ -298,6 +273,7 @@ export class AllowanceService {
         })
         .eq('id', schedule.id)
         .eq('source_module', 'allowance');
+
       if (error) throw error;
     });
   }
@@ -309,6 +285,7 @@ export class AllowanceService {
         .delete()
         .eq('id', scheduleId)
         .eq('source_module', 'allowance');
+
       if (error) throw error;
     });
   }
@@ -328,6 +305,7 @@ export class AllowanceService {
           p_currency: payload.currency.trim().toUpperCase(),
         }
       );
+
       if (error) throw error;
     });
   }
@@ -338,6 +316,7 @@ export class AllowanceService {
         'delete_allowance_recipient_expense',
         { p_transaction_id: transactionId }
       );
+
       if (error) throw error;
     });
   }
@@ -345,10 +324,12 @@ export class AllowanceService {
   private async mutate(operation: () => Promise<void>): Promise<boolean> {
     if (this.pending()) return false;
     this.state.update((state) => ({ ...state, pending: true, error: null }));
+
     try {
       await operation();
       this.state.update((state) => ({ ...state, pending: false }));
       await this.load();
+
       return true;
     } catch (error) {
       logError('AllowanceService', 'Allowance mutation failed', error);
@@ -357,6 +338,7 @@ export class AllowanceService {
         pending: false,
         error: 'modules.allowance.errors.mutation',
       }));
+
       return false;
     }
   }
@@ -365,6 +347,7 @@ export class AllowanceService {
     if (!this.supabase) {
       throw new Error('Supabase client is unavailable.');
     }
+
     return this.supabase;
   }
 }

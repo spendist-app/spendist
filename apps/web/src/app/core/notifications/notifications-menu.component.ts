@@ -1,21 +1,27 @@
-import { Component, computed, inject, ChangeDetectionStrategy } from '@angular/core';
+import { z } from 'zod';
+import {
+  Component,
+  computed,
+  inject,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { NgIcon } from '@ng-icons/core';
 import { heroBell, heroCheck } from '@ng-icons/heroicons/outline';
 import { TranslocoPipe } from '@ngneat/transloco';
 import type { NotificationRow } from '@spendist/data-access/supabase-types';
 import { NotificationsStore } from './notifications.store';
 
-interface RecurringTransactionNotificationPayload {
-  readonly description?: unknown;
-  readonly amount?: unknown;
-  readonly currency?: unknown;
-  readonly end_date?: unknown;
-  readonly error?: unknown;
-  readonly invitation_id?: unknown;
-  readonly inviter_name?: unknown;
-  readonly payer_name?: unknown;
-  readonly recipient_name?: unknown;
-}
+const notificationPayload = z.object({
+  description: z.unknown(),
+  amount: z.unknown(),
+  currency: z.unknown(),
+  end_date: z.unknown(),
+  error: z.unknown(),
+  invitation_id: z.unknown(),
+  inviter_name: z.unknown(),
+  payer_name: z.unknown(),
+  recipient_name: z.unknown(),
+});
 
 @Component({
   standalone: true,
@@ -30,6 +36,7 @@ export class NotificationsMenuComponent {
   readonly markReadIcon = heroCheck;
   readonly unreadLabel = computed(() => {
     const count = this.store.unreadCount();
+
     return count > 99 ? '99+' : `${count}`;
   });
 
@@ -49,8 +56,10 @@ export class NotificationsMenuComponent {
     return `notifications.items.${notification.type}.title`;
   }
 
-  notificationParams(notification: NotificationRow): Record<string, string> {
-    const payload = notification.payload as RecurringTransactionNotificationPayload | null;
+  notificationParams(notification: NotificationRow) {
+    const parsed = notificationPayload.safeParse(notification.payload);
+    const payload = parsed.success ? parsed.data : null;
+
     return {
       description: this.stringify(payload?.description, ''),
       amount: this.stringify(payload?.amount, ''),
@@ -71,14 +80,18 @@ export class NotificationsMenuComponent {
     notification: NotificationRow,
     accept: boolean
   ): Promise<void> {
-    const payload =
-      notification.payload as RecurringTransactionNotificationPayload | null;
+    const parsed = notificationPayload.safeParse(notification.payload);
+    const payload = parsed.success ? parsed.data : null;
+
     const invitationId = this.stringify(payload?.invitation_id, '');
+
     if (!invitationId) return;
+
     const success = await this.store.respondToAllowanceInvitation(
       invitationId,
       accept
     );
+
     if (success) await this.store.refresh();
   }
 
@@ -89,15 +102,11 @@ export class NotificationsMenuComponent {
     }).format(new Date(notification.created_at));
   }
 
-  private stringify(value: unknown, fallback: string): string {
-    if (typeof value === 'string' && value.trim().length > 0) {
-      return value;
-    }
+  private stringify<T>(value: T, fallback: string): string {
+    const parsed = z
+      .union([z.string().refine((text) => text.trim().length > 0), z.number()])
+      .safeParse(value);
 
-    if (typeof value === 'number') {
-      return `${value}`;
-    }
-
-    return fallback;
+    return parsed.success ? String(parsed.data) : fallback;
   }
 }

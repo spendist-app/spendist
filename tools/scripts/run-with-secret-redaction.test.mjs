@@ -22,9 +22,11 @@ test('redacts raw, encoded, base64, and URL password variants', () => {
 
 test('redacts SQL-escaped and JSON-escaped secret variants', () => {
   const secret = "line one's secret\nnext line";
+
   const output = `${secret.replaceAll("'", "''")}\n${JSON.stringify(
     secret
   ).slice(1, -1)}`;
+
   const redacted = redactSensitiveText(output, [secret]);
 
   assert.doesNotMatch(redacted, /one''s|\\nnext line/);
@@ -47,6 +49,7 @@ test('wrapper redacts child output and preserves its exit code', () => {
     { TEST_SECRET: secret },
     (command, args) => {
       receivedArguments = { command, args };
+
       return {
         status: 23,
         stdout: secret,

@@ -31,6 +31,7 @@ export class AppUpdateNotification {
 
   constructor() {
     const swUpdate = this.swUpdate;
+
     if (!swUpdate?.isEnabled) {
       return;
     }
@@ -45,6 +46,7 @@ export class AppUpdateNotification {
       .subscribe(() => this.updateAvailable.set(true));
 
     const window = this.document.defaultView;
+
     const visibilityChecks = window
       ? fromEvent(this.document, 'visibilitychange').pipe(
           filter(() => this.document.visibilityState === 'visible')
@@ -71,6 +73,7 @@ export class AppUpdateNotification {
     }
 
     this.refreshing.set(true);
+
     try {
       await this.swUpdate.activateUpdate();
       this.document.defaultView?.location.reload();

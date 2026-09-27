@@ -1,4 +1,10 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslocoPipe, TranslocoService } from '@ngneat/transloco';
 import { NgIcon } from '@ng-icons/core';
@@ -52,30 +58,37 @@ export class PlacesPageComponent {
 
   protected readonly visiblePlaces = computed(() => {
     const term = this.query().trim().toLowerCase();
+
     if (!term) {
       return this.store.places();
     }
 
-    return this.store.places().filter((place) =>
-      [
-        place.name,
-        place.street,
-        place.city,
-        place.postalCode,
-        place.country,
-        place.note,
-      ]
-        .filter((value): value is string => !!value)
-        .some((value) => value.toLowerCase().includes(term))
-    );
+    return this.store
+      .places()
+      .filter((place) =>
+        [
+          place.name,
+          place.street,
+          place.city,
+          place.postalCode,
+          place.country,
+          place.note,
+        ]
+          .filter((value): value is string => !!value)
+          .some((value) => value.toLowerCase().includes(term))
+      );
   });
 
   protected readonly formTitleKey = computed(() =>
-    this.editingPlaceId() ? 'places.form.title.edit' : 'places.form.title.create'
+    this.editingPlaceId()
+      ? 'places.form.title.edit'
+      : 'places.form.title.create'
   );
 
   protected onSearch(event: Event): void {
-    const input = event.target as HTMLInputElement | null;
+    const input =
+      event.target instanceof HTMLInputElement ? event.target : null;
+
     this.query.set(input?.value ?? '');
   }
 
@@ -125,10 +138,12 @@ export class PlacesPageComponent {
 
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+
       return;
     }
 
     const raw = this.form.getRawValue();
+
     const payload = {
       name: raw.name,
       street: raw.street,
@@ -140,11 +155,13 @@ export class PlacesPageComponent {
 
     try {
       const editingId = this.editingPlaceId();
+
       if (editingId) {
         await this.store.updatePlace(editingId, payload);
       } else {
         await this.store.createPlace(payload);
       }
+
       this.closeForm();
     } catch {
       return;
@@ -153,14 +170,18 @@ export class PlacesPageComponent {
 
   protected async deletePlace(place: PlaceEntity): Promise<void> {
     const confirmed = window.confirm(
-      this.transloco.translate('places.actions.deleteConfirm', { name: place.name })
+      this.transloco.translate('places.actions.deleteConfirm', {
+        name: place.name,
+      })
     );
+
     if (!confirmed) {
       return;
     }
 
     try {
       await this.store.deletePlace(place.id);
+
       if (this.editingPlaceId() === place.id) {
         this.closeForm();
       }

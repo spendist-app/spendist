@@ -14,6 +14,7 @@ test('returns every due occurrence before a historical end date', () => {
     end_date: '2025-02-28',
     last_run_at: null,
   };
+
   const schedule = parseCron(recurring.schedule);
   assert.ok(schedule);
 

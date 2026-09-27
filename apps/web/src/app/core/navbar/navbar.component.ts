@@ -1,4 +1,11 @@
-import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+import { z } from 'zod';
+import {
+  Component,
+  computed,
+  inject,
+  signal,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { TranslocoPipe } from '@ngneat/transloco';
 import { AuthService } from '../auth.service';
@@ -44,20 +51,22 @@ export class NavbarComponent {
 
   readonly initials = computed(() => {
     const profile = this.profileService.profile();
+
     if (profile) {
       return resolveInitials(profile.fullName || profile.username);
     }
 
     const session = this.auth.session();
-    const metadata = (session?.user.user_metadata ?? {}) as Record<
-      string,
-      unknown
-    >;
-    const rawFullName = metadata['full_name'];
-    const nameCandidate =
-      typeof rawFullName === 'string' && rawFullName.trim().length
-        ? rawFullName
-        : session?.user.email ?? '';
+
+    const fullName = z
+      .string()
+      .refine((value) => value.trim().length > 0)
+      .safeParse(session?.user.user_metadata['full_name']);
+
+    const nameCandidate = fullName.success
+      ? fullName.data
+      : session?.user.email ?? '';
+
     return resolveInitials(nameCandidate);
   });
 
@@ -123,10 +132,15 @@ export class NavbarComponent {
   }
 
   handleModulesFocusOut(event: FocusEvent): void {
-    const nextElement = event.relatedTarget as HTMLElement | null;
-    const currentTarget = event.currentTarget as HTMLElement | null;
+    const nextElement =
+      event.relatedTarget instanceof HTMLElement ? event.relatedTarget : null;
+
+    const currentTarget =
+      event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
+
     if (!currentTarget) {
       this.closeModulesMenu();
+
       return;
     }
 
@@ -136,10 +150,15 @@ export class NavbarComponent {
   }
 
   handleAccountFocusOut(event: FocusEvent): void {
-    const nextElement = event.relatedTarget as HTMLElement | null;
-    const currentTarget = event.currentTarget as HTMLElement | null;
+    const nextElement =
+      event.relatedTarget instanceof HTMLElement ? event.relatedTarget : null;
+
+    const currentTarget =
+      event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
+
     if (!currentTarget) {
       this.closeAccountMenu();
+
       return;
     }
 
@@ -179,6 +198,7 @@ export class NavbarComponent {
 
   setLanguage(language: LanguageCode): void {
     this.languageService.setLanguage(language);
+
     if (/^\/(pl|en)\/blog(?:\/|$)/.test(this.router.url)) {
       void this.router.navigateByUrl(`/${language}/blog`);
     }
@@ -191,6 +211,7 @@ function resolveInitials(nameCandidate: string): string {
   }
 
   const parts = nameCandidate.trim().split(/\s+/);
+
   if (parts.length === 1) {
     return parts[0].slice(0, 2).toUpperCase();
   }
@@ -200,6 +221,7 @@ function resolveInitials(nameCandidate: string): string {
 
 function shortCommit(commit: string): string {
   const normalized = commit.trim();
+
   if (!normalized || normalized === 'unknown') {
     return 'unknown';
   }

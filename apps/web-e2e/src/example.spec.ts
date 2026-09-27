@@ -239,14 +239,18 @@ test('keeps the published blog usable on a mobile viewport', async ({
       name: 'Pomysły na bardziej przejrzyste finanse',
     })
   ).toBeVisible();
+
   const horizontalOverflow = await page.evaluate(
     () => document.documentElement.scrollWidth > window.innerWidth
   );
+
   expect(horizontalOverflow).toBe(false);
+
   const navbarLayout = await page.locator('nav.navbar').evaluate((navbar) => {
     const children = [...navbar.children].map((child) =>
       child.getBoundingClientRect()
     );
+
     return {
       height: navbar.getBoundingClientRect().height,
       rowCenters: children.map((child) =>
@@ -254,6 +258,7 @@ test('keeps the published blog usable on a mobile viewport', async ({
       ),
     };
   });
+
   expect(navbarLayout.height).toBeLessThanOrEqual(72);
   expect(
     Math.max(...navbarLayout.rowCenters) - Math.min(...navbarLayout.rowCenters)

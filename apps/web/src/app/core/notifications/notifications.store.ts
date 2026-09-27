@@ -1,4 +1,12 @@
-import { EnvironmentInjector, Injectable, OnDestroy, computed, effect, inject, signal } from '@angular/core';
+import {
+  EnvironmentInjector,
+  Injectable,
+  OnDestroy,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import type { NotificationRow } from '@spendist/data-access/supabase-types';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { AuthService } from '../auth.service';
@@ -37,8 +45,10 @@ export class NotificationsStore implements OnDestroy {
   readonly markAllPending = computed(() => this.state().markAllPending);
   readonly error = computed(() => this.state().error);
   readonly notifications = computed(() => this.state().notifications);
-  readonly unreadCount = computed(() =>
-    this.state().notifications.filter((notification) => !notification.read_at).length
+  readonly unreadCount = computed(
+    () =>
+      this.state().notifications.filter((notification) => !notification.read_at)
+        .length
   );
   readonly hasUnread = computed(() => this.unreadCount() > 0);
   readonly allowanceResponsePending = signal(false);
@@ -49,6 +59,7 @@ export class NotificationsStore implements OnDestroy {
 
   private readonly sessionEffect = effect(() => {
     const userId = this.auth.session()?.user.id ?? null;
+
     if (userId === this.activeUserId) {
       return;
     }
@@ -63,6 +74,7 @@ export class NotificationsStore implements OnDestroy {
         error: null,
         notifications: [],
       });
+
       return;
     }
 
@@ -77,6 +89,7 @@ export class NotificationsStore implements OnDestroy {
 
   async refresh(): Promise<void> {
     const userId = this.activeUserId;
+
     if (!userId) {
       return;
     }
@@ -86,6 +99,7 @@ export class NotificationsStore implements OnDestroy {
 
   async markAllAsRead(): Promise<void> {
     const userId = this.activeUserId;
+
     if (!userId || this.markAllPending() || !this.hasUnread()) {
       return;
     }
@@ -98,6 +112,7 @@ export class NotificationsStore implements OnDestroy {
 
     try {
       const readAt = new Date().toISOString();
+
       const { error } = await this.supabase
         .from('notifications')
         .update({ read_at: readAt })
@@ -112,11 +127,17 @@ export class NotificationsStore implements OnDestroy {
         ...state,
         markAllPending: false,
         notifications: state.notifications.map((notification) =>
-          notification.read_at ? notification : { ...notification, read_at: readAt }
+          notification.read_at
+            ? notification
+            : { ...notification, read_at: readAt }
         ),
       }));
     } catch (error) {
-      logError('NotificationsStore', 'Failed to mark notifications as read', error);
+      logError(
+        'NotificationsStore',
+        'Failed to mark notifications as read',
+        error
+      );
       this.state.update((state) => ({
         ...state,
         markAllPending: false,
@@ -127,8 +148,17 @@ export class NotificationsStore implements OnDestroy {
 
   async markAsRead(notificationId: string): Promise<void> {
     const userId = this.activeUserId;
-    const notification = this.state().notifications.find((item) => item.id === notificationId);
-    if (!userId || !notification || notification.read_at || this.isMarkReadPending(notificationId)) {
+
+    const notification = this.state().notifications.find(
+      (item) => item.id === notificationId
+    );
+
+    if (
+      !userId ||
+      !notification ||
+      notification.read_at ||
+      this.isMarkReadPending(notificationId)
+    ) {
       return;
     }
 
@@ -137,6 +167,7 @@ export class NotificationsStore implements OnDestroy {
 
     try {
       const readAt = new Date().toISOString();
+
       const { error } = await this.supabase
         .from('notifications')
         .update({ read_at: readAt })
@@ -155,7 +186,11 @@ export class NotificationsStore implements OnDestroy {
         ),
       }));
     } catch (error) {
-      logError('NotificationsStore', 'Failed to mark notification as read', error);
+      logError(
+        'NotificationsStore',
+        'Failed to mark notification as read',
+        error
+      );
       this.state.update((state) => ({
         ...state,
         error: 'notifications.errors.markRead',
@@ -164,6 +199,7 @@ export class NotificationsStore implements OnDestroy {
       this.pendingReadIds.update((ids) => {
         const next = new Set(ids);
         next.delete(notificationId);
+
         return next;
       });
     }
@@ -175,6 +211,7 @@ export class NotificationsStore implements OnDestroy {
   ): Promise<boolean> {
     if (this.allowanceResponsePending()) return false;
     this.allowanceResponsePending.set(true);
+
     try {
       const { error } = await this.supabase.rpc(
         'respond_allowance_invitation',
@@ -183,8 +220,10 @@ export class NotificationsStore implements OnDestroy {
           p_accept: accept,
         }
       );
+
       if (error) throw error;
       await this.refresh();
+
       return true;
     } catch (error) {
       logError(
@@ -196,6 +235,7 @@ export class NotificationsStore implements OnDestroy {
         ...state,
         error: 'notifications.errors.allowanceResponse',
       }));
+
       return false;
     } finally {
       this.allowanceResponsePending.set(false);
@@ -224,7 +264,7 @@ export class NotificationsStore implements OnDestroy {
       this.state.update((state) => ({
         ...state,
         loading: false,
-        notifications: (data ?? []) as NotificationRow[],
+        notifications: data ?? [],
       }));
     } catch (error) {
       logError('NotificationsStore', 'Failed to load notifications', error);
@@ -239,7 +279,7 @@ export class NotificationsStore implements OnDestroy {
   private connectRealtime(userId: string): void {
     this.channel = this.supabase
       .channel(`notifications:${userId}`)
-      .on(
+      .on<NotificationRow>(
         'postgres_changes',
         {
           event: '*',
@@ -248,8 +288,9 @@ export class NotificationsStore implements OnDestroy {
           filter: `owner_id=eq.${userId}`,
         },
         (payload) => {
-          const row = payload.new as NotificationRow | null;
-          if (!row) {
+          const row = payload.new;
+
+          if (!('id' in row)) {
             return;
           }
 
@@ -272,7 +313,10 @@ export class NotificationsStore implements OnDestroy {
 
   private upsertNotification(notification: NotificationRow): void {
     this.state.update((state) => {
-      const withoutCurrent = state.notifications.filter((item) => item.id !== notification.id);
+      const withoutCurrent = state.notifications.filter(
+        (item) => item.id !== notification.id
+      );
+
       return {
         ...state,
         notifications: [notification, ...withoutCurrent]

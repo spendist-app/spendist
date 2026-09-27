@@ -1,18 +1,26 @@
-export function parseAmountInput(raw: string | number | null | undefined): number | null {
+import { z } from 'zod';
+
+export function parseAmountInput(
+  raw: string | number | null | undefined
+): number | null {
   if (raw == null) {
     return null;
   }
 
-  if (typeof raw === 'number') {
-    return Number.isFinite(raw) && raw > 0 ? Math.round(raw * 100) / 100 : null;
+  const numeric = z.number().safeParse(raw);
+
+  if (numeric.success) {
+    return numeric.data > 0 ? Math.round(numeric.data * 100) / 100 : null;
   }
 
-  const normalized = normalizeExpression(raw);
+  const normalized = normalizeExpression(String(raw));
+
   if (!normalized) {
     return null;
   }
 
   const value = evaluateAmountExpression(normalized);
+
   if (value === null || !Number.isFinite(value) || value <= 0) {
     return null;
   }
@@ -31,6 +39,7 @@ function normalizeExpression(raw: string): string {
 
 function evaluateAmountExpression(expression: string): number | null {
   const tokens = tokenizeExpression(expression);
+
   if (!tokens || tokens.length === 0) {
     return null;
   }
@@ -40,6 +49,7 @@ function evaluateAmountExpression(expression: string): number | null {
 
   const applyOperator = (): boolean => {
     const operator = operators.pop();
+
     if (!operator || operator === '(') {
       return false;
     }
@@ -54,18 +64,23 @@ function evaluateAmountExpression(expression: string): number | null {
     switch (operator) {
       case '+':
         values.push(left + right);
+
         return true;
       case '-':
         values.push(left - right);
+
         return true;
       case '*':
         values.push(left * right);
+
         return true;
       case '/':
         if (right === 0) {
           return false;
         }
+
         values.push(left / right);
+
         return true;
       default:
         return false;
@@ -73,17 +88,19 @@ function evaluateAmountExpression(expression: string): number | null {
   };
 
   for (const token of tokens) {
-    if (typeof token === 'number') {
-      values.push(token);
+    if (token.kind === 'number') {
+      values.push(token.value);
       continue;
     }
 
-    if (token === '(') {
-      operators.push(token);
+    const operator = token.value;
+
+    if (operator === '(') {
+      operators.push(operator);
       continue;
     }
 
-    if (token === ')') {
+    if (operator === ')') {
       while (operators.length > 0 && operators[operators.length - 1] !== '(') {
         if (!applyOperator()) {
           return null;
@@ -97,7 +114,8 @@ function evaluateAmountExpression(expression: string): number | null {
       continue;
     }
 
-    const precedence = token === '+' || token === '-' ? 1 : 2;
+    const precedence = operator === '+' || operator === '-' ? 1 : 2;
+
     while (
       operators.length > 0 &&
       operators[operators.length - 1] !== '(' &&
@@ -108,13 +126,14 @@ function evaluateAmountExpression(expression: string): number | null {
       }
     }
 
-    operators.push(token);
+    operators.push(operator);
   }
 
   while (operators.length > 0) {
     if (operators[operators.length - 1] === '(') {
       return null;
     }
+
     if (!applyOperator()) {
       return null;
     }
@@ -123,10 +142,8 @@ function evaluateAmountExpression(expression: string): number | null {
   return values.length === 1 ? values[0] : null;
 }
 
-function tokenizeExpression(
-  expression: string,
-): readonly (number | '+' | '-' | '*' | '/' | '(' | ')')[] | null {
-  const tokens: (number | '+' | '-' | '*' | '/' | '(' | ')')[] = [];
+function tokenizeExpression(expression: string): readonly AmountToken[] | null {
+  const tokens: AmountToken[] = [];
   let index = 0;
 
   const isNumberChar = (char: string): boolean => /[0-9.]/.test(char);
@@ -141,27 +158,37 @@ function tokenizeExpression(
 
     if (isNumberChar(char)) {
       let end = index + 1;
+
       while (end < expression.length && isNumberChar(expression[end])) {
         end += 1;
       }
 
       const segment = expression.slice(index, end);
+
       if (!/^\d*\.?\d+$/.test(segment)) {
         return null;
       }
 
       const value = Number.parseFloat(segment);
+
       if (!Number.isFinite(value)) {
         return null;
       }
 
-      tokens.push(value);
+      tokens.push({ kind: 'number', value });
       index = end;
       continue;
     }
 
-    if (char === '+' || char === '-' || char === '*' || char === '/' || char === '(' || char === ')') {
-      tokens.push(char);
+    if (
+      char === '+' ||
+      char === '-' ||
+      char === '*' ||
+      char === '/' ||
+      char === '(' ||
+      char === ')'
+    ) {
+      tokens.push({ kind: 'operator', value: char });
       index += 1;
       continue;
     }
@@ -184,3 +211,10 @@ function getOperatorPrecedence(operator: '+' | '-' | '*' | '/' | '('): number {
       return 0;
   }
 }
+
+type AmountToken =
+  | { readonly kind: 'number'; readonly value: number }
+  | {
+      readonly kind: 'operator';
+      readonly value: '+' | '-' | '*' | '/' | '(' | ')';
+    };

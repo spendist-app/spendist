@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import {
   expect,
   type Locator,
@@ -7,9 +8,13 @@ import {
 } from '@playwright/test';
 
 const DEFAULT_EMAIL = 'e2e-shared-user@gmail.com';
+
 const DEFAULT_PASSWORD = 'Test1234!';
+
 const DASHBOARD_HEADING = 'Your personalised command centre';
+
 const MAILPIT_URL = 'http://127.0.0.1:55324';
+
 const MAILPIT_API_URL = `${MAILPIT_URL}/api/v1`;
 
 interface MailpitAddress {
@@ -28,6 +33,7 @@ function extractConfirmationUrl(messageHtml: string): string | null {
   for (const candidate of candidates) {
     try {
       const url = new URL(candidate);
+
       if (
         url.pathname.endsWith('/auth/v1/verify') &&
         url.searchParams.has('token') &&
@@ -55,15 +61,29 @@ async function waitForConfirmationEmail(
       async () => {
         const response = await page.request.get(`${MAILPIT_API_URL}/messages`);
         expect(response.ok()).toBe(true);
-        const payload = (await response.json()) as {
-          messages?: MailpitMessage[];
-        };
+
+        const payload = z
+          .object({
+            messages: z
+              .array(
+                z.object({
+                  ID: z.string().optional(),
+                  To: z
+                    .array(z.object({ Address: z.string().optional() }))
+                    .optional(),
+                })
+              )
+              .optional(),
+          })
+          .parse(await response.json());
+
         matchingMessages = (payload.messages ?? []).filter((message) =>
           message.To?.some(
             (recipient) =>
               recipient.Address?.toLowerCase() === email.toLowerCase()
           )
         );
+
         return matchingMessages.length;
       },
       { timeout: 15000 }
@@ -71,6 +91,7 @@ async function waitForConfirmationEmail(
     .toBeGreaterThanOrEqual(minimumCount);
 
   const messageId = matchingMessages[0]?.ID;
+
   if (!messageId) {
     throw new Error(`Missing confirmation email for ${email}.`);
   }
@@ -78,6 +99,7 @@ async function waitForConfirmationEmail(
   const response = await page.request.get(
     `${MAILPIT_URL}/view/${encodeURIComponent(messageId)}.html`
   );
+
   expect(response.ok()).toBe(true);
   const confirmationUrl = extractConfirmationUrl(await response.text());
 
@@ -90,12 +112,14 @@ async function waitForConfirmationEmail(
 
 function uniqueSuffix(testInfo: TestInfo): string {
   const randomPart = Math.random().toString(36).slice(2, 8);
+
   return `${testInfo.project.name}-${Date.now()}-${randomPart}`;
 }
 
 function futureDateInput(daysFromToday: number): string {
   const date = new Date();
   date.setDate(date.getDate() + daysFromToday);
+
   return date.toISOString().slice(0, 10);
 }
 
@@ -105,6 +129,7 @@ function previousMonthStartInput(): string {
 
 function monthStartInput(monthsAgo: number): string {
   const now = new Date();
+
   return new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - monthsAgo, 1)
   )
@@ -114,6 +139,7 @@ function monthStartInput(monthsAgo: number): string {
 
 function previousMonthEndInput(): string {
   const now = new Date();
+
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 0))
     .toISOString()
     .slice(0, 10);
@@ -138,6 +164,7 @@ async function ensureAuthenticated(page: Page): Promise<void> {
       .locator('[role="alert"], .alert, .text-error')
       .allTextContents()
       .catch(() => []);
+
     throw new Error(
       `Login did not reach dashboard. Current URL: ${page.url()}. Alerts: ${
         alerts.join(' | ') || 'none'
@@ -163,6 +190,7 @@ async function fillStableInput(input: Locator, value: string): Promise<void> {
 
 function envValueOrDefault(key: string, fallback: string): string {
   const value = process.env[key]?.trim();
+
   if (!value) {
     return fallback;
   }
@@ -178,6 +206,7 @@ async function currencyAmount(locator: Locator): Promise<number> {
   const text = (await locator.textContent()) ?? '';
   const sign = text.includes('-') ? -1 : 1;
   const numericText = text.replace(/[^\d.,]/g, '');
+
   const decimalSeparatorIndex = Math.max(
     numericText.lastIndexOf(','),
     numericText.lastIndexOf('.')
@@ -190,23 +219,28 @@ async function currencyAmount(locator: Locator): Promise<number> {
   const integerPart = numericText
     .slice(0, decimalSeparatorIndex)
     .replace(/[.,]/g, '');
+
   const fractionPart = numericText.slice(decimalSeparatorIndex + 1);
+
   return sign * Number(`${integerPart}.${fractionPart}`);
 }
 
 async function selectFirstRealOption(select: Locator): Promise<string> {
   for (let attempt = 0; attempt < 40; attempt += 1) {
     const value = await select.locator('option').evaluateAll((options) => {
-      const option = options.find((element) => {
-        const candidate = element as HTMLOptionElement;
-        return !candidate.disabled && candidate.value.trim().length > 0;
-      }) as HTMLOptionElement | undefined;
+      const option = options.find(
+        (element): element is HTMLOptionElement =>
+          element instanceof HTMLOptionElement &&
+          !element.disabled &&
+          element.value.trim().length > 0
+      );
 
       return option?.value ?? '';
     });
 
     if (value) {
       await select.selectOption(value);
+
       return value;
     }
 
@@ -232,11 +266,13 @@ async function selectFirstCategoryOption(
   const option = dialog.getByRole('listbox').getByRole('option').first();
   await expect(option).toBeVisible({ timeout: 15000 });
   const label = (await option.textContent())?.trim() ?? '';
+
   if (!label) {
     throw new Error('Missing selectable category.');
   }
 
   await option.click();
+
   return label;
 }
 
@@ -295,10 +331,13 @@ async function filterTransactionsByRange(
       return false;
     }
 
-    const body = response.request().postDataJSON() as {
-      p_from?: string | null;
-      p_to?: string | null;
-    };
+    const body = z
+      .object({
+        p_from: z.string().nullable().optional(),
+        p_to: z.string().nullable().optional(),
+      })
+      .parse(response.request().postDataJSON());
+
     return (
       body.p_from?.startsWith(from) === true &&
       body.p_to?.startsWith(to) === true
@@ -339,6 +378,7 @@ async function openSettingsPanel(
   await expect(
     page.getByRole('heading', { name: heading, exact: true })
   ).toBeVisible();
+
   if (panel === 'Categories') {
     await expect(page.locator('#settings-category-search')).toBeVisible({
       timeout: 15000,
@@ -358,11 +398,13 @@ async function expectDefaultCategoryGroups(page: Page): Promise<void> {
       name: 'Essentials',
       exact: true,
     });
+
     const income = page.getByRole('heading', { name: 'Income', exact: true });
 
     try {
       await expect(essentials).toBeVisible({ timeout: 3000 });
       await expect(income).toBeVisible({ timeout: 3000 });
+
       return;
     } catch (error) {
       if (attempt === 4) {
@@ -413,8 +455,8 @@ async function openModule(
     linkName === 'Places'
       ? /\/modules\/places$/
       : linkName === 'Mortgages'
-        ? /\/modules\/mortgages$/
-        : /\/modules\/recurring-payments$/,
+      ? /\/modules\/mortgages$/
+      : /\/modules\/recurring-payments$/,
     { timeout: 15000 }
   );
   await expect(
@@ -633,6 +675,7 @@ test('keeps settings navigation usable without mobile overflow', async ({
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - window.innerWidth
   );
+
   expect(overflow).toBeLessThanOrEqual(1);
 });
 
@@ -675,11 +718,13 @@ test('exposes bulk entry and applies year, month, and amount sorting', async ({
   const currentYear = now.getUTCFullYear();
   const currentMonthIndex = now.getUTCMonth();
   const currentDate = now.toISOString().slice(0, 10);
+
   const currentMonthStart = new Date(
     Date.UTC(currentYear, currentMonthIndex, 1)
   )
     .toISOString()
     .slice(0, 10);
+
   const currentMonthEnd = new Date(
     Date.UTC(currentYear, currentMonthIndex + 1, 0)
   )
@@ -791,12 +836,18 @@ test('exposes bulk entry and applies year, month, and amount sorting', async ({
   await expect(page).toHaveURL(/sort=amountDesc/);
   await expect(page).toHaveURL(/advanced=1/);
   await page.goBack();
-  await expect(page.getByTestId('transaction-sort-filter')).toHaveValue('dateDesc');
+  await expect(page.getByTestId('transaction-sort-filter')).toHaveValue(
+    'dateDesc'
+  );
   await page.goForward();
-  await expect(page.getByTestId('transaction-sort-filter')).toHaveValue('amountDesc');
+  await expect(page.getByTestId('transaction-sort-filter')).toHaveValue(
+    'amountDesc'
+  );
+
   const rows = page
     .locator('#transactions-results ul > li')
     .filter({ hasText: suffix });
+
   await expect(rows.nth(1)).toBeVisible({ timeout: 15000 });
   await expect(rows.nth(0)).toContainText(higherAmountDescription);
   await expect(rows.nth(1)).toContainText(lowerAmountDescription);
@@ -808,8 +859,10 @@ test('keeps repeated CSV rows on first import and skips a repeat', async ({
   const suffix = uniqueSuffix(testInfo);
   const description = `E2E CSV import ${suffix}`;
   const occurredAt = new Date().toISOString();
+
   const header =
     'id,occurred_at,description,direction,amount,currency,amount_in_default,category_group,category_path,category,wallet,wallet_currency,tags,is_automatic,recurring_scheduled_for,import_source,imported_at';
+
   const row = [
     `source-${suffix}`,
     occurredAt,
@@ -829,6 +882,7 @@ test('keeps repeated CSV rows on first import and skips a repeat', async ({
     '',
     '',
   ].join(',');
+
   const csv = `${header}\n${row}\n${row}`;
 
   await ensureAuthenticated(page);
@@ -837,26 +891,34 @@ test('keeps repeated CSV rows on first import and skips a repeat', async ({
   const importOnce = async () => {
     await page.getByTestId('transaction-add-menu-trigger').hover();
     await page.getByTestId('transaction-import-open').click();
+
     const importDialog = page.getByRole('dialog', {
       name: 'Import transactions',
     });
+
     await importDialog.getByRole('tab', { name: 'Paste CSV' }).click();
+
     const aiPromptButton = importDialog.getByRole('button', {
       name: 'Prepare an AI prompt',
     });
+
     await expect(aiPromptButton).toBeEnabled();
     await aiPromptButton.click();
+
     const aiPromptDialog = page.getByRole('dialog', {
       name: 'Create CSV with AI assistance',
     });
+
     await expect(
       aiPromptDialog.getByTestId('transaction-import-ai-prompt')
     ).toHaveValue(/MANDATORY VERIFICATION/);
     await aiPromptDialog.getByRole('button', { name: 'Close' }).last().click();
     await importDialog.getByTestId('csv-schema-help').click();
+
     const schemaDialog = page.getByRole('dialog', {
       name: 'Spendist CSV schema',
     });
+
     await expect(schemaDialog).toBeVisible();
     await schemaDialog.getByRole('button', { name: 'Close' }).click();
     await importDialog.getByTestId('transaction-import-paste').fill(csv);
@@ -871,10 +933,12 @@ test('keeps repeated CSV rows on first import and skips a repeat', async ({
     const review = page.getByRole('dialog', {
       name: 'Review imported transactions',
     });
+
     const categoryButtons = review.getByRole('button', {
       name: 'Category',
       exact: true,
     });
+
     await expect(categoryButtons).toHaveCount(2);
     await selectFirstTransactionCategory(page, categoryButtons.nth(0));
     await selectFirstTransactionCategory(page, categoryButtons.nth(1));
@@ -900,6 +964,7 @@ test('imports and edits a Biedronka e-receipt before saving', async ({
 }, testInfo) => {
   const suffix = uniqueSuffix(testInfo);
   const editedDescription = `E2E Biedronka import ${suffix}`;
+
   const receipt = {
     IDZ: `e2e-receipt-${suffix}`,
     header: [{ headerData: { date: new Date().toISOString() } }],
@@ -930,9 +995,11 @@ test('imports and edits a Biedronka e-receipt before saving', async ({
   await openTransactions(page);
   await page.getByTestId('transaction-add-menu-trigger').hover();
   await page.getByTestId('transaction-import-open').click();
+
   const importDialog = page.getByRole('dialog', {
     name: 'Import transactions',
   });
+
   await importDialog.getByTestId('transaction-import-file').setInputFiles({
     name: 'receipt.json',
     mimeType: 'application/json',
@@ -952,6 +1019,7 @@ test('imports and edits a Biedronka e-receipt before saving', async ({
   const review = page.getByRole('dialog', {
     name: 'Review imported transactions',
   });
+
   await review
     .locator('input[placeholder="Description"]')
     .fill(editedDescription);
@@ -979,6 +1047,7 @@ test('selects one category from the default all-categories state', async ({
   await expect(categoryCheckboxes.first()).toBeVisible();
   const categoryCount = await categoryCheckboxes.count();
   expect(categoryCount).toBeGreaterThan(0);
+
   for (const categoryCheckbox of await categoryCheckboxes.all()) {
     await expect(categoryCheckbox).toBeChecked();
   }
@@ -987,17 +1056,19 @@ test('selects one category from the default all-categories state', async ({
     .getByTestId('category-filter-row')
     .filter({ hasText: categoryLabel })
     .first();
+
   const selectedCategoryCheckbox = selectedCategoryRow.getByTestId(
     'category-filter-checkbox'
   );
+
   await selectedCategoryCheckbox.click();
   await expect(selectedCategoryCheckbox).toBeChecked();
   await expect(
     page.locator('[data-testid="category-filter-checkbox"]:checked')
   ).toHaveCount(1);
-  await expect.poll(() =>
-    new URL(page.url()).searchParams.getAll('category').length
-  ).toBe(1);
+  await expect
+    .poll(() => new URL(page.url()).searchParams.getAll('category').length)
+    .toBe(1);
   await expect(page.getByText(description)).toBeVisible({ timeout: 15000 });
 
   await page.getByTestId('category-filter-clear-all').click();
@@ -1005,9 +1076,9 @@ test('selects one category from the default all-categories state', async ({
   await expect(
     page.locator('[data-testid="category-filter-checkbox"]:checked')
   ).toHaveCount(categoryCount);
-  await expect.poll(() =>
-    new URL(page.url()).searchParams.getAll('category').length
-  ).toBe(0);
+  await expect
+    .poll(() => new URL(page.url()).searchParams.getAll('category').length)
+    .toBe(0);
 });
 
 test('shows transaction tags on the dashboard', async ({ page }, testInfo) => {
@@ -1045,9 +1116,11 @@ test('shows transaction tags on the dashboard', async ({ page }, testInfo) => {
   await expect(page.getByText(description)).toBeVisible();
 
   await openDashboard(page);
+
   const expenseTagsCard = page
     .locator('article')
     .filter({ has: page.getByRole('heading', { name: 'Expense tags' }) });
+
   await expect(expenseTagsCard).toBeVisible({ timeout: 15000 });
   await expect(expenseTagsCard).toContainText(tagName, { timeout: 15000 });
   await expect(expenseTagsCard).toContainText('42.24');
@@ -1125,6 +1198,7 @@ test('uses transaction quick-entry controls', async ({ page }, testInfo) => {
   const descriptionInput = dialog.locator(
     'input[formcontrolname="description"]'
   );
+
   await expect(descriptionInput).toBeFocused();
   await descriptionInput.fill(description);
 
@@ -1208,18 +1282,22 @@ test('updates transaction exchange rate in edit form', async ({
   await page.locator('input[formcontrolname="description"]').fill(description);
   await page.locator('input[formcontrolname="occurredOn"]').fill('2026-05-29');
   const categoryLabel = await selectFirstTransactionCategory(page);
+
   const categoryFilter = page
     .getByTestId('category-filter-row')
     .filter({ hasText: categoryLabel });
+
   const categoryAmount = categoryFilter.locator('span').last();
   const categoryTotalBefore = Math.abs(await currencyAmount(categoryAmount));
 
   await page.locator('input[formcontrolname="amount"]').fill('10');
   await page.locator('select[formcontrolname="currency"]').selectOption('USD');
   await page.getByRole('button', { name: 'Show advanced fields' }).click();
+
   const initialDefaultAmount = page.locator(
     'input[formcontrolname="foreignAmount"]'
   );
+
   await expect.poll(() => initialDefaultAmount.inputValue()).toBe('36.39');
   await page.getByRole('button', { name: 'Save transaction' }).click();
   await expect(page.getByText(description)).toBeVisible();
@@ -1241,9 +1319,11 @@ test('updates transaction exchange rate in edit form', async ({
   );
 
   await page.getByRole('button', { name: 'Show advanced fields' }).click();
+
   const defaultAmountInput = page.locator(
     'input[formcontrolname="foreignAmount"]'
   );
+
   await defaultAmountInput.fill('1');
   await page.getByRole('button', { name: 'Update exchange rate' }).click();
 
@@ -1333,6 +1413,7 @@ test('backfills transactions for a recurring payment ended in the past', async (
       response.url().includes('/functions/v1/process-recurring-payments') &&
       response.request().method() === 'POST'
   );
+
   await page.getByRole('button', { name: 'Save recurring payment' }).click();
 
   const response = await backfillResponse;
@@ -1341,10 +1422,14 @@ test('backfills transactions for a recurring payment ended in the past', async (
     response.ok(),
     `Backfill failed with HTTP ${response.status()}: ${responseBody}`
   ).toBe(true);
-  const result = JSON.parse(responseBody) as {
-    processedCount?: number;
-    skippedCount?: number;
-  };
+
+  const result = z
+    .object({
+      processedCount: z.number().optional(),
+      skippedCount: z.number().optional(),
+    })
+    .parse(JSON.parse(responseBody));
+
   expect(result.skippedCount).toBe(0);
   expect(result.processedCount).toBeGreaterThanOrEqual(2);
   await expect(
@@ -1413,7 +1498,9 @@ test('creates category group and category', async ({ page }, testInfo) => {
 
   await expect(page.getByText(categoryName).first()).toBeVisible();
   await expect(
-    page.getByRole('button', { name: new RegExp(`${categoryName}.*${groupName}`) })
+    page.getByRole('button', {
+      name: new RegExp(`${categoryName}.*${groupName}`),
+    })
   ).toBeVisible();
 
   await page.reload();
@@ -1461,25 +1548,39 @@ test('creates a mortgage simulation and attaches planned installments', async ({
   await page.locator('input[formcontrolname="name"]').fill(name);
   await page.locator('input[formcontrolname="principal"]').fill('120000');
   await page.locator('input[formcontrolname="disbursedOn"]').fill('2026-01-01');
-  await page.locator('input[formcontrolname="firstInstallmentOn"]').fill('2026-02-01');
+  await page
+    .locator('input[formcontrolname="firstInstallmentOn"]')
+    .fill('2026-02-01');
   await page.locator('input[formcontrolname="termMonths"]').fill('12');
-  await selectFirstRealOption(page.locator('select[formcontrolname="walletId"]'));
-  await selectFirstRealOption(page.locator('select[formcontrolname="categoryId"]'));
+  await selectFirstRealOption(
+    page.locator('select[formcontrolname="walletId"]')
+  );
+  await selectFirstRealOption(
+    page.locator('select[formcontrolname="categoryId"]')
+  );
   await page.getByRole('button', { name: 'Next' }).click();
 
   await page.locator('input[formcontrolname="startsOn"]').fill('2026-01-01');
   await page.locator('select[formcontrolname="type"]').selectOption('fixed');
   await page.locator('input[formcontrolname="fixedRate"]').fill('6');
   await page.getByRole('button', { name: 'Next' }).click();
-  await page.getByRole('button', { name: 'Generate repayment simulation' }).click();
+  await page
+    .getByRole('button', { name: 'Generate repayment simulation' })
+    .click();
 
-  await expect(page.getByRole('img', { name: 'Remaining mortgage principal over time' })).toBeVisible();
+  await expect(
+    page.getByRole('img', { name: 'Remaining mortgage principal over time' })
+  ).toBeVisible();
   await expect(page.locator('tbody tr')).toHaveCount(12);
   page.once('dialog', (dialog) => dialog.accept());
-  await page.getByRole('button', { name: 'Add transactions to wallet' }).click();
+  await page
+    .getByRole('button', { name: 'Add transactions to wallet' })
+    .click();
   await expect(page.getByText('In wallet')).toBeVisible();
 
   page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Remove from transactions' }).click();
-  await expect(page.getByRole('button', { name: 'Add transactions to wallet' })).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Add transactions to wallet' })
+  ).toBeVisible();
 });

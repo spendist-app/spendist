@@ -48,23 +48,28 @@ type SettingsPanelId =
   | 'categoryGroups'
   | 'spendistCsv'
   | 'kontomierzImport';
+
 type CategoryEditorMode = 'create' | 'edit';
+
 type GroupEditorMode = 'create' | 'edit';
+
 type SpendistCsvRangeMode = 'month' | 'all';
+
 type ProfileAutosaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 function resolveTimezoneOptions(): readonly string[] {
+  // SAFETY: supportedValuesOf is optional in older browsers and absent from our ES2020 Intl declarations; the call below checks its presence.
   const supportedValuesOf = (
-    Intl as typeof Intl & {
-      supportedValuesOf?: (key: 'timeZone') => string[];
-    }
+    Intl as typeof Intl & { supportedValuesOf?: (key: 'timeZone') => string[] }
   ).supportedValuesOf;
 
   const timezones = supportedValuesOf?.('timeZone') ?? [];
+
   return Array.from(new Set(['UTC', ...timezones])).sort((left, right) =>
     left.localeCompare(right)
   );
 }
+
 const passwordsMatchValidator = (
   passwordKey: string,
   confirmPasswordKey: string
@@ -72,9 +77,11 @@ const passwordsMatchValidator = (
   return (group: { get: (key: string) => { value: string } | null }) => {
     const password = group.get(passwordKey)?.value ?? '';
     const confirmPassword = group.get(confirmPasswordKey)?.value ?? '';
+
     if (!password || !confirmPassword) {
       return null;
     }
+
     return password !== confirmPassword ? { passwordsMismatch: true } : null;
   };
 };
@@ -206,9 +213,7 @@ export class SettingsPageComponent {
   private profileSaveQueue = Promise.resolve();
   private pendingProfileSaves = 0;
   private readonly pendingProfileValues: {
-    fullName?: string;
-    language?: LanguageCode;
-    timezone?: string;
+    -readonly [Key in keyof ProfileUpdatePayload]?: ProfileUpdatePayload[Key];
   } = {};
   protected readonly failedProfileUpdate = signal<ProfileUpdatePayload | null>(
     null
@@ -223,6 +228,7 @@ export class SettingsPageComponent {
   >(() => {
     const groups = this.store.groups();
     const categories = this.store.categories();
+
     return groups.map((group) => ({
       ...group,
       categoriesTotal: categories.filter(
@@ -235,7 +241,9 @@ export class SettingsPageComponent {
     const groups = new Map(
       this.store.groups().map((group) => [group.id, group.name])
     );
+
     const categories = this.store.categories();
+
     const categoryMap = new Map(
       categories.map((category) => [category.id, category])
     );
@@ -254,6 +262,7 @@ export class SettingsPageComponent {
         if (a.groupName !== b.groupName) {
           return a.groupName.localeCompare(b.groupName);
         }
+
         return a.path.localeCompare(b.path);
       });
   });
@@ -265,20 +274,24 @@ export class SettingsPageComponent {
     return this.categoriesView().filter((category) => {
       const matchesGroup =
         groupFilter === null || category.groupId === groupFilter;
+
       const matchesQuery =
         query.length === 0 || category.path.toLowerCase().includes(query);
+
       return matchesGroup && matchesQuery;
     });
   });
 
   protected parentCategoryOptions(): ParentCategoryOption[] {
     const groupId = this.categoryFormControls.groupId.value;
+
     if (!groupId) {
       return [];
     }
 
     const editingId =
       this.categoryEditorMode() === 'edit' ? this.selectedCategoryId() : null;
+
     const descendants = editingId
       ? this.collectDescendantIds(editingId)
       : new Set<string>();
@@ -438,6 +451,7 @@ export class SettingsPageComponent {
 
     effect(() => {
       const profile = this.profile();
+
       if (!profile || profile.id === this.initializedProfileId) {
         return;
       }
@@ -463,9 +477,11 @@ export class SettingsPageComponent {
         if (this.selectedCategoryId() !== null) {
           this.selectedCategoryId.set(null);
         }
+
         if (this.categoryEditorMode() === 'edit') {
           this.categoryEditorMode.set(null);
         }
+
         return;
       }
 
@@ -507,6 +523,7 @@ export class SettingsPageComponent {
             this.openWalletCreator();
           }
         }
+
         return;
       }
 
@@ -521,11 +538,13 @@ export class SettingsPageComponent {
 
     effect(() => {
       const wallets = this.store.wallets();
+
       if (wallets.length === 0) {
         return;
       }
 
       const control = this.kontomierzImportFormControls.walletId;
+
       if (wallets.some((wallet) => wallet.id === control.value)) {
         return;
       }
@@ -540,15 +559,18 @@ export class SettingsPageComponent {
 
     effect(() => {
       const currencies = this.walletCurrencies();
+
       if (currencies.length === 0) {
         return;
       }
 
       const control = this.walletFormControls.currencyId;
       const currentValue = control.value;
+
       const hasMatch = currencies.some(
         (currency) => currency.id === currentValue
       );
+
       if (hasMatch && currentValue !== null) {
         return;
       }
@@ -557,9 +579,11 @@ export class SettingsPageComponent {
       const wasDirty = control.dirty;
       const wasTouched = control.touched;
       control.setValue(fallback, { emitEvent: false });
+
       if (!wasDirty) {
         control.markAsPristine();
       }
+
       if (!wasTouched) {
         control.markAsUntouched();
       }
@@ -568,11 +592,13 @@ export class SettingsPageComponent {
 
   protected coerceIconValue(icon: string | null): string {
     const canonical = canonicalHeroIconName(icon);
+
     if (canonical) {
       return canonical;
     }
 
     const trimmed = icon?.trim() ?? '';
+
     return trimmed.length > 0 ? trimmed : '';
   }
 
@@ -580,7 +606,9 @@ export class SettingsPageComponent {
     if (panel !== this.activePanel() && !this.closeEditor()) {
       return;
     }
+
     this.activePanel.set(panel);
+
     if (
       panel === 'categories' &&
       this.store.groups().length > 0 &&
@@ -589,27 +617,35 @@ export class SettingsPageComponent {
       const first = this.categoriesView()[0]?.id ?? null;
       this.selectedCategoryId.set(first);
     }
+
     if (panel === 'profile') {
       this.categoryEditorMode.set(null);
       this.groupEditorMode.set(null);
       this.walletEditorMode.set('create');
       this.editingWalletId.set(null);
+
       return;
     }
+
     if (panel === 'wallets') {
       const wallets = this.store.wallets();
+
       if (wallets.length > 0) {
         const currentId = this.editingWalletId();
+
         const targetId =
           currentId && wallets.some((wallet) => wallet.id === currentId)
             ? currentId
             : wallets[0].id;
+
         this.openWalletEditor(targetId);
       } else {
         this.openWalletCreator();
       }
+
       return;
     }
+
     if (panel === 'kontomierzImport' || panel === 'spendistCsv') {
       this.categoryEditorMode.set(null);
       this.groupEditorMode.set(null);
@@ -621,11 +657,13 @@ export class SettingsPageComponent {
   protected toggleSpendistCsvCategory(categoryId: string): void {
     this.selectedSpendistCsvCategoryIds.update((ids) => {
       const next = new Set(ids);
+
       if (next.has(categoryId)) {
         next.delete(categoryId);
       } else {
         next.add(categoryId);
       }
+
       return Array.from(next);
     });
   }
@@ -639,7 +677,9 @@ export class SettingsPageComponent {
   }
 
   protected onSpendistCsvFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement | null;
+    const input =
+      event.target instanceof HTMLInputElement ? event.target : null;
+
     const file = input?.files?.[0] ?? null;
     this.selectedSpendistCsvFile.set(file);
     this.spendistCsv.clear();
@@ -648,19 +688,23 @@ export class SettingsPageComponent {
   protected async exportSpendistCsv(): Promise<void> {
     if (this.spendistCsvExportForm.invalid) {
       this.spendistCsvExportForm.markAllAsTouched();
+
       return;
     }
 
     const { rangeMode, month } = this.spendistCsvExportForm.getRawValue();
+
     const result = await this.spendistCsv.exportCsv({
       month: rangeMode === 'month' ? month : null,
       categoryIds: this.selectedSpendistCsvCategoryIds(),
     });
+
     this.downloadCsv(result.fileName, result.csv);
   }
 
   protected async analyzeSpendistCsvFile(): Promise<void> {
     const file = this.selectedSpendistCsvFile();
+
     if (!file) {
       return;
     }
@@ -673,7 +717,9 @@ export class SettingsPageComponent {
   }
 
   protected onKontomierzFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement | null;
+    const input =
+      event.target instanceof HTMLInputElement ? event.target : null;
+
     const file = input?.files?.[0] ?? null;
     this.selectedKontomierzFile.set(file);
     this.kontomierzImport.clear();
@@ -681,12 +727,14 @@ export class SettingsPageComponent {
 
   protected async analyzeKontomierzFile(): Promise<void> {
     const file = this.selectedKontomierzFile();
+
     if (!file) {
       return;
     }
 
     if (this.kontomierzImportForm.invalid) {
       this.kontomierzImportForm.markAllAsTouched();
+
       return;
     }
 
@@ -732,14 +780,17 @@ export class SettingsPageComponent {
     ) {
       return false;
     }
+
     const form = this.categoryEditorMode()
       ? this.categoryForm
       : this.groupEditorMode()
       ? this.categoryGroupForm
       : null;
+
     if (!form) {
       return true;
     }
+
     if (
       form.dirty &&
       !window.confirm(
@@ -748,11 +799,13 @@ export class SettingsPageComponent {
     ) {
       return false;
     }
+
     if (this.categoryEditorMode()) {
       this.cancelCategoryEdit();
     } else {
       this.cancelGroupEdit();
     }
+
     return true;
   }
 
@@ -761,17 +814,25 @@ export class SettingsPageComponent {
       event.preventDefault();
       this.closeEditor();
     }
+
     if (event.key !== 'Tab') {
       return;
     }
-    const panel = event.currentTarget as HTMLElement;
+
+    const panel =
+      event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
+
+    if (!panel) return;
+
     const focusable = Array.from(
       panel.querySelectorAll<HTMLElement>(
         'button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex="0"]'
       )
     );
+
     const first = focusable[0];
     const last = focusable.at(-1);
+
     if (event.shiftKey && document.activeElement === first && last) {
       event.preventDefault();
       last.focus();
@@ -782,10 +843,13 @@ export class SettingsPageComponent {
   }
 
   protected onCategoryQueryChange(event: Event): void {
-    const target = event.target as HTMLInputElement | null;
+    const target =
+      event.target instanceof HTMLInputElement ? event.target : null;
+
     this.categoryQuery.set(target?.value ?? '');
 
     const categories = this.filteredCategories();
+
     if (
       !categories.some((category) => category.id === this.selectedCategoryId())
     ) {
@@ -797,6 +861,7 @@ export class SettingsPageComponent {
   protected selectGroupFilter(groupId: string | null): void {
     this.selectedGroupFilter.set(groupId);
     const categories = this.filteredCategories();
+
     if (
       !categories.some((category) => category.id === this.selectedCategoryId())
     ) {
@@ -807,6 +872,7 @@ export class SettingsPageComponent {
 
   protected onCategoryGroupChange(): void {
     const parentId = this.categoryFormControls.parentId.value;
+
     if (!parentId) {
       return;
     }
@@ -814,6 +880,7 @@ export class SettingsPageComponent {
     const parentStillAvailable = this.parentCategoryOptions().some(
       (option) => option.id === parentId
     );
+
     if (!parentStillAvailable) {
       this.categoryFormControls.parentId.setValue(null);
     }
@@ -822,6 +889,7 @@ export class SettingsPageComponent {
   protected openCategoryCreator(): void {
     if (!this.hasGroups()) {
       this.selectPanel('categoryGroups');
+
       return;
     }
 
@@ -850,6 +918,7 @@ export class SettingsPageComponent {
     const category = this.store
       .categories()
       .find((item) => item.id === categoryId);
+
     if (!category) {
       return;
     }
@@ -879,9 +948,11 @@ export class SettingsPageComponent {
       color: '',
       icon: '',
     });
+
     if (!this.selectedCategoryId() && this.categoriesView().length > 0) {
       this.selectedCategoryId.set(this.categoriesView()[0].id);
     }
+
     this.store.clearError();
     this.restoreEditorFocus();
   }
@@ -889,10 +960,12 @@ export class SettingsPageComponent {
   protected async submitCategoryForm(mode: CategoryEditorMode): Promise<void> {
     if (this.categoryForm.invalid) {
       this.categoryForm.markAllAsTouched();
+
       return;
     }
 
     const formValue = this.categoryForm.getRawValue();
+
     const payload = {
       name: formValue.name,
       groupId: formValue.groupId,
@@ -907,11 +980,14 @@ export class SettingsPageComponent {
         this.selectedCategoryId.set(category.id);
       } else {
         const categoryId = this.selectedCategoryId();
+
         if (!categoryId) {
           return;
         }
+
         await this.store.updateCategory(categoryId, payload);
       }
+
       this.categoryForm.markAsPristine();
       this.cancelCategoryEdit();
     } catch {
@@ -923,9 +999,11 @@ export class SettingsPageComponent {
     const message = this.transloco.translate(
       'settings.panels.categories.modals.confirmCategoryDelete'
     );
+
     if (!window.confirm(message)) {
       return;
     }
+
     try {
       await this.store.deleteCategory(categoryId);
       this.categoryForm.markAsPristine();
@@ -953,6 +1031,7 @@ export class SettingsPageComponent {
 
   protected openGroupEditor(groupId: string): void {
     const group = this.store.groups().find((item) => item.id === groupId);
+
     if (!group) {
       return;
     }
@@ -981,10 +1060,12 @@ export class SettingsPageComponent {
   protected async submitGroupForm(mode: GroupEditorMode): Promise<void> {
     if (this.categoryGroupForm.invalid) {
       this.categoryGroupForm.markAllAsTouched();
+
       return;
     }
 
     const formValue = this.categoryGroupForm.getRawValue();
+
     const payload = {
       name: formValue.name,
       color: formValue.color,
@@ -996,11 +1077,14 @@ export class SettingsPageComponent {
         await this.store.createGroup(payload);
       } else {
         const groupId = this.editingGroupId();
+
         if (!groupId) {
           return;
         }
+
         await this.store.updateGroup(groupId, payload);
       }
+
       this.categoryGroupForm.markAsPristine();
       this.cancelGroupEdit();
     } catch {
@@ -1012,6 +1096,7 @@ export class SettingsPageComponent {
     const message = this.transloco.translate(
       'settings.panels.categories.modals.confirmGroupDelete'
     );
+
     if (!window.confirm(message)) {
       return;
     }
@@ -1020,6 +1105,7 @@ export class SettingsPageComponent {
       await this.store.deleteGroup(groupId);
       this.categoryGroupForm.markAsPristine();
       this.cancelGroupEdit();
+
       if (this.selectedGroupFilter() === groupId) {
         this.selectedGroupFilter.set(null);
       }
@@ -1043,6 +1129,7 @@ export class SettingsPageComponent {
 
   protected openWalletEditor(walletId: string): void {
     const wallet = this.store.wallets().find((item) => item.id === walletId);
+
     if (!wallet) {
       return;
     }
@@ -1068,18 +1155,20 @@ export class SettingsPageComponent {
 
     if (this.walletForm.invalid) {
       this.walletForm.markAllAsTouched();
+
       return;
     }
 
     const { name, currencyId, isDefault } = this.walletForm.getRawValue();
-    const numericCurrencyId =
-      typeof currencyId === 'number' ? currencyId : Number(currencyId ?? NaN);
+
+    const numericCurrencyId = Number(currencyId ?? NaN);
 
     if (!Number.isFinite(numericCurrencyId)) {
       const fallback = this.resolveDefaultCurrencyId();
       this.walletFormControls.currencyId.setValue(fallback, {
         emitEvent: false,
       });
+
       return;
     }
 
@@ -1095,12 +1184,15 @@ export class SettingsPageComponent {
         this.openWalletCreator();
       } else {
         const walletId = this.editingWalletId();
+
         if (!walletId) {
           return;
         }
+
         await this.store.updateWallet(walletId, payload);
         this.openWalletEditor(walletId);
       }
+
       this.walletForm.markAsPristine();
       this.walletForm.markAsUntouched();
     } catch {
@@ -1130,7 +1222,9 @@ export class SettingsPageComponent {
   }
 
   protected async onAvatarSelected(event: Event): Promise<void> {
-    const input = event.target as HTMLInputElement | null;
+    const input =
+      event.target instanceof HTMLInputElement ? event.target : null;
+
     const file = input?.files?.item(0);
 
     if (!file || this.avatarUploadPending()) {
@@ -1150,11 +1244,13 @@ export class SettingsPageComponent {
 
   protected autosaveFullName(): void {
     const control = this.profileFormControls.fullName;
+
     if (control.invalid) {
       return;
     }
 
     const fullName = control.value.trim();
+
     if (
       fullName === this.profile()?.fullName ||
       fullName === this.pendingProfileValues.fullName
@@ -1171,7 +1267,10 @@ export class SettingsPageComponent {
   }
 
   protected onProfileLanguageChange(event: Event): void {
-    const value = (event.target as HTMLSelectElement | null)?.value;
+    const value = (
+      event.target instanceof HTMLSelectElement ? event.target : null
+    )?.value;
+
     if (!this.isLanguageCode(value)) {
       return;
     }
@@ -1189,7 +1288,10 @@ export class SettingsPageComponent {
   }
 
   protected onProfileTimezoneChange(event: Event): void {
-    const timezone = (event.target as HTMLSelectElement | null)?.value ?? '';
+    const timezone =
+      (event.target instanceof HTMLSelectElement ? event.target : null)
+        ?.value ?? '';
+
     if (
       !timezone ||
       timezone === this.profile()?.timezone ||
@@ -1204,6 +1306,7 @@ export class SettingsPageComponent {
 
   protected retryProfileAutosave(): void {
     const payload = this.failedProfileUpdate();
+
     if (!payload) {
       return;
     }
@@ -1213,12 +1316,14 @@ export class SettingsPageComponent {
         emitEvent: false,
       });
     }
+
     if (payload.language !== undefined) {
       this.profileFormControls.language.setValue(payload.language, {
         emitEvent: false,
       });
       this.languageService.setLanguage(payload.language);
     }
+
     if (payload.timezone !== undefined) {
       this.profileFormControls.timezone.setValue(payload.timezone, {
         emitEvent: false,
@@ -1237,6 +1342,7 @@ export class SettingsPageComponent {
       this.passwordMismatchSubmitted.set(true);
       this.passwordForm.markAllAsTouched();
       this.passwordFormControls.confirmPassword.markAsDirty();
+
       return;
     }
 
@@ -1244,6 +1350,7 @@ export class SettingsPageComponent {
 
     if (this.passwordForm.invalid) {
       this.passwordForm.markAllAsTouched();
+
       return;
     }
 
@@ -1253,6 +1360,7 @@ export class SettingsPageComponent {
       this.passwordChangeError.set(
         'settings.panels.profile.security.errors.samePassword'
       );
+
       return;
     }
 
@@ -1268,6 +1376,7 @@ export class SettingsPageComponent {
 
       if (result.error) {
         this.passwordChangeError.set(result.error);
+
         return;
       }
 
@@ -1319,6 +1428,7 @@ export class SettingsPageComponent {
 
     if (this.accountDeletionForm.invalid) {
       this.accountDeletionForm.markAllAsTouched();
+
       return;
     }
 
@@ -1328,8 +1438,10 @@ export class SettingsPageComponent {
     try {
       const { password } = this.accountDeletionForm.getRawValue();
       const result = await this.auth.deleteAccount(password);
+
       if (result.error) {
         this.accountDeletionError.set(result.error);
+
         return;
       }
 
@@ -1341,6 +1453,7 @@ export class SettingsPageComponent {
 
   protected clearProfileError(): void {
     this.store.clearProfileError();
+
     if (this.profileAutosaveStatus() === 'error') {
       this.profileAutosaveStatus.set('idle');
     }
@@ -1351,6 +1464,7 @@ export class SettingsPageComponent {
       this.profileSaveFailed = false;
       this.failedProfileUpdate.set(null);
     }
+
     this.pendingProfileSaves += 1;
     this.rememberPendingProfileValues(payload);
     this.clearProfileSavedTimer();
@@ -1394,9 +1508,11 @@ export class SettingsPageComponent {
     if (payload.fullName !== undefined) {
       this.pendingProfileValues.fullName = payload.fullName;
     }
+
     if (payload.language !== undefined) {
       this.pendingProfileValues.language = payload.language;
     }
+
     if (payload.timezone !== undefined) {
       this.pendingProfileValues.timezone = payload.timezone;
     }
@@ -1409,12 +1525,14 @@ export class SettingsPageComponent {
     ) {
       delete this.pendingProfileValues.fullName;
     }
+
     if (
       payload.language !== undefined &&
       this.pendingProfileValues.language === payload.language
     ) {
       delete this.pendingProfileValues.language;
     }
+
     if (
       payload.timezone !== undefined &&
       this.pendingProfileValues.timezone === payload.timezone
@@ -1425,6 +1543,7 @@ export class SettingsPageComponent {
 
   private rollbackProfileDraft(payload: ProfileUpdatePayload): void {
     const profile = this.profile();
+
     if (!profile) {
       return;
     }
@@ -1434,6 +1553,7 @@ export class SettingsPageComponent {
         emitEvent: false,
       });
     }
+
     if (payload.language !== undefined) {
       const language = this.resolveLanguage(profile.language);
       this.profileFormControls.language.setValue(language, {
@@ -1441,6 +1561,7 @@ export class SettingsPageComponent {
       });
       this.languageService.setLanguage(language);
     }
+
     if (payload.timezone !== undefined) {
       this.profileFormControls.timezone.setValue(profile.timezone || 'UTC', {
         emitEvent: false,
@@ -1455,12 +1576,14 @@ export class SettingsPageComponent {
     ) {
       this.profileFormControls.fullName.markAsPristine();
     }
+
     if (
       payload.language !== undefined &&
       this.profileFormControls.language.value === payload.language
     ) {
       this.profileFormControls.language.markAsPristine();
     }
+
     if (
       payload.timezone !== undefined &&
       this.profileFormControls.timezone.value === payload.timezone
@@ -1476,6 +1599,7 @@ export class SettingsPageComponent {
       if (this.profileAutosaveStatus() === 'saved') {
         this.profileAutosaveStatus.set('idle');
       }
+
       this.profileSavedTimer = null;
     }, 1800);
   }
@@ -1484,6 +1608,7 @@ export class SettingsPageComponent {
     if (!this.profileSavedTimer) {
       return;
     }
+
     clearTimeout(this.profileSavedTimer);
     this.profileSavedTimer = null;
   }
@@ -1500,12 +1625,14 @@ export class SettingsPageComponent {
 
   private resolveGroupColor(groupId: string): string | null {
     const group = this.store.groups().find((item) => item.id === groupId);
+
     return group?.color ?? null;
   }
 
   private passwordsMismatch(): boolean {
     const newPassword = this.passwordFormControls.newPassword.value;
     const confirmPassword = this.passwordFormControls.confirmPassword.value;
+
     return (
       newPassword.length > 0 &&
       confirmPassword.length > 0 &&
@@ -1537,9 +1664,11 @@ export class SettingsPageComponent {
     categoryMap: ReadonlyMap<string, CategoryEntity>
   ): number {
     let depth = 1;
+
     let current = category.parentId
       ? categoryMap.get(category.parentId)
       : undefined;
+
     const visited = new Set<string>([category.id]);
 
     while (current && !visited.has(current.id)) {
@@ -1560,6 +1689,7 @@ export class SettingsPageComponent {
 
     while (pending.length > 0) {
       const currentId = pending.pop();
+
       for (const category of categories) {
         if (category.parentId === currentId && !descendants.has(category.id)) {
           descendants.add(category.id);
@@ -1575,6 +1705,7 @@ export class SettingsPageComponent {
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
+
     return `${year}-${month}`;
   }
 
@@ -1595,6 +1726,7 @@ export class SettingsPageComponent {
   }): void {
     const fallbackCurrencyId =
       overrides?.currencyId ?? this.resolveDefaultCurrencyId();
+
     const shouldBeDefault =
       overrides?.isDefault ?? this.store.wallets().length === 0;
 
@@ -1612,18 +1744,22 @@ export class SettingsPageComponent {
 
   private resolveDefaultCurrencyId(): number {
     const wallets = this.store.wallets();
+
     const defaultWallet =
       wallets.find((wallet) => wallet.isDefault) ?? wallets[0];
+
     if (defaultWallet) {
       return defaultWallet.currencyId;
     }
 
     const currencies = this.store.currencies();
+
     return currencies[0]?.id ?? 1;
   }
 
   private resolveProfileInitials(profile: ProfileEntity | null): string {
     const source = profile?.fullName || profile?.username || 'Spendist';
+
     const parts = source
       .trim()
       .split(/\s+/)
@@ -1635,6 +1771,7 @@ export class SettingsPageComponent {
 
     const first = parts[0]?.[0] ?? '';
     const second = parts.length > 1 ? parts[1]?.[0] ?? '' : parts[0]?.[1] ?? '';
+
     return `${first}${second}`.toUpperCase();
   }
 }

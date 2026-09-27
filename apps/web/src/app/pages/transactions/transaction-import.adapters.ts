@@ -1,3 +1,5 @@
+import { z } from 'zod';
+import type { Json } from '@spendist/data-access/supabase-types';
 import {
   SPENDIST_CSV_IMPORT_SOURCE,
   createSpendistCsvFingerprint,
@@ -41,12 +43,14 @@ export function transactionImportAdapter(
   id: TransactionImportFormat
 ): TransactionImportAdapter {
   const adapter = TRANSACTION_IMPORT_ADAPTERS.find((item) => item.id === id);
+
   if (!adapter) {
     throw new TransactionImportError(
       'Unsupported import format.',
       'invalid_file'
     );
   }
+
   return adapter;
 }
 
@@ -54,9 +58,11 @@ export function detectTransactionImport(
   text: string
 ): TransactionImportDetection {
   const normalized = stripBom(text).trim();
+
   const adapter = TRANSACTION_IMPORT_ADAPTERS.find((item) =>
     item.matches(normalized)
   );
+
   if (!adapter) {
     return {
       status: 'invalid',
@@ -91,9 +97,11 @@ export function detectTransactionImport(
 
 function looksLikeSpendistCsv(text: string): boolean {
   const header = stripBom(text).split(/\r?\n/, 1)[0]?.toLowerCase() ?? '';
+
   const headers = new Set(
     header.split(',').map((value) => value.trim().replace(/^"|"$/g, ''))
   );
+
   if (!headers.has('occurred_at')) return false;
 
   const signatures = [
@@ -104,17 +112,21 @@ function looksLikeSpendistCsv(text: string): boolean {
     'category_path',
     'wallet',
   ];
+
   return signatures.filter((value) => headers.has(value)).length >= 3;
 }
 
 function looksLikeBiedronkaReceipt(text: string): boolean {
-  let receipt: unknown;
+  let receipt: Json;
+
   try {
-    receipt = JSON.parse(text);
+    receipt = z.json().parse(JSON.parse(text));
   } catch {
     return false;
   }
+
   if (!isRecord(receipt)) return false;
+
   if ('IDZ' in receipt) return true;
 
   return arrayRecords(receipt['body']).some(
@@ -132,6 +144,7 @@ function stripBom(value: string): string {
 
 function parseCsvImport(text: string): TransactionImportDraftBatch {
   const result = parseSpendistCsv(text);
+
   if (result.issues.length > 0 || result.rows.length !== result.totalDataRows) {
     const issue = result.issues[0];
     throw new TransactionImportError(
@@ -141,7 +154,9 @@ function parseCsvImport(text: string): TransactionImportDraftBatch {
       'invalid_file'
     );
   }
+
   assertRowLimit(result.rows.length);
+
   if (result.rows.length === 0) {
     throw new TransactionImportError(
       'The CSV file contains no transactions.',
@@ -150,15 +165,18 @@ function parseCsvImport(text: string): TransactionImportDraftBatch {
   }
 
   const directions = new Set(result.rows.map((row) => row.direction));
+
   if (directions.size !== 1) {
     throw new TransactionImportError(
       'All CSV rows must have the same direction.',
       'mixed_direction'
     );
   }
+
   const wallets = new Map(
     result.rows.map((row) => [normalize(row.wallet), row.wallet] as const)
   );
+
   if (wallets.size !== 1) {
     throw new TransactionImportError(
       'All CSV rows must use the same wallet.',
@@ -179,7 +197,7 @@ function parseCsvImport(text: string): TransactionImportDraftBatch {
         categoryGroup: row.categoryGroup,
         categoryPath: row.categoryPath,
         categoryId: '',
-        tags: row.tags,
+        tags: [...row.tags],
         placeId: '',
         placeName: row.place,
         importContext: {
@@ -194,7 +212,7 @@ function parseCsvImport(text: string): TransactionImportDraftBatch {
               currency: row.currency,
               categoryPath: row.categoryPath,
               wallet: row.wallet,
-              tags: row.tags,
+              tags: [...row.tags],
             }),
           metadata: {
             source: SPENDIST_CSV_IMPORT_SOURCE,
@@ -203,8 +221,8 @@ function parseCsvImport(text: string): TransactionImportDraftBatch {
             sourceImportSource: row.sourceImportSource,
             sourceImportedAt: row.sourceImportedAt,
             categoryGroup: row.categoryGroup,
-            categoryPath: row.categoryPath,
-            tags: row.tags,
+            categoryPath: [...row.categoryPath],
+            tags: [...row.tags],
             place: row.place,
             wallet: row.wallet,
             walletCurrency: row.walletCurrency,
@@ -219,15 +237,17 @@ function parseCsvImport(text: string): TransactionImportDraftBatch {
 }
 
 function parseBiedronkaImport(text: string): TransactionImportDraftBatch {
-  let receipt: unknown;
+  let receipt: Json;
+
   try {
-    receipt = JSON.parse(text);
+    receipt = z.json().parse(JSON.parse(text));
   } catch {
     throw new TransactionImportError(
       'The JSON file is invalid.',
       'invalid_receipt'
     );
   }
+
   if (!isRecord(receipt) || !Array.isArray(receipt['body'])) {
     throw new TransactionImportError(
       'The e-receipt structure is invalid.',
@@ -239,6 +259,7 @@ function parseBiedronkaImport(text: string): TransactionImportDraftBatch {
   const currency = receiptCurrency(receipt);
   const receiptId = receiptIdentifier(receipt);
   const fiscalTotal = receiptFiscalTotal(receipt);
+
   if (!date || !currency || !receiptId || fiscalTotal === null) {
     throw new TransactionImportError(
       'The e-receipt is missing required data.',
@@ -247,29 +268,36 @@ function parseBiedronkaImport(text: string): TransactionImportDraftBatch {
   }
 
   const rows: TransactionImportDraftRow[] = [];
+
   let current: { row: TransactionImportDraftRow; netCents: number } | null =
     null;
+
   for (const entry of receipt['body']) {
     if (!isRecord(entry)) continue;
+
     if (isRecord(entry['sellLine'])) {
       if (current) rows.push(withAmount(current.row, current.netCents));
       const line = entry['sellLine'];
+
       if (line['isStorno'] === true) {
         throw new TransactionImportError(
           'Storno lines are not supported.',
           'invalid_receipt'
         );
       }
+
       const total = positiveInteger(line['total']);
       const price = positiveInteger(line['price']);
       const name = stringValue(line['name'])?.trim();
       const quantity = stringValue(line['quantity'])?.trim();
+
       if (total === null || price === null || !name || !quantity) {
         throw new TransactionImportError(
           'A receipt item is invalid.',
           'invalid_receipt'
         );
       }
+
       const index = rows.length;
       current = {
         netCents: total,
@@ -305,6 +333,7 @@ function parseBiedronkaImport(text: string): TransactionImportDraftBatch {
       };
       continue;
     }
+
     if (isRecord(entry['discountLine'])) {
       if (!current || entry['discountLine']['isStorno'] === true) {
         throw new TransactionImportError(
@@ -312,14 +341,18 @@ function parseBiedronkaImport(text: string): TransactionImportDraftBatch {
           'invalid_receipt'
         );
       }
+
       const discount = positiveInteger(entry['discountLine']['value']);
+
       if (discount === null || entry['discountLine']['isDiscount'] !== true) {
         throw new TransactionImportError(
           'A receipt discount is invalid.',
           'invalid_receipt'
         );
       }
+
       current.netCents -= discount;
+
       if (current.netCents <= 0) {
         throw new TransactionImportError(
           'A receipt item has a non-positive total.',
@@ -328,8 +361,10 @@ function parseBiedronkaImport(text: string): TransactionImportDraftBatch {
       }
     }
   }
+
   if (current) rows.push(withAmount(current.row, current.netCents));
   assertRowLimit(rows.length);
+
   if (
     rows.length === 0 ||
     rows.reduce((sum, row) => sum + Math.round(row.amount * 100), 0) !==
@@ -360,56 +395,76 @@ function withAmount(
   };
 }
 
-function receiptDate(receipt: Record<string, unknown>): Date | null {
+function receiptDate(receipt: Record<string, Json | undefined>): Date | null {
   const header = arrayRecords(receipt['header']).find((entry) =>
     isRecord(entry['headerData'])
   );
+
   const footer = arrayRecords(receipt['body']).find((entry) =>
     isRecord(entry['fiscalFooter'])
   );
+
   const raw = isRecord(header?.['headerData'])
     ? stringValue(header['headerData']['date'])
     : isRecord(footer?.['fiscalFooter'])
     ? stringValue(footer['fiscalFooter']['date'])
     : null;
+
   if (!raw) return null;
   const value = new Date(raw);
+
   return Number.isNaN(value.getTime()) ? null : value;
 }
 
-function receiptCurrency(receipt: Record<string, unknown>): string | null {
+function receiptCurrency(
+  receipt: Record<string, Json | undefined>
+): string | null {
   for (const entry of arrayRecords(receipt['body'])) {
     const value = isRecord(entry['sumInCurrency'])
       ? stringValue(entry['sumInCurrency']['currency'])
       : null;
+
     if (value && /^[A-Z]{3}$/.test(value.toUpperCase()))
       return value.toUpperCase();
   }
+
   return null;
 }
 
-function receiptFiscalTotal(receipt: Record<string, unknown>): number | null {
+function receiptFiscalTotal(
+  receipt: Record<string, Json | undefined>
+): number | null {
   for (const entry of arrayRecords(receipt['body'])) {
     const value = isRecord(entry['sumInCurrency'])
       ? positiveInteger(entry['sumInCurrency']['fiscalTotal'])
       : null;
+
     if (value !== null) return value;
   }
+
   return null;
 }
 
-function receiptIdentifier(receipt: Record<string, unknown>): string | null {
+function receiptIdentifier(
+  receipt: Record<string, Json | undefined>
+): string | null {
   const idz = stringValue(receipt['IDZ']);
+
   if (idz) return idz;
+
   for (const entry of arrayRecords(receipt['body'])) {
     const footer = entry['fiscalFooter'];
+
     if (isRecord(footer)) {
       const unique = stringValue(footer['uniqueNumber']);
-      const bill =
-        typeof footer['billNumber'] === 'number' ? footer['billNumber'] : null;
+
+      const parsedBill = z.number().safeParse(footer['billNumber']);
+      const bill = parsedBill.success ? parsedBill.data : null;
+
       if (unique && bill !== null) return `${unique}:${bill}`;
     }
   }
+
   return null;
 }
 
@@ -422,31 +477,45 @@ function assertRowLimit(count: number): void {
   }
 }
 
-function arrayRecords(value: unknown): readonly Record<string, unknown>[] {
+function arrayRecords(
+  value: Json | undefined
+): readonly Record<string, Json | undefined>[] {
   return Array.isArray(value) ? value.filter(isRecord) : [];
 }
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
+
+function isRecord(
+  value: Json | undefined
+): value is Record<string, Json | undefined> {
+  return z.record(z.string(), z.json()).safeParse(value).success;
 }
-function stringValue(value: unknown): string | null {
-  return typeof value === 'string' ? value : null;
+
+function stringValue(value: Json | undefined): string | null {
+  const parsed = z.string().safeParse(value);
+
+  return parsed.success ? parsed.data : null;
 }
-function positiveInteger(value: unknown): number | null {
-  return typeof value === 'number' && Number.isInteger(value) && value > 0
-    ? value
-    : null;
+
+function positiveInteger(value: Json | undefined): number | null {
+  const parsed = z.number().int().positive().safeParse(value);
+
+  return parsed.success ? parsed.data : null;
 }
+
 function normalize(value: string): string {
   return value.trim().toLocaleLowerCase('pl-PL').replace(/\s+/g, ' ');
 }
+
 function money(cents: number): string {
   return (cents / 100).toFixed(2).replace('.', ',');
 }
+
 function hash(value: string): string {
   let result = 2166136261;
+
   for (let index = 0; index < value.length; index += 1) {
     result ^= value.charCodeAt(index);
     result = Math.imul(result, 16777619);
   }
+
   return (result >>> 0).toString(16).padStart(8, '0');
 }

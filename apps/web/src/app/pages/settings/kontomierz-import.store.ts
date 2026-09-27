@@ -1,9 +1,9 @@
+import { z } from 'zod';
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { SupabaseClient } from '@supabase/supabase-js';
+
 import type {
   CategoryGroupRow,
   CategoryRow,
-  Json,
   TagRow,
   TransactionInsert,
   TransactionTagRow,
@@ -20,6 +20,7 @@ import {
   KontomierzParseIssue,
   KontomierzParseResult,
   KontomierzWorksheet,
+  type KontomierzCell,
   parseKontomierzWorksheet,
 } from './kontomierz-import.parser';
 
@@ -63,7 +64,7 @@ const IMPORT_BATCH_SIZE = 500;
 
 @Injectable()
 export class KontomierzImportStore {
-  private readonly supabase = inject<SupabaseClient>(SUPABASE_CLIENT);
+  private readonly supabase = inject(SUPABASE_CLIENT);
   private readonly auth = inject(AuthService);
   private readonly settingsStore = inject(SettingsStore);
 
@@ -87,7 +88,12 @@ export class KontomierzImportStore {
   readonly summary = computed(() => this.state().summary);
   readonly canImport = computed(() => {
     const state = this.state();
-    return !state.analyzing && !state.importing && (state.prepared?.importableRows.length ?? 0) > 0;
+
+    return (
+      !state.analyzing &&
+      !state.importing &&
+      (state.prepared?.importableRows.length ?? 0) > 0
+    );
   });
 
   clear(): void {
@@ -105,8 +111,10 @@ export class KontomierzImportStore {
 
   async analyzeFile(file: File, walletId: string): Promise<void> {
     const userId = this.requireUserId();
+
     if (!walletId) {
       this.setError('settings.panels.kontomierzImport.errors.walletRequired');
+
       return;
     }
 
@@ -126,25 +134,38 @@ export class KontomierzImportStore {
       const worksheet = await this.readWorkbook(file);
       const parseResult = parseKontomierzWorksheet(worksheet);
       const rows = parseResult.rows;
-      const duplicateFingerprints = rows.length > 0 ? await this.loadExistingFingerprints(rows) : new Set<string>();
-      const importableRows = rows.filter((row) => !duplicateFingerprints.has(row.fingerprint));
-      const [existingGroups, existingCategories, existingTags] = await Promise.all([
-        this.loadGroups(userId),
-        this.loadCategories(userId),
-        this.loadTags(userId),
-      ]);
+
+      const duplicateFingerprints =
+        rows.length > 0
+          ? await this.loadExistingFingerprints(rows)
+          : new Set<string>();
+
+      const importableRows = rows.filter(
+        (row) => !duplicateFingerprints.has(row.fingerprint)
+      );
+
+      const [existingGroups, existingCategories, existingTags] =
+        await Promise.all([
+          this.loadGroups(userId),
+          this.loadCategories(userId),
+          this.loadTags(userId),
+        ]);
+
       const newGroups = collectMissingNames(
         rows.map((row) => row.groupName),
-        existingGroups.map((group) => group.name),
+        existingGroups.map((group) => group.name)
       );
+
       const newCategories = collectMissingNames(
         rows.map((row) => row.categoryName),
-        existingCategories.map((category) => category.name),
+        existingCategories.map((category) => category.name)
       );
+
       const newTags = collectMissingNames(
         rows.flatMap((row) => row.tagNames),
-        existingTags.map((tag) => tag.name),
+        existingTags.map((tag) => tag.name)
       );
+
       const summary: KontomierzImportSummary = {
         fileName: file.name,
         totalDataRows: parseResult.totalDataRows,
@@ -187,6 +208,7 @@ export class KontomierzImportStore {
   async importPrepared(): Promise<void> {
     const userId = this.requireUserId();
     const prepared = this.state().prepared;
+
     if (!prepared || prepared.importableRows.length === 0) {
       return;
     }
@@ -202,20 +224,50 @@ export class KontomierzImportStore {
 
     try {
       const groups = await this.ensureGroups(userId, prepared.rows);
-      const categories = await this.ensureCategories(userId, prepared.rows, groups);
+
+      const categories = await this.ensureCategories(
+        userId,
+        prepared.rows,
+        groups
+      );
+
       const tags = await this.ensureTags(userId, prepared.rows);
 
       let imported = 0;
       let duplicatesSkipped = 0;
-      for (let index = 0; index < prepared.importableRows.length; index += IMPORT_BATCH_SIZE) {
-        const batch = prepared.importableRows.slice(index, index + IMPORT_BATCH_SIZE);
+
+      for (
+        let index = 0;
+        index < prepared.importableRows.length;
+        index += IMPORT_BATCH_SIZE
+      ) {
+        const batch = prepared.importableRows.slice(
+          index,
+          index + IMPORT_BATCH_SIZE
+        );
+
         const freshDuplicates = await this.loadExistingFingerprints(batch);
-        const rowsToInsert = batch.filter((row) => !freshDuplicates.has(row.fingerprint));
+
+        const rowsToInsert = batch.filter(
+          (row) => !freshDuplicates.has(row.fingerprint)
+        );
+
         duplicatesSkipped += freshDuplicates.size;
 
         if (rowsToInsert.length > 0) {
-          const inserted = await this.insertTransactions(userId, prepared.walletId, rowsToInsert, categories);
-          await this.insertTransactionTags(userId, rowsToInsert, inserted, tags);
+          const inserted = await this.insertTransactions(
+            userId,
+            prepared.walletId,
+            rowsToInsert,
+            categories
+          );
+
+          await this.insertTransactionTags(
+            userId,
+            rowsToInsert,
+            inserted,
+            tags
+          );
           imported += inserted.length;
         }
 
@@ -223,7 +275,9 @@ export class KontomierzImportStore {
           ...state,
           imported,
           duplicatesSkipped,
-          progress: Math.round(((index + batch.length) / prepared.importableRows.length) * 100),
+          progress: Math.round(
+            ((index + batch.length) / prepared.importableRows.length) * 100
+          ),
         }));
       }
 
@@ -236,7 +290,10 @@ export class KontomierzImportStore {
           ? {
               ...state.summary,
               duplicates: state.summary.duplicates + duplicatesSkipped,
-              importableTransactions: Math.max(0, state.summary.importableTransactions - duplicatesSkipped),
+              importableTransactions: Math.max(
+                0,
+                state.summary.importableTransactions - duplicatesSkipped
+              ),
             }
           : state.summary,
       }));
@@ -251,35 +308,65 @@ export class KontomierzImportStore {
 
   private async readWorkbook(file: File): Promise<KontomierzWorksheet> {
     if (!file.name.toLowerCase().endsWith('.xlsx')) {
-      throw new Error('settings.panels.kontomierzImport.errors.unsupportedFile');
+      throw new Error(
+        'settings.panels.kontomierzImport.errors.unsupportedFile'
+      );
     }
 
-    const [{ read, utils }, buffer] = await Promise.all([import('xlsx/xlsx.mjs'), file.arrayBuffer()]);
+    const [{ read, utils }, buffer] = await Promise.all([
+      import('xlsx/xlsx.mjs'),
+      file.arrayBuffer(),
+    ]);
+
     const workbook = read(buffer, { type: 'array', cellDates: false });
-    const sheetName = workbook.SheetNames.find((name) => name === KONTOMIERZ_SHEET_NAME) ?? workbook.SheetNames[0];
+
+    const sheetName =
+      workbook.SheetNames.find((name) => name === KONTOMIERZ_SHEET_NAME) ??
+      workbook.SheetNames[0];
+
     const sheet = sheetName ? workbook.Sheets[sheetName] : null;
+
     if (!sheetName || !sheet) {
       throw new Error('settings.panels.kontomierzImport.errors.emptyWorkbook');
     }
 
     return {
       name: sheetName,
-      rows: utils.sheet_to_json<unknown[]>(sheet, { header: 1, blankrows: false, raw: true }),
+      rows: utils.sheet_to_json<KontomierzCell[]>(sheet, {
+        header: 1,
+        blankrows: false,
+        raw: true,
+      }),
     };
   }
 
-  private async ensureGroups(userId: string, rows: readonly KontomierzImportRow[]): Promise<ReadonlyMap<string, CategoryGroupRow>> {
+  private async ensureGroups(
+    userId: string,
+    rows: readonly KontomierzImportRow[]
+  ): Promise<ReadonlyMap<string, CategoryGroupRow>> {
     await this.createMissingGroups(userId, rows);
     const groups = await this.loadGroups(userId);
-    return new Map(groups.map((group) => [normalizeLookupKey(group.name), group]));
+
+    return new Map(
+      groups.map((group) => [normalizeLookupKey(group.name), group])
+    );
   }
 
-  private async createMissingGroups(userId: string, rows: readonly KontomierzImportRow[]): Promise<void> {
-    const existing = new Set((await this.loadGroups(userId)).map((group) => normalizeLookupKey(group.name)));
+  private async createMissingGroups(
+    userId: string,
+    rows: readonly KontomierzImportRow[]
+  ): Promise<void> {
+    const existing = new Set(
+      (await this.loadGroups(userId)).map((group) =>
+        normalizeLookupKey(group.name)
+      )
+    );
+
     const missing = collectMissingNames(
       rows.map((row) => row.groupName),
-      Array.from(existing),
+      Array.from(existing)
     );
+
     if (missing.length === 0) {
       return;
     }
@@ -290,8 +377,9 @@ export class KontomierzImportStore {
         name,
         color: defaultColorForName(name),
         icon: null,
-      })),
+      }))
     );
+
     if (error && error.code !== '23505') {
       throw error;
     }
@@ -300,64 +388,96 @@ export class KontomierzImportStore {
   private async ensureCategories(
     userId: string,
     rows: readonly KontomierzImportRow[],
-    groups: ReadonlyMap<string, CategoryGroupRow>,
+    groups: ReadonlyMap<string, CategoryGroupRow>
   ): Promise<ReadonlyMap<string, CategoryRow>> {
     await this.createMissingCategories(userId, rows, groups);
     const categories = await this.loadCategories(userId);
-    return new Map(categories.map((category) => [normalizeLookupKey(category.name), category]));
+
+    return new Map(
+      categories.map((category) => [
+        normalizeLookupKey(category.name),
+        category,
+      ])
+    );
   }
 
   private async createMissingCategories(
     userId: string,
     rows: readonly KontomierzImportRow[],
-    groups: ReadonlyMap<string, CategoryGroupRow>,
+    groups: ReadonlyMap<string, CategoryGroupRow>
   ): Promise<void> {
-    const existing = new Set((await this.loadCategories(userId)).map((category) => normalizeLookupKey(category.name)));
+    const existing = new Set(
+      (await this.loadCategories(userId)).map((category) =>
+        normalizeLookupKey(category.name)
+      )
+    );
+
     const byName = new Map<string, KontomierzImportRow>();
+
     for (const row of rows) {
       const key = normalizeLookupKey(row.categoryName);
+
       if (!existing.has(key) && !byName.has(key)) {
         byName.set(key, row);
       }
     }
 
     const missing = Array.from(byName.values());
+
     if (missing.length === 0) {
       return;
     }
 
-    const fallbackGroup = groups.get(normalizeLookupKey(KONTOMIERZ_FALLBACK_CATEGORY)) ?? groups.values().next().value;
+    const fallbackGroup =
+      groups.get(normalizeLookupKey(KONTOMIERZ_FALLBACK_CATEGORY)) ??
+      groups.values().next().value;
+
     if (!fallbackGroup) {
-      throw new Error('No category group is available for imported categories.');
+      throw new Error(
+        'No category group is available for imported categories.'
+      );
     }
 
     const { error } = await this.supabase.from('categories').insert(
       missing.map((row) => ({
         owner_id: userId,
         name: row.categoryName,
-        group_id: groups.get(normalizeLookupKey(row.groupName))?.id ?? fallbackGroup.id,
+        group_id:
+          groups.get(normalizeLookupKey(row.groupName))?.id ?? fallbackGroup.id,
         parent_id: null,
         color: defaultColorForName(row.groupName),
         icon: null,
-      })),
+      }))
     );
+
     if (error && error.code !== '23505') {
       throw error;
     }
   }
 
-  private async ensureTags(userId: string, rows: readonly KontomierzImportRow[]): Promise<ReadonlyMap<string, TagRow>> {
+  private async ensureTags(
+    userId: string,
+    rows: readonly KontomierzImportRow[]
+  ): Promise<ReadonlyMap<string, TagRow>> {
     await this.createMissingTags(userId, rows);
     const tags = await this.loadTags(userId);
+
     return new Map(tags.map((tag) => [normalizeLookupKey(tag.name), tag]));
   }
 
-  private async createMissingTags(userId: string, rows: readonly KontomierzImportRow[]): Promise<void> {
-    const existing = new Set((await this.loadTags(userId)).map((tag) => normalizeLookupKey(tag.name)));
+  private async createMissingTags(
+    userId: string,
+    rows: readonly KontomierzImportRow[]
+  ): Promise<void> {
+    const existing = new Set(
+      (await this.loadTags(userId)).map((tag) => normalizeLookupKey(tag.name))
+    );
+
     const missing = collectMissingNames(
       rows.flatMap((row) => row.tagNames),
-      Array.from(existing),
+      Array.from(existing)
     );
+
     if (missing.length === 0) {
       return;
     }
@@ -366,8 +486,9 @@ export class KontomierzImportStore {
       missing.map((name) => ({
         owner_id: userId,
         name,
-      })),
+      }))
     );
+
     if (error && error.code !== '23505') {
       throw error;
     }
@@ -377,11 +498,13 @@ export class KontomierzImportStore {
     userId: string,
     walletId: string,
     rows: readonly KontomierzImportRow[],
-    categories: ReadonlyMap<string, CategoryRow>,
+    categories: ReadonlyMap<string, CategoryRow>
   ): Promise<readonly Pick<TransactionTagRow, 'transaction_id'>[]> {
     const now = new Date().toISOString();
+
     const transactionRows: TransactionInsert[] = rows.map((row) => {
       const category = categories.get(normalizeLookupKey(row.categoryName));
+
       if (!category) {
         throw new Error(`Missing Spendist category for ${row.categoryName}.`);
       }
@@ -400,27 +523,37 @@ export class KontomierzImportStore {
         is_automatic: false,
         import_source: KONTOMIERZ_IMPORT_SOURCE,
         import_fingerprint: row.fingerprint,
-        import_metadata: row.metadata as unknown as Json,
+        import_metadata: {
+          ...row.metadata,
+          raw_tags: [...row.metadata.raw_tags],
+        },
         imported_at: now,
       };
     });
 
-    const { data, error } = await this.supabase.from('transactions').insert(transactionRows).select('id');
+    const { data, error } = await this.supabase
+      .from('transactions')
+      .insert(transactionRows)
+      .select('id');
+
     if (error) {
       throw error;
     }
 
-    return (data ?? []).map((transaction) => ({ transaction_id: transaction.id }));
+    return (data ?? []).map((transaction) => ({
+      transaction_id: transaction.id,
+    }));
   }
 
   private async insertTransactionTags(
     userId: string,
     rows: readonly KontomierzImportRow[],
     inserted: readonly Pick<TransactionTagRow, 'transaction_id'>[],
-    tags: ReadonlyMap<string, TagRow>,
+    tags: ReadonlyMap<string, TagRow>
   ): Promise<void> {
     const tagRows = rows.flatMap((row, index) => {
       const transactionId = inserted[index]?.transaction_id;
+
       if (!transactionId) {
         return [];
       }
@@ -439,23 +572,36 @@ export class KontomierzImportStore {
       return;
     }
 
-    const { error } = await this.supabase.from('transaction_tags').insert(tagRows);
+    const { error } = await this.supabase
+      .from('transaction_tags')
+      .insert(tagRows);
+
     if (error) {
       throw error;
     }
   }
 
-  private async loadExistingFingerprints(rows: readonly KontomierzImportRow[]): Promise<Set<string>> {
+  private async loadExistingFingerprints(
+    rows: readonly KontomierzImportRow[]
+  ): Promise<Set<string>> {
     const result = new Set<string>();
-    const fingerprints = Array.from(new Set(rows.map((row) => row.fingerprint)));
+
+    const fingerprints = Array.from(
+      new Set(rows.map((row) => row.fingerprint))
+    );
+
     if (fingerprints.length === 0) {
       return result;
     }
 
-    const { data, error } = await this.supabase.rpc('find_existing_transaction_import_fingerprints', {
-      p_import_source: KONTOMIERZ_IMPORT_SOURCE,
-      p_import_fingerprints: fingerprints,
-    });
+    const { data, error } = await this.supabase.rpc(
+      'find_existing_transaction_import_fingerprints',
+      {
+        p_import_source: KONTOMIERZ_IMPORT_SOURCE,
+        p_import_fingerprints: fingerprints,
+      }
+    );
+
     if (error) {
       throw error;
     }
@@ -469,32 +615,52 @@ export class KontomierzImportStore {
     return result;
   }
 
-  private async loadGroups(userId: string): Promise<readonly CategoryGroupRow[]> {
-    const { data, error } = await this.supabase.from('categories_group').select('*').eq('owner_id', userId);
+  private async loadGroups(
+    userId: string
+  ): Promise<readonly CategoryGroupRow[]> {
+    const { data, error } = await this.supabase
+      .from('categories_group')
+      .select('*')
+      .eq('owner_id', userId);
+
     if (error) {
       throw error;
     }
-    return (data ?? []) as CategoryGroupRow[];
+
+    return data ?? [];
   }
 
-  private async loadCategories(userId: string): Promise<readonly CategoryRow[]> {
-    const { data, error } = await this.supabase.from('categories').select('*').eq('owner_id', userId);
+  private async loadCategories(
+    userId: string
+  ): Promise<readonly CategoryRow[]> {
+    const { data, error } = await this.supabase
+      .from('categories')
+      .select('*')
+      .eq('owner_id', userId);
+
     if (error) {
       throw error;
     }
-    return (data ?? []) as CategoryRow[];
+
+    return data ?? [];
   }
 
   private async loadTags(userId: string): Promise<readonly TagRow[]> {
-    const { data, error } = await this.supabase.from('tags').select('*').eq('owner_id', userId);
+    const { data, error } = await this.supabase
+      .from('tags')
+      .select('*')
+      .eq('owner_id', userId);
+
     if (error) {
       throw error;
     }
-    return (data ?? []) as TagRow[];
+
+    return data ?? [];
   }
 
   private requireUserId(): string {
     const userId = this.auth.session()?.user.id;
+
     if (!userId) {
       throw new Error('settings.panels.kontomierzImport.errors.authRequired');
     }
@@ -510,17 +676,25 @@ export class KontomierzImportStore {
   }
 }
 
-function collectMissingNames(values: readonly string[], existingValues: readonly string[]): readonly string[] {
-  const existing = new Set(existingValues.map((value) => normalizeLookupKey(value)));
+function collectMissingNames(
+  values: readonly string[],
+  existingValues: readonly string[]
+): readonly string[] {
+  const existing = new Set(
+    existingValues.map((value) => normalizeLookupKey(value))
+  );
+
   const missing = new Map<string, string>();
 
   for (const value of values) {
     const normalized = value.trim();
+
     if (!normalized) {
       continue;
     }
 
     const key = normalizeLookupKey(normalized);
+
     if (!existing.has(key) && !missing.has(key)) {
       missing.set(key, normalized);
     }
@@ -536,20 +710,22 @@ function normalizeLookupKey(value: string): string {
 function defaultColorForName(name: string): string {
   const colors = ['#0EA5A5', '#F59E0B', '#EA580C', '#16A34A', '#D97706'];
   let hash = 0;
+
   for (const character of name) {
     hash = (hash + character.charCodeAt(0)) % colors.length;
   }
+
   return colors[hash];
 }
 
-function describeImportError(error: unknown): string {
-  if (error instanceof Error && error.message.startsWith('settings.')) {
-    return error.message;
+function describeImportError(cause: unknown): string {
+  if (cause instanceof Error && cause.message.startsWith('settings.')) {
+    return cause.message;
   }
 
-  if (typeof error === 'object' && error && 'message' in error && typeof error.message === 'string') {
-    return error.message;
-  }
+  const parsed = z.object({ message: z.string() }).safeParse(cause);
+
+  if (parsed.success) return parsed.data.message;
 
   return 'settings.panels.kontomierzImport.errors.generic';
 }

@@ -1,5 +1,6 @@
+import { z } from 'zod';
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
-import { SupabaseClient } from '@supabase/supabase-js';
+
 import type { Database } from '@spendist/data-access/supabase-types';
 import { SUPABASE_CLIENT } from '../../core/supabase';
 import { AuthService } from '../../core/auth.service';
@@ -7,16 +8,22 @@ import { logError } from '../../core/logger';
 
 type MonthlyCashflowRow =
   Database['public']['Functions']['monthly_cashflow_summary']['Returns'][number];
+
 type AvailableMonthRow =
   Database['public']['Functions']['available_transaction_months']['Returns'][number];
+
 type MonthlyCategoryCashflowRow =
   Database['public']['Functions']['monthly_category_cashflow']['Returns'][number];
+
 type MonthlyRecurringTransactionRow =
   Database['public']['Functions']['monthly_recurring_transaction_summary']['Returns'][number];
+
 type PlaceExpenseSummaryRow =
   Database['public']['Functions']['place_expense_summary']['Returns'][number];
+
 type TransactionDirection =
   Database['public']['Enums']['transaction_direction'];
+
 type WalletRow = Pick<
   Database['public']['Tables']['wallets']['Row'],
   'id' | 'name' | 'is_default'
@@ -157,7 +164,7 @@ const MONTH_LIMIT = 12;
 
 @Injectable()
 export class DashboardStore {
-  private readonly supabase = inject<SupabaseClient>(SUPABASE_CLIENT);
+  private readonly supabase = inject(SUPABASE_CLIENT);
   private readonly auth = inject(AuthService);
 
   private readonly userId = signal<string | null>(null);
@@ -243,10 +250,12 @@ export class DashboardStore {
       (acc, entry) => acc + entry.totalAmount,
       0
     );
+
     const expenseTotal = this.expenseCategories().reduce(
       (acc, entry) => acc + entry.totalAmount,
       0
     );
+
     return {
       income: incomeTotal,
       expense: expenseTotal,
@@ -288,6 +297,7 @@ export class DashboardStore {
   readonly selectedRecurringSummary =
     computed<RecurringTransactionSummaryEntry | null>(() => {
       const selection = this.selectedRecurringMonth();
+
       if (!selection) {
         return null;
       }
@@ -309,6 +319,7 @@ export class DashboardStore {
   readonly selectedPlaceYearValue = computed(() => this.selectedPlaceYear());
   readonly placeYearOptions = computed(() => {
     const current = new Date().getFullYear();
+
     return Array.from({ length: 5 }, (_, index) => current - index);
   });
 
@@ -324,6 +335,7 @@ export class DashboardStore {
 
       if (!id) {
         this.resetAllState();
+
         return;
       }
 
@@ -368,6 +380,7 @@ export class DashboardStore {
           entries: [],
         });
         this.selectedRecurringMonth.set(null);
+
         return;
       }
 
@@ -431,6 +444,7 @@ export class DashboardStore {
             entries: [],
           });
         }
+
         return;
       }
 
@@ -443,18 +457,22 @@ export class DashboardStore {
     if (!this.selectedWallet()) {
       return;
     }
+
     void this.loadMonthlyStructure(true);
   }
 
   refreshCategoryStructure(): void {
     if (!this.selectedWallet()) {
       void this.loadWallets();
+
       return;
     }
 
     const selection = this.selectedMonth();
+
     if (!selection) {
       void this.loadAvailableMonths(true);
+
       return;
     }
 
@@ -465,6 +483,7 @@ export class DashboardStore {
   refreshRecurringSummary(): void {
     if (!this.selectedWallet()) {
       void this.loadWallets();
+
       return;
     }
 
@@ -474,6 +493,7 @@ export class DashboardStore {
   refreshPlaceSummary(): void {
     if (!this.selectedWallet()) {
       void this.loadWallets();
+
       return;
     }
 
@@ -482,8 +502,10 @@ export class DashboardStore {
 
   selectWallet(id: string | null | undefined): void {
     const normalized = id?.trim() ?? '';
+
     if (!normalized) {
       this.selectedWallet.set(null);
+
       return;
     }
 
@@ -494,6 +516,7 @@ export class DashboardStore {
     const exists = this.walletState().wallets.some(
       (wallet) => wallet.id === normalized
     );
+
     if (!exists) {
       return;
     }
@@ -503,8 +526,10 @@ export class DashboardStore {
 
   selectMonth(value: string | null | undefined): void {
     const normalized = value?.trim() ?? '';
+
     if (!normalized) {
       this.selectedMonth.set(null);
+
       return;
     }
 
@@ -515,6 +540,7 @@ export class DashboardStore {
     const exists = this.monthOptionsState().some(
       (option) => option.value === normalized
     );
+
     if (!exists) {
       return;
     }
@@ -524,8 +550,10 @@ export class DashboardStore {
 
   selectRecurringMonth(value: string | null | undefined): void {
     const normalized = value?.trim() ?? '';
+
     if (!normalized) {
       this.selectedRecurringMonth.set(null);
+
       return;
     }
 
@@ -536,6 +564,7 @@ export class DashboardStore {
     const exists = this.recurringState().entries.some(
       (entry) => entry.id === normalized
     );
+
     if (!exists) {
       return;
     }
@@ -544,7 +573,8 @@ export class DashboardStore {
   }
 
   selectPlaceYear(value: string | number | null | undefined): void {
-    const parsed = typeof value === 'number' ? value : Number(value);
+    const parsed = Number(value);
+
     if (!Number.isInteger(parsed) || parsed < 2000 || parsed > 2100) {
       return;
     }
@@ -622,9 +652,8 @@ export class DashboardStore {
         throw error;
       }
 
-      const wallets = (data ?? []).map((row) =>
-        this.mapWalletRow(row as WalletRow)
-      );
+      const wallets = (data ?? []).map((row) => this.mapWalletRow(row));
+
       this.walletState.set({
         loading: false,
         error: null,
@@ -648,7 +677,9 @@ export class DashboardStore {
     if (!this.userId()) {
       return;
     }
+
     const walletId = this.selectedWallet();
+
     if (!walletId) {
       return;
     }
@@ -684,6 +715,7 @@ export class DashboardStore {
       const structure = (data ?? []).map((row: MonthlyCashflowRow) =>
         this.mapStructureRow(row)
       );
+
       this.structureState.set({
         loading: false,
         error: null,
@@ -707,7 +739,9 @@ export class DashboardStore {
     if (!this.userId()) {
       return;
     }
+
     const walletId = this.selectedWallet();
+
     if (!walletId) {
       return;
     }
@@ -740,6 +774,7 @@ export class DashboardStore {
       this.monthOptionsState.set(options);
 
       const currentSelection = this.selectedMonth();
+
       const nextSelection =
         !force &&
         currentSelection &&
@@ -773,7 +808,9 @@ export class DashboardStore {
     if (!this.userId()) {
       return;
     }
+
     const walletId = this.selectedWallet();
+
     if (!walletId) {
       return;
     }
@@ -805,6 +842,7 @@ export class DashboardStore {
       const entries = (data ?? []).map((row: MonthlyCategoryCashflowRow) =>
         this.mapCategoryRow(row)
       );
+
       this.categoryState.set({
         loading: false,
         error: null,
@@ -826,10 +864,13 @@ export class DashboardStore {
 
   private async loadTagStructure(monthValue: string): Promise<void> {
     const userId = this.userId();
+
     if (!userId) {
       return;
     }
+
     const walletId = this.selectedWallet();
+
     if (!walletId) {
       return;
     }
@@ -843,9 +884,11 @@ export class DashboardStore {
 
     try {
       const monthStart = this.normalizeDate(monthValue);
+
       const monthEnd = new Date(
         Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth() + 1, 1)
       );
+
       const { data, error } = await this.supabase
         .from('transaction_tags')
         .select(
@@ -864,9 +907,8 @@ export class DashboardStore {
         throw error;
       }
 
-      const entries = this.buildTagStructure(
-        (data ?? []) as unknown as readonly TransactionTagSummaryRow[]
-      );
+      const entries = this.buildTagStructure(data ?? []);
+
       this.tagState.set({
         loading: false,
         error: null,
@@ -890,7 +932,9 @@ export class DashboardStore {
     if (!this.userId()) {
       return;
     }
+
     const walletId = this.selectedWallet();
+
     if (!walletId) {
       return;
     }
@@ -940,6 +984,7 @@ export class DashboardStore {
       });
 
       const currentSelection = this.selectedRecurringMonth();
+
       const nextSelection =
         !force &&
         currentSelection &&
@@ -974,7 +1019,9 @@ export class DashboardStore {
     if (!this.userId()) {
       return;
     }
+
     const walletId = this.selectedWallet();
+
     if (!walletId) {
       return;
     }
@@ -1007,6 +1054,7 @@ export class DashboardStore {
       const entries = (data ?? []).map((row: PlaceExpenseSummaryRow) =>
         this.mapPlaceSummaryRow(row)
       );
+
       this.placeState.set({
         loading: false,
         error: null,
@@ -1050,6 +1098,7 @@ export class DashboardStore {
 
   private mapMonthRow(row: AvailableMonthRow): MonthOption {
     const date = this.normalizeDate(row.month_start);
+
     return {
       value: this.buildMonthValue(date),
       date,
@@ -1065,7 +1114,7 @@ export class DashboardStore {
       categoryName: row.category_name,
       color: row.category_color,
       icon: row.category_icon,
-      direction: (row.direction ?? 'expense') as TransactionDirection,
+      direction: row.direction ?? 'expense',
       totalAmount: this.parseNumeric(row.total_amount),
       transactionCount: this.parseCount(row.transaction_count),
     };
@@ -1114,12 +1163,13 @@ export class DashboardStore {
     for (const row of rows) {
       const tag = this.firstRelatedRow(row.tags);
       const transaction = this.firstRelatedRow(row.transactions);
+
       if (!tag || !transaction) {
         continue;
       }
 
-      const direction = (transaction.direction ??
-        'expense') as TransactionDirection;
+      const direction = transaction.direction ?? 'expense';
+
       const amount = this.parseNumeric(transaction.amount_in_default);
       const key = `${row.tag_id}:${direction}`;
       const current = totals.get(key);
@@ -1137,6 +1187,7 @@ export class DashboardStore {
 
     return [...totals.values()].sort((a, b) => {
       const byAmount = b.totalAmount - a.totalAmount;
+
       return byAmount === 0 ? a.tagName.localeCompare(b.tagName) : byAmount;
     });
   }
@@ -1146,11 +1197,11 @@ export class DashboardStore {
       return null;
     }
 
-    if (Array.isArray(value)) {
-      return (value as readonly T[])[0] ?? null;
+    if (isRowArray(value)) {
+      return value[0] ?? null;
     }
 
-    return value as T;
+    return value;
   }
 
   private resolveWalletSelection(
@@ -1161,6 +1212,7 @@ export class DashboardStore {
     }
 
     const preferred = wallets.find((wallet) => wallet.isDefault);
+
     return (preferred ?? wallets[0]).id;
   }
 
@@ -1172,6 +1224,7 @@ export class DashboardStore {
     const now = new Date();
     const currentValue = this.buildMonthValue(now);
     const hasCurrent = options.some((option) => option.value === currentValue);
+
     if (hasCurrent) {
       return currentValue;
     }
@@ -1189,6 +1242,7 @@ export class DashboardStore {
     const now = new Date();
     const currentValue = this.buildMonthValue(now);
     const hasCurrent = entries.some((entry) => entry.id === currentValue);
+
     if (hasCurrent) {
       return currentValue;
     }
@@ -1199,6 +1253,7 @@ export class DashboardStore {
   private buildMonthValue(date: Date): string {
     const year = date.getUTCFullYear();
     const month = `${date.getUTCMonth() + 1}`.padStart(2, '0');
+
     return `${year}-${month}-01`;
   }
 
@@ -1211,49 +1266,30 @@ export class DashboardStore {
   }
 
   private parseNumeric(value: number | string | null | undefined): number {
-    if (typeof value === 'number') {
-      return value;
-    }
+    const parsed = Number(value);
 
-    if (typeof value === 'string') {
-      const parsed = Number(value);
-      return Number.isFinite(parsed) ? parsed : 0;
-    }
-
-    return 0;
+    return Number.isFinite(parsed) ? parsed : 0;
   }
 
   private parseCount(value: number | string | null | undefined): number {
-    if (typeof value === 'number') {
-      return value;
-    }
+    const parsed = Number(value);
 
-    if (typeof value === 'string') {
-      const parsed = Number(value);
-      return Number.isFinite(parsed) ? parsed : 0;
-    }
-
-    return 0;
+    return Number.isFinite(parsed) ? parsed : 0;
   }
 
-  private describeError(error: unknown): string {
-    if (typeof error === 'string') {
-      return error;
-    }
+  private describeError(cause: unknown): string {
+    const text = z.string().safeParse(cause);
 
-    if (error instanceof Error && error.message) {
-      return error.message;
-    }
+    if (text.success) return text.data;
 
-    if (
-      error &&
-      typeof error === 'object' &&
-      'message' in error &&
-      typeof (error as { message?: unknown }).message === 'string'
-    ) {
-      return (error as { message?: string }).message ?? 'Unknown error';
-    }
+    const parsed = z.object({ message: z.string() }).safeParse(cause);
 
-    return 'Unable to load dashboard data.';
+    return parsed.success
+      ? parsed.data.message
+      : 'Unable to load dashboard data.';
   }
+}
+
+function isRowArray<T>(value: T | readonly T[]): value is readonly T[] {
+  return Array.isArray(value);
 }

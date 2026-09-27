@@ -154,9 +154,11 @@ export class RecurringPaymentFormComponent {
   readonly recentTags = computed(() => {
     const seen = new Set<string>();
     const recent: RecurringTagSummary[] = [];
+
     const recurring = [...this.store.recurringTransactions()].sort(
       (left, right) => right.startDate.getTime() - left.startDate.getTime()
     );
+
     for (const transaction of recurring) {
       for (const tag of transaction.tags) {
         if (!seen.has(tag.id)) {
@@ -165,6 +167,7 @@ export class RecurringPaymentFormComponent {
         }
       }
     }
+
     return recent;
   });
   readonly scheduleFrequencyView = signal<ScheduleFrequency>('monthly');
@@ -179,11 +182,13 @@ export class RecurringPaymentFormComponent {
   );
   readonly currencyOptions = computed<readonly CurrencyOption[]>(() => {
     const currencies = this.store.currencies();
+
     if (currencies.length === 0) {
       return [{ id: -1, symbol: this.walletCurrency() }];
     }
 
     const selectedCurrency = this.selectedCurrencyView().toUpperCase();
+
     const hasSelectedCurrency = selectedCurrency
       ? currencies.some(
           (currency) => currency.symbol.toUpperCase() === selectedCurrency
@@ -237,9 +242,11 @@ export class RecurringPaymentFormComponent {
       .pipe(takeUntilDestroyed())
       .subscribe((value) => {
         const normalized = this.normalizeTime(value);
+
         if (normalized !== value) {
           this.scheduleTimeControl.setValue(normalized, { emitEvent: false });
         }
+
         this.syncScheduleControl();
       });
 
@@ -253,9 +260,11 @@ export class RecurringPaymentFormComponent {
       .pipe(takeUntilDestroyed())
       .subscribe((value) => {
         const day = this.normalizeDayOfMonth(value);
+
         if (day !== value) {
           this.scheduleDayOfMonthControl.setValue(day, { emitEvent: false });
         }
+
         this.syncScheduleControl();
       });
 
@@ -273,6 +282,7 @@ export class RecurringPaymentFormComponent {
 
     effect(() => {
       const editing = this.store.editingRecurring();
+
       if (!editing) {
         return;
       }
@@ -313,9 +323,11 @@ export class RecurringPaymentFormComponent {
     effect(() => {
       const available = new Set(this.store.tags().map((tag) => tag.id));
       const current = this.selectedTagSelections();
+
       const filtered = current.filter(
         (selection) => !selection.id || available.has(selection.id)
       );
+
       if (filtered.length !== current.length) {
         this.selectedTagSelections.set(filtered);
         this.form.controls.tagIds.setValue(
@@ -324,8 +336,10 @@ export class RecurringPaymentFormComponent {
             .filter((id): id is string => Boolean(id)),
           { emitEvent: false }
         );
+
         return;
       }
+
       this.form.controls.tagIds.setValue(this.selectedTags(), {
         emitEvent: false,
       });
@@ -342,22 +356,23 @@ export class RecurringPaymentFormComponent {
     this.walletControl.valueChanges
       .pipe(takeUntilDestroyed())
       .subscribe((walletId) => {
-        this.syncWalletCurrency(typeof walletId === 'string' ? walletId : null);
+        this.syncWalletCurrency(walletId);
         this.submissionError.set(null);
       });
 
     effect(() => {
       const wallets = this.wallets();
       const currentWalletId = this.walletControl.value;
+
       if (!wallets.some((wallet) => wallet.id === currentWalletId)) {
         const fallback = this.store.defaultWalletId() ?? wallets[0]?.id ?? '';
         this.walletControl.setValue(fallback, { emitEvent: false });
         this.syncWalletCurrency(fallback, true);
+
         return;
       }
-      this.syncWalletCurrency(
-        typeof currentWalletId === 'string' ? currentWalletId : null
-      );
+
+      this.syncWalletCurrency(currentWalletId);
     });
 
     this.syncScheduleControl();
@@ -368,6 +383,7 @@ export class RecurringPaymentFormComponent {
 
     if (this.form.invalid || this.store.mutationPending()) {
       this.form.markAllAsTouched();
+
       if (this.form.invalid) {
         this.submissionError.set(
           this.transloco.translate(
@@ -375,6 +391,7 @@ export class RecurringPaymentFormComponent {
           )
         );
       }
+
       return;
     }
 
@@ -392,6 +409,7 @@ export class RecurringPaymentFormComponent {
       schedule,
       walletId,
     } = this.form.value;
+
     const resolvedAmountMode = amountMode ?? 'fixed';
 
     if (resolvedAmountMode === 'fixed' && amount == null) {
@@ -400,26 +418,31 @@ export class RecurringPaymentFormComponent {
           'modules.recurringPayments.form.fields.amount.error'
         )
       );
+
       return;
     }
 
     const resolvedWalletId = (walletId ?? '').trim();
+
     if (!resolvedWalletId) {
       this.walletControl.setErrors({ required: true });
       this.walletControl.markAsTouched();
+
       return;
     }
 
     const editing = this.store.editingRecurring();
+
     try {
       const tagIds = await this.resolveSelectedTagIds();
+
       const payload = {
         name: name?.trim() ?? '',
         categoryId: categoryId ?? '',
         amount: resolvedAmountMode === 'variable' ? 0 : Number(amount),
         currency: (currency ?? this.walletCurrency()).toUpperCase(),
         amountMode: resolvedAmountMode,
-        direction: (direction ?? 'expense') as RecurringTransactionDirection,
+        direction: direction ?? 'expense',
         startDate: startDate ?? this.formatDate(this.today),
         endDate: endDate && endDate.length > 0 ? endDate : null,
         schedule: this.buildCronSchedule() || schedule || '',
@@ -438,9 +461,11 @@ export class RecurringPaymentFormComponent {
     } catch (error) {
       logError('RecurringPaymentForm', 'submission failed', error);
       const storeError = this.store.mutationError();
+
       const shouldTranslate =
         !!storeError &&
         (storeError.startsWith('modules.') || storeError.startsWith('common.'));
+
       const message = shouldTranslate
         ? this.transloco.translate(storeError)
         : storeError;
@@ -461,9 +486,7 @@ export class RecurringPaymentFormComponent {
   updateTagSelections(selections: readonly TagPickerSelection[]): void {
     this.selectedTagSelections.set([...selections]);
     this.form.controls.tagIds.setValue(
-      selections
-        .map((selection) => selection.id)
-        .filter((id): id is string => Boolean(id)),
+      selections.flatMap((selection) => (selection.id ? [selection.id] : [])),
       { emitEvent: false }
     );
   }
@@ -480,25 +503,34 @@ export class RecurringPaymentFormComponent {
   );
 
   updateScheduleFrequency(event: Event): void {
-    const target = event.target as HTMLSelectElement | null;
+    const target =
+      event.target instanceof HTMLSelectElement ? event.target : null;
+
     const value = target?.value;
+
     if (value === 'daily' || value === 'weekly' || value === 'monthly') {
       this.setScheduleFrequency(value);
     }
   }
 
   updateScheduleTime(event: Event): void {
-    const target = event.target as HTMLInputElement | null;
+    const target =
+      event.target instanceof HTMLInputElement ? event.target : null;
+
     this.setScheduleTime(this.normalizeTime(target?.value ?? '12:00'));
   }
 
   updateScheduleDayOfWeek(event: Event): void {
-    const target = event.target as HTMLSelectElement | null;
+    const target =
+      event.target instanceof HTMLSelectElement ? event.target : null;
+
     this.setScheduleDayOfWeek(target?.value ?? '1');
   }
 
   updateScheduleDayOfMonth(event: Event): void {
-    const target = event.target as HTMLInputElement | null;
+    const target =
+      event.target instanceof HTMLInputElement ? event.target : null;
+
     this.setScheduleDayOfMonth(this.normalizeDayOfMonth(target?.value ?? 1));
   }
 
@@ -539,9 +571,11 @@ export class RecurringPaymentFormComponent {
 
   private async resolveSelectedTagIds(): Promise<readonly string[]> {
     const selections = this.selectedTagSelections();
+
     const newNames = selections
       .filter((selection) => !selection.id)
       .map((selection) => selection.name);
+
     if (newNames.length > 0) {
       await this.store.ensureTags(newNames);
     }
@@ -549,6 +583,7 @@ export class RecurringPaymentFormComponent {
     const tagsByName = new Map(
       this.store.tags().map((tag) => [tag.name.toLowerCase(), tag.id])
     );
+
     const resolved = selections
       .map(
         (selection) =>
@@ -563,6 +598,7 @@ export class RecurringPaymentFormComponent {
           selection.id ?? tagsByName.get(selection.name.toLowerCase()) ?? null,
       }))
     );
+
     return Array.from(new Set(resolved));
   }
 
@@ -571,11 +607,14 @@ export class RecurringPaymentFormComponent {
     updateCurrencyControl = false
   ): void {
     const wallets = this.store.wallets();
+
     const wallet = walletId
       ? wallets.find((item) => item.id === walletId) ?? null
       : null;
+
     const currency = wallet?.currency ?? this.store.defaultCurrency();
     this.selectedWalletCurrency.set(currency);
+
     if (
       updateCurrencyControl ||
       !this.currencyControl.value ||
@@ -593,6 +632,7 @@ export class RecurringPaymentFormComponent {
     options: readonly CategorySelectOption[];
   }[] {
     const categories = this.store.categories();
+
     const categoryNames = new Map(
       categories.map((category) => [category.id, category.name])
     );
@@ -606,6 +646,7 @@ export class RecurringPaymentFormComponent {
     }));
 
     const ungrouped = this.store.ungroupedCategories();
+
     const ungroupedView =
       ungrouped.length > 0
         ? [
@@ -638,6 +679,7 @@ export class RecurringPaymentFormComponent {
     while (currentParentId && !visited.has(currentParentId)) {
       visited.add(currentParentId);
       const parentName = categoryNames.get(currentParentId);
+
       if (!parentName) {
         break;
       }
@@ -669,14 +711,18 @@ export class RecurringPaymentFormComponent {
 
   private applyScheduleFromCron(schedule: string): void {
     const parts = schedule.trim().split(/\s+/);
+
     if (parts.length !== 5) {
       this.syncScheduleControl();
+
       return;
     }
 
     const [minute, hour, dayOfMonth, month, dayOfWeek] = parts;
+
     if (month !== '*') {
       this.syncScheduleControl();
+
       return;
     }
 
@@ -693,6 +739,7 @@ export class RecurringPaymentFormComponent {
         minuteNumber,
         dayOfWeek
       );
+
       this.setScheduleFrequency('weekly', false);
       this.setScheduleDayOfWeek(local.dayOfWeek, false);
       this.setScheduleTime(local.time, false);
@@ -702,6 +749,7 @@ export class RecurringPaymentFormComponent {
         minuteNumber,
         dayOfMonth
       );
+
       this.setScheduleFrequency('monthly', false);
       this.setScheduleDayOfMonth(local.dayOfMonth, false);
       this.setScheduleTime(local.time, false);
@@ -734,14 +782,17 @@ export class RecurringPaymentFormComponent {
 
   private normalizeTime(value: string): string {
     const [hourPart, minutePart] = value.split(':');
+
     const hour = `${this.clampCronNumber(hourPart, 0, 23, 12)}`.padStart(
       2,
       '0'
     );
+
     const minute = `${this.clampCronNumber(minutePart, 0, 59, 0)}`.padStart(
       2,
       '0'
     );
+
     return `${hour}:${minute}`;
   }
 
@@ -754,17 +805,21 @@ export class RecurringPaymentFormComponent {
     emitEvent = true
   ): void {
     this.scheduleFrequencyView.set(value);
+
     if (this.scheduleFrequencyControl.value !== value) {
       this.scheduleFrequencyControl.setValue(value, { emitEvent });
     }
+
     this.syncScheduleControl();
   }
 
   private setScheduleTime(value: string, emitEvent = true): void {
     const normalized = this.normalizeTime(value);
+
     if (this.scheduleTimeControl.value !== normalized) {
       this.scheduleTimeControl.setValue(normalized, { emitEvent });
     }
+
     this.syncScheduleControl();
   }
 
@@ -772,6 +827,7 @@ export class RecurringPaymentFormComponent {
     if (this.scheduleDayOfWeekControl.value !== value) {
       this.scheduleDayOfWeekControl.setValue(value, { emitEvent });
     }
+
     this.syncScheduleControl();
   }
 
@@ -780,9 +836,11 @@ export class RecurringPaymentFormComponent {
     emitEvent = true
   ): void {
     const day = this.normalizeDayOfMonth(value);
+
     if (this.scheduleDayOfMonthControl.value !== day) {
       this.scheduleDayOfMonthControl.setValue(day, { emitEvent });
     }
+
     this.syncScheduleControl();
   }
 
@@ -793,6 +851,7 @@ export class RecurringPaymentFormComponent {
     fallback: number
   ): number {
     const parsed = Number(value);
+
     if (!Number.isFinite(parsed)) {
       return fallback;
     }
@@ -804,18 +863,14 @@ export class RecurringPaymentFormComponent {
     const year = date.getFullYear();
     const month = `${date.getMonth() + 1}`.padStart(2, '0');
     const day = `${date.getDate()}`.padStart(2, '0');
+
     return `${year}-${month}-${day}`;
   }
 
   private localScheduleToUtc(
     hour: number,
     minute: number
-  ): {
-    readonly hour: number;
-    readonly minute: number;
-    readonly dayOfWeek: number;
-    readonly dayOfMonth: number;
-  } {
+  ): LocalScheduleToUtcResult {
     const frequency = this.scheduleFrequencyControl.value;
     const now = new Date();
     let localDate: Date;
@@ -827,6 +882,7 @@ export class RecurringPaymentFormComponent {
         6,
         1
       );
+
       const daysUntilTarget = (targetDay - now.getDay() + 7) % 7;
       localDate = new Date(
         now.getFullYear(),
@@ -841,6 +897,7 @@ export class RecurringPaymentFormComponent {
       const targetDay = this.normalizeDayOfMonth(
         this.scheduleDayOfMonthControl.value
       );
+
       localDate = this.localDateForMonthlyDay(targetDay, hour, minute);
     } else {
       localDate = new Date(
@@ -865,8 +922,9 @@ export class RecurringPaymentFormComponent {
   private utcDailyScheduleToLocal(
     hour: number,
     minute: number
-  ): { readonly time: string } {
+  ): UtcDailyScheduleToLocalResult {
     const now = new Date();
+
     const localDate = new Date(
       Date.UTC(
         now.getUTCFullYear(),
@@ -878,6 +936,7 @@ export class RecurringPaymentFormComponent {
         0
       )
     );
+
     return { time: this.formatTime(localDate) };
   }
 
@@ -885,10 +944,11 @@ export class RecurringPaymentFormComponent {
     hour: number,
     minute: number,
     dayOfWeek: string
-  ): { readonly time: string; readonly dayOfWeek: string } {
+  ): UtcWeeklyScheduleToLocalResult {
     const now = new Date();
     const targetDay = this.clampCronNumber(dayOfWeek, 0, 7, 1) % 7;
     const daysUntilTarget = (targetDay - now.getUTCDay() + 7) % 7;
+
     const localDate = new Date(
       Date.UTC(
         now.getUTCFullYear(),
@@ -900,6 +960,7 @@ export class RecurringPaymentFormComponent {
         0
       )
     );
+
     return {
       time: this.formatTime(localDate),
       dayOfWeek: `${localDate.getDay()}`,
@@ -910,9 +971,10 @@ export class RecurringPaymentFormComponent {
     hour: number,
     minute: number,
     dayOfMonth: string
-  ): { readonly time: string; readonly dayOfMonth: number } {
+  ): UtcMonthlyScheduleToLocalResult {
     const targetDay = this.clampCronNumber(dayOfMonth, 1, 31, 1);
     const utcDate = this.utcDateForMonthlyDay(targetDay, hour, minute);
+
     return {
       time: this.formatTime(utcDate),
       dayOfMonth: utcDate.getDate(),
@@ -925,6 +987,7 @@ export class RecurringPaymentFormComponent {
     minute: number
   ): Date {
     const now = new Date();
+
     for (let offset = 0; offset < 12; offset += 1) {
       const candidate = new Date(
         now.getFullYear(),
@@ -935,6 +998,7 @@ export class RecurringPaymentFormComponent {
         0,
         0
       );
+
       if (candidate.getDate() === day) {
         return candidate;
       }
@@ -949,6 +1013,7 @@ export class RecurringPaymentFormComponent {
     minute: number
   ): Date {
     const now = new Date();
+
     for (let offset = 0; offset < 12; offset += 1) {
       const candidate = new Date(
         Date.UTC(
@@ -961,6 +1026,7 @@ export class RecurringPaymentFormComponent {
           0
         )
       );
+
       if (candidate.getUTCDate() === day) {
         return candidate;
       }
@@ -974,6 +1040,28 @@ export class RecurringPaymentFormComponent {
   private formatTime(value: Date): string {
     const hour = `${value.getHours()}`.padStart(2, '0');
     const minute = `${value.getMinutes()}`.padStart(2, '0');
+
     return `${hour}:${minute}`;
   }
+}
+
+interface LocalScheduleToUtcResult {
+  readonly hour: number;
+  readonly minute: number;
+  readonly dayOfWeek: number;
+  readonly dayOfMonth: number;
+}
+
+interface UtcDailyScheduleToLocalResult {
+  readonly time: string;
+}
+
+interface UtcWeeklyScheduleToLocalResult {
+  readonly time: string;
+  readonly dayOfWeek: string;
+}
+
+interface UtcMonthlyScheduleToLocalResult {
+  readonly time: string;
+  readonly dayOfMonth: number;
 }

@@ -148,7 +148,7 @@ npm run build:worker       # Cloudflare Worker-ready production build
 npm run test               # Vitest unit tests for web
 npm run test:recurring-edge # recurring scheduling unit tests
 npm run lint               # ESLint for web
-npm run lint:oxlint       # Nx Oxlint tasks plus no-new-findings baseline check
+npm run lint:oxlint       # Nx Oxlint tasks plus strict repository-wide checks
 npm run e2e                # Playwright E2E suite
 npm run format:check       # Prettier check
 npm run mcp:build          # build the local STDIO MCP server
@@ -212,12 +212,12 @@ npm run test
 npm run build
 ```
 
-Oxlint runs beside ESLint; ESLint still checks Angular templates. The anti-slop
-rules are vendored under `tools/oxlint/anti-slop/` and remain enabled as warnings
-for existing code. `.oxlint-baseline.json` records those existing warnings; the
-`lint:oxlint` command fails on any new warning or native Oxlint error. Update the
-baseline only after reviewing intentional changes to the lint policy or fixing
-existing findings.
+Oxlint runs beside ESLint; ESLint still checks Angular templates. All enabled
+anti-slop rules are errors, and `npm run lint:oxlint` requires zero errors and
+warnings across the repository, including tools and Supabase Edge Functions. The rules
+are vendored under `tools/oxlint/anti-slop/` with their upstream revision and
+license. Type assertions require a specific `SAFETY:` comment describing the
+invariant checked by the code. There is no warning baseline.
 
 For database or generated-type changes, also run:
 

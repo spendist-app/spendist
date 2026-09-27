@@ -1,8 +1,12 @@
-import type { TransactionDirection } from '@spendist/data-access/supabase-types';
+import type {
+  TransactionDirection,
+  Json,
+} from '@spendist/data-access/supabase-types';
 
 export const TRANSACTION_IMPORT_MAX_ROWS = 500;
 
 export type TransactionImportFormat = 'spendist_csv' | 'biedronka_e_receipt';
+
 export type TransactionImportDetectedFormat =
   | TransactionImportFormat
   | 'unknown';
@@ -10,7 +14,7 @@ export type TransactionImportDetectedFormat =
 export interface TransactionImportContext {
   readonly source: TransactionImportFormat;
   readonly fingerprint: string;
-  readonly metadata: Readonly<Record<string, unknown>>;
+  readonly metadata: Readonly<Record<string, Json | undefined>>;
   readonly isAutomatic: boolean;
   readonly recurringScheduledFor: Date | null;
   readonly sourceAmountInDefault: number | null;

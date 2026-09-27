@@ -1,5 +1,6 @@
+import { z } from 'zod';
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
-import { PostgrestError, SupabaseClient } from '@supabase/supabase-js';
+import { PostgrestError } from '@supabase/supabase-js';
 import { AuthService } from '../../../core/auth.service';
 import { logError } from '../../../core/logger';
 import { SUPABASE_CLIENT } from '../../../core/supabase';
@@ -41,7 +42,7 @@ class PlacesStoreError extends Error {
 
 @Injectable()
 export class PlacesStore {
-  private readonly supabase = inject<SupabaseClient>(SUPABASE_CLIENT);
+  private readonly supabase = inject(SUPABASE_CLIENT);
   private readonly auth = inject(AuthService);
   private readonly userId = signal<string | null>(null);
   private readonly state = signal<PlacesState>({
@@ -75,6 +76,7 @@ export class PlacesStore {
           error: null,
           places: [],
         });
+
         return;
       }
 
@@ -84,6 +86,7 @@ export class PlacesStore {
 
   async refresh(): Promise<void> {
     const userId = this.userId();
+
     if (!userId) {
       return;
     }
@@ -110,7 +113,7 @@ export class PlacesStore {
         loading: false,
         error: null,
         places: this.sortPlaces(
-          (data ?? []).map((row) => this.mapPlaceRow(row as PlaceRow))
+          (data ?? []).map((row) => this.mapPlaceRow(row))
         ),
       }));
     } catch (error) {
@@ -148,12 +151,13 @@ export class PlacesStore {
         throw error;
       }
 
-      const place = this.mapPlaceRow(this.requireRow(data as PlaceRow | null));
+      const place = this.mapPlaceRow(this.requireRow(data));
       this.state.update((state) => ({
         ...state,
         error: null,
         places: this.sortPlaces([...state.places, place]),
       }));
+
       return place;
     } catch (error) {
       const message = this.describeError(error);
@@ -189,7 +193,7 @@ export class PlacesStore {
         throw error;
       }
 
-      const place = this.mapPlaceRow(this.requireRow(data as PlaceRow | null));
+      const place = this.mapPlaceRow(this.requireRow(data));
       this.state.update((state) => ({
         ...state,
         error: null,
@@ -244,6 +248,7 @@ export class PlacesStore {
 
   private normalizePayload(payload: PlacePayload): PlacePayload {
     const name = payload.name.trim();
+
     if (!name) {
       throw new PlacesStoreError('places.errors.nameRequired');
     }
@@ -258,16 +263,22 @@ export class PlacesStore {
     };
   }
 
-  private emptyToNull(value: string | null | undefined, max: number): string | null {
+  private emptyToNull(
+    value: string | null | undefined,
+    max: number
+  ): string | null {
     const trimmed = value?.trim() ?? '';
+
     return trimmed ? trimmed.slice(0, max) : null;
   }
 
   private requireUserId(): string {
     const userId = this.userId();
+
     if (!userId) {
       throw new PlacesStoreError('places.errors.auth');
     }
+
     return userId;
   }
 
@@ -275,6 +286,7 @@ export class PlacesStore {
     if (row == null) {
       throw new PlacesStoreError('places.errors.emptyResponse');
     }
+
     return row;
   }
 
@@ -294,9 +306,8 @@ export class PlacesStore {
   private sortPlaces(places: readonly PlaceEntity[]): readonly PlaceEntity[] {
     return [...places].sort((a, b) => {
       const byName = a.name.localeCompare(b.name);
-      return byName === 0
-        ? (a.city ?? '').localeCompare(b.city ?? '')
-        : byName;
+
+      return byName === 0 ? (a.city ?? '').localeCompare(b.city ?? '') : byName;
     });
   }
 
@@ -307,23 +318,30 @@ export class PlacesStore {
     }));
   }
 
-  private describeError(error: unknown): string {
-    if (error instanceof PlacesStoreError) {
-      return error.message;
+  private describeError(cause: unknown): string {
+    if (cause instanceof PlacesStoreError) {
+      return cause.message;
     }
 
-    if (this.isPostgrestError(error)) {
-      return error.message ?? 'places.errors.generic';
+    if (this.isPostgrestError(cause)) {
+      return cause.message ?? 'places.errors.generic';
     }
 
-    if (error instanceof Error) {
-      return error.message;
+    if (cause instanceof Error) {
+      return cause.message;
     }
 
     return 'places.errors.generic';
   }
 
-  private isPostgrestError(error: unknown): error is PostgrestError {
-    return !!error && typeof error === 'object' && 'code' in error && 'message' in error;
+  private isPostgrestError(
+    cause: unknown
+  ): cause is Pick<PostgrestError, 'code' | 'message'> {
+    return z
+      .object({
+        code: z.string(),
+        message: z.string(),
+      })
+      .safeParse(cause).success;
   }
 }

@@ -8,7 +8,7 @@ const OUTPUT_PATH = resolve(
   'supabase-types',
   'src',
   'generated',
-  'database.types.ts',
+  'database.types.ts'
 );
 
 function ensureOutDir(path) {
@@ -18,8 +18,11 @@ function ensureOutDir(path) {
 
 function main() {
   const dbUrl = process.env.SUPABASE_DB_URL;
+
   if (!dbUrl) {
-    console.error('[supabase-types] Missing SUPABASE_DB_URL environment variable.');
+    console.error(
+      '[supabase-types] Missing SUPABASE_DB_URL environment variable.'
+    );
     process.exit(1);
   }
 
@@ -40,7 +43,7 @@ function main() {
     {
       stdio: ['ignore', 'pipe', 'inherit'],
       env: process.env,
-    },
+    }
   );
 
   if (result.error) {

@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { DATASET_VERSION, DATE_RANGE, FIXTURES } from './fixtures.mjs';
 
 const INCOME_KEYS = new Set(['salary', 'bonus', 'freelance', 'refunds']);
+
 const EXPENSE_KEYS = [
   'supermarket',
   'bakery',
@@ -25,6 +26,7 @@ const EXPENSE_KEYS = [
   'travel',
   'gifts',
 ];
+
 const AMOUNT_RANGES = {
   supermarket: [25, 145],
   bakery: [5, 28],
@@ -55,9 +57,11 @@ export function uuidFor(locale, type, key) {
     .digest('hex')
     .slice(0, 32)
     .split('');
+
   hex[12] = '4';
   hex[16] = ((Number.parseInt(hex[16], 16) & 0x3) | 0x8).toString(16);
   const value = hex.join('');
+
   return `${value.slice(0, 8)}-${value.slice(8, 12)}-${value.slice(
     12,
     16
@@ -70,8 +74,10 @@ function hashNumber(input) {
 
 function rng(seed) {
   let state = hashNumber(seed) || 1;
+
   return () => {
     state = (state * 1664525 + 1013904223) >>> 0;
+
     return state / 0x100000000;
   };
 }
@@ -87,6 +93,7 @@ function dateAtNoon(date) {
 function addDays(date, days) {
   const result = new Date(`${date}T12:00:00.000Z`);
   result.setUTCDate(result.getUTCDate() + days);
+
   return result.toISOString().slice(0, 10);
 }
 
@@ -100,6 +107,7 @@ function daysBetween(start, end) {
 function recurringDefinitions(fixture) {
   const currency = fixture.defaultCurrency;
   const localized = fixture.locale === 'pl';
+
   return [
     ['salary', 'salary', 1, localized ? 8500 : 6200, 'income', 'fixed', false],
     ['rent', 'rent', 3, localized ? 2650 : 1850, 'expense', 'fixed', false],
@@ -139,41 +147,60 @@ function recurringDefinitions(fixture) {
 function transactionDescription(fixture, categoryKey, random) {
   const options =
     fixture.descriptions[categoryKey] ?? fixture.descriptions.default;
+
   return options[Math.floor(random() * options.length)];
 }
 
 function placeKeyForCategory(categoryKey) {
   if (['supermarket', 'home-supplies'].includes(categoryKey))
     return 'green-market';
+
   if (categoryKey === 'bakery') return 'bakery';
+
   if (categoryKey === 'dining') return 'coffee';
+
   if (['pharmacy', 'healthcare'].includes(categoryKey)) return 'pharmacy';
+
   if (['entertainment', 'subscriptions'].includes(categoryKey)) return 'cinema';
+
   if (['public-transit', 'rides'].includes(categoryKey)) return 'transit';
+
   if (categoryKey === 'fitness') return 'fitness';
+
   if (categoryKey === 'travel') return 'station';
+
   return null;
 }
 
 function tagsFor(categoryKey, index) {
   const result = [];
+
   if (index % 3 === 0) result.push('everyday');
+
   if (['healthcare', 'pharmacy', 'fitness'].includes(categoryKey))
     result.push('health');
+
   if (['education', 'freelance'].includes(categoryKey)) result.push('work');
+
   if (['travel'].includes(categoryKey)) result.push('vacation');
+
   if (['subscriptions', 'internet', 'mobile'].includes(categoryKey))
     result.push('online');
+
   if (index % 11 === 0) result.push('weekend');
+
   return [...new Set(result)].slice(0, 2);
 }
 
 export function generateDemoDataset(locale, ownerId) {
   const fixture = FIXTURES[locale];
+
   if (!fixture) throw new Error(`Unsupported demo locale: ${locale}`);
+
   if (!ownerId) throw new Error('ownerId is required');
 
   const generatedAt = `${DATE_RANGE.end}T12:00:00.000Z`;
+
   const groups = fixture.groups.map((group) => ({
     id: uuidFor(locale, 'group', group.key),
     owner_id: ownerId,
@@ -181,12 +208,15 @@ export function generateDemoDataset(locale, ownerId) {
     color: group.color,
     icon: group.icon,
   }));
+
   const groupIds = Object.fromEntries(
     fixture.groups.map((item) => [item.key, uuidFor(locale, 'group', item.key)])
   );
+
   const categoryIds = Object.fromEntries(
     fixture.categories.map(([key]) => [key, uuidFor(locale, 'category', key)])
   );
+
   const categories = fixture.categories.map(
     ([key, name, groupKey, parentKey, icon]) => ({
       id: categoryIds[key],
@@ -198,9 +228,11 @@ export function generateDemoDataset(locale, ownerId) {
       icon,
     })
   );
+
   const tagIds = Object.fromEntries(
     fixture.tags.map(([key]) => [key, uuidFor(locale, 'tag', key)])
   );
+
   const tags = fixture.tags.map(([key, name, color, icon]) => ({
     id: tagIds[key],
     owner_id: ownerId,
@@ -208,9 +240,11 @@ export function generateDemoDataset(locale, ownerId) {
     color,
     icon,
   }));
+
   const placeIds = Object.fromEntries(
     fixture.places.map(([key]) => [key, uuidFor(locale, 'place', key)])
   );
+
   const places = fixture.places.map(([key, name, street, postalCode]) => ({
     id: placeIds[key],
     owner_id: ownerId,
@@ -224,12 +258,14 @@ export function generateDemoDataset(locale, ownerId) {
         ? 'Fikcyjne miejsce demonstracyjne'
         : 'Fictional demo location',
   }));
+
   const walletIds = Object.fromEntries(
     fixture.wallets.map((wallet) => [
       wallet.key,
       uuidFor(locale, 'wallet', wallet.key),
     ])
   );
+
   const wallets = fixture.wallets.map((wallet) => ({
     id: walletIds[wallet.key],
     owner_id: ownerId,
@@ -239,12 +275,14 @@ export function generateDemoDataset(locale, ownerId) {
   }));
 
   const recurringDefs = recurringDefinitions(fixture);
+
   const recurringIds = Object.fromEntries(
     recurringDefs.map((item) => [
       item.key,
       uuidFor(locale, 'recurring', item.key),
     ])
   );
+
   const recurringTransactions = recurringDefs.map((item) => ({
     id: recurringIds[item.key],
     owner_id: ownerId,
@@ -270,6 +308,7 @@ export function generateDemoDataset(locale, ownerId) {
   const transactionTags = [];
   const occurrences = [];
   let sequence = 0;
+
   const addTransaction = ({
     date,
     categoryKey,
@@ -286,6 +325,7 @@ export function generateDemoDataset(locale, ownerId) {
       'transaction',
       String(sequence).padStart(4, '0')
     );
+
     const occurredAt = dateAtNoon(date);
     const wallet = fixture.wallets.find((item) => item.key === walletKey);
     transactions.push({
@@ -314,6 +354,7 @@ export function generateDemoDataset(locale, ownerId) {
       },
       imported_at: generatedAt,
     });
+
     for (const tagKey of tagsFor(categoryKey, sequence)) {
       transactionTags.push({
         owner_id: ownerId,
@@ -321,20 +362,27 @@ export function generateDemoDataset(locale, ownerId) {
         tag_id: tagIds[tagKey],
       });
     }
+
     sequence += 1;
+
     return { id, occurredAt };
   };
 
   for (let month = 1; month <= 7; month += 1) {
     for (const recurring of recurringDefs) {
       if (recurring.key === 'fitness' && month > 4) continue;
+
       if (recurring.key === 'electricity' && month === 7) continue;
+
       const date = `2026-${String(month).padStart(2, '0')}-${String(
         recurring.day
       ).padStart(2, '0')}`;
+
       if (date > DATE_RANGE.end) continue;
+
       const variableFactor =
         recurring.amountMode === 'variable' ? 0.82 + month * 0.035 : 1;
+
       const created = addTransaction({
         date,
         categoryKey: recurring.categoryKey,
@@ -344,6 +392,7 @@ export function generateDemoDataset(locale, ownerId) {
         automatic: true,
         description: recurring.name,
       });
+
       if (recurring.amountMode === 'variable') {
         occurrences.push({
           id: uuidFor(locale, 'occurrence', `${recurring.key}:${month}`),
@@ -359,6 +408,7 @@ export function generateDemoDataset(locale, ownerId) {
       }
     }
   }
+
   occurrences.push({
     id: uuidFor(locale, 'occurrence', 'electricity:7'),
     owner_id: ownerId,
@@ -373,21 +423,28 @@ export function generateDemoDataset(locale, ownerId) {
 
   const random = rng(`${DATASET_VERSION}:${locale}`);
   const totalDays = daysBetween(DATE_RANGE.start, DATE_RANGE.end);
+
   while (transactions.length < 300) {
     const index = transactions.length;
+
     const categoryKey =
       EXPENSE_KEYS[
         (index + Math.floor(random() * EXPENSE_KEYS.length)) %
           EXPENSE_KEYS.length
       ];
+
     const [min, max] = AMOUNT_RANGES[categoryKey];
+
     const date = addDays(
       DATE_RANGE.start,
       Math.floor(random() * (totalDays + 1))
     );
+
     const walletRoll = random();
+
     const walletKey =
       walletRoll < 0.04 ? 'travel' : walletRoll < 0.16 ? 'cash' : 'main';
+
     const placeKey = random() < 0.68 ? placeKeyForCategory(categoryKey) : null;
     addTransaction({
       date,
@@ -404,11 +461,13 @@ export function generateDemoDataset(locale, ownerId) {
     ['2026-04-20', 'freelance', fixture.locale === 'pl' ? 1450 : 950],
     ['2026-06-15', 'bonus', fixture.locale === 'pl' ? 1200 : 800],
   ];
+
   for (let index = 0; index < extraIncome.length; index += 1) {
     const [date, categoryKey, amount] = extraIncome[index];
     const replacement = transactions.length - 1 - index;
     const oldId = transactions[replacement].id;
     transactions.splice(replacement, 1);
+
     for (
       let tagIndex = transactionTags.length - 1;
       tagIndex >= 0;
@@ -417,6 +476,7 @@ export function generateDemoDataset(locale, ownerId) {
       if (transactionTags[tagIndex].transaction_id === oldId)
         transactionTags.splice(tagIndex, 1);
     }
+
     sequence = replacement;
     addTransaction({
       date,
@@ -426,6 +486,7 @@ export function generateDemoDataset(locale, ownerId) {
       description: fixture.categories.find(([key]) => key === categoryKey)[1],
     });
   }
+
   transactions.sort((a, b) => a.occurred_at.localeCompare(b.occurred_at));
 
   const recurringTransactionTags = [
@@ -440,6 +501,7 @@ export function generateDemoDataset(locale, ownerId) {
     recurring_transaction_id: recurringIds[recurringKey],
     tag_id: tagIds[tagKey],
   }));
+
   const notifications = [
     ['salary', '2026-07-01T12:00:00.000Z', '2026-07-02T09:00:00.000Z'],
     ['rent', '2026-07-03T12:00:00.000Z', null],
@@ -489,16 +551,20 @@ export function summarizeDataset(dataset) {
   const incomes = dataset.transactions.filter(
     (item) => item.direction === 'income'
   );
+
   const expenses = dataset.transactions.filter(
     (item) => item.direction === 'expense'
   );
+
   const categoryCount = new Set(
     dataset.transactions.map((item) => item.category_id)
   ).size;
+
   const checksum = createHash('sha256')
     .update(JSON.stringify(dataset))
     .digest('hex')
     .slice(0, 16);
+
   return {
     locale: dataset.locale,
     transactions: dataset.transactions.length,
@@ -521,16 +587,21 @@ export function summarizeDataset(dataset) {
 
 export function validateDataset(dataset) {
   const errors = [];
+
   if (dataset.transactions.length !== 300)
     errors.push('Expected exactly 300 transactions.');
   const ids = new Set(dataset.transactions.map((item) => item.id));
+
   if (ids.size !== dataset.transactions.length)
     errors.push('Transaction IDs must be unique.');
+
   if (dataset.transactions.some((item) => item.amount < 0))
     errors.push('Transaction amounts must be non-negative.');
+
   if (
     dataset.transactions.some((item) => {
       const date = item.occurred_at.slice(0, 10);
+
       return date < DATE_RANGE.start || date > DATE_RANGE.end;
     })
   )
@@ -538,29 +609,36 @@ export function validateDataset(dataset) {
   const categoryIds = new Set(dataset.categories.map((item) => item.id));
   const walletIds = new Set(dataset.wallets.map((item) => item.id));
   const placeIds = new Set(dataset.places.map((item) => item.id));
+
   if (dataset.transactions.some((item) => !categoryIds.has(item.category_id)))
     errors.push('Unknown transaction category.');
+
   if (dataset.transactions.some((item) => !walletIds.has(item.wallet_id)))
     errors.push('Unknown transaction wallet.');
+
   if (
     dataset.transactions.some(
       (item) => item.place_id && !placeIds.has(item.place_id)
     )
   )
     errors.push('Unknown transaction place.');
+
   if (
     dataset.categories.some(
       (item) => item.parent_id && !categoryIds.has(item.parent_id)
     )
   )
     errors.push('Unknown parent category.');
+
   if (
     dataset.transactions.some(
       (item) => !['PLN', 'USD', 'EUR'].includes(item.currency)
     )
   )
     errors.push('Unsupported currency.');
+
   if (errors.length) throw new Error(errors.join(' '));
+
   return true;
 }
 

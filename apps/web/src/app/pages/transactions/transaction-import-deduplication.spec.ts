@@ -32,6 +32,7 @@ describe('transaction import deduplication', () => {
       { importContext: repeatedImportContext, row: 3 },
       { importContext: repeatedImportContext, row: 4 },
     ];
+
     const existing = new Map([
       [
         `${repeatedImportContext.source}|${repeatedImportContext.fingerprint}`,
@@ -49,6 +50,7 @@ describe('transaction import deduplication', () => {
       { importContext: repeatedImportContext },
       { importContext: repeatedImportContext },
     ];
+
     const existing = new Map([
       [
         `${repeatedImportContext.source}|${repeatedImportContext.fingerprint}`,
@@ -60,7 +62,10 @@ describe('transaction import deduplication', () => {
   });
 
   it('does not deduplicate ordinary manually entered transactions', () => {
-    const rows = [{ row: 1 }, { row: 2 }];
+    const rows = [
+      { row: 1, importContext: undefined },
+      { row: 2, importContext: undefined },
+    ];
 
     expect(excludePreviouslyImportedTransactions(rows, new Map())).toEqual(
       rows

@@ -1,4 +1,4 @@
-import { computed, signal, type WritableSignal } from '@angular/core';
+import { computed, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { AuthService } from '../../core/auth.service';
 import { ProfileService, type ProfileEntity } from '../../core/profile.service';
@@ -34,6 +34,7 @@ function createSupabaseMock() {
     data: profileRow(),
     error: null,
   });
+
   const select = vi.fn(() => ({ single }));
   const eq = vi.fn(() => ({ select }));
   const update = vi.fn(() => ({ eq }));
@@ -57,21 +58,34 @@ describe('SettingsStore profile updates', () => {
     TestBed.configureTestingModule({
       providers: [
         SettingsStore,
-        { provide: AuthService, useClass: AuthServiceStub },
-        { provide: ProfileService, useClass: ProfileServiceStub },
+        AuthServiceStub,
+        { provide: AuthService, useExisting: AuthServiceStub },
+        ProfileServiceStub,
+        { provide: ProfileService, useExisting: ProfileServiceStub },
         { provide: SUPABASE_CLIENT, useValue: supabase },
       ],
     });
 
     store = TestBed.inject(SettingsStore);
-    profileService = TestBed.inject(
-      ProfileService
-    ) as unknown as ProfileServiceStub;
-    (
-      store as unknown as {
-        userId: WritableSignal<string | null>;
-      }
-    ).userId.set('user-1');
+    profileService = TestBed.inject(ProfileServiceStub);
+    store['userId'].set('user-1');
+  });
+
+  it('keeps the duplicate-wallet message for PostgREST errors with null metadata', () => {
+    expect(
+      store['describeWalletError']({
+        code: '23505',
+        message: 'duplicate default wallet',
+        details: null,
+        hint: null,
+      })
+    ).toBe('settings.panels.wallets.errors.onlyOneDefault');
+  });
+
+  it('uses the generic wallet message for malformed error fields', () => {
+    expect(store['describeWalletError']({ code: '23505', message: 42 })).toBe(
+      'settings.panels.wallets.errors.generic'
+    );
   });
 
   it('partially updates and publishes the refreshed profile', async () => {

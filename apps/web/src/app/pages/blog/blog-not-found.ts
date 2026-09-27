@@ -18,9 +18,8 @@ export class BlogNotFound {
   private readonly language = inject(LanguageService);
   private readonly transloco = inject(TranslocoService);
   private readonly seo = inject(BlogSeoService);
-  protected readonly locale = this.route.snapshot.data[
-    'blogLocale'
-  ] as BlogLocale;
+  protected readonly locale: BlogLocale =
+    this.route.snapshot.data['blogLocale'] === 'pl' ? 'pl' : 'en';
   protected readonly basePath = blogPath(this.locale);
 
   constructor() {

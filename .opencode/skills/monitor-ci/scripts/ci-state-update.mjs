@@ -15,6 +15,7 @@
 // --- Arg parsing ---
 
 const args = process.argv.slice(2);
+
 const command = args[0];
 
 function getFlag(name) {
@@ -23,6 +24,7 @@ function getFlag(name) {
 
 function getArg(name) {
   const idx = args.indexOf(name);
+
   return idx !== -1 && idx + 1 < args.length ? args[idx + 1] : null;
 }
 
@@ -40,6 +42,7 @@ function gate() {
   if (gateType === 'local-fix') {
     const count = parseInt(getArg('--local-verify-count') || '0', 10);
     const max = parseInt(getArg('--local-verify-attempts') || '3', 10);
+
     if (count >= max) {
       return output({
         allowed: false,
@@ -47,6 +50,7 @@ function gate() {
         message: `Local fix budget exhausted (${count}/${max} attempts)`,
       });
     }
+
     return output({
       allowed: true,
       localVerifyCount: count + 1,
@@ -56,6 +60,7 @@ function gate() {
 
   if (gateType === 'env-rerun') {
     const count = parseInt(getArg('--env-rerun-count') || '0', 10);
+
     if (count >= 2) {
       return output({
         allowed: false,
@@ -63,6 +68,7 @@ function gate() {
         message: `Environment issue persists after ${count} reruns. Manual investigation needed.`,
       });
     }
+
     return output({
       allowed: true,
       envRerunCount: count + 1,
@@ -84,6 +90,7 @@ function postAction() {
 
   // MCP-triggered or auto-applied: track by cipeUrl
   const cipeUrlActions = ['fix-auto-applying', 'apply-mcp', 'env-rerun'];
+
   // Local push: track by commitSha
   const commitShaActions = [
     'apply-local-push',

@@ -42,11 +42,13 @@ export class TagPickerComponent implements OnDestroy {
 
   protected readonly suggestedTags = computed(() => {
     const query = this.tagInput().trim().toLowerCase();
+
     const selectedIds = new Set(
       this.value()
         .map((selection) => selection.id)
         .filter((id): id is string => Boolean(id))
     );
+
     const selectedNames = new Set(
       this.value().map((selection) => selection.name.toLowerCase())
     );
@@ -67,6 +69,7 @@ export class TagPickerComponent implements OnDestroy {
         .map((selection) => selection.id)
         .filter((id): id is string => Boolean(id))
     );
+
     const selectedNames = new Set(
       this.value().map((selection) => selection.name.toLowerCase())
     );
@@ -84,7 +87,9 @@ export class TagPickerComponent implements OnDestroy {
   );
 
   protected onTagInput(event: Event): void {
-    const input = event.target as HTMLInputElement | null;
+    const input =
+      event.target instanceof HTMLInputElement ? event.target : null;
+
     this.tagInput.set(input?.value ?? '');
     this.showSuggestions.set(true);
     this.highlightedSuggestion.set(-1);
@@ -93,6 +98,7 @@ export class TagPickerComponent implements OnDestroy {
 
   protected onTagInputFocus(): void {
     this.clearSuggestionTimer();
+
     if (this.suggestedTags().length > 0) {
       this.showSuggestions.set(true);
       this.highlightedSuggestion.set(-1);
@@ -110,17 +116,20 @@ export class TagPickerComponent implements OnDestroy {
     if (event.key === 'ArrowDown') {
       event.preventDefault();
       this.moveSuggestionHighlight(1);
+
       return;
     }
 
     if (event.key === 'ArrowUp') {
       event.preventDefault();
       this.moveSuggestionHighlight(-1);
+
       return;
     }
 
     if (event.key === 'Escape') {
       this.closeSuggestionList();
+
       return;
     }
 
@@ -133,6 +142,7 @@ export class TagPickerComponent implements OnDestroy {
         event.preventDefault();
         this.commitTagInput();
       }
+
       return;
     }
 
@@ -186,20 +196,25 @@ export class TagPickerComponent implements OnDestroy {
   private commitTagInput(): void {
     const suggestions = this.suggestedTags();
     const highlighted = this.highlightedSuggestion();
+
     if (highlighted >= 0 && highlighted < suggestions.length) {
       this.addExistingTag(suggestions[highlighted]);
+
       return;
     }
 
     const value = this.sanitizeTagName(this.tagInput());
+
     if (!value) {
       this.closeSuggestionList();
+
       return;
     }
 
     const existing = this.tags().find(
       (tag) => tag.name.toLowerCase() === value.toLowerCase()
     );
+
     this.addTagSelection(
       existing
         ? { id: existing.id, name: existing.name }
@@ -213,6 +228,7 @@ export class TagPickerComponent implements OnDestroy {
         ? item.id === selection.id
         : item.name.toLowerCase() === selection.name.toLowerCase()
     );
+
     if (duplicate) {
       return;
     }
@@ -226,13 +242,16 @@ export class TagPickerComponent implements OnDestroy {
     if (this.value().length === 0) {
       return;
     }
+
     this.valueChange.emit(this.value().slice(0, -1));
   }
 
   private moveSuggestionHighlight(direction: 1 | -1): void {
     const suggestions = this.suggestedTags();
+
     if (suggestions.length === 0) {
       this.closeSuggestionList();
+
       return;
     }
 
@@ -263,9 +282,11 @@ export class TagPickerComponent implements OnDestroy {
 
   private sanitizeTagName(value: string): string | null {
     const normalized = value.trim().replace(/\s+/g, ' ');
+
     if (!normalized) {
       return null;
     }
+
     return normalized.slice(0, 60);
   }
 }

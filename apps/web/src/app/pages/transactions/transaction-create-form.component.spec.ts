@@ -1,10 +1,16 @@
+import { z } from 'zod';
+import { requiredValue, fixtureElement } from '../../../testing/dom';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { TranslocoService } from '@ngneat/transloco';
 import { firstValueFrom } from 'rxjs';
 import { provideAppTransloco } from '../../i18n/transloco.providers';
 import { TransactionCreateFormComponent } from './transaction-create-form.component';
-import { TransactionsStore } from './transactions.store';
+import {
+  TransactionsStore,
+  type CreateTransactionPayload,
+  type CreateAllowanceRecipientExpensePayload,
+} from './transactions.store';
 
 class TransactionsStoreStub {
   readonly categories = signal([
@@ -78,8 +84,8 @@ class TransactionsStoreStub {
   readonly mutationError = signal(null);
   getExchangeRateCalls = 0;
   createTransactionsCalls = 0;
-  createTransactionsPayload: Record<string, unknown> | null = null;
-  recipientExpensePayload: Record<string, unknown> | null = null;
+  createTransactionsPayload: CreateTransactionPayload | null = null;
+  recipientExpensePayload: CreateAllowanceRecipientExpensePayload | null = null;
 
   dismissMutationError(): void {
     return;
@@ -91,21 +97,24 @@ class TransactionsStoreStub {
 
   async getExchangeRate(): Promise<number> {
     this.getExchangeRateCalls += 1;
+
     return 4;
   }
 
   async createTransactions(
-    payload: Record<string, unknown>
+    payload: CreateTransactionPayload
   ): Promise<{ success: true }> {
     this.createTransactionsCalls += 1;
     this.createTransactionsPayload = payload;
+
     return { success: true };
   }
 
   async createAllowanceRecipientExpense(
-    payload: Record<string, unknown>
+    payload: CreateAllowanceRecipientExpensePayload
   ): Promise<{ success: true }> {
     this.recipientExpensePayload = payload;
+
     return { success: true };
   }
 
@@ -123,10 +132,8 @@ describe('TransactionCreateFormComponent', () => {
     await TestBed.configureTestingModule({
       imports: [TransactionCreateFormComponent],
       providers: [
-        {
-          provide: TransactionsStore,
-          useClass: TransactionsStoreStub,
-        },
+        TransactionsStoreStub,
+        { provide: TransactionsStore, useExisting: TransactionsStoreStub },
         ...provideAppTransloco(),
       ],
     }).compileComponents();
@@ -140,10 +147,12 @@ describe('TransactionCreateFormComponent', () => {
     const fixture = TestBed.createComponent(TransactionCreateFormComponent);
     fixture.detectChanges();
 
-    const compiled = fixture.nativeElement as HTMLElement;
-    const currencySelect = compiled.querySelector(
+    const compiled = fixtureElement(fixture);
+
+    const currencySelect = compiled.querySelector<HTMLSelectElement>(
       'select[formControlName="currency"]'
-    ) as HTMLSelectElement | null;
+    );
+
     const options = Array.from(currencySelect?.options ?? []).map(
       (option) => option.value
     );
@@ -153,14 +162,17 @@ describe('TransactionCreateFormComponent', () => {
 
   it('keeps a typed draft when categories finish loading', () => {
     const fixture = TestBed.createComponent(TransactionCreateFormComponent);
-    const store = TestBed.inject(
-      TransactionsStore
-    ) as unknown as TransactionsStoreStub;
+
+    const store = TestBed.inject(TransactionsStoreStub);
+
     fixture.detectChanges();
 
-    const description = (fixture.nativeElement as HTMLElement).querySelector(
-      'input[formControlName="description"]'
-    ) as HTMLInputElement;
+    const description = requiredValue(
+      fixtureElement(fixture).querySelector<HTMLInputElement>(
+        'input[formControlName="description"]'
+      )
+    );
+
     description.value = 'Lunch';
     description.dispatchEvent(new Event('input', { bubbles: true }));
     fixture.detectChanges();
@@ -184,6 +196,7 @@ describe('TransactionCreateFormComponent', () => {
   it('provides the Polish allowance recipient field label', async () => {
     const transloco = TestBed.inject(TranslocoService);
     transloco.setActiveLang('pl');
+
     const label = await firstValueFrom(
       transloco.selectTranslate('transactions.form.fields.allowanceRecipient')
     );
@@ -193,9 +206,9 @@ describe('TransactionCreateFormComponent', () => {
 
   it('creates an expense only on the selected child account', async () => {
     const fixture = TestBed.createComponent(TransactionCreateFormComponent);
-    const store = TestBed.inject(
-      TransactionsStore
-    ) as unknown as TransactionsStoreStub;
+
+    const store = TestBed.inject(TransactionsStoreStub);
+
     fixture.detectChanges();
 
     const component = fixture.componentInstance;
@@ -211,7 +224,7 @@ describe('TransactionCreateFormComponent', () => {
     );
     fixture.detectChanges();
 
-    const compiled = fixture.nativeElement as HTMLElement;
+    const compiled = fixtureElement(fixture);
     expect(compiled.querySelector('app-category-select')).toBeNull();
     expect(compiled.querySelector('app-tag-picker')).toBeNull();
     expect(compiled.querySelector('[formControlName="walletId"]')).toBeNull();
@@ -231,9 +244,9 @@ describe('TransactionCreateFormComponent', () => {
 
   it('keeps the existing paired Allowance transaction target', async () => {
     const fixture = TestBed.createComponent(TransactionCreateFormComponent);
-    const store = TestBed.inject(
-      TransactionsStore
-    ) as unknown as TransactionsStoreStub;
+
+    const store = TestBed.inject(TransactionsStoreStub);
+
     fixture.detectChanges();
 
     const component = fixture.componentInstance;
@@ -260,10 +273,11 @@ describe('TransactionCreateFormComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
 
-    const compiled = fixture.nativeElement as HTMLElement;
-    const descriptionInput = compiled.querySelector(
+    const compiled = fixtureElement(fixture);
+
+    const descriptionInput = compiled.querySelector<HTMLInputElement>(
       'input[formControlName="description"]'
-    ) as HTMLInputElement | null;
+    );
 
     expect(descriptionInput).not.toBeNull();
     expect(descriptionInput?.parentElement?.classList).toContain(
@@ -299,16 +313,20 @@ describe('TransactionCreateFormComponent', () => {
     component['form'].controls.occurredOn.setValue('2026-06-01');
     fixture.detectChanges();
 
-    const compiled = fixture.nativeElement as HTMLElement;
+    const compiled = fixtureElement(fixture);
+
     const dateInput = compiled.querySelector<HTMLInputElement>(
       'input[formControlName="occurredOn"]'
     );
+
     const setTodayButton =
       dateInput?.parentElement?.querySelector<HTMLButtonElement>('button');
+
     setTodayButton?.click();
     fixture.detectChanges();
 
     const today = new Date();
+
     const expectedDate = [
       today.getUTCFullYear(),
       String(today.getUTCMonth() + 1).padStart(2, '0'),
@@ -324,10 +342,12 @@ describe('TransactionCreateFormComponent', () => {
     const fixture = TestBed.createComponent(TransactionCreateFormComponent);
     fixture.detectChanges();
 
-    const compiled = fixture.nativeElement as HTMLElement;
+    const compiled = fixtureElement(fixture);
+
     const dropdownButton = compiled.querySelector<HTMLButtonElement>(
       'app-category-select button[aria-haspopup="listbox"]'
     );
+
     dropdownButton?.click();
     fixture.detectChanges();
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -336,18 +356,23 @@ describe('TransactionCreateFormComponent', () => {
     const searchInput = compiled.querySelector<HTMLInputElement>(
       'app-category-select input[type="search"]'
     );
+
     if (!searchInput) {
       throw new Error('Category search input was not rendered.');
     }
+
     expect(document.activeElement).toBe(searchInput);
 
     searchInput.value = 'transport';
     searchInput.dispatchEvent(new Event('input'));
     fixture.detectChanges();
 
-    const listbox = compiled.querySelector(
-      'app-category-select [role="listbox"]'
-    ) as HTMLElement;
+    const listbox = requiredValue(
+      compiled.querySelector<HTMLElement>(
+        'app-category-select [role="listbox"]'
+      )
+    );
+
     expect(listbox.textContent).toContain('Transport');
     expect(listbox.textContent).not.toContain('Food');
   });
@@ -356,10 +381,12 @@ describe('TransactionCreateFormComponent', () => {
     const fixture = TestBed.createComponent(TransactionCreateFormComponent);
     fixture.detectChanges();
 
-    const compiled = fixture.nativeElement as HTMLElement;
+    const compiled = fixtureElement(fixture);
+
     const dropdownButtons = compiled.querySelectorAll<HTMLButtonElement>(
       'button[aria-haspopup="listbox"]'
     );
+
     dropdownButtons[1]?.click();
     fixture.detectChanges();
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -368,16 +395,21 @@ describe('TransactionCreateFormComponent', () => {
     const searchInput = compiled.querySelector<HTMLInputElement>(
       'input[type="search"]'
     );
+
     if (!searchInput) {
       throw new Error('Place search input was not rendered.');
     }
+
     expect(document.activeElement).toBe(searchInput);
 
     searchInput.value = 'zebrzydowice';
     searchInput.dispatchEvent(new Event('input'));
     fixture.detectChanges();
 
-    const listbox = compiled.querySelector('[role="listbox"]') as HTMLElement;
+    const listbox = requiredValue(
+      compiled.querySelector<HTMLElement>('[role="listbox"]')
+    );
+
     expect(listbox.textContent).toContain('Barber');
 
     compiled
@@ -401,9 +433,9 @@ describe('TransactionCreateFormComponent', () => {
 
   it('shows seven recently used tags and adds one with a click', () => {
     const fixture = TestBed.createComponent(TransactionCreateFormComponent);
-    const store = TestBed.inject(
-      TransactionsStore
-    ) as unknown as TransactionsStoreStub;
+
+    const store = TestBed.inject(TransactionsStoreStub);
+
     const tags = Array.from({ length: 8 }, (_, index) => ({
       id: `tag-${index + 1}`,
       ownerId: 'user-1',
@@ -411,6 +443,7 @@ describe('TransactionCreateFormComponent', () => {
       color: index === 0 ? '#0EA5A5' : null,
       icon: null,
     }));
+
     store.tags.set(tags);
     store.transactionsView.set(
       tags.map((tag, index) => ({
@@ -421,10 +454,11 @@ describe('TransactionCreateFormComponent', () => {
     fixture.detectChanges();
 
     const recentTagButtons = Array.from(
-      fixture.nativeElement.querySelectorAll<HTMLButtonElement>(
+      fixtureElement(fixture).querySelectorAll<HTMLButtonElement>(
         '[data-testid="recent-tag"]'
       )
     );
+
     expect(recentTagButtons).toHaveLength(7);
     expect(
       recentTagButtons.map((button) => button.textContent?.trim())
@@ -438,7 +472,7 @@ describe('TransactionCreateFormComponent', () => {
     ]);
     expect(
       Array.from(
-        fixture.nativeElement.querySelectorAll<HTMLButtonElement>(
+        fixtureElement(fixture).querySelectorAll<HTMLButtonElement>(
           '[data-testid="recent-tag"]'
         )
       ).map((button) => button.textContent?.trim())
@@ -460,9 +494,16 @@ describe('TransactionCreateFormComponent', () => {
 
     await component['submit']();
 
-    const stored = JSON.parse(
-      sessionStorage.getItem(recentDefaultsStorageKey) ?? '{}'
-    ) as { occurredOn?: string; categoryId?: string; placeId?: string };
+    const stored = z
+      .object({
+        occurredOn: z.string().optional(),
+        categoryId: z.string().optional(),
+        placeId: z.string().optional(),
+      })
+      .parse(
+        JSON.parse(sessionStorage.getItem(recentDefaultsStorageKey) ?? '{}')
+      );
+
     expect(stored).toEqual({
       occurredOn: '2026-06-16',
       categoryId: 'category-2',
@@ -472,18 +513,18 @@ describe('TransactionCreateFormComponent', () => {
 
   it('saves and resets the form without closing when adding another transaction', async () => {
     const fixture = TestBed.createComponent(TransactionCreateFormComponent);
-    const store = TestBed.inject(
-      TransactionsStore
-    ) as unknown as TransactionsStoreStub;
+
+    const store = TestBed.inject(TransactionsStoreStub);
+
     fixture.detectChanges();
 
     const component = fixture.componentInstance;
     let closed = false;
     let saved = false;
-    component.closed.subscribe(() => {
+    component['closed'].subscribe(() => {
       closed = true;
     });
-    component.saved.subscribe(() => {
+    component['saved'].subscribe(() => {
       saved = true;
     });
     component['form'].patchValue({
@@ -508,9 +549,9 @@ describe('TransactionCreateFormComponent', () => {
 
   it('updates default amount from exchange rate in edit mode', async () => {
     const fixture = TestBed.createComponent(TransactionCreateFormComponent);
-    const store = TestBed.inject(
-      TransactionsStore
-    ) as unknown as TransactionsStoreStub;
+
+    const store = TestBed.inject(TransactionsStoreStub);
+
     fixture.componentRef.setInput('mode', 'edit');
     fixture.componentRef.setInput('transaction', {
       id: 'transaction-1',
@@ -538,7 +579,7 @@ describe('TransactionCreateFormComponent', () => {
     });
     fixture.detectChanges();
 
-    const compiled = fixture.nativeElement as HTMLElement;
+    const compiled = fixtureElement(fixture);
     expect(
       compiled.querySelector('[data-testid="transaction-created-at"]')
         ?.textContent
@@ -547,9 +588,13 @@ describe('TransactionCreateFormComponent', () => {
       compiled.querySelector('[data-testid="transaction-updated-at"]')
         ?.textContent
     ).toContain('May 30, 2026');
-    const currencySelect = compiled.querySelector(
-      'select[formControlName="currency"]'
-    ) as HTMLSelectElement;
+
+    const currencySelect = requiredValue(
+      compiled.querySelector<HTMLSelectElement>(
+        'select[formControlName="currency"]'
+      )
+    );
+
     expect(currencySelect.value).toBe('USD');
 
     compiled
@@ -557,9 +602,12 @@ describe('TransactionCreateFormComponent', () => {
       ?.click();
     fixture.detectChanges();
 
-    const defaultAmountInput = compiled.querySelector(
-      'input[formControlName="foreignAmount"]'
-    ) as HTMLInputElement;
+    const defaultAmountInput = requiredValue(
+      compiled.querySelector<HTMLInputElement>(
+        'input[formControlName="foreignAmount"]'
+      )
+    );
+
     defaultAmountInput.value = '1';
     defaultAmountInput.dispatchEvent(new Event('input'));
     fixture.detectChanges();

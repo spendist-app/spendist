@@ -1,7 +1,17 @@
 import { isPlatformBrowser } from '@angular/common';
-import { Injectable, PLATFORM_ID, computed, inject, signal } from '@angular/core';
+import {
+  Injectable,
+  PLATFORM_ID,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { TranslocoService } from '@ngneat/transloco';
-import { DEFAULT_LANGUAGE, LanguageCode, SUPPORTED_LANGUAGES } from '../i18n/languages';
+import {
+  DEFAULT_LANGUAGE,
+  LanguageCode,
+  SUPPORTED_LANGUAGES,
+} from '../i18n/languages';
 
 const STORAGE_KEY = 'spendist.language';
 
@@ -10,7 +20,9 @@ export class LanguageService {
   private readonly transloco = inject(TranslocoService);
   private readonly platformId = inject(PLATFORM_ID);
 
-  private readonly activeLanguage = signal<LanguageCode>(this.resolveInitialLanguage());
+  private readonly activeLanguage = signal<LanguageCode>(
+    this.resolveInitialLanguage()
+  );
 
   readonly currentLanguage = computed(() => this.activeLanguage());
   readonly availableLanguages = SUPPORTED_LANGUAGES;
@@ -28,6 +40,7 @@ export class LanguageService {
       this.transloco.setActiveLang(language);
       this.persistLanguage(language);
       this.updateDocumentLanguage(language);
+
       return;
     }
 
@@ -39,13 +52,19 @@ export class LanguageService {
 
   private resolveInitialLanguage(): LanguageCode {
     const saved = this.readLanguage();
+
     if (saved) {
       return saved;
     }
 
     if (isPlatformBrowser(this.platformId)) {
-      const browserLanguage = navigator.language?.split('-')[0]?.toLowerCase() ?? '';
-      const match = SUPPORTED_LANGUAGES.find((option) => option.code === browserLanguage);
+      const browserLanguage =
+        navigator.language?.split('-')[0]?.toLowerCase() ?? '';
+
+      const match = SUPPORTED_LANGUAGES.find(
+        (option) => option.code === browserLanguage
+      );
+
       if (match) {
         return match.code;
       }
@@ -73,7 +92,11 @@ export class LanguageService {
 
     try {
       const stored = window.localStorage.getItem(STORAGE_KEY);
-      return SUPPORTED_LANGUAGES.some((option) => option.code === stored) ? (stored as LanguageCode) : null;
+
+      return (
+        SUPPORTED_LANGUAGES.find((option) => option.code === stored)?.code ??
+        null
+      );
     } catch {
       return null;
     }

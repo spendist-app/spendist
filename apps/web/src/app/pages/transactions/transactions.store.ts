@@ -1,6 +1,7 @@
+import { z } from 'zod';
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { logError } from '../../core/logger';
-import { SupabaseClient } from '@supabase/supabase-js';
+
 import { AuthService } from '../../core/auth.service';
 import { SUPABASE_CLIENT } from '../../core/supabase';
 import type {
@@ -12,7 +13,6 @@ import type {
   TransactionTagRow,
   WalletRow,
   PlaceRow,
-  Json,
   Tables,
 } from '@spendist/data-access/supabase-types';
 import type { TransactionImportContext } from './transaction-import.models';
@@ -21,11 +21,17 @@ import type {
   CategoryEntity,
   CategoryGroupEntity,
 } from '../settings/settings.store';
+
 const FALLBACK_CURRENCY = 'PLN';
+
 const MAX_BULK_QUANTITY = 100;
+
 const SUPABASE_PAGE_SIZE = 1000;
+
 const TRANSACTION_TAG_QUERY_BATCH_SIZE = 100;
+
 const FIRST_TRANSACTION_PAGE = 0;
+
 type CurrencyRow = Tables<'currencies'>;
 
 interface TransactionEntity {
@@ -83,13 +89,6 @@ interface TransactionsState {
 export interface AllowanceConnectionOption {
   readonly id: string;
   readonly counterpartName: string;
-}
-
-interface AllowanceConnectionRpcRow {
-  readonly id: string | null;
-  readonly role: string | null;
-  readonly counterpart_name: string | null;
-  readonly status: string | null;
 }
 
 export interface TagEntity {
@@ -288,7 +287,7 @@ interface NormalizedUpdatePayload {
 
 @Injectable()
 export class TransactionsStore {
-  private readonly supabase = inject<SupabaseClient>(SUPABASE_CLIENT);
+  private readonly supabase = inject(SUPABASE_CLIENT);
   private readonly auth = inject(AuthService);
 
   private readonly userId = signal<string | null>(null);
@@ -364,19 +363,23 @@ export class TransactionsStore {
   readonly defaultWalletId = computed(() => {
     const wallets = this.state().wallets;
     const preferred = wallets.find((wallet) => wallet.isDefault);
+
     return preferred?.id ?? wallets[0]?.id ?? null;
   });
   readonly categorySummaryLoading = computed(() => this.state().summaryLoading);
   readonly categorySummaryError = computed(() => this.state().summaryError);
   private readonly totalExpenseAmountSignal = computed(() => {
     let total = 0;
+
     for (const summary of this.state().categorySummaries.values()) {
       total += summary.totalAmount;
     }
+
     return total;
   });
   readonly activeFilters = computed(() => {
     const filters = this.filters();
+
     return {
       ...filters,
       from: filters.from ? new Date(filters.from) : null,
@@ -391,6 +394,7 @@ export class TransactionsStore {
   );
   readonly selectedCategoryCount = computed(() => {
     const selectedIds = this.filters().selectedCategoryIds;
+
     return selectedIds.length || this.state().categories.length;
   });
   readonly hasActiveTagFilter = computed(
@@ -398,12 +402,14 @@ export class TransactionsStore {
   );
   readonly selectedCategoryFilterValue = computed(() => {
     const selectedIds = this.filters().selectedCategoryIds;
+
     if (selectedIds.length === 0) {
       return '';
     }
 
     for (const group of this.state().groups) {
       const groupIds = this.categoryIdsForGroup(group.id);
+
       if (this.hasExactlySelectedCategoryIds(selectedIds, groupIds)) {
         return `group:${group.id}`;
       }
@@ -444,18 +450,22 @@ export class TransactionsStore {
 
   readonly transactionsView = computed<readonly TransactionViewModel[]>(() => {
     const state = this.state();
+
     const categoriesById = new Map(
       state.categories.map((category) => [category.id, category])
     );
+
     const groupsById = new Map(state.groups.map((group) => [group.id, group]));
     const placesById = new Map(state.places.map((place) => [place.id, place]));
     const tagsMap = state.transactionTags;
 
     return state.transactions.map((transaction) => {
       const category = categoriesById.get(transaction.categoryId) ?? null;
+
       const group = category?.groupId
         ? groupsById.get(category.groupId) ?? null
         : null;
+
       return {
         ...transaction,
         category,
@@ -472,6 +482,7 @@ export class TransactionsStore {
 
   readonly availableYears = computed(() => {
     const years = this.state().availableYears;
+
     return years.length > 0 ? years : [new Date().getFullYear()];
   });
 
@@ -480,11 +491,13 @@ export class TransactionsStore {
       if (!this.filtersInitialized()) {
         return;
       }
+
       if (this.auth.loading()) {
         return;
       }
 
       const session = this.auth.session();
+
       if (!session) {
         this.userId.set(null);
         this.state.set({
@@ -515,10 +528,12 @@ export class TransactionsStore {
         });
         this.filters.set(this.createInitialFilters());
         this.lastSummaryRangeKey = null;
+
         return;
       }
 
       const currentUserId = session.user.id;
+
       if (this.userId() === currentUserId) {
         return;
       }
@@ -572,6 +587,7 @@ export class TransactionsStore {
 
   async refresh(): Promise<void> {
     const userId = this.userId();
+
     if (!userId) {
       return;
     }
@@ -649,55 +665,60 @@ export class TransactionsStore {
       if (currenciesResult.error) {
         throw currenciesResult.error;
       }
+
       if (allowanceConnectionsResult.error) {
         throw allowanceConnectionsResult.error;
       }
 
       const groups = this.sortGroups(
-        (groupsResult.data ?? []).map((group) =>
-          this.mapGroupRow(group as CategoryGroupRow)
-        )
+        (groupsResult.data ?? []).map((group) => this.mapGroupRow(group))
       );
+
       const categories = this.sortCategories(
         (categoriesResult.data ?? []).map((category) =>
-          this.mapCategoryRow(category as CategoryRow)
+          this.mapCategoryRow(category)
         )
       );
+
       const tags = this.sortTags(
-        (tagsResult.data ?? []).map((tag) => this.mapTagRow(tag as TagRow))
+        (tagsResult.data ?? []).map((tag) => this.mapTagRow(tag))
       );
+
       const places = this.sortPlaces(
-        (placesResult.data ?? []).map((place) =>
-          this.mapPlaceRow(place as PlaceRow)
-        )
+        (placesResult.data ?? []).map((place) => this.mapPlaceRow(place))
       );
+
       const currencyRows = (currenciesResult.data ?? []).map((row) =>
-        this.mapCurrencyRow(row as CurrencyRow)
+        this.mapCurrencyRow(row)
       );
+
       const currencyLookup = new Map(
         currencyRows.map((currency) => [currency.id, currency.symbol])
       );
+
       const currencies = this.sortCurrencies(currencyRows);
+
       const wallets = this.sortWallets(
         (walletsResult.data ?? []).map((wallet) =>
-          this.mapWalletRow(wallet as WalletRow, currencyLookup)
+          this.mapWalletRow(wallet, currencyLookup)
         )
       );
+
       const defaultCurrency =
         wallets.find((wallet) => wallet.isDefault)?.currency ??
         wallets[0]?.currency ??
         FALLBACK_CURRENCY;
+
       const previousState = this.state();
+
       const allowanceConnections = (
-        (allowanceConnectionsResult.data ?? []) as AllowanceConnectionRpcRow[]
-      )
-        .filter(
-          (row) => row.role === 'payer' && row.status === 'active' && row.id
-        )
-        .map((row) => ({
-          id: row.id as string,
-          counterpartName: row.counterpart_name ?? '',
-        }));
+        allowanceConnectionsResult.data ?? []
+      ).flatMap((row) =>
+        row.role === 'payer' && row.status === 'active' && row.id
+          ? [{ id: row.id, counterpartName: row.counterpart_name ?? '' }]
+          : []
+      );
+
       this.state.set({
         loading: true,
         error: null,
@@ -743,6 +764,7 @@ export class TransactionsStore {
 
   async loadMoreTransactions(): Promise<void> {
     const state = this.state();
+
     if (
       state.loading ||
       state.loadingMoreTransactions ||
@@ -773,6 +795,7 @@ export class TransactionsStore {
     showInitialLoading: boolean;
   }): Promise<void> {
     const userId = this.userId();
+
     if (!userId) {
       return;
     }
@@ -780,23 +803,27 @@ export class TransactionsStore {
     const page = options.append
       ? this.state().transactionPage + 1
       : FIRST_TRANSACTION_PAGE;
+
     const requestToken = ++this.transactionRequestToken;
 
-    this.state.update((state) => ({
-      ...state,
-      loading: options.showInitialLoading ? true : state.loading,
-      loadingMoreTransactions: options.append,
-      error: null,
-      ...(options.append
-        ? {}
-        : {
-            transactions: [],
-            transactionTags: new Map<string, readonly string[]>(),
-            transactionPage: FIRST_TRANSACTION_PAGE,
-            totalMatchingTransactions: 0,
-            hasMoreTransactions: false,
-          }),
-    }));
+    this.state.update((state) => {
+      const next = {
+        ...state,
+        loading: options.showInitialLoading ? true : state.loading,
+        loadingMoreTransactions: options.append,
+        error: null,
+      };
+
+      if (!options.append) {
+        next.transactions = [];
+        next.transactionTags = new Map<string, readonly string[]>();
+        next.transactionPage = FIRST_TRANSACTION_PAGE;
+        next.totalMatchingTransactions = 0;
+        next.hasMoreTransactions = false;
+      }
+
+      return next;
+    });
 
     try {
       const result = await this.fetchTransactionPage(
@@ -804,6 +831,7 @@ export class TransactionsStore {
         this.filters(),
         page
       );
+
       if (requestToken !== this.transactionRequestToken) {
         return;
       }
@@ -811,10 +839,13 @@ export class TransactionsStore {
       const transactions = result.rows.map((row) =>
         this.mapTransactionRow(row)
       );
+
       const pageTags = this.buildTransactionTagsMap(result.tagRows);
+
       const nextTransactionTags = options.append
         ? new Map(this.state().transactionTags)
         : new Map<string, readonly string[]>();
+
       for (const [transactionId, tagIds] of pageTags.entries()) {
         nextTransactionTags.set(transactionId, tagIds);
       }
@@ -822,6 +853,7 @@ export class TransactionsStore {
       const loadedRows = options.append
         ? this.state().transactions.length + transactions.length
         : transactions.length;
+
       this.state.update((state) => ({
         ...state,
         loading: false,
@@ -857,6 +889,7 @@ export class TransactionsStore {
   ): Promise<TransactionPageResult> {
     const from = page * SUPABASE_PAGE_SIZE;
     const to = from + SUPABASE_PAGE_SIZE - 1;
+
     let query = this.supabase
       .from('transactions')
       .select('*, recurring_transactions(name)', { count: 'exact' })
@@ -895,6 +928,7 @@ export class TransactionsStore {
         userId,
         filters.selectedTagIds
       );
+
       if (transactionIds.length === 0) {
         return {
           rows: [],
@@ -908,6 +942,7 @@ export class TransactionsStore {
     }
 
     const searchFilter = this.buildTransactionSearchFilter(filters.searchTerm);
+
     if (searchFilter) {
       query = query.or(searchFilter);
     }
@@ -945,15 +980,18 @@ export class TransactionsStore {
     query = query.range(from, to);
 
     const { data, error, count } = await query;
+
     if (error) {
       throw error;
     }
 
-    const rows = (data ?? []) as TransactionPageRow[];
+    const rows = data ?? [];
+
     const tagRows = await this.loadTransactionTagRows(
       userId,
       rows.map((row) => row.id)
     );
+
     return {
       rows,
       tagRows,
@@ -988,6 +1026,7 @@ export class TransactionsStore {
     }
 
     const rows: TransactionTagRow[] = [];
+
     for (
       let index = 0;
       index < transactionIds.length;
@@ -997,6 +1036,7 @@ export class TransactionsStore {
         index,
         index + TRANSACTION_TAG_QUERY_BATCH_SIZE
       );
+
       const { data, error } = await this.supabase
         .from('transaction_tags')
         .select('*')
@@ -1007,7 +1047,7 @@ export class TransactionsStore {
         throw error;
       }
 
-      rows.push(...((data ?? []) as TransactionTagRow[]));
+      rows.push(...(data ?? []));
     }
 
     return rows;
@@ -1039,6 +1079,7 @@ export class TransactionsStore {
 
     const oldest = oldestResult.data?.[0]?.occurred_at;
     const newest = newestResult.data?.[0]?.occurred_at;
+
     if (!oldest || !newest) {
       return [new Date().getFullYear()];
     }
@@ -1046,6 +1087,7 @@ export class TransactionsStore {
     const firstYear = new Date(oldest).getUTCFullYear();
     const lastYear = new Date(newest).getUTCFullYear();
     const years: number[] = [];
+
     for (let year = lastYear; year >= firstYear; year -= 1) {
       years.push(year);
     }
@@ -1058,20 +1100,24 @@ export class TransactionsStore {
       .trim()
       .replace(/[%,()]/g, ' ')
       .replace(/\s+/g, ' ');
+
     if (!normalized) {
       return null;
     }
 
     const matchingCategoryIds = this.matchingCategoryIdsForSearch(normalized);
+
     const filters = [
       `description.ilike.%${normalized}%`,
       `currency.ilike.%${normalized}%`,
     ];
+
     if (matchingCategoryIds.length > 0) {
       filters.push(`category_id.in.(${matchingCategoryIds.join(',')})`);
     }
 
     const matchingPlaceIds = this.matchingPlaceIdsForSearch(normalized);
+
     if (matchingPlaceIds.length > 0) {
       filters.push(`place_id.in.(${matchingPlaceIds.join(',')})`);
     }
@@ -1083,6 +1129,7 @@ export class TransactionsStore {
     const normalized = searchTerm.toLowerCase();
     const groups = this.state().groups;
     const categories = this.state().categories;
+
     const matchingGroupIds = new Set(
       groups
         .filter((group) => group.name.toLowerCase().includes(normalized))
@@ -1100,6 +1147,7 @@ export class TransactionsStore {
 
   private matchingPlaceIdsForSearch(searchTerm: string): readonly string[] {
     const normalized = searchTerm.toLowerCase();
+
     return this.state()
       .places.filter((place) =>
         [
@@ -1118,12 +1166,14 @@ export class TransactionsStore {
 
   applyPreset(preset: TransactionPresetId): void {
     const current = this.filters();
+
     if (preset === 'custom') {
       this.filters.set({
         ...current,
         preset,
       });
       void this.reloadTransactionsAfterFilterChange();
+
       return;
     }
 
@@ -1203,6 +1253,7 @@ export class TransactionsStore {
   toggleCategorySelection(categoryId: string): void {
     this.filters.update((filters) => {
       const set = new Set(filters.selectedCategoryIds);
+
       if (set.size === 0) {
         set.add(categoryId);
       } else if (set.has(categoryId)) {
@@ -1224,6 +1275,7 @@ export class TransactionsStore {
       const set = new Set(filters.selectedCategoryIds);
       const groupIds = this.categoryIdsForGroup(groupId);
       const allSelected = groupIds.every((id) => set.has(id));
+
       if (allSelected) {
         groupIds.forEach((id) => set.delete(id));
       } else {
@@ -1241,6 +1293,7 @@ export class TransactionsStore {
   isCategoryGroupSelected(groupId: string | null): boolean {
     const selectedIds = new Set(this.filters().selectedCategoryIds);
     const groupIds = this.categoryIdsForGroup(groupId);
+
     return (
       groupIds.length > 0 &&
       (selectedIds.size === 0 || groupIds.every((id) => selectedIds.has(id)))
@@ -1249,17 +1302,21 @@ export class TransactionsStore {
 
   isCategoryGroupIndeterminate(groupId: string | null): boolean {
     const selectedIds = new Set(this.filters().selectedCategoryIds);
+
     if (selectedIds.size === 0) {
       return false;
     }
+
     const groupIds = this.categoryIdsForGroup(groupId);
     const selectedCount = groupIds.filter((id) => selectedIds.has(id)).length;
+
     return selectedCount > 0 && selectedCount < groupIds.length;
   }
 
   toggleTagSelection(tagId: string): void {
     this.filters.update((filters) => {
       const set = new Set(filters.selectedTagIds);
+
       if (set.has(tagId)) {
         set.delete(tagId);
       } else {
@@ -1284,6 +1341,7 @@ export class TransactionsStore {
 
   isCategorySelected(categoryId: string): boolean {
     const selectedIds = this.filters().selectedCategoryIds;
+
     return selectedIds.length === 0 || selectedIds.includes(categoryId);
   }
 
@@ -1328,6 +1386,7 @@ export class TransactionsStore {
     if (this.filtersEqual(this.filters(), filters)) {
       return;
     }
+
     this.setFiltersFromExternalState(filters);
     void this.reloadTransactionsAfterFilterChange();
   }
@@ -1336,8 +1395,10 @@ export class TransactionsStore {
     if (this.filtersInitialized()) {
       return false;
     }
+
     this.setFiltersFromExternalState(filters);
     this.filtersInitialized.set(true);
+
     return true;
   }
 
@@ -1357,6 +1418,7 @@ export class TransactionsStore {
   ): boolean {
     const normalizeIds = (values: readonly string[]) =>
       [...new Set(values)].sort().join('\u0000');
+
     return (
       normalizeIds(left.selectedCategoryIds) ===
         normalizeIds(right.selectedCategoryIds) &&
@@ -1382,15 +1444,18 @@ export class TransactionsStore {
 
   async ensureTags(names: readonly string[]): Promise<readonly TagEntity[]> {
     const userId = this.userId();
+
     if (!userId) {
       throw new Error('You need to be signed in to manage tags.');
     }
 
     const sanitized = Array.from(
       new Set(
-        names
-          .map((name) => this.normalizeTagName(name))
-          .filter((name): name is string => !!name)
+        names.flatMap((name) => {
+          const normalized = this.normalizeTagName(name);
+
+          return normalized ? [normalized] : [];
+        })
       )
     );
 
@@ -1399,14 +1464,17 @@ export class TransactionsStore {
     }
 
     const currentState = this.state();
+
     const existingByName = new Map(
       currentState.tags.map((tag) => [tag.name.toLowerCase(), tag])
     );
+
     const result: TagEntity[] = [];
     const toCreate: string[] = [];
 
     for (const name of sanitized) {
       const existing = existingByName.get(name.toLowerCase());
+
       if (existing) {
         result.push(existing);
       } else {
@@ -1429,9 +1497,8 @@ export class TransactionsStore {
         throw error;
       }
 
-      const createdTags = (data ?? []).map((row) =>
-        this.mapTagRow(row as TagRow)
-      );
+      const createdTags = (data ?? []).map((row) => this.mapTagRow(row));
+
       result.push(...createdTags);
 
       this.state.update((state) => ({
@@ -1443,6 +1510,7 @@ export class TransactionsStore {
     const lookup = new Map(
       this.state().tags.map((tag) => [tag.name.toLowerCase(), tag])
     );
+
     return sanitized
       .map((name) => lookup.get(name.toLowerCase()))
       .filter((tag): tag is TagEntity => !!tag);
@@ -1455,6 +1523,7 @@ export class TransactionsStore {
   ): Promise<number | null> {
     const source = this.normalizeCurrency(sourceCurrency);
     const target = this.normalizeCurrency(targetCurrency);
+
     if (!source || !target || Number.isNaN(rateDate.getTime())) {
       return null;
     }
@@ -1473,26 +1542,28 @@ export class TransactionsStore {
       throw error;
     }
 
-    const rate =
-      typeof data === 'number' ? data : data != null ? Number(data) : null;
-    return Number.isFinite(rate ?? NaN) && (rate as number) > 0
-      ? (rate as number)
-      : null;
+    const rate = data != null ? Number(data) : null;
+
+    return rate !== null && Number.isFinite(rate) && rate > 0 ? rate : null;
   }
 
   async createTransactions(
     payload: CreateTransactionPayload
   ): Promise<{ success: boolean; error?: string }> {
     const userId = this.userId();
+
     if (!userId) {
       const message = 'You need to be signed in to create transactions.';
+
       return { success: false, error: message };
     }
 
     const normalized = this.normalizeCreatePayload(payload);
+
     if (!normalized) {
       const message =
         'Invalid transaction data. Please review the form and try again.';
+
       return { success: false, error: message };
     }
 
@@ -1518,6 +1589,7 @@ export class TransactionsStore {
             p_tag_ids: [...normalized.tagIds],
           }
         );
+
         if (error) throw error;
         await this.refresh();
         this.state.update((state) => ({
@@ -1525,6 +1597,7 @@ export class TransactionsStore {
           transactionMutationPending: false,
           mutationError: null,
         }));
+
         return { success: true };
       }
 
@@ -1547,11 +1620,13 @@ export class TransactionsStore {
         .from('transactions')
         .insert(rows)
         .select('id');
+
       if (error) {
         throw error;
       }
 
       const transactionRows = inserted ?? [];
+
       if (transactionRows.length === 0) {
         throw new Error('Transaction could not be created.');
       }
@@ -1568,6 +1643,7 @@ export class TransactionsStore {
         const { error: tagError } = await this.supabase
           .from('transaction_tags')
           .insert(tagRows);
+
         if (tagError) {
           throw tagError;
         }
@@ -1589,6 +1665,7 @@ export class TransactionsStore {
         transactionMutationPending: false,
         mutationError: message,
       }));
+
       return { success: false, error: message };
     }
   }
@@ -1599,6 +1676,7 @@ export class TransactionsStore {
     const userId = this.userId();
     const connectionId = payload.connectionId.trim();
     const currency = payload.currency.trim().toUpperCase();
+
     if (
       !userId ||
       !connectionId ||
@@ -1610,6 +1688,7 @@ export class TransactionsStore {
     ) {
       const message =
         'Invalid transaction data. Please review the form and try again.';
+
       return { success: false, error: message };
     }
 
@@ -1630,6 +1709,7 @@ export class TransactionsStore {
           p_currency: currency,
         }
       );
+
       if (error) throw error;
 
       this.state.update((state) => ({
@@ -1637,6 +1717,7 @@ export class TransactionsStore {
         transactionMutationPending: false,
         mutationError: null,
       }));
+
       return { success: true };
     } catch (error) {
       const message = this.describeError(error);
@@ -1650,6 +1731,7 @@ export class TransactionsStore {
         transactionMutationPending: false,
         mutationError: message,
       }));
+
       return { success: false, error: message };
     }
   }
@@ -1663,8 +1745,10 @@ export class TransactionsStore {
     error?: string;
   }> {
     const userId = this.userId();
+
     if (!userId) {
       const message = 'You need to be signed in to create transactions.';
+
       return {
         success: false,
         created: 0,
@@ -1683,18 +1767,22 @@ export class TransactionsStore {
       const existingCounts = await this.loadExistingImportCounts(
         payload.transactions
       );
+
       const transactions = excludePreviouslyImportedTransactions(
         payload.transactions,
         existingCounts
       );
+
       const duplicatesSkipped =
         payload.transactions.length - transactions.length;
+
       if (transactions.length === 0) {
         this.state.update((state) => ({
           ...state,
           transactionMutationPending: false,
           mutationError: null,
         }));
+
         return { success: true, created: 0, duplicatesSkipped };
       }
 
@@ -1705,6 +1793,7 @@ export class TransactionsStore {
         .filter((transaction): transaction is NormalizedCreatePayload =>
           Boolean(transaction)
         );
+
       if (normalized.length !== transactions.length) {
         throw new Error(
           'Invalid transaction data. Please review the form and try again.'
@@ -1712,14 +1801,16 @@ export class TransactionsStore {
       }
 
       const importedAt = new Date().toISOString();
+
       const rows = normalized.map((transaction, index) => ({
         ...(() => {
           const context = transactions[index].importContext;
+
           return context
             ? {
                 import_source: context.source,
                 import_fingerprint: context.fingerprint,
-                import_metadata: context.metadata as unknown as Json,
+                import_metadata: context.metadata,
                 imported_at: importedAt,
                 recurring_scheduled_for:
                   context.isAutomatic && context.recurringScheduledFor
@@ -1746,11 +1837,13 @@ export class TransactionsStore {
         .from('transactions')
         .insert(rows)
         .select('id');
+
       if (error) {
         throw error;
       }
 
       const transactionRows = inserted ?? [];
+
       if (transactionRows.length !== normalized.length) {
         throw new Error('Transactions could not be created.');
       }
@@ -1767,6 +1860,7 @@ export class TransactionsStore {
         const { error: tagError } = await this.supabase
           .from('transaction_tags')
           .insert(tagRows);
+
         if (tagError) {
           throw tagError;
         }
@@ -1796,6 +1890,7 @@ export class TransactionsStore {
         transactionMutationPending: false,
         mutationError: message,
       }));
+
       return {
         success: false,
         created: 0,
@@ -1809,20 +1904,26 @@ export class TransactionsStore {
     transactions: readonly CreateTransactionBatchItem[]
   ): Promise<Map<string, number>> {
     const bySource = new Map<string, Set<string>>();
+
     for (const transaction of transactions) {
       const context = transaction.importContext;
+
       if (!context) continue;
       const fingerprints = bySource.get(context.source) ?? new Set<string>();
       fingerprints.add(context.fingerprint);
       bySource.set(context.source, fingerprints);
     }
+
     const result = new Map<string, number>();
+
     for (const [source, fingerprints] of bySource) {
       const { data, error } = await this.supabase.rpc(
         'find_existing_transaction_import_fingerprints',
         { p_import_source: source, p_import_fingerprints: [...fingerprints] }
       );
+
       if (error) throw error;
+
       for (const row of data ?? []) {
         if (row.import_fingerprint) {
           const key = `${source}|${row.import_fingerprint}`;
@@ -1830,6 +1931,7 @@ export class TransactionsStore {
         }
       }
     }
+
     return result;
   }
 
@@ -1838,15 +1940,19 @@ export class TransactionsStore {
     payload: UpdateTransactionPayload
   ): Promise<{ success: boolean; error?: string }> {
     const userId = this.userId();
+
     if (!userId) {
       const message = 'You need to be signed in to update transactions.';
+
       return { success: false, error: message };
     }
 
     const normalized = this.normalizeUpdatePayload(payload);
+
     if (!normalized) {
       const message =
         'Invalid transaction data. Please review the form and try again.';
+
       return { success: false, error: message };
     }
 
@@ -1860,6 +1966,7 @@ export class TransactionsStore {
       const current = this.state().transactions.find(
         (transaction) => transaction.id === transactionId
       );
+
       const updateResult =
         current?.sourceModule === 'allowance' &&
         current.allowanceRole === 'payer'
@@ -1910,9 +2017,11 @@ export class TransactionsStore {
           transaction_id: transactionId,
           tag_id: tagId,
         }));
+
         const { error: insertTagsError } = await this.supabase
           .from('transaction_tags')
           .insert(tagRows);
+
         if (insertTagsError) {
           throw insertTagsError;
         }
@@ -1934,6 +2043,7 @@ export class TransactionsStore {
         transactionMutationPending: false,
         mutationError: message,
       }));
+
       return { success: false, error: message };
     }
   }
@@ -1942,8 +2052,10 @@ export class TransactionsStore {
     transactionId: string
   ): Promise<{ success: boolean; error?: string }> {
     const userId = this.userId();
+
     if (!userId) {
       const message = 'You need to be signed in to delete transactions.';
+
       return { success: false, error: message };
     }
 
@@ -1957,6 +2069,7 @@ export class TransactionsStore {
       const current = this.state().transactions.find(
         (transaction) => transaction.id === transactionId
       );
+
       const result =
         current?.sourceModule === 'allowance' &&
         current.allowanceRole === 'payer'
@@ -1989,16 +2102,19 @@ export class TransactionsStore {
         transactionMutationPending: false,
         mutationError: message,
       }));
+
       return { success: false, error: message };
     }
   }
 
   private createInitialFilters(): TransactionsFilters {
     const now = new Date();
+
     const { from, to } = this.monthRange(
       now.getUTCFullYear(),
       now.getUTCMonth()
     );
+
     return {
       selectedCategoryIds: [],
       selectedTagIds: [],
@@ -2030,6 +2146,7 @@ export class TransactionsStore {
     }
 
     const selected = new Set(selectedIds);
+
     return expectedIds.every((id) => selected.has(id));
   }
 
@@ -2037,11 +2154,11 @@ export class TransactionsStore {
     return value !== null && Number.isFinite(value) ? Math.max(0, value) : null;
   }
 
-  private resolvePresetRange(preset: TransactionPresetId): {
-    from: Date | null;
-    to: Date | null;
-  } {
+  private resolvePresetRange(
+    preset: TransactionPresetId
+  ): ResolvePresetRangeResult {
     const now = new Date();
+
     switch (preset) {
       case 'currentMonth':
         return this.monthRange(now.getUTCFullYear(), now.getUTCMonth());
@@ -2050,23 +2167,30 @@ export class TransactionsStore {
           now.getUTCMonth() === 0
             ? now.getUTCFullYear() - 1
             : now.getUTCFullYear();
+
         const month = (now.getUTCMonth() + 11) % 12;
+
         return this.monthRange(year, month);
       }
+
       case 'thisYear': {
         const year = now.getUTCFullYear();
+
         return {
           from: new Date(Date.UTC(year, 0, 1, 0, 0, 0, 0)),
           to: this.endOfDay(new Date(Date.UTC(year, 11, 31, 0, 0, 0, 0))),
         };
       }
+
       case 'lastYear': {
         const year = now.getUTCFullYear() - 1;
+
         return {
           from: new Date(Date.UTC(year, 0, 1, 0, 0, 0, 0)),
           to: this.endOfDay(new Date(Date.UTC(year, 11, 31, 0, 0, 0, 0))),
         };
       }
+
       case 'allTime':
         return {
           from: null,
@@ -2084,7 +2208,7 @@ export class TransactionsStore {
   private normalizeDateRange(
     from: Date | null,
     to: Date | null
-  ): { from: Date | null; to: Date | null } {
+  ): NormalizeDateRangeResult {
     if (!from && !to) {
       return { from: null, to: null };
     }
@@ -2102,14 +2226,13 @@ export class TransactionsStore {
     };
   }
 
-  private monthRange(
-    year: number,
-    monthIndex: number
-  ): { from: Date; to: Date } {
+  private monthRange(year: number, monthIndex: number): MonthRangeResult {
     const from = new Date(Date.UTC(year, monthIndex, 1, 0, 0, 0, 0));
+
     const to = this.endOfDay(
       new Date(Date.UTC(year, monthIndex + 1, 0, 0, 0, 0, 0))
     );
+
     return { from, to };
   }
 
@@ -2119,14 +2242,17 @@ export class TransactionsStore {
     }
 
     const userId = this.userId();
+
     if (!userId) {
       return;
     }
 
     const filters = this.filters();
+
     const fromIso = filters.from
       ? this.startOfDay(filters.from).toISOString()
       : null;
+
     const toIso = filters.to ? this.endOfDay(filters.to).toISOString() : null;
     const rangeKey = `${fromIso ?? ''}|${toIso ?? ''}`;
 
@@ -2143,6 +2269,7 @@ export class TransactionsStore {
     toIso: string | null
   ): Promise<void> {
     const userId = this.userId();
+
     if (!userId) {
       return;
     }
@@ -2174,6 +2301,7 @@ export class TransactionsStore {
 
       const categorySummaries = new Map<string, CategoryExpenseSummary>();
       const groupSummaries = new Map<string | null, GroupExpenseSummary>();
+
       const tagSummaries = await this.loadTagExpenseSummary(
         userId,
         fromIso,
@@ -2190,6 +2318,7 @@ export class TransactionsStore {
         );
 
         const groupKey = row.group_id ?? null;
+
         if (!groupSummaries.has(groupKey)) {
           groupSummaries.set(
             groupKey,
@@ -2251,14 +2380,12 @@ export class TransactionsStore {
     }
 
     const { data, error } = await query;
+
     if (error) {
       throw error;
     }
 
-    return this.buildTagExpenseSummaries(
-      (data ?? []) as unknown as readonly TransactionTagExpenseSummaryRow[],
-      userId
-    );
+    return this.buildTagExpenseSummaries(data ?? [], userId);
   }
 
   private buildTagExpenseSummaries(
@@ -2270,6 +2397,7 @@ export class TransactionsStore {
     for (const row of rows) {
       const tag = this.firstRelatedRow(row.tags);
       const transaction = this.firstRelatedRow(row.transactions);
+
       if (!tag || !transaction) {
         continue;
       }
@@ -2291,6 +2419,7 @@ export class TransactionsStore {
     return new Map(
       [...summaries.entries()].sort(([, a], [, b]) => {
         const byAmount = b.totalAmount - a.totalAmount;
+
         return byAmount === 0 ? a.name.localeCompare(b.name) : byAmount;
       })
     );
@@ -2301,24 +2430,17 @@ export class TransactionsStore {
       return null;
     }
 
-    if (Array.isArray(value)) {
-      return (value as readonly T[])[0] ?? null;
+    if (isRowArray(value)) {
+      return value[0] ?? null;
     }
 
-    return value as T;
+    return value;
   }
 
   private parseNumber(value: number | string | null | undefined): number {
-    if (typeof value === 'number') {
-      return Number.isFinite(value) ? value : 0;
-    }
+    const parsed = Number(value);
 
-    if (typeof value === 'string') {
-      const parsed = Number(value);
-      return Number.isFinite(parsed) ? parsed : 0;
-    }
-
-    return 0;
+    return Number.isFinite(parsed) ? parsed : 0;
   }
 
   private startOfDay(value: Date): Date {
@@ -2339,6 +2461,7 @@ export class TransactionsStore {
     const year = value.getUTCFullYear();
     const month = (value.getUTCMonth() + 1).toString().padStart(2, '0');
     const day = value.getUTCDate().toString().padStart(2, '0');
+
     return `${year}-${month}-${day}`;
   }
 
@@ -2377,9 +2500,11 @@ export class TransactionsStore {
       if (a.isDefault && !b.isDefault) {
         return -1;
       }
+
       if (!a.isDefault && b.isDefault) {
         return 1;
       }
+
       return a.name.localeCompare(b.name);
     });
   }
@@ -2387,6 +2512,7 @@ export class TransactionsStore {
   private sortPlaces(places: readonly PlaceEntity[]): PlaceEntity[] {
     return [...places].sort((a, b) => {
       const byName = a.name.localeCompare(b.name);
+
       return byName === 0 ? (a.city ?? '').localeCompare(b.city ?? '') : byName;
     });
   }
@@ -2398,20 +2524,13 @@ export class TransactionsStore {
   }
 
   private mapTransactionRow(row: TransactionPageRow): TransactionEntity {
-    const amount =
-      typeof row.amount === 'number' ? row.amount : Number(row.amount);
+    const amount = Number(row.amount);
+
     const amountInDefault =
-      typeof row.amount_in_default === 'number'
-        ? row.amount_in_default
-        : row.amount_in_default != null
-        ? Number(row.amount_in_default)
-        : amount;
+      row.amount_in_default != null ? Number(row.amount_in_default) : amount;
+
     const exchangeRate =
-      typeof row.exchange_rate === 'number'
-        ? row.exchange_rate
-        : row.exchange_rate != null
-        ? Number(row.exchange_rate)
-        : null;
+      row.exchange_rate != null ? Number(row.exchange_rate) : null;
 
     return {
       id: row.id,
@@ -2435,9 +2554,7 @@ export class TransactionsStore {
         : null,
       createdAt: new Date(row.creation_date),
       updatedAt: new Date(row.updated_at),
-      exchangeRate: Number.isFinite(exchangeRate ?? NaN)
-        ? (exchangeRate as number)
-        : null,
+      exchangeRate: Number.isFinite(exchangeRate ?? NaN) ? exchangeRate : null,
       walletId: row.wallet_id,
       placeId: row.place_id ?? null,
       sourceModule:
@@ -2455,9 +2572,11 @@ export class TransactionsStore {
 
   private recurringTransactionName(row: TransactionPageRow): string | null {
     const relation = row.recurring_transactions;
+
     if (!relation) {
       return null;
     }
+
     return 'name' in relation ? relation.name : relation[0]?.name ?? null;
   }
 
@@ -2518,6 +2637,7 @@ export class TransactionsStore {
     currencyLookup: ReadonlyMap<number, string>
   ): WalletEntity {
     const currencyId = row.currency_id ?? 1;
+
     return {
       id: row.id,
       ownerId: row.owner_id,
@@ -2537,6 +2657,7 @@ export class TransactionsStore {
     }
 
     const match = currencies.find((currency) => currency.id === id);
+
     return match ? match.symbol : null;
   }
 
@@ -2544,14 +2665,17 @@ export class TransactionsStore {
     rows: readonly TransactionTagRow[]
   ): ReadonlyMap<string, readonly string[]> {
     const map = new Map<string, string[]>();
+
     for (const row of rows) {
       const existing = map.get(row.transaction_id);
+
       if (existing) {
         existing.push(row.tag_id);
       } else {
         map.set(row.transaction_id, [row.tag_id]);
       }
     }
+
     return new Map(
       Array.from(map.entries(), ([id, tagIds]) => [
         id,
@@ -2569,6 +2693,7 @@ export class TransactionsStore {
     }
 
     const trimmed = input.trim().toUpperCase();
+
     if (!trimmed) {
       return null;
     }
@@ -2589,6 +2714,7 @@ export class TransactionsStore {
     currenciesOverride?: readonly CurrencyOption[]
   ): boolean {
     const currencies = currenciesOverride ?? this.state().currencies;
+
     if (currencies.length === 0) {
       return true;
     }
@@ -2602,6 +2728,7 @@ export class TransactionsStore {
     }
 
     const trimmed = name.trim();
+
     if (!trimmed) {
       return null;
     }
@@ -2613,6 +2740,7 @@ export class TransactionsStore {
     payload: CreateTransactionPayload
   ): NormalizedCreatePayload | null {
     const amount = Number(payload.amount);
+
     if (!Number.isFinite(amount) || amount <= 0) {
       return null;
     }
@@ -2634,18 +2762,23 @@ export class TransactionsStore {
     const description = payload.description?.trim() ?? '';
     const tagIds = Array.from(new Set(payload.tagIds ?? [])).filter(Boolean);
     const walletId = this.resolveWalletId(payload.walletId);
+
     if (!walletId) {
       return null;
     }
+
     const wallet = this.state().wallets.find((item) => item.id === walletId);
+
     if (!wallet) {
       return null;
     }
+
     const placeId = this.resolvePlaceId(payload.placeId);
     const walletCurrency = wallet.currency.toUpperCase();
     const currency = this.normalizeCurrency(payload.currency) ?? walletCurrency;
+
     const normalizedForeignAmount =
-      typeof payload.foreignAmount === 'number' && payload.foreignAmount > 0
+      payload.foreignAmount != null && payload.foreignAmount > 0
         ? payload.foreignAmount
         : null;
 
@@ -2683,6 +2816,7 @@ export class TransactionsStore {
     payload: UpdateTransactionPayload
   ): NormalizedUpdatePayload | null {
     const amount = Number(payload.amount);
+
     if (!Number.isFinite(amount) || amount <= 0) {
       return null;
     }
@@ -2701,18 +2835,23 @@ export class TransactionsStore {
     const description = payload.description?.trim() ?? '';
     const tagIds = Array.from(new Set(payload.tagIds ?? [])).filter(Boolean);
     const walletId = this.resolveWalletId(payload.walletId);
+
     if (!walletId) {
       return null;
     }
+
     const wallet = this.state().wallets.find((item) => item.id === walletId);
+
     if (!wallet) {
       return null;
     }
+
     const placeId = this.resolvePlaceId(payload.placeId);
     const walletCurrency = wallet.currency.toUpperCase();
     const currency = this.normalizeCurrency(payload.currency) ?? walletCurrency;
+
     const normalizedForeignAmount =
-      typeof payload.foreignAmount === 'number' && payload.foreignAmount > 0
+      payload.foreignAmount != null && payload.foreignAmount > 0
         ? payload.foreignAmount
         : null;
 
@@ -2746,18 +2885,21 @@ export class TransactionsStore {
 
   private resolveWalletId(candidate: string | null | undefined): string | null {
     const wallets = this.state().wallets;
+
     if (wallets.length === 0) {
       return null;
     }
 
     if (candidate) {
       const match = wallets.find((wallet) => wallet.id === candidate);
+
       if (match) {
         return match.id;
       }
     }
 
     const preferred = wallets.find((wallet) => wallet.isDefault);
+
     if (preferred) {
       return preferred.id;
     }
@@ -2767,6 +2909,7 @@ export class TransactionsStore {
 
   private resolvePlaceId(candidate: string | null | undefined): string | null {
     const normalized = candidate?.trim() ?? '';
+
     if (!normalized) {
       return null;
     }
@@ -2776,27 +2919,36 @@ export class TransactionsStore {
       : null;
   }
 
-  private describeError(error: unknown): string {
-    if (!error) {
-      return 'Unknown error. Please try again.';
-    }
+  private describeError(cause: unknown): string {
+    if (!cause) return 'Unknown error. Please try again.';
 
-    if (typeof error === 'string') {
-      return error;
-    }
+    const text = z.string().safeParse(cause);
 
-    if (error instanceof Error) {
-      return error.message;
-    }
+    if (text.success) return text.data;
 
-    if (typeof error === 'object' && error !== null && 'message' in error) {
-      const candidate = (error as Record<string, unknown>)['message'];
-      if (typeof candidate === 'string') {
-        return candidate;
-      }
-      return 'Request failed. Please try again.';
-    }
+    const parsed = z.object({ message: z.string() }).safeParse(cause);
 
-    return 'Request failed. Please try again.';
+    return parsed.success
+      ? parsed.data.message
+      : 'Request failed. Please try again.';
   }
+}
+
+interface ResolvePresetRangeResult {
+  from: Date | null;
+  to: Date | null;
+}
+
+interface NormalizeDateRangeResult {
+  from: Date | null;
+  to: Date | null;
+}
+
+interface MonthRangeResult {
+  from: Date;
+  to: Date;
+}
+
+function isRowArray<T>(value: T | readonly T[]): value is readonly T[] {
+  return Array.isArray(value);
 }

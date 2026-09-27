@@ -11,11 +11,12 @@
  * external service (Sentry, LogRocket, etc.) when one is integrated.
  */
 
-type Loggable = unknown;
-
 const isDev = typeof ngDevMode !== 'undefined' && !!ngDevMode;
 
-export function logError(context: string, ...data: Loggable[]): void {
+export function logError<T extends readonly unknown[]>(
+  context: string,
+  ...data: T
+): void {
   if (isDev) {
     console.error(`[${context}]`, ...data);
   }
@@ -23,13 +24,19 @@ export function logError(context: string, ...data: Loggable[]): void {
   // e.g. Sentry.captureException(data[0], { tags: { context } });
 }
 
-export function logWarn(context: string, ...data: Loggable[]): void {
+export function logWarn<T extends readonly unknown[]>(
+  context: string,
+  ...data: T
+): void {
   if (isDev) {
     console.warn(`[${context}]`, ...data);
   }
 }
 
-export function logInfo(context: string, ...data: Loggable[]): void {
+export function logInfo<T extends readonly unknown[]>(
+  context: string,
+  ...data: T
+): void {
   if (isDev) {
     console.log(`[${context}]`, ...data);
   }

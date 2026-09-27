@@ -19,7 +19,7 @@ describe('MortgagesPage', () => {
       imports: [MortgagesPage],
       providers: [
         provideAppTransloco(),
-        { provide: AuthService, useClass: AuthServiceStub },
+        AuthServiceStub, { provide: AuthService, useExisting: AuthServiceStub },
         { provide: SUPABASE_CLIENT, useValue: {} },
       ],
     }).compileComponents();

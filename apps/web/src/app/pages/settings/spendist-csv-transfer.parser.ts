@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import type { TransactionDirection } from '@spendist/data-access/supabase-types';
 
 export const SPENDIST_CSV_IMPORT_SOURCE = 'spendist_csv';
@@ -91,11 +92,15 @@ const REQUIRED_IMPORT_HEADERS: readonly SpendistCsvHeader[] = [
   'wallet',
 ];
 
-export function generateSpendistCsv(rows: readonly SpendistCsvExportRow[]): string {
+export function generateSpendistCsv(
+  rows: readonly SpendistCsvExportRow[]
+): string {
   const lines = [
     SPENDIST_CSV_HEADERS.join(','),
     ...rows.map((row) =>
-      SPENDIST_CSV_HEADERS.map((header) => escapeCsvCell(formatExportValue(row, header))).join(','),
+      SPENDIST_CSV_HEADERS.map((header) =>
+        escapeCsvCell(formatExportValue(row, header))
+      ).join(',')
     ),
   ];
 
@@ -105,6 +110,7 @@ export function generateSpendistCsv(rows: readonly SpendistCsvExportRow[]): stri
 export function parseSpendistCsv(text: string): SpendistCsvParseResult {
   const records = parseCsvRecords(stripBom(text));
   const [headerRow, ...dataRows] = records;
+
   if (!headerRow) {
     return {
       rows: [],
@@ -115,7 +121,11 @@ export function parseSpendistCsv(text: string): SpendistCsvParseResult {
 
   const headers = headerRow.map((header) => normalizeHeader(header));
   const headerSet = new Set(headers);
-  const missing = REQUIRED_IMPORT_HEADERS.filter((header) => !headerSet.has(header));
+
+  const missing = REQUIRED_IMPORT_HEADERS.filter(
+    (header) => !headerSet.has(header)
+  );
+
   if (missing.length > 0) {
     return {
       rows: [],
@@ -135,6 +145,7 @@ export function parseSpendistCsv(text: string): SpendistCsvParseResult {
 
   dataRows.forEach((values, index) => {
     const sourceRowNumber = index + 2;
+
     if (!values.some((value) => value.trim().length > 0)) {
       return;
     }
@@ -142,6 +153,7 @@ export function parseSpendistCsv(text: string): SpendistCsvParseResult {
     totalDataRows += 1;
     const record = buildRecord(headers, values);
     const parsed = parseImportRecord(record, sourceRowNumber);
+
     if ('issue' in parsed) {
       issues.push(parsed.issue);
     } else {
@@ -157,13 +169,14 @@ export function parseSpendistCsv(text: string): SpendistCsvParseResult {
 }
 
 function disambiguateRepeatedFingerprints(
-  rows: readonly SpendistCsvImportRow[],
+  rows: readonly SpendistCsvImportRow[]
 ): readonly SpendistCsvImportRow[] {
   const occurrences = new Map<string, number>();
 
   return rows.map((row) => {
     const occurrence = (occurrences.get(row.fingerprint) ?? 0) + 1;
     occurrences.set(row.fingerprint, occurrence);
+
     if (occurrence === 1) return row;
 
     return {
@@ -199,56 +212,113 @@ export function createSpendistCsvFingerprint(input: {
 
 function parseImportRecord(
   record: ParsedCsvRecord,
-  sourceRowNumber: number,
+  sourceRowNumber: number
 ): { row: SpendistCsvImportRow } | { issue: SpendistCsvIssue } {
   const occurredAt = parseIsoDate(read(record, 'occurred_at'));
+
   if (!occurredAt) {
-    return { issue: { rowNumber: sourceRowNumber, message: 'Invalid occurred_at value.' } };
+    return {
+      issue: {
+        rowNumber: sourceRowNumber,
+        message: 'Invalid occurred_at value.',
+      },
+    };
   }
 
   const direction = parseDirection(read(record, 'direction'));
+
   if (!direction) {
-    return { issue: { rowNumber: sourceRowNumber, message: 'Invalid direction value.' } };
+    return {
+      issue: {
+        rowNumber: sourceRowNumber,
+        message: 'Invalid direction value.',
+      },
+    };
   }
 
   const amount = parseAmount(read(record, 'amount'));
+
   if (amount === null) {
-    return { issue: { rowNumber: sourceRowNumber, message: 'Invalid amount value.' } };
+    return {
+      issue: { rowNumber: sourceRowNumber, message: 'Invalid amount value.' },
+    };
   }
 
   const currency = normalizeCurrency(read(record, 'currency'));
+
   if (!currency) {
-    return { issue: { rowNumber: sourceRowNumber, message: 'Invalid currency value.' } };
+    return {
+      issue: { rowNumber: sourceRowNumber, message: 'Invalid currency value.' },
+    };
   }
 
   const categoryGroup = normalizeNullableText(read(record, 'category_group'));
+
   if (!categoryGroup) {
-    return { issue: { rowNumber: sourceRowNumber, message: 'Missing category_group value.' } };
+    return {
+      issue: {
+        rowNumber: sourceRowNumber,
+        message: 'Missing category_group value.',
+      },
+    };
   }
 
   const categoryPath = parseCategoryPath(read(record, 'category_path'));
+
   if (categoryPath.length === 0) {
-    return { issue: { rowNumber: sourceRowNumber, message: 'Missing category_path value.' } };
+    return {
+      issue: {
+        rowNumber: sourceRowNumber,
+        message: 'Missing category_path value.',
+      },
+    };
   }
+
   if (categoryPath.length > 3) {
-    return { issue: { rowNumber: sourceRowNumber, message: 'category_path supports up to 3 levels.' } };
+    return {
+      issue: {
+        rowNumber: sourceRowNumber,
+        message: 'category_path supports up to 3 levels.',
+      },
+    };
   }
 
   const wallet = normalizeNullableText(read(record, 'wallet'));
+
   if (!wallet) {
-    return { issue: { rowNumber: sourceRowNumber, message: 'Missing wallet value.' } };
+    return {
+      issue: { rowNumber: sourceRowNumber, message: 'Missing wallet value.' },
+    };
   }
 
-  const amountInDefault = parseAmount(read(record, 'amount_in_default')) ?? amount;
+  const amountInDefault =
+    parseAmount(read(record, 'amount_in_default')) ?? amount;
+
   const walletCurrency = normalizeCurrency(read(record, 'wallet_currency'));
-  const description = normalizeNullableText(unescapeFormulaValue(read(record, 'description')));
+
+  const description = normalizeNullableText(
+    unescapeFormulaValue(read(record, 'description'))
+  );
+
   const sourceId = normalizeNullableText(read(record, 'id'));
   const tags = parseTags(read(record, 'tags'));
-  const place = normalizeNullableText(unescapeFormulaValue(read(record, 'place')));
+
+  const place = normalizeNullableText(
+    unescapeFormulaValue(read(record, 'place'))
+  );
+
   const isAutomatic = parseBoolean(read(record, 'is_automatic'));
-  const recurringScheduledFor = parseOptionalIsoDate(read(record, 'recurring_scheduled_for'));
-  const sourceImportSource = normalizeNullableText(read(record, 'import_source'));
+
+  const recurringScheduledFor = parseOptionalIsoDate(
+    read(record, 'recurring_scheduled_for')
+  );
+
+  const sourceImportSource = normalizeNullableText(
+    read(record, 'import_source')
+  );
+
   const sourceImportedAt = normalizeNullableText(read(record, 'imported_at'));
+
   const fingerprint = createSpendistCsvFingerprint({
     occurredAt,
     description,
@@ -304,6 +374,7 @@ function parseCsvRecords(text: string): string[][] {
       } else {
         cell += character;
       }
+
       continue;
     }
 
@@ -337,33 +408,42 @@ function parseCsvRecords(text: string): string[][] {
   return rows;
 }
 
-function buildRecord(headers: readonly string[], values: readonly string[]): ParsedCsvRecord {
+function buildRecord(
+  headers: readonly string[],
+  values: readonly string[]
+): ParsedCsvRecord {
   const record = new Map<string, string>();
   headers.forEach((header, index) => {
     record.set(header, values[index] ?? '');
   });
+
   return record;
 }
 
-function formatExportValue(row: SpendistCsvExportRow, header: SpendistCsvHeader): string {
+function formatExportValue(
+  row: SpendistCsvExportRow,
+  header: SpendistCsvHeader
+): string {
   const value = row[header];
+
   if (Array.isArray(value)) {
     return value.join('; ');
   }
-  if (typeof value === 'boolean') {
-    return value ? 'true' : 'false';
-  }
-  if (typeof value === 'number') {
-    return Number.isFinite(value) ? String(value) : '';
-  }
-  return typeof value === 'string' ? value : '';
+
+  if (header === 'is_automatic') return value ? 'true' : 'false';
+
+  const parsed = z.union([z.string(), z.number()]).safeParse(value);
+
+  return parsed.success ? String(parsed.data) : '';
 }
 
 function escapeCsvCell(value: string): string {
   const safeValue = escapeFormulaValue(value);
+
   if (/[",\r\n]/.test(safeValue)) {
     return `"${safeValue.replace(/"/g, '""')}"`;
   }
+
   return safeValue;
 }
 
@@ -388,14 +468,17 @@ function parseTags(value: string): readonly string[] {
       value
         .split(';')
         .map((tag) => normalizeNullableText(tag))
-        .filter((tag): tag is string => !!tag),
-    ),
+        .filter((tag): tag is string => !!tag)
+    )
   ).sort((a, b) => a.localeCompare(b));
 }
 
 function parseDirection(value: string): TransactionDirection | null {
   const normalized = value.trim().toLowerCase();
-  return normalized === 'expense' || normalized === 'income' ? normalized : null;
+
+  return normalized === 'expense' || normalized === 'income'
+    ? normalized
+    : null;
 }
 
 function parseBoolean(value: string): boolean {
@@ -404,34 +487,45 @@ function parseBoolean(value: string): boolean {
 
 function parseIsoDate(value: string): Date | null {
   const normalized = normalizeNullableText(value);
+
   if (!normalized) {
     return null;
   }
+
   const parsed = new Date(normalized);
+
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 function parseOptionalIsoDate(value: string): Date | null {
   const normalized = normalizeNullableText(value);
+
   return normalized ? parseIsoDate(normalized) : null;
 }
 
 function parseAmount(value: string): number | null {
   const normalized = value.trim().replace(/\s/g, '').replace(',', '.');
+
   if (!normalized) {
     return null;
   }
+
   const parsed = Number(normalized);
+
   return Number.isFinite(parsed) ? roundAmount(parsed) : null;
 }
 
 function normalizeCurrency(value: string): string | null {
   const normalized = value.trim().toUpperCase();
+
   return /^[A-Z]{3}$/.test(normalized) ? normalized : null;
 }
 
-function normalizeNullableText(value: string | null | undefined): string | null {
+function normalizeNullableText(
+  value: string | null | undefined
+): string | null {
   const normalized = (value ?? '').replace(/\s+/g, ' ').trim();
+
   return normalized.length > 0 ? normalized : null;
 }
 
@@ -461,9 +555,11 @@ function trimCarriageReturn(value: string): string {
 
 function hashString(value: string): string {
   let hash = 2166136261;
+
   for (let index = 0; index < value.length; index += 1) {
     hash ^= value.charCodeAt(index);
     hash = Math.imul(hash, 16777619);
   }
+
   return (hash >>> 0).toString(16).padStart(8, '0');
 }

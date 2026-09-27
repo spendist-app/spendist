@@ -4,10 +4,12 @@ import process from 'node:process';
 import { extractHeadings, renderMarkdown } from './generate-blog-content.mjs';
 
 const ROOT = process.cwd();
+
 const GENERATED_TS = path.join(
   ROOT,
   'apps/web/src/app/pages/legal/legal-content.generated.ts'
 );
+
 const DOCUMENTS = [
   {
     key: 'privacy',
@@ -26,7 +28,9 @@ const DOCUMENTS = [
 
 function titleFrom(markdown, source) {
   const title = /^#\s+(.+)$/m.exec(markdown)?.[1]?.trim();
+
   if (!title) throw new Error(`${source}: expected a level-one title.`);
+
   return title;
 }
 
@@ -52,6 +56,7 @@ async function output() {
   const documents = await Promise.all(
     DOCUMENTS.map(async (document) => {
       const markdown = await readFile(path.join(ROOT, document.source), 'utf8');
+
       return {
         key: document.key,
         path: document.path,
@@ -61,22 +66,28 @@ async function output() {
       };
     })
   );
+
   return generatedTypescript(documents);
 }
 
 async function main() {
   const check = process.argv.includes('--check');
   const generated = await output();
+
   if (check) {
     const current = await readFile(GENERATED_TS, 'utf8').catch(() => '');
+
     if (current !== generated) {
       throw new Error(
         'Generated legal content is stale. Run npm run legal:generate.'
       );
     }
+
     console.log('Legal content is current.');
+
     return;
   }
+
   await mkdir(path.dirname(GENERATED_TS), { recursive: true });
   await writeFile(GENERATED_TS, generated);
   console.log('Legal content generated.');

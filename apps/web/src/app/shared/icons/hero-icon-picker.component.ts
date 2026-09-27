@@ -71,12 +71,14 @@ export class HeroIconPickerComponent implements ControlValueAccessor {
     return options.filter((option) => {
       const label = option.label.toLowerCase();
       const name = option.name.toLowerCase();
+
       return label.includes(term) || name.includes(term);
     });
   });
 
   protected readonly customValue = computed(() => {
     const current = this.value();
+
     if (!current) {
       return '';
     }
@@ -120,7 +122,9 @@ export class HeroIconPickerComponent implements ControlValueAccessor {
   }
 
   protected onSearch(event: Event): void {
-    const inputElement = event.target as HTMLInputElement | null;
+    const inputElement =
+      event.target instanceof HTMLInputElement ? event.target : null;
+
     this.search.set(inputElement?.value ?? '');
   }
 
@@ -135,11 +139,13 @@ export class HeroIconPickerComponent implements ControlValueAccessor {
 
   private normalizeValue(value: string | null | undefined): string {
     const canonical = canonicalHeroIconName(value);
+
     if (canonical) {
       return canonical;
     }
 
     const trimmed = value?.trim() ?? '';
+
     return trimmed;
   }
 }

@@ -1,4 +1,9 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+} from '@angular/core';
 import { TranslocoPipe } from '@ngneat/transloco';
 import { LanguageService } from '../../core/language.service';
 import type { LanguageCode } from '../../i18n/languages';
@@ -14,10 +19,15 @@ import { DashboardStore } from './dashboard.store';
 })
 export class DashboardPageComponent {
   protected readonly store = inject(DashboardStore);
-  protected readonly skeletonPlaceholders = Array.from({ length: 4 }, (_, index) => index);
+  protected readonly skeletonPlaceholders = Array.from(
+    { length: 4 },
+    (_, index) => index
+  );
 
   private readonly languageService = inject(LanguageService);
-  private readonly locale = computed(() => this.resolveLocale(this.languageService.currentLanguage()));
+  private readonly locale = computed(() =>
+    this.resolveLocale(this.languageService.currentLanguage())
+  );
 
   protected formatMonth(date: Date): string {
     return new Intl.DateTimeFormat(this.locale(), {
@@ -40,11 +50,14 @@ export class DashboardPageComponent {
     }
 
     const prefix = value > 0 ? '+' : '-';
+
     return `${prefix}${this.formatMagnitude(Math.abs(value))}`;
   }
 
   protected onWalletChange(event: Event): void {
-    const select = event.target as HTMLSelectElement | null;
+    const select =
+      event.target instanceof HTMLSelectElement ? event.target : null;
+
     if (!select) {
       return;
     }
@@ -53,7 +66,9 @@ export class DashboardPageComponent {
   }
 
   protected onMonthChange(event: Event): void {
-    const select = event.target as HTMLSelectElement | null;
+    const select =
+      event.target instanceof HTMLSelectElement ? event.target : null;
+
     if (!select) {
       return;
     }
@@ -62,7 +77,9 @@ export class DashboardPageComponent {
   }
 
   protected onRecurringMonthChange(event: Event): void {
-    const select = event.target as HTMLSelectElement | null;
+    const select =
+      event.target instanceof HTMLSelectElement ? event.target : null;
+
     if (!select) {
       return;
     }
@@ -71,7 +88,9 @@ export class DashboardPageComponent {
   }
 
   protected onPlaceYearChange(event: Event): void {
-    const select = event.target as HTMLSelectElement | null;
+    const select =
+      event.target instanceof HTMLSelectElement ? event.target : null;
+
     if (!select) {
       return;
     }

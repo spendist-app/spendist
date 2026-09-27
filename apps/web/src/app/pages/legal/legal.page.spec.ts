@@ -1,3 +1,4 @@
+import { fixtureElement } from '../../../testing/dom';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, provideRouter } from '@angular/router';
 import { provideAppTransloco } from '../../i18n/transloco.providers';
@@ -21,7 +22,7 @@ describe('LegalPage', () => {
     fixture.detectChanges();
     await fixture.whenStable();
 
-    const content = fixture.nativeElement as HTMLElement;
+    const content = fixtureElement(fixture);
     expect(content.querySelector('h1')?.textContent).toContain(
       'Polityka prywatności aplikacji Spendist'
     );

@@ -25,6 +25,10 @@ describe('parseAmountInput', () => {
 
   it('returns null for invalid or non-positive results', () => {
     expect(parseAmountInput('abc')).toBeNull();
+    expect(parseAmountInput(null)).toBeNull();
+    expect(parseAmountInput(NaN)).toBeNull();
+    expect(parseAmountInput(Infinity)).toBeNull();
+    expect(parseAmountInput(-Infinity)).toBeNull();
     expect(parseAmountInput('2..3')).toBeNull();
     expect(parseAmountInput('1 - 1')).toBeNull();
     expect(parseAmountInput('1 / 0')).toBeNull();

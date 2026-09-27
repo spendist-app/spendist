@@ -17,12 +17,15 @@ import { createSpendistMcpServer } from './server';
 
 preloadSchemas();
 
-const app = new Hono();
+const app = new Hono<{ Bindings: McpEnvironment }>();
+
 const handlers = new WeakMap<McpEnvironment, McpHttpHandler>();
+
 const MODERN_PROTOCOL_VERSION = '2026-07-28';
 
 function oauthMetadata(env: McpEnvironment) {
   const issuer = env.MCP_OAUTH_ISSUER.replace(/\/$/u, '');
+
   return {
     issuer,
     authorization_endpoint: `${issuer}/oauth/authorize`,
@@ -50,17 +53,22 @@ function metadataOptions(env: McpEnvironment): AuthMetadataOptions {
 
 function allowedHosts(env: McpEnvironment): string[] {
   return [
-    new URL(env.MCP_RESOURCE_URL).hostname,
-    ...(env.MCP_ALLOWED_HOSTS?.split(',') ?? []),
-  ]
-    .map((host) => host.trim())
-    .filter(
-      (host, index, hosts) => Boolean(host) && hosts.indexOf(host) === index
-    );
+    ...new Set(
+      [
+        new URL(env.MCP_RESOURCE_URL).hostname,
+        ...(env.MCP_ALLOWED_HOSTS?.split(',') ?? []),
+      ].flatMap((host) => {
+        const normalized = host.trim();
+
+        return normalized ? [normalized] : [];
+      })
+    ),
+  ];
 }
 
 function handlerFor(env: McpEnvironment): McpHttpHandler {
   const current = handlers.get(env);
+
   if (current) return current;
 
   const handler = createMcpHandler(
@@ -68,6 +76,7 @@ function handlerFor(env: McpEnvironment): McpHttpHandler {
       if (!authInfo) {
         throw new Error('Authenticated MCP request context is required.');
       }
+
       return createSpendistMcpServer({
         supabaseUrl: env.SUPABASE_URL,
         publishableKey: env.SUPABASE_PUBLISHABLE_KEY,
@@ -77,15 +86,15 @@ function handlerFor(env: McpEnvironment): McpHttpHandler {
     },
     { legacy: 'stateless' }
   );
+
   handlers.set(env, handler);
+
   return handler;
 }
 
-function metadataDocumentResponse(
-  request: Request,
-  metadata: object
-): Response {
+function metadataDocumentResponse<T>(request: Request, metadata: T): Response {
   const headers = { 'Access-Control-Allow-Origin': '*' };
+
   if (request.method === 'OPTIONS') {
     return new Response(null, {
       status: 204,
@@ -95,12 +104,14 @@ function metadataDocumentResponse(
       },
     });
   }
+
   if (request.method !== 'GET' && request.method !== 'HEAD') {
     return Response.json(
       { error: 'method_not_allowed' },
       { status: 405, headers: { ...headers, Allow: 'GET, HEAD, OPTIONS' } }
     );
   }
+
   return request.method === 'HEAD'
     ? new Response(null, { headers })
     : Response.json(metadata, { headers });
@@ -114,23 +125,30 @@ app.get('/health', (context) =>
     protocolVersion: MODERN_PROTOCOL_VERSION,
   })
 );
+
 app.use('/.well-known/*', async (context, next) => {
-  const env = requireEnvironment(context.env as Partial<McpEnvironment>);
+  const env = requireEnvironment(context.env);
   const response = oauthMetadataResponse(context.req.raw, metadataOptions(env));
+
   if (response) return response;
+
   return next();
 });
+
 app.all('/.well-known/oauth-protected-resource', (context) => {
-  const env = requireEnvironment(context.env as Partial<McpEnvironment>);
+  const env = requireEnvironment(context.env);
+
   return metadataDocumentResponse(context.req.raw, protectedResource(env));
 });
 
 app.all('/mcp', async (context) => {
-  const env = requireEnvironment(context.env as Partial<McpEnvironment>);
+  const env = requireEnvironment(context.env);
   const hosts = allowedHosts(env);
+
   const rejected =
     hostHeaderValidationResponse(context.req.raw, hosts) ??
     originValidationResponse(context.req.raw, hosts);
+
   if (rejected) return rejected;
 
   const gate = requireBearerAuth({
@@ -139,7 +157,9 @@ app.all('/mcp', async (context) => {
       new URL(env.MCP_RESOURCE_URL)
     ),
   });
+
   const auth = await gate(context.req.raw);
+
   if (auth instanceof Response) return auth;
 
   return handlerFor(env).fetch(context.req.raw, { authInfo: auth });

@@ -6,6 +6,7 @@ import { workspaceRoot } from '@nx/devkit';
 
 // For CI, you may want to set BASE_URL to the deployed application.
 const baseURL = process.env['BASE_URL'] || 'http://localhost:4200';
+
 const e2eEnvFile =
   process.env['E2E_ENV_FILE'] ||
   (['.env.e2e', '.local_env.e2e'].find((file) =>
@@ -86,24 +87,29 @@ export default defineConfig({
 
 function loadEnvFile(file: string): void {
   const path = resolve(workspaceRoot, file);
+
   if (!existsSync(path)) {
     return;
   }
 
   const content = readFileSync(path, 'utf8');
+
   for (const line of content.split(/\r?\n/)) {
     const trimmed = line.trim();
+
     if (!trimmed || trimmed.startsWith('#')) {
       continue;
     }
 
     const separatorIndex = trimmed.indexOf('=');
+
     if (separatorIndex <= 0) {
       continue;
     }
 
     const key = trimmed.slice(0, separatorIndex).trim();
     const rawValue = trimmed.slice(separatorIndex + 1).trim();
+
     if (!key || (process.env[key] != null && process.env[key]?.trim() !== '')) {
       continue;
     }

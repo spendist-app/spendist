@@ -1,3 +1,4 @@
+import { requiredValue, fixtureElement } from '../../../testing/dom';
 import { TestBed } from '@angular/core/testing';
 import { CategorySelectComponent } from './category-select.component';
 
@@ -18,14 +19,18 @@ describe('CategorySelectComponent', () => {
     ]);
     fixture.detectChanges();
 
-    const trigger = fixture.nativeElement.querySelector(
-      'button'
-    ) as HTMLButtonElement;
+    const trigger = requiredValue(
+      fixtureElement(fixture).querySelector<HTMLButtonElement>('button')
+    );
+
     trigger.click();
     fixture.detectChanges();
 
-    const panel = fixture.nativeElement.querySelector('[role="listbox"]')
-      ?.parentElement as HTMLElement;
+    const panel = requiredValue(
+      requiredValue(fixtureElement(fixture).querySelector('[role="listbox"]'))
+        .parentElement
+    );
+
     expect(panel.classList.contains('absolute')).toBe(true);
     expect(panel.classList.contains('z-50')).toBe(true);
   });

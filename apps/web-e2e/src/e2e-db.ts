@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { spawn } from 'node:child_process';
 import { createHmac } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
@@ -7,27 +8,29 @@ import { workspaceRoot } from '@nx/devkit';
 type ResetPhase = 'setup' | 'teardown';
 
 const DEFAULT_RESET_ATTEMPTS = 3;
+
 const RETRY_BASE_DELAY_MS = 5000;
+
 const DEFAULT_EMAIL = 'e2e-shared-user@gmail.com';
+
 const DEFAULT_PASSWORD = 'Test1234!';
+
 const LOCAL_SUPABASE_JWT_SECRET =
   'super-secret-jwt-token-with-at-least-32-characters-long';
 
-type AuthSessionResponse = {
-  access_token?: string;
-  user?: {
-    id?: string;
-  };
-};
+const authSessionSchema = z.object({
+  access_token: z.string().optional(),
+  user: z.object({ id: z.string().optional() }).optional(),
+});
 
-type AuthAdminUser = {
-  id?: string;
-  email?: string;
-};
+const authAdminUserSchema = z.object({
+  id: z.string().optional(),
+  email: z.string().optional(),
+});
 
-type AuthAdminUsersResponse = {
-  users?: AuthAdminUser[];
-};
+const authAdminUsersSchema = z.object({
+  users: z.array(authAdminUserSchema).optional(),
+});
 
 type BootstrapRow = {
   id: string;
@@ -35,6 +38,7 @@ type BootstrapRow = {
 
 export async function resetDatabase(phase: ResetPhase): Promise<void> {
   const envFile = resolveEnvFile();
+
   const dbUrl =
     (envFile ? readEnvValue(envFile, 'SUPABASE_E2E_DB_URL') : null) ??
     process.env['SUPABASE_E2E_DB_URL'];
@@ -48,6 +52,7 @@ export async function resetDatabase(phase: ResetPhase): Promise<void> {
   const localDbUrl =
     (envFile ? readEnvValue(envFile, 'SUPABASE_DB_URL') : null) ??
     process.env['SUPABASE_DB_URL'];
+
   if (localDbUrl && areSameDatabaseUrl(dbUrl, localDbUrl)) {
     throw new Error(
       'Refusing to reset database: SUPABASE_E2E_DB_URL points to SUPABASE_DB_URL.'
@@ -57,6 +62,7 @@ export async function resetDatabase(phase: ResetPhase): Promise<void> {
   const remoteDbUrl =
     (envFile ? readEnvValue(envFile, 'SUPABASE_REMOTE_DB_URL') : null) ??
     process.env['SUPABASE_REMOTE_DB_URL'];
+
   if (remoteDbUrl && areSameDatabaseUrl(dbUrl, remoteDbUrl)) {
     throw new Error(
       'Refusing to reset database: SUPABASE_E2E_DB_URL points to SUPABASE_REMOTE_DB_URL.'
@@ -68,11 +74,13 @@ export async function resetDatabase(phase: ResetPhase): Promise<void> {
 
 export async function ensureE2EAccount(): Promise<void> {
   const envFile = resolveEnvFile();
+
   const supabaseUrl =
     readFirstAvailableEnvValue(
       ['NG_APP_SUPABASE_URL', 'SUPABASE_URL', 'API_URL'],
       envFile
     ) ?? 'http://127.0.0.1:55321';
+
   const publishableKey = readFirstAvailableEnvValue(
     [
       'NG_APP_SUPABASE_PUBLISHABLE_KEY',
@@ -95,11 +103,13 @@ export async function ensureE2EAccount(): Promise<void> {
   const serviceRoleKey = resolveServiceRoleKey(envFile);
 
   const signedIn = await signIn(baseUrl, publishableKey, email, password);
+
   if (!signedIn.ok) {
     await createConfirmedAuthUser(baseUrl, serviceRoleKey, email, password);
   }
 
   const session = await signIn(baseUrl, publishableKey, email, password);
+
   if (!session.ok) {
     throw new Error(
       `[e2e-db] Failed to sign in e2e auth user: ${truncateForLog(
@@ -108,7 +118,8 @@ export async function ensureE2EAccount(): Promise<void> {
     );
   }
 
-  const data = JSON.parse(session.body) as AuthSessionResponse;
+  const data = authSessionSchema.parse(JSON.parse(session.body));
+
   if (!data.access_token || !data.user?.id) {
     throw new Error(
       '[e2e-db] Missing access token or user id in auth response.'
@@ -152,10 +163,12 @@ async function ensureUserBootstrapData(
     `${baseUrl}/rest/v1/categories?select=id&owner_id=eq.${userId}&limit=1`,
     { headers }
   );
+
   const existingCategories = await parseJsonArray<BootstrapRow>(
     categories,
     'load bootstrap categories'
   );
+
   if (existingCategories.length > 0) {
     return;
   }
@@ -167,8 +180,8 @@ async function ensureUserBootstrapData(
       'categories_group',
       userId,
       'Essentials'
-    )) ??
-    (await createBootstrapGroup(baseUrl, headers, userId));
+    )) ?? (await createBootstrapGroup(baseUrl, headers, userId));
+
   if (!group?.id) {
     throw new Error('[e2e-db] Failed to create bootstrap category group.');
   }
@@ -180,8 +193,8 @@ async function ensureUserBootstrapData(
       'categories',
       userId,
       'Groceries'
-    )) ??
-    (await createBootstrapCategory(baseUrl, headers, userId, group.id));
+    )) ?? (await createBootstrapCategory(baseUrl, headers, userId, group.id));
+
   if (!category?.id) {
     throw new Error('[e2e-db] Failed to create bootstrap category.');
   }
@@ -200,10 +213,12 @@ async function findBootstrapRowByName(
     )}&name=eq.${encodeURIComponent(name)}&limit=1`,
     { headers }
   );
+
   const rows = await parseJsonArray<BootstrapRow>(
     response,
     `load bootstrap ${table}`
   );
+
   return rows[0] ?? null;
 }
 
@@ -212,23 +227,28 @@ async function createBootstrapGroup(
   headers: Record<string, string>,
   userId: string
 ): Promise<BootstrapRow | null> {
-  const response = await fetch(`${baseUrl}/rest/v1/categories_group?select=id`, {
-    method: 'POST',
-    headers: {
-      ...headers,
-      Prefer: 'return=representation',
-    },
-    body: JSON.stringify({
-      owner_id: userId,
-      name: 'Essentials',
-      color: '#0EA5A5',
-      icon: 'heroHome',
-    }),
-  });
+  const response = await fetch(
+    `${baseUrl}/rest/v1/categories_group?select=id`,
+    {
+      method: 'POST',
+      headers: {
+        ...headers,
+        Prefer: 'return=representation',
+      },
+      body: JSON.stringify({
+        owner_id: userId,
+        name: 'Essentials',
+        color: '#0EA5A5',
+        icon: 'heroHome',
+      }),
+    }
+  );
+
   const rows = await parseJsonArray<BootstrapRow>(
     response,
     'create bootstrap category group'
   );
+
   return rows[0] ?? null;
 }
 
@@ -252,10 +272,12 @@ async function createBootstrapCategory(
       icon: 'heroShoppingCart',
     }),
   });
+
   const rows = await parseJsonArray<BootstrapRow>(
     response,
     'create bootstrap category'
   );
+
   return rows[0] ?? null;
 }
 
@@ -264,6 +286,7 @@ async function parseJsonArray<T>(
   action: string
 ): Promise<T[]> {
   const body = await response.text();
+
   if (!response.ok) {
     throw new Error(
       `[e2e-db] Failed to ${action} (${response.status}): ${truncateForLog(
@@ -272,7 +295,8 @@ async function parseJsonArray<T>(
     );
   }
 
-  const parsed = body ? (JSON.parse(body) as unknown) : [];
+  const parsed = body ? JSON.parse(body) : [];
+
   if (!Array.isArray(parsed)) {
     throw new Error(
       `[e2e-db] Expected array while trying to ${action}: ${truncateForLog(
@@ -281,6 +305,7 @@ async function parseJsonArray<T>(
     );
   }
 
+  // SAFETY: the caller supplies the row contract for its fixed PostgREST table/column query; the array response shape is checked above.
   return parsed as T[];
 }
 
@@ -310,12 +335,14 @@ async function createConfirmedAuthUser(
 
   const body = await response.text();
   const normalizedBody = body.toLowerCase();
+
   if (
     !response.ok &&
     (normalizedBody.includes('already registered') ||
       normalizedBody.includes('email_exists'))
   ) {
     await confirmExistingAuthUser(baseUrl, serviceRoleKey, email, password);
+
     return;
   }
 
@@ -327,7 +354,8 @@ async function createConfirmedAuthUser(
     );
   }
 
-  const created = JSON.parse(body) as AuthAdminUser;
+  const created = authAdminUserSchema.parse(JSON.parse(body));
+
   if (!created.id) {
     throw new Error(
       `[e2e-db] Confirmed e2e auth user response did not include id: ${truncateForLog(
@@ -349,21 +377,27 @@ async function confirmExistingAuthUser(
       headers: authHeaders(serviceRoleKey),
     }
   );
+
   const usersBody = await usersResponse.text();
+
   if (!usersResponse.ok) {
     throw new Error(
-      `[e2e-db] Failed to list auth users (${usersResponse.status}): ${truncateForLog(
-        usersBody
-      )}`
+      `[e2e-db] Failed to list auth users (${
+        usersResponse.status
+      }): ${truncateForLog(usersBody)}`
     );
   }
 
-  const users = JSON.parse(usersBody) as AuthAdminUsersResponse;
+  const users = authAdminUsersSchema.parse(JSON.parse(usersBody));
+
   const user = users.users?.find(
     (entry) => entry.email?.toLowerCase() === email.toLowerCase()
   );
+
   if (!user?.id) {
-    throw new Error(`[e2e-db] Auth user already exists but could not be found.`);
+    throw new Error(
+      `[e2e-db] Auth user already exists but could not be found.`
+    );
   }
 
   const updateResponse = await fetch(
@@ -385,7 +419,9 @@ async function confirmExistingAuthUser(
       }),
     }
   );
+
   const updateBody = await updateResponse.text();
+
   if (!updateResponse.ok) {
     throw new Error(
       `[e2e-db] Failed to confirm existing auth user (${
@@ -413,7 +449,7 @@ async function signIn(
   };
 }
 
-function authHeaders(publishableKey: string): Record<string, string> {
+function authHeaders(publishableKey: string) {
   return {
     'Content-Type': 'application/json',
     apikey: publishableKey,
@@ -427,11 +463,13 @@ function resolveServiceRoleKey(envFile: string | null): string {
     'SUPABASE_SERVICE_ROLE_KEY',
     'SUPABASE_SECRET_KEY',
   ] as const;
+
   const configured = envFile
     ? serviceRoleKeys
         .map((key) => readEnvValue(envFile, key))
         .find((value): value is string => !!value)
     : serviceRoleKeys.map((key) => process.env[key]).find(Boolean);
+
   if (configured) {
     return configured;
   }
@@ -441,6 +479,7 @@ function resolveServiceRoleKey(envFile: string | null): string {
     'SUPABASE_JWT_SECRET',
     'JWT_SECRET',
   ] as const;
+
   const jwtSecret =
     (envFile
       ? jwtSecretKeys
@@ -448,12 +487,14 @@ function resolveServiceRoleKey(envFile: string | null): string {
           .find((value): value is string => !!value)
       : jwtSecretKeys.map((key) => process.env[key]).find(Boolean)) ??
     LOCAL_SUPABASE_JWT_SECRET;
+
   return createServiceRoleJwt(jwtSecret);
 }
 
 function createServiceRoleJwt(secret: string): string {
   const now = Math.floor(Date.now() / 1000);
   const header = { alg: 'HS256', typ: 'JWT' };
+
   const payload = {
     aud: 'authenticated',
     exp: now + 60 * 60,
@@ -462,12 +503,15 @@ function createServiceRoleJwt(secret: string): string {
     role: 'service_role',
     sub: 'service_role',
   };
-  const signingInput = `${base64UrlEncode(JSON.stringify(header))}.${base64UrlEncode(
-    JSON.stringify(payload)
-  )}`;
+
+  const signingInput = `${base64UrlEncode(
+    JSON.stringify(header)
+  )}.${base64UrlEncode(JSON.stringify(payload))}`;
+
   const signature = createHmac('sha256', secret)
     .update(signingInput)
     .digest('base64url');
+
   return `${signingInput}.${signature}`;
 }
 
@@ -486,9 +530,11 @@ async function resetDatabaseWithRetry(
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {
       await runCommand('npx', ['supabase', 'db', 'reset', ...resetArgs]);
+
       return;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
+
       if (attempt >= attempts) {
         break;
       }
@@ -510,6 +556,7 @@ async function resetDatabaseWithRetry(
 
 function resolveResetAttempts(): number {
   const fromEnv = Number(process.env['E2E_DB_RESET_ATTEMPTS'] ?? '');
+
   return Number.isInteger(fromEnv) && fromEnv > 0
     ? fromEnv
     : DEFAULT_RESET_ATTEMPTS;
@@ -519,6 +566,7 @@ function resolveResetArgs(dbUrl: string): string[] {
   if (isLocalDatabaseUrl(dbUrl)) {
     return [];
   }
+
   return ['--db-url', dbUrl];
 }
 
@@ -526,6 +574,7 @@ function isLocalDatabaseUrl(raw: string): boolean {
   try {
     const parsed = new URL(raw);
     const hostname = parsed.hostname.toLowerCase();
+
     return (
       hostname === '127.0.0.1' || hostname === 'localhost' || hostname === '::1'
     );
@@ -540,12 +589,14 @@ function areSameDatabaseUrl(left: string, right: string): boolean {
 
 function normalizeDatabaseUrl(raw: string): string {
   const trimmed = raw.trim();
+
   try {
     const parsed = new URL(trimmed);
     const protocol = parsed.protocol.toLowerCase();
     const hostname = parsed.hostname.toLowerCase();
     const port = parsed.port || defaultPort(protocol);
     const pathname = parsed.pathname || '/';
+
     return `${protocol}//${hostname}:${port}${pathname}`;
   } catch {
     return trimmed;
@@ -556,6 +607,7 @@ function defaultPort(protocol: string): string {
   if (protocol === 'postgresql:' || protocol === 'postgres:') {
     return '5432';
   }
+
   return '';
 }
 
@@ -566,43 +618,56 @@ function readFirstAvailableEnvValue(
   for (const key of keys) {
     const value =
       (envFile ? readEnvValue(envFile, key) : null) ?? process.env[key];
+
     if (value) {
       return value;
     }
   }
+
   return null;
 }
 
 function readEnvValue(file: string, key: string): string | null {
   const fullPath = resolve(workspaceRoot, file);
   const content = readFileSync(fullPath, 'utf-8');
+
   for (const line of content.split(/\r?\n/)) {
     const trimmed = line.trim();
+
     if (!trimmed || trimmed.startsWith('#')) {
       continue;
     }
+
     const separator = trimmed.indexOf('=');
+
     if (separator === -1) {
       continue;
     }
+
     const name = trimmed.slice(0, separator).trim();
+
     if (name !== key) {
       continue;
     }
+
     let value = trimmed.slice(separator + 1).trim();
+
     if (
       (value.startsWith('"') && value.endsWith('"')) ||
       (value.startsWith("'") && value.endsWith("'"))
     ) {
       value = value.slice(1, -1);
     }
+
     return value;
   }
+
   return null;
 }
 
 function envValueOrDefault(key: string, fallback: string): string {
   const value = process.env[key]?.trim();
+
   if (!value) {
     return fallback;
   }
@@ -616,6 +681,7 @@ function envValueOrDefault(key: string, fallback: string): string {
 
 function resolveEnvFile(): string | null {
   const explicit = process.env['E2E_ENV_FILE'];
+
   if (explicit) {
     return explicit;
   }
@@ -625,6 +691,7 @@ function resolveEnvFile(): string | null {
       return file;
     }
   }
+
   return null;
 }
 

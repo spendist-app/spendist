@@ -2,27 +2,30 @@ import {
   McpServer,
   ResourceTemplate,
   type CallToolResult,
-  type StandardSchemaWithJSON,
 } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import {
   SpendistDataAccess,
-  type DeleteEntity,
   type SpendistConnection,
 } from '@spendist/data-access/spendist';
 import { toolError, toolResult } from './result';
 
 const Empty = z.object({});
+
 const Id = z.object({ id: z.string().uuid() });
+
 const Page = z.object({
   cursor: z.string().optional(),
   limit: z.number().int().min(1).max(200).optional(),
 });
+
 const Direction = z.enum(['income', 'expense']);
+
 const OptionalStyle = {
   color: z.string().max(32).nullable().optional(),
   icon: z.string().max(100).nullable().optional(),
 };
+
 const Transaction = z.object({
   amount: z.string().regex(/^\d+(?:\.\d{1,2})?$/),
   categoryId: z.string().uuid(),
@@ -33,6 +36,7 @@ const Transaction = z.object({
   placeId: z.string().uuid().nullable().optional(),
   tagIds: z.array(z.string().uuid()).max(50).optional(),
 });
+
 const Recurring = z.object({
   name: z.string().trim().min(1).max(120),
   amount: z.string().regex(/^\d+(?:\.\d{1,2})?$/),
@@ -45,19 +49,19 @@ const Recurring = z.object({
   tagIds: z.array(z.string().uuid()).max(50).optional(),
 });
 
-function operation<T extends z.ZodRawShape>(
+function operation<T extends Record<string, z.ZodType>, Result>(
   server: McpServer,
   name: string,
   description: string,
   schema: z.ZodObject<T>,
-  handler: (input: z.output<z.ZodObject<T>>) => Promise<unknown>,
+  handler: (input: z.output<z.ZodObject<T>>) => Promise<Result>,
   readOnly = true
 ): void {
   server.registerTool(
     name,
     {
       description,
-      inputSchema: schema as StandardSchemaWithJSON,
+      inputSchema: schema,
       annotations: {
         readOnlyHint: readOnly,
         destructiveHint: name === 'confirm_delete',
@@ -65,7 +69,7 @@ function operation<T extends z.ZodRawShape>(
         openWorldHint: false,
       },
     },
-    async (input: unknown): Promise<CallToolResult> => {
+    async (input): Promise<CallToolResult> => {
       try {
         return toolResult(await handler(schema.parse(input)));
       } catch (error) {
@@ -75,7 +79,7 @@ function operation<T extends z.ZodRawShape>(
   );
 }
 
-function jsonResource(uri: URL, value: unknown) {
+function jsonResource<T>(uri: URL, value: T) {
   return {
     contents: [
       {
@@ -91,6 +95,7 @@ export function createSpendistMcpServer(
   connection: SpendistConnection
 ): McpServer {
   const access = new SpendistDataAccess(connection);
+
   const server = new McpServer(
     { name: 'spendist', version: '1.0.0' },
     { capabilities: { tools: {}, resources: {}, prompts: {} } }
@@ -120,6 +125,7 @@ export function createSpendistMcpServer(
     ['list_recurring_payments', 'recurring_transactions'],
     ['list_notifications', 'notifications'],
   ] as const;
+
   for (const [name, table] of lists) {
     operation(
       server,
@@ -456,8 +462,7 @@ export function createSpendistMcpServer(
       ]),
       entityId: z.string().uuid(),
     }),
-    ({ entityType, entityId }) =>
-      access.prepareDelete(entityType as DeleteEntity, entityId),
+    ({ entityType, entityId }) => access.prepareDelete(entityType, entityId),
     false
   );
   operation(
@@ -535,6 +540,7 @@ export function createSpendistMcpServer(
         { role: 'user' as const, content: { type: 'text' as const, text } },
       ],
     }));
+
   prompt(
     'record_transactions',
     'Guide safe recording of one or more transactions.',

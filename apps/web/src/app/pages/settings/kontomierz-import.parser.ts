@@ -1,12 +1,22 @@
 import type { TransactionDirection } from '@spendist/data-access/supabase-types';
 
 export const KONTOMIERZ_IMPORT_SOURCE = 'kontomierz';
+
 export const KONTOMIERZ_SHEET_NAME = 'Kontomierz';
+
 export const KONTOMIERZ_FALLBACK_CATEGORY = 'Brak kategorii';
+
+export type KontomierzCell =
+  | string
+  | number
+  | boolean
+  | Date
+  | null
+  | undefined;
 
 export interface KontomierzWorksheet {
   readonly name: string;
-  readonly rows: readonly (readonly unknown[])[];
+  readonly rows: readonly (readonly KontomierzCell[])[];
 }
 
 export interface KontomierzImportRow {
@@ -95,7 +105,9 @@ const OPTIONAL_HEADERS: readonly HeaderKey[] = [
 
 const ALL_HEADERS = [...REQUIRED_HEADERS, ...OPTIONAL_HEADERS];
 
-export function parseKontomierzWorksheet(worksheet: KontomierzWorksheet): KontomierzParseResult {
+export function parseKontomierzWorksheet(
+  worksheet: KontomierzWorksheet
+): KontomierzParseResult {
   if (worksheet.name !== KONTOMIERZ_SHEET_NAME) {
     return {
       rows: [],
@@ -111,6 +123,7 @@ export function parseKontomierzWorksheet(worksheet: KontomierzWorksheet): Kontom
   }
 
   const [headerRow, ...dataRows] = worksheet.rows;
+
   if (!headerRow) {
     return {
       rows: [],
@@ -121,7 +134,11 @@ export function parseKontomierzWorksheet(worksheet: KontomierzWorksheet): Kontom
   }
 
   const headerIndexes = buildHeaderIndexes(headerRow);
-  const missingHeaders = REQUIRED_HEADERS.filter((header) => !headerIndexes.has(header));
+
+  const missingHeaders = REQUIRED_HEADERS.filter(
+    (header) => !headerIndexes.has(header)
+  );
+
   if (missingHeaders.length > 0) {
     return {
       rows: [],
@@ -144,20 +161,36 @@ export function parseKontomierzWorksheet(worksheet: KontomierzWorksheet): Kontom
   for (let index = 0; index < dataRows.length; index += 1) {
     const sourceRowNumber = index + 2;
     const row = dataRows[index];
-    if (!row.some((value) => value != null && String(value).trim().length > 0)) {
+
+    if (
+      !row.some((value) => value != null && String(value).trim().length > 0)
+    ) {
       continue;
     }
 
     totalDataRows += 1;
 
-    const isSplitParent = isAffirmative(readCell(row, headerIndexes, 'Podzielona'));
-    const isSplitChild = isAffirmative(readCell(row, headerIndexes, 'Podtransakcja'));
+    const isSplitParent = isAffirmative(
+      readCell(row, headerIndexes, 'Podzielona')
+    );
+
+    const isSplitChild = isAffirmative(
+      readCell(row, headerIndexes, 'Podtransakcja')
+    );
+
     if (isSplitParent && !isSplitChild) {
       skippedSplitParents += 1;
       continue;
     }
 
-    const parsedRow = parseDataRow(row, headerIndexes, sourceRowNumber, isSplitParent, isSplitChild);
+    const parsedRow = parseDataRow(
+      row,
+      headerIndexes,
+      sourceRowNumber,
+      isSplitParent,
+      isSplitChild
+    );
+
     if ('issue' in parsedRow) {
       issues.push(parsedRow.issue);
     } else {
@@ -174,44 +207,93 @@ export function parseKontomierzWorksheet(worksheet: KontomierzWorksheet): Kontom
 }
 
 function parseDataRow(
-  row: readonly unknown[],
+  row: readonly KontomierzCell[],
   headerIndexes: ReadonlyMap<HeaderKey, number>,
   sourceRowNumber: number,
   isSplitParent: boolean,
-  isSplitChild: boolean,
+  isSplitChild: boolean
 ): { row: KontomierzImportRow } | { issue: KontomierzParseIssue } {
   const occurredAt = parseKontomierzDate(readCell(row, headerIndexes, 'Data'));
+
   if (!occurredAt) {
-    return { issue: { rowNumber: sourceRowNumber, message: 'Invalid transaction date.' } };
+    return {
+      issue: {
+        rowNumber: sourceRowNumber,
+        message: 'Invalid transaction date.',
+      },
+    };
   }
 
   const signedAmount = parseAmount(readCell(row, headerIndexes, 'Kwota'));
+
   if (signedAmount === null || signedAmount === 0) {
-    return { issue: { rowNumber: sourceRowNumber, message: 'Invalid transaction amount.' } };
+    return {
+      issue: {
+        rowNumber: sourceRowNumber,
+        message: 'Invalid transaction amount.',
+      },
+    };
   }
 
   const currency = normalizeCurrency(readCell(row, headerIndexes, 'Waluta'));
+
   if (!currency) {
-    return { issue: { rowNumber: sourceRowNumber, message: 'Invalid transaction currency.' } };
+    return {
+      issue: {
+        rowNumber: sourceRowNumber,
+        message: 'Invalid transaction currency.',
+      },
+    };
   }
 
   const title = normalizeText(readCell(row, headerIndexes, 'Tytuł'));
+
   if (!title) {
-    return { issue: { rowNumber: sourceRowNumber, message: 'Missing transaction title.' } };
+    return {
+      issue: {
+        rowNumber: sourceRowNumber,
+        message: 'Missing transaction title.',
+      },
+    };
   }
 
-  const amountInDefault = Math.abs(parseAmount(readCell(row, headerIndexes, 'Kwota w PLN')) ?? signedAmount);
+  const amountInDefault = Math.abs(
+    parseAmount(readCell(row, headerIndexes, 'Kwota w PLN')) ?? signedAmount
+  );
+
   const amount = Math.abs(signedAmount);
-  const direction: TransactionDirection = signedAmount < 0 ? 'expense' : 'income';
-  const groupName = normalizeText(readCell(row, headerIndexes, 'Grupa kategorii')) ?? KONTOMIERZ_FALLBACK_CATEGORY;
-  const categoryName = normalizeText(readCell(row, headerIndexes, 'Kategoria')) ?? KONTOMIERZ_FALLBACK_CATEGORY;
-  const walletName = normalizeText(readCell(row, headerIndexes, 'Nazwa konta/portfela')) ?? '';
+
+  const direction: TransactionDirection =
+    signedAmount < 0 ? 'expense' : 'income';
+
+  const groupName =
+    normalizeText(readCell(row, headerIndexes, 'Grupa kategorii')) ??
+    KONTOMIERZ_FALLBACK_CATEGORY;
+
+  const categoryName =
+    normalizeText(readCell(row, headerIndexes, 'Kategoria')) ??
+    KONTOMIERZ_FALLBACK_CATEGORY;
+
+  const walletName =
+    normalizeText(readCell(row, headerIndexes, 'Nazwa konta/portfela')) ?? '';
+
   const comment = normalizeText(readCell(row, headerIndexes, 'Komentarz'));
   const tagNames = parseTags(readCell(row, headerIndexes, 'Tagi'));
-  const originalDate = normalizeText(readCell(row, headerIndexes, 'Oryginalna data transakcji'));
-  const originalAmount = parseAmount(readCell(row, headerIndexes, 'Oryginalna kwota transakcji'));
-  const originalTitle = normalizeText(readCell(row, headerIndexes, 'Oryginalny tytuł transakcji'));
+
+  const originalDate = normalizeText(
+    readCell(row, headerIndexes, 'Oryginalna data transakcji')
+  );
+
+  const originalAmount = parseAmount(
+    readCell(row, headerIndexes, 'Oryginalna kwota transakcji')
+  );
+
+  const originalTitle = normalizeText(
+    readCell(row, headerIndexes, 'Oryginalny tytuł transakcji')
+  );
+
   const description = buildDescription(title, comment);
+
   const fingerprint = createKontomierzFingerprint({
     occurredAt,
     amount,
@@ -263,18 +345,23 @@ function parseDataRow(
   };
 }
 
-function buildHeaderIndexes(headerRow: readonly unknown[]): ReadonlyMap<HeaderKey, number> {
+function buildHeaderIndexes(
+  headerRow: readonly KontomierzCell[]
+): ReadonlyMap<HeaderKey, number> {
   const normalizedHeaders = new Map<string, number>();
   headerRow.forEach((header, index) => {
     const key = normalizeText(header);
+
     if (key) {
       normalizedHeaders.set(key, index);
     }
   });
 
   const result = new Map<HeaderKey, number>();
+
   for (const header of ALL_HEADERS) {
     const index = normalizedHeaders.get(header);
+
     if (index != null) {
       result.set(header, index);
     }
@@ -283,8 +370,13 @@ function buildHeaderIndexes(headerRow: readonly unknown[]): ReadonlyMap<HeaderKe
   return result;
 }
 
-function readCell(row: readonly unknown[], headerIndexes: ReadonlyMap<HeaderKey, number>, header: HeaderKey): unknown {
+function readCell(
+  row: readonly KontomierzCell[],
+  headerIndexes: ReadonlyMap<HeaderKey, number>,
+  header: HeaderKey
+): KontomierzCell {
   const index = headerIndexes.get(header);
+
   return index == null ? null : row[index];
 }
 
@@ -296,45 +388,50 @@ function buildDescription(title: string, comment: string | null): string {
   return `${title}\n\nKomentarz z Kontomierza: ${comment}`;
 }
 
-function normalizeText(value: unknown): string | null {
+function normalizeText(value: KontomierzCell): string | null {
   if (value == null) {
     return null;
   }
 
   const normalized = String(value).replace(/\s+/g, ' ').trim();
+
   return normalized.length > 0 ? normalized : null;
 }
 
-function normalizeCurrency(value: unknown): string | null {
+function normalizeCurrency(value: KontomierzCell): string | null {
   const normalized = normalizeText(value)?.toUpperCase() ?? null;
+
   return normalized && /^[A-Z]{3}$/.test(normalized) ? normalized : null;
 }
 
-function parseAmount(value: unknown): number | null {
+function parseAmount(value: KontomierzCell): number | null {
   if (value == null || value === '') {
     return null;
   }
 
-  if (typeof value === 'number') {
-    return Number.isFinite(value) ? roundAmount(value) : null;
-  }
-
   const normalized = String(value).replace(/\s/g, '').replace(',', '.');
   const parsed = Number(normalized);
+
   return Number.isFinite(parsed) ? roundAmount(parsed) : null;
 }
 
-function parseKontomierzDate(value: unknown): Date | null {
+function parseKontomierzDate(value: KontomierzCell): Date | null {
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
-    return toUtcDate(value.getUTCFullYear(), value.getUTCMonth() + 1, value.getUTCDate());
+    return toUtcDate(
+      value.getUTCFullYear(),
+      value.getUTCMonth() + 1,
+      value.getUTCDate()
+    );
   }
 
   const normalized = normalizeText(value);
+
   if (!normalized) {
     return null;
   }
 
   const match = /^(\d{2})\.(\d{2})\.(\d{4})$/.exec(normalized);
+
   if (!match) {
     return null;
   }
@@ -342,20 +439,27 @@ function parseKontomierzDate(value: unknown): Date | null {
   const day = Number(match[1]);
   const month = Number(match[2]);
   const year = Number(match[3]);
+
   return toUtcDate(year, month, day);
 }
 
 function toUtcDate(year: number, month: number, day: number): Date | null {
   const date = new Date(Date.UTC(year, month - 1, day));
-  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) {
+
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
     return null;
   }
 
   return date;
 }
 
-function parseTags(value: unknown): readonly string[] {
+function parseTags(value: KontomierzCell): readonly string[] {
   const raw = normalizeText(value);
+
   if (!raw) {
     return [];
   }
@@ -365,12 +469,12 @@ function parseTags(value: unknown): readonly string[] {
       raw
         .split(',')
         .map((tag) => tag.trim())
-        .filter(Boolean),
-    ),
+        .filter(Boolean)
+    )
   );
 }
 
-function isAffirmative(value: unknown): boolean {
+function isAffirmative(value: KontomierzCell): boolean {
   return normalizeText(value)?.toLowerCase() === 'tak';
 }
 
@@ -409,13 +513,16 @@ function createKontomierzFingerprint(input: {
     input.originalTitle ?? '',
   ];
 
-  return `kontomierz:v1:${hashFingerprint(parts.map((part) => part.trim().toLowerCase()).join('|'))}`;
+  return `kontomierz:v1:${hashFingerprint(
+    parts.map((part) => part.trim().toLowerCase()).join('|')
+  )}`;
 }
 
 function formatIsoDate(date: Date): string {
-  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(
-    date.getUTCDate(),
-  ).padStart(2, '0')}`;
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(
+    2,
+    '0'
+  )}-${String(date.getUTCDate()).padStart(2, '0')}`;
 }
 
 function hashFingerprint(value: string): string {
@@ -428,9 +535,14 @@ function hashFingerprint(value: string): string {
     hash2 = Math.imul(hash2 ^ code, 1597334677);
   }
 
-  hash1 = Math.imul(hash1 ^ (hash1 >>> 16), 2246822507) ^ Math.imul(hash2 ^ (hash2 >>> 13), 3266489909);
-  hash2 = Math.imul(hash2 ^ (hash2 >>> 16), 2246822507) ^ Math.imul(hash1 ^ (hash1 >>> 13), 3266489909);
+  hash1 =
+    Math.imul(hash1 ^ (hash1 >>> 16), 2246822507) ^
+    Math.imul(hash2 ^ (hash2 >>> 13), 3266489909);
+  hash2 =
+    Math.imul(hash2 ^ (hash2 >>> 16), 2246822507) ^
+    Math.imul(hash1 ^ (hash1 >>> 13), 3266489909);
 
   const combined = 4294967296 * (2097151 & hash2) + (hash1 >>> 0);
+
   return combined.toString(36);
 }

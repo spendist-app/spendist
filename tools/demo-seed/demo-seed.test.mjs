@@ -46,6 +46,7 @@ test('localized demo avatars are repository-managed', async () => {
     assert.match(fixture.avatarFile, /^avatar-[a-z-]+\.png$/);
     await access(new URL(`./assets/${fixture.avatarFile}`, import.meta.url));
   }
+
   assert.equal(
     avatarObjectPath('10000000-0000-4000-8000-000000000001'),
     '10000000-0000-4000-8000-000000000001/avatar.png'
@@ -135,22 +136,26 @@ test('remote writes require all project confirmations', () => {
 
 test('replace requires exact selected demo emails', () => {
   const target = resolveProjectTarget('http://127.0.0.1:55321');
+
   const incomplete = parseArgs([
     '--apply',
     '--mode=replace',
     '--locale=all',
     `--confirm-replace=${FIXTURES.pl.email}`,
   ]);
+
   assert.throws(
     () => assertExecutionAllowed(incomplete, target),
     /confirm-replace/
   );
+
   const complete = parseArgs([
     '--apply',
     '--mode=replace',
     '--locale=all',
     `--confirm-replace=${FIXTURES.pl.email},${FIXTURES.en.email}`,
   ]);
+
   assert.doesNotThrow(() => assertExecutionAllowed(complete, target));
 });
 
@@ -163,6 +168,7 @@ test('user marker requires both exact email and exact metadata', () => {
       demo_seed_locale: 'pl',
     },
   };
+
   assert.equal(isMarkedDemoUser(user, 'pl', DEMO_SEED_ID), true);
   assert.equal(
     isMarkedDemoUser(
