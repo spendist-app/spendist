@@ -1,35 +1,33 @@
 # Spendist
 
-Spendist is a personal finance app for tracking everyday money, recurring payments, wallets, categories, imports, and spending insights in one place.
+Spendist is a free, open-source app for tracking personal income and expenses. Use it to see where your money goes, organize spending across wallets and categories, and keep a record of recurring bills.
 
-[![Angular](https://img.shields.io/badge/Angular-22-DD0031?logo=angular&logoColor=white)](https://angular.dev/)
-[![Nx](https://img.shields.io/badge/Nx-23-143055?logo=nx&logoColor=white)](https://nx.dev/)
-[![Supabase](https://img.shields.io/badge/Supabase-Postgres%20%2B%20Auth-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com/)
-[![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-F38020?logo=cloudflare&logoColor=white)](https://workers.cloudflare.com/)
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+**[Open Spendist](https://spendist.app/)** · [Getting started](#getting-started) · [Run locally](#local-development) · [Documentation](doc/README.md) · [Report a problem](https://github.com/spendist-app/spendist/issues)
 
-## What It Does
+## Is Spendist for you?
 
-Spendist helps you build a clear picture of personal cash flow without locking your data into a black box.
+Spendist is for people who want to record everyday spending and understand their household finances. It works in Polish and English, with light and dark themes. You can use the hosted application or run the open-source code yourself under the [GPL-3.0 license](LICENSE).
 
-- Track income and expenses with categories, tags, wallets, dates, notes, and currencies.
-- Review monthly cash flow, category summaries, recurring commitments, and recent activity from the dashboard.
-- Manage multiple wallets and currencies, including default-wallet behavior for faster entry.
-- Create nested categories with custom colors and Heroicons.
-- Automate subscriptions, bills, and other recurring payments through Supabase Edge Functions and scheduled jobs.
-- Import historical data from Kontomierz or Spendist CSV exports, then export your data again when needed.
-- Store places connected with spending patterns and expose them in the dashboard.
-- Use the app in Polish or English with light and dark themes.
-- Connect compatible AI clients through a user-authorized MCP server without bypassing Supabase RLS.
+There are no ads or data sales. You enter transactions yourself or import supported files; Spendist does not connect to your bank or make payments on your behalf.
 
-## Product Surface
+## Getting started
 
-- **Landing page**: public product introduction and authentication entry point.
-- **Dashboard**: monthly totals, category cash flow, recurring-payment context, and place summaries.
-- **Transactions**: searchable and filterable transaction list with a focused creation flow.
-- **Settings**: profile, avatar upload, wallets, category groups, categories, imports, and exports.
-- **Modules**: recurring payments and places.
-- **Notifications**: user-scoped notification menu in the app shell.
+1. [Create a free account](https://spendist.app/signup), choose the currency for your first wallet, and confirm your email.
+2. Open **Transactions** and add an expense: amount, date, wallet, and category. You can start with today's purchases; you do not need to enter your entire history.
+3. Open **Dashboard** to review recorded income and expenses by month and category. Add more entries as you go.
+
+Already have records? Import **Spendist CSV** or **Kontomierz XLSX** in Settings. The Transactions import also accepts **Biedronka e-receipt JSON**. These are specific formats, not a general bank-statement importer. You can export transactions as Spendist CSV from Settings.
+
+## What you can do
+
+- **Understand monthly spending:** compare recorded income and expenses and review category totals on the dashboard.
+- **Keep money organized:** use multiple wallets and currencies, categories, category groups, tags, and places.
+- **Enter several expenses together:** add transactions individually or use bulk entry with clipboard column parsing.
+- **Record recurring bills:** schedule transaction records for subscriptions and other recurring costs. Spendist does not send money or pay those bills.
+- **Keep your data portable:** import supported files, review them before saving, and export transactions again.
+- **Use optional integrations:** connect compatible AI clients through the user-authorized [MCP integration](doc/features/model-context-protocol.md).
+
+Spendist is actively developed. If something is confusing or fails, [open an issue](https://github.com/spendist-app/spendist/issues) with the steps to reproduce it. Remove financial records, personal information, and tokens from anything you share publicly.
 
 ## Tech Stack
 

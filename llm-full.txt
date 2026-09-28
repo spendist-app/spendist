@@ -94,3 +94,5 @@ For each new or materially changed user-visible feature:
 4. For a public indexable route, update `apps/web/public/sitemap.xml` and `apps/web/public/robots.txt` in the same change.
 
 Never describe planned work as implemented; label it **Planned**.
+
+Public landing onboarding: `/` explains household expense tracking in Polish and English, links to signup/login and source code, and includes a three-step getting-started guide. Its financial illustration is labelled as sample data. Bank connections and bill execution are not offered. See `doc/features/public-landing.md`.

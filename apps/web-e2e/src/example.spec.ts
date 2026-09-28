@@ -24,6 +24,18 @@ test('shows the public landing page with core calls to action', async ({
   await expect(page.getByText('Fast and bulk entry')).toBeVisible();
   await expect(page.getByText('Recurring costs that keep up')).toBeVisible();
   await expect(page.getByText('Your data stays portable')).toBeVisible();
+  await page.getByRole('link', { name: 'See how it works' }).click();
+  const guide = page.getByRole('region', {
+    name: 'Start with today’s expenses',
+  });
+  await expect(guide).toBeVisible();
+  await expect(guide.getByRole('listitem')).toHaveCount(3);
+  await expect(
+    guide.getByRole('heading', { name: 'Add your first expense' })
+  ).toBeVisible();
+  await expect(
+    page.getByText('Sample data — spending summary illustration')
+  ).toBeVisible();
 
   await expect(
     page.getByRole('link', { name: 'I already have an account' })
@@ -33,7 +45,7 @@ test('shows the public landing page with core calls to action', async ({
     '/signup'
   );
   await expect(
-    page.getByRole('link', { name: 'Follow development on GitHub' })
+    page.getByRole('link', { name: 'View the code on GitHub' })
   ).toHaveAttribute('href', 'https://github.com/spendist-app/spendist');
   await expect(
     page.getByRole('link', { name: 'Blog' }).first()

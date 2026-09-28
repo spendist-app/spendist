@@ -117,7 +117,7 @@ const en = {
       title: 'See where your money',
       titleHighlight: 'really goes',
       subtitle:
-        'Track transactions, paste entries in bulk, automate recurring costs, and understand your cash flow across wallets and currencies.',
+        'A free app for recording household expenses and income. See what you spend on groceries, bills, and transport, and compare your spending month by month.',
       cta: "Get started — it's free",
       login: 'I already have an account',
       ctaSecondary: 'See how it works',
@@ -129,7 +129,8 @@ const en = {
       bilingual: 'Polish and English',
     },
     preview: {
-      ariaLabel: 'Spendist dashboard preview',
+      ariaLabel: 'Spending summary illustration with sample data',
+      sample: 'Sample data — spending summary illustration',
       month: 'This month',
       balanceLabel: 'Monthly cash flow',
       income: 'Income',
@@ -142,7 +143,7 @@ const en = {
       badge: 'Built for everyday money',
       title: 'From one expense to the whole picture',
       subtitle:
-        'Spendist keeps quick entry, deep filtering, automation, and portable data in one focused workspace.',
+        'Start with everyday purchases. Add more wallets, organize categories, and record recurring bills as you go.',
       dashboard: {
         title: 'Cash flow at a glance',
         description:
@@ -161,7 +162,7 @@ const en = {
       recurring: {
         title: 'Recurring costs that keep up',
         description:
-          'Schedule fixed or variable payments, backfill history, pause plans, and receive notifications when activity is created.',
+          'Record recurring expenses such as rent and subscriptions. Schedules create transactions in Spendist; the app does not pay your bills.',
       },
       currency: {
         title: 'Wallets and real exchange rates',
@@ -186,37 +187,32 @@ const en = {
       organize: {
         title: 'Categories, tags, and places',
         description:
-          'Build nested category trees, add custom colors and Heroicons, tag transactions, and connect spending with places.',
+          'Organize expenses into your own categories and groups. Add tags, such as travel, and places to find specific purchases later.',
         tagExample: '#travel',
         placeExample: 'Warsaw',
         recurringExample: 'Subscriptions',
       },
     },
-    latest: {
-      badge: 'Recently added',
-      title: 'Spendist grows around real workflows',
+    gettingStarted: {
+      badge: 'Getting started',
+      title: 'Start with today’s expenses',
       subtitle:
-        'Recent releases focused on entering data faster, finding it later, and automating work without losing control.',
-      github: 'Follow development on GitHub',
-      bulk: {
-        title: 'Paste into bulk entry',
+        'You do not need to recreate your entire history. Enter records yourself or import supported files — Spendist does not connect to your bank.',
+      github: 'View the code on GitHub',
+      account: {
+        title: 'Create an account',
         description:
-          'Turn tabular clipboard data into validated transaction rows.',
+          'Choose the currency for your first wallet and confirm your email address.',
       },
-      filters: {
-        title: 'Focused filters and sorting',
+      expense: {
+        title: 'Add your first expense',
         description:
-          'Filter by categories, tags, wallets, dates, amounts, and recurring source.',
+          'Open Transactions. Enter an amount, choose a date, wallet, and category, then save.',
       },
-      automation: {
-        title: 'Recurring history and notifications',
+      review: {
+        title: 'Review your summary',
         description:
-          'Backfill past schedules and keep track of generated or pending activity.',
-      },
-      transfer: {
-        title: 'Safer CSV transfer',
-        description:
-          'Analyze duplicates and new reference data before importing anything.',
+          'Open Dashboard to see recorded income and expenses for a selected month, with a breakdown by category.',
       },
     },
     trust: {

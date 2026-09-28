@@ -12,6 +12,7 @@ This directory is the English, LLM-oriented source of truth for current user-vis
 - [Mortgages](features/mortgages.md)
 - [Places and dashboard insights](features/places-and-dashboard-insights.md)
 - [Preferences, notifications, and platform behavior](features/preferences-notifications-and-platform.md)
+- [Public landing page](features/public-landing.md)
 - [Public multilingual blog](features/public-blog.md)
 - [Public legal pages](features/public-legal-pages.md)
 - [Responsive web images](features/responsive-web-images.md)

@@ -573,8 +573,7 @@
   align-items: center;
   margin-bottom: 3rem;
   padding: 2rem;
-  border: 1px solid
-    color-mix(in srgb, var(--color-primary) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 18%, transparent);
   border-radius: 2rem;
   background: color-mix(
     in srgb,
@@ -680,4 +679,12 @@
       transform: rotateX(1deg) rotateY(-1deg) translateY(-8px);
     }
   }
+}
+
+.preview-caption {
+  position: relative;
+  margin-top: 1rem;
+  font-size: 0.8rem;
+  text-align: center;
+  color: color-mix(in srgb, var(--color-base-content) 68%, transparent);
 }
