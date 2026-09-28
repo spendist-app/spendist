@@ -25,9 +25,11 @@ test('shows the public landing page with core calls to action', async ({
   await expect(page.getByText('Recurring costs that keep up')).toBeVisible();
   await expect(page.getByText('Your data stays portable')).toBeVisible();
   await page.getByRole('link', { name: 'See how it works' }).click();
+
   const guide = page.getByRole('region', {
     name: 'Start with today’s expenses',
   });
+
   await expect(guide).toBeVisible();
   await expect(guide.getByRole('listitem')).toHaveCount(3);
   await expect(
