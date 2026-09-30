@@ -1,6 +1,6 @@
 # Spendist privacy policy
 
-**Version 1.0 — 2026-09-30**
+**Version 1.1 — 2026-09-30**
 
 This policy covers the hosted service at `https://spendist.app` and its MCP integration. It takes effect when this version is published on the service. [Polska wersja](/polityka-prywatnosci?lang=pl).
 
@@ -18,6 +18,7 @@ This policy does not cover independently hosted installations run by other peopl
 | Recording registration | declaration of adulthood, document versions and time of acceptance/acknowledgement | performance of a contract and legitimate interest in recording its formation — Article 6(1)(b) and (f) |
 | Authentication and security | session and authentication information, IP address, request time, browser and device details, technical logs, MCP authorization and audit metadata | performance of a contract and legitimate interest in securing and maintaining the service — Article 6(1)(b) and (f) |
 | Support and complaints | sender address, correspondence and information necessary to handle the request | performance of a contract and legitimate interest in handling requests — Article 6(1)(b) and (f) |
+| Public-content statistics after consent | page views, public page path, cookie identifiers and browser technical information | consent — Article 6(1)(a) |
 | Legal obligations and claims | data necessary for the particular obligation or claim | Article 6(1)(c), or legitimate interest in establishing, pursuing or defending claims — Article 6(1)(f) |
 
 Providing required registration data is voluntary, but necessary to create an account. Your display name need not be your real name. We do not collect a date of birth or identity document at signup. Supabase Auth handles passwords; we do not store them in plain text.
@@ -37,6 +38,7 @@ MCP mutation auditing records client ID, tool, object IDs, timestamps and outcom
 - **Supabase** provides authentication, the database, avatar storage and backend services. The primary project database is in **eu-west-2, London, United Kingdom**. This does not mean all provider operations happen exclusively in that region. [Supabase data processing terms](https://supabase.com/legal/customer-resources/data-processing-addendum).
 - **Cloudflare** provides hosting, traffic delivery and security, and forwards incoming `@spendist.app` email to the controller's mailbox. [Cloudflare data processing terms](https://www.cloudflare.com/cloudflare-customer-dpa/).
 - **Google / Gmail** handles incoming correspondence and outgoing messages through the controller's personal mailbox. This is currently not Google Workspace. Messages and metadata are also handled under [Google's privacy policy](https://policies.google.com/privacy?hl=en). Do not email passwords or complete financial exports unless necessary for your request.
+- **Google Analytics** — public-content statistics after consent, described in section 7. [Google privacy policy](https://policies.google.com/privacy?hl=en) and [Analytics data information](https://support.google.com/analytics/answer/6004245?hl=en).
 - **External clients you authorize and the other Allowance participant** receive data within the scope described in section 3.
 
 Amazon SES is being prepared for transactional messages but is not yet configured. We will update provider information before activating it. Planned configuration is not described as an active service.
@@ -57,11 +59,18 @@ The United Kingdom is outside the European Economic Area. Providers with global 
 - We retain correspondence as needed to handle the matter; where necessary to document an obligation or claim, the applicable statutory and limitation periods govern retention. Unnecessary correspondence is deleted.
 - The controller currently makes no independent database backups. The service uses Supabase Free, without a guarantee of an automatic backup available to the controller for restoration. The provider may keep internal technical copies under its own terms. Additional backups and their retention require an update to this information; we do not currently promise a 90-day backup cycle.
 
-## 7. Browser storage and planned analytics
+## 7. Browser storage and analytics
 
 The app stores session information and language/theme preferences in browser storage. Session information supports authentication and security and is removed or replaced on sign-out or expiry. Preferences remain until you change or remove them. Clearing browser storage may sign you out or reset preferences.
 
-**Google Analytics 4 is not currently enabled.** We do not set its `_ga` or `_ga_*` cookies or send analytics events. We plan analytics only on pages for signed-out visitors. Before activation, we will implement voluntary consent, block tags before consent, offer an equivalent refusal option and easy withdrawal, and update this policy with the actual collection scope and retention period. Analytics will not include financial data, form contents or authentication data. Refusing consent will not restrict the service.
+**Google Analytics 4 runs only after voluntary consent**, for signed-out visitors to the home page, blog and legal documents. Before consent and after refusal we load no Google tag and send no analytics pings. We exclude the private panel, login, signup, password recovery, invitations and external-app authorization. Measurement stops on sign-in and when leaving a measured page.
+
+Its purpose is to understand visits to public content. Google receives the public page address without query parameters or fragments, a page-view event and browser/device technical information, including the IP address needed for communication and cookie identifiers. We do not send account data, email addresses, finances, form contents or the previous page address. Tag configuration disables Google Signals and advertising personalization and denies advertising consent. We do not use these statistics for advertising.
+
+Refusal is as accessible as acceptance and does not restrict Spendist. You can withdraw consent using **Analytics preferences** at the bottom of any page and **Reject / withdraw**. Withdrawal stops future measurement and removes this integration's cookies; it does not affect the lawfulness of earlier processing or automatically erase information Google already received. Contact the controller about erasure.
+
+Your decision is stored locally under `spendist.analytics-consent` for **180 days**, including refusal. It is not linked to your account. After consent, the tag may set host-only cookies `_ga` and `_ga_WY8ZY07NGW` for up to **180 days**, without renewing them on each measurement. You can also delete them in your browser. Data received by Google follows retention configured in the GA4 property and Google's policies; cookie lifetime is not report retention. Contact the controller for current retention settings.
+
 
 ## 8. Rights and security
 

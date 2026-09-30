@@ -35,18 +35,53 @@ const contentSecurityPolicyDirectives = {
     'ws://127.0.0.1:55321',
     'ws://localhost:55321',
   ],
-  frameSrc: ["'none'"],
+  frameSrc: ["'self'"],
   formAction: ["'self'"],
   upgradeInsecureRequests: [],
 };
 
-app.use(
+app.use((req, res, next) =>
   helmet({
     contentSecurityPolicy: {
-      directives: contentSecurityPolicyDirectives,
+      directives: {
+        ...contentSecurityPolicyDirectives,
+        upgradeInsecureRequests:
+          req.protocol === 'http' &&
+          (req.hostname === 'localhost' || req.hostname === '127.0.0.1')
+            ? null
+            : [],
+      },
     },
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-  })
+  })(req, res, next)
+);
+
+app.use(
+  '/analytics/frame.html',
+  helmet({
+    contentSecurityPolicy: {
+      useDefaults: false,
+      directives: {
+        defaultSrc: ["'none'"],
+        baseUri: ["'none'"],
+        frameAncestors: ["'self'"],
+        scriptSrc: ["'self'", 'https://www.googletagmanager.com'],
+        connectSrc: [
+          'https://*.google-analytics.com',
+          'https://www.googletagmanager.com',
+        ],
+        imgSrc: ['https://*.google-analytics.com'],
+        formAction: ["'none'"],
+      },
+    },
+    frameguard: { action: 'sameorigin' },
+    referrerPolicy: { policy: 'no-referrer' },
+  }),
+  (_req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    next();
+  }
 );
 
 app.use((_req, res, next) => {

@@ -27,7 +27,7 @@ const CONTENT_SECURITY_POLICY = [
   "img-src 'self' data: blob: https:",
   "font-src 'self' data: https:",
   "connect-src 'self' https: http://127.0.0.1:55321 http://localhost:55321 ws://127.0.0.1:55321 ws://localhost:55321",
-  "frame-src 'none'",
+  "frame-src 'self'",
   "form-action 'self'",
   'upgrade-insecure-requests',
 ].join('; ');
@@ -94,6 +94,39 @@ const withSecurityHeaders = (
   if (request) {
     const url = new URL(request.url);
     const { pathname } = url;
+
+    if (
+      url.protocol === 'http:' &&
+      (url.hostname === 'localhost' || url.hostname === '127.0.0.1')
+    ) {
+      // Local HTTP development cannot upgrade a same-origin frame to HTTPS.
+      headers.set(
+        'Content-Security-Policy',
+        CONTENT_SECURITY_POLICY.replace('; upgrade-insecure-requests', '')
+      );
+    }
+
+    if (
+      pathname === '/analytics/frame.html' ||
+      pathname === '/analytics/frame'
+    ) {
+      headers.set(
+        'Content-Security-Policy',
+        [
+          "default-src 'none'",
+          "base-uri 'none'",
+          "frame-ancestors 'self'",
+          "script-src 'self' https://www.googletagmanager.com",
+          'connect-src https://*.google-analytics.com https://www.googletagmanager.com',
+          'img-src https://*.google-analytics.com',
+          "form-action 'none'",
+        ].join('; ')
+      );
+      headers.set('X-Frame-Options', 'SAMEORIGIN');
+      headers.set('Referrer-Policy', 'no-referrer');
+      headers.set('Cache-Control', 'no-store');
+      headers.set('X-Robots-Tag', 'noindex, nofollow');
+    }
 
     if (SERVICE_WORKER_ASSET_PATHS.has(pathname)) {
       headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');

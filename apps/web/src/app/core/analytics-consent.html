@@ -1,0 +1,49 @@
+<footer class="px-4 py-3 text-center">
+  <button
+    type="button"
+    class="link text-xs"
+    (click)="analytics.openPreferences()"
+  >
+    {{ 'analytics.settings' | transloco }}
+  </button>
+</footer>
+@if (analytics.visible()) {
+<section
+  role="dialog"
+  aria-labelledby="analytics-title"
+  aria-describedby="analytics-description"
+  class="fixed inset-x-4 bottom-4 z-50 mx-auto max-h-[85dvh] max-w-xl overflow-auto rounded-2xl border border-base-300 bg-base-100 p-5 shadow-xl sm:p-6"
+>
+  <h2 id="analytics-title" class="text-lg font-semibold">
+    {{ 'analytics.title' | transloco }}
+  </h2>
+  <p id="analytics-description" class="mt-2 text-sm text-base-content/80">
+    {{ 'analytics.description' | transloco }}
+  </p>
+  <p class="mt-2 text-sm">
+    <a
+      class="link"
+      routerLink="/polityka-prywatnosci"
+      [queryParams]="{ lang: language.currentLanguage() }"
+    >
+      {{ 'legal.privacy' | transloco }}
+    </a>
+  </p>
+  <div class="mt-4 grid grid-cols-2 gap-3">
+    <button
+      type="button"
+      class="btn btn-outline"
+      (click)="analytics.choose('rejected')"
+    >
+      {{ 'analytics.reject' | transloco }}
+    </button>
+    <button
+      type="button"
+      class="btn btn-outline"
+      (click)="analytics.choose('accepted')"
+    >
+      {{ 'analytics.accept' | transloco }}
+    </button>
+  </div>
+</section>
+}

@@ -25,7 +25,7 @@ test('shows current legal documents in Polish and English on desktop and mobile'
 
     for (const path of ['/regulamin', '/polityka-prywatnosci']) {
       await page.goto(path);
-      await expect(page.locator('.legal-content')).toContainText('Wersja 1.0');
+      await expect(page.locator('.legal-content')).toContainText('Wersja 1.1');
       await expect(page.locator('.legal-content')).not.toContainText(
         'Wersja robocza'
       );
@@ -33,9 +33,9 @@ test('shows current legal documents in Polish and English on desktop and mobile'
         .locator('.legal-header')
         .getByRole('link', { name: 'English', exact: true })
         .click();
-      await expect(page.locator('.legal-content')).toContainText('Version 1.0');
+      await expect(page.locator('.legal-content')).toContainText('Version 1.1');
       await page.reload();
-      await expect(page.locator('.legal-content')).toContainText('Version 1.0');
+      await expect(page.locator('.legal-content')).toContainText('Version 1.1');
       await expect(page.locator('html')).toHaveAttribute('lang', 'en');
       await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
         'href',
@@ -101,8 +101,8 @@ test('requires adult and legal confirmation and sends versions without an extern
     page.getByRole('heading', { name: 'Check your email' })
   ).toBeVisible();
   expect(calls).toBe(1);
-  expect(signupBody).toContain('"terms_version":"1.0"');
-  expect(signupBody).toContain('"privacy_version":"1.0"');
+  expect(signupBody).toContain('"terms_version":"1.1"');
+  expect(signupBody).toContain('"privacy_version":"1.1"');
   expect(signupBody).toContain('"adult_confirmed":true');
   expect(signupBody).toContain('"avatar_url":null');
   expect(forbiddenRequests).toEqual([]);

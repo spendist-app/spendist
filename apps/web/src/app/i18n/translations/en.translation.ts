@@ -1,4 +1,12 @@
 const en = {
+  analytics: {
+    title: 'Allow visit statistics?',
+    description:
+      'With your consent, Google Analytics uses cookies to measure visits to our home page, blog and legal pages only while you are signed out. We do not send account data, finances or form contents. Refusal does not affect Spendist. You can change your choice at any time using Analytics preferences at the bottom of the page.',
+    accept: 'Allow analytics',
+    reject: 'Reject / withdraw',
+    settings: 'Analytics preferences',
+  },
   appUpdate: {
     title: 'A new version is available',
     description: 'Refresh the page to load the latest Spendist improvements.',

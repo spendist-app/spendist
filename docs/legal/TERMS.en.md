@@ -1,6 +1,6 @@
 # Spendist terms of service
 
-**Version 1.0 — 2026-09-30**
+**Version 1.1 — 2026-09-30**
 
 These terms take effect when this version is published on the service. [Polska wersja](/regulamin?lang=pl).
 
@@ -60,7 +60,7 @@ These terms take effect when this version is published on the service. [Polska w
 1. The privacy policy explains processing of personal data.
 2. Private Panel information is used to provide, maintain and secure the service and meet legal obligations.
 3. We do not sell personal or financial data.
-4. Google Analytics is not currently enabled. Planned activation covers only pages for signed-out visitors, after voluntary consent and implementation of refusal and withdrawal. It will not include account data, financial data or form contents.
+4. Google Analytics measures only the home page, blog and legal pages for signed-out visitors after voluntary consent. Refusal and withdrawal are available through Analytics preferences. Measurement excludes the private panel, authentication pages, account data, financial data and form contents.
 5. The Operator uses appropriate technical and organizational measures, including HTTPS, access controls and user-data isolation. No system is entirely risk-free.
 
 ## 9. Availability and your copies
@@ -101,4 +101,4 @@ These terms take effect when this version is published on the service. [Polska w
 1. Polish law applies, subject to mandatory rules that cannot be excluded by agreement.
 2. Disputes may be resolved by the competent ordinary courts. Available out-of-court procedures remain available where applicable law provides them.
 3. Relevant mandatory rules apply to matters not covered here, including Polish electronic-services legislation where applicable to the Operator and App.
-4. Version 1.0 takes effect when published on the service. Signup requires acceptance; existing account holders receive an in-app notice and can confirm the current terms. Access to their own data and export remains available. Mandatory rights under the law of your country of residence remain unaffected.
+4. Version 1.1 takes effect when published on the service. Signup requires acceptance; existing account holders receive an in-app notice and can confirm the current terms. Access to their own data and export remains available. Mandatory rights under the law of your country of residence remain unaffected.

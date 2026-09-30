@@ -1,6 +1,6 @@
 # Dokumenty prawne Spendist
 
-Wersja 1.0 z 2026-09-30 opisuje bezpłatną, hobbystyczną usługę prowadzoną przez Bartłomieja Borzuckiego. Nie była sprawdzana przez prawnika; nie stanowi potwierdzenia zgodności z każdym prawem lokalnym. Operator zaakceptował przygotowanie i publikację bez uzależniania ich od płatnej konsultacji.
+Wersja 1.1 z 2026-09-30 opisuje bezpłatną, hobbystyczną usługę prowadzoną przez Bartłomieja Borzuckiego. Nie była sprawdzana przez prawnika; nie stanowi potwierdzenia zgodności z każdym prawem lokalnym. Operator zaakceptował przygotowanie i publikację bez uzależniania ich od płatnej konsultacji.
 
 | Dokument | Polski | English |
 | --- | --- | --- |
@@ -20,7 +20,7 @@ Pliki Markdown są źródłem treści. `npm run legal:generate` aktualizuje modu
 - Własny fallback inicjałów zastępuje automatyczne DiceBear, także dla wcześniejszych Kont, bez modyfikowania ich zapisanych danych.
 - Wersje dokumentów, klientowy czas potwierdzenia i oświadczenie 18+ są zapisywane w Supabase Auth `user_metadata.legal_acceptance`. To deklaracja Użytkownika, nie weryfikacja wieku ani niezmienialny rejestr prawny. Metadane Auth są edytowalne przez właściciela Konta; nie służą autoryzacji ani RLS. Nie uzupełniamy historii akceptacji za wcześniejszych Użytkowników.
 - Istniejący Użytkownik bez aktualnego potwierdzenia widzi informację w Aplikacji i może potwierdzić zasady. Informacja nie blokuje dostępu do danych i eksportu. Linki są dostępne także w ustawieniach.
-- GA4 nie działa, Google tagów nie dodano i banner analityczny nie jest obecnie potrzebny. Publiczna polityka jasno odróżnia analitykę planowaną od aktywnej.
+- GA4 `G-WY8ZY07NGW` działa po zgodzie i tylko dla niezalogowanych na wygenerowanej liście publicznych stron. Przed zgodą i po odmowie brak tagu i pingów. Równorzędne przyciski, możliwość wycofania, decyzja i hostowe cookies do 180 dni. Tag działa w usuwanym iframe bez DOM formularzy i historii SPA aplikacji; Worker dopuszcza Google wyłącznie w tym dokumencie pomocniczym.
 
 ## Czynności w kontach dostawców
 
@@ -31,17 +31,17 @@ Warunki dostawców sprawdzono w publicznych źródłach; nie zweryfikowano, jaki
 - Przed uruchomieniem SES: zweryfikować nadawcę, ustawić region i SMTP/Edge Function, sprawdzić faktyczną wysyłkę oraz uaktualnić politykę. Nie włączać przez ten commit dostawcy, którego konfiguracja nie jest gotowa.
 - Przed dodaniem kopii: ustalić plan, faktyczny zakres (baza/Storage), retencję i możliwość odtworzenia; zaktualizować politykę. Nie uruchamiać ani nie usuwać kopii produkcyjnych w ramach tej zmiany.
 
-## Osobny etap: Google Analytics
+## Ustawienia w Google Analytics
 
-Operator musi najpierw utworzyć usługę i strumień GA4 oraz przekazać publiczny identyfikator `G-…`. Do tego czasu brak tagów i zdarzeń jest zamierzony.
+Identyfikator strumienia przekazano 2026-09-30. Implementacja i publiczne dokumenty opisują aktywną integrację po wdrożeniu, ale nie mamy dostępu administracyjnego do konta GA4. Przed wdrożeniem Operator powinien:
 
-Przed aktywacją należy:
+1. W strumieniu WWW wyłączyć **Pomiar zaawansowany (Enhanced measurement)**. Aplikacja wysyła odsłony ręcznie; iframe nie ma formularzy ani historii aplikacji, ale nie potrzebujemy dodatkowych automatycznych zdarzeń.
+2. Pozostawić Google Signals, personalizację reklam, remarketing i połączenia z Google Ads wyłączone. Kod odmawia zgód reklamowych i wyłącza te sygnały niezależnie od konta.
+3. Ustawić retencję danych zdarzeń i użytkowników na **2 miesiące** oraz wyłączyć odnawianie przy nowej aktywności, jeśli dostępne. To zalecana konfiguracja, nie potwierdzony stan konta; sprawdzić i podać faktyczny okres w politykach po ustawieniu. Raporty zbiorcze podlegają odrębnym zasadom Google.
+4. Sprawdzić warunki Analytics i dodatek o przetwarzaniu danych na swoim koncie. Wdrożenie kodu nie akceptuje umów za Operatora.
 
-1. Wdrożyć podstawowy tryb zgody: bez ładowania tagów i bez pingów przed zgodą lub po odmowie. Zapewnić równorzędne przyciski odmowy i akceptacji oraz łatwe wycofanie.
-2. Ograniczyć pomiar do zatwierdzonych stron dla niezalogowanych; wykluczyć prywatny panel, autoryzację, zaproszenia, reset hasła i callbacki. Nigdy nie przesyłać tokenów, query string, danych Konta/finansów ani treści formularzy.
-3. Sprawdzić przejście w ramach SPA z części publicznej do logowania i panelu, powrót, odwołanie zgody, SSR, Worker CSP i zachowanie faktycznie załadowanego skryptu.
-4. Wyłączyć Google Signals, remarketing, personalizację reklam i niepotrzebne automatyczne pomiary. Ustalić faktyczną retencję GA4 i cookie.
-5. Zaktualizować obie Polityki i numer wersji przed uruchomieniem; przetestować brak żądań i cookie przed zgodą, po odmowie i w części prywatnej.
+Testy przeglądarkowe zastępują skrypt i endpointy Google kontrolowanym stubem, aby nie zanieczyszczać rzeczywistych statystyk. Nie wykonują operacji na bazie produkcyjnej.
+
 
 ## Źródła
 

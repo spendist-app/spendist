@@ -62,6 +62,7 @@ Routes live in `apps/web/src/app/app.routes.ts`. Public SEO files live in `apps/
 - Public blog routes are statically prerendered. The Cloudflare Worker returns the localized branded blog fallback with HTTP 404 for unknown blog URLs.
 - Legal documents have full Polish and English versions on the same routes (`?lang=en`), with 18+ signup declarations and a non-blocking confirmation notice for existing accounts. Auth metadata stores versions and client time; it is not immutable proof or an authorization boundary. GA4 and SES remain planned, and the operator currently makes no independent database backups. DiceBear default avatars use local initials, including legacy profiles.
 - Public legal routes are statically prerendered from sanitized generated HTML. `npm run legal:generate` updates the Angular module, while `legal:check` protects the build from drift against `docs/legal/`.
+- Public GA4 `G-WY8ZY07NGW` requires explicit consent and resolved signed-out auth; generated sitemap allowlist, no query/hash/referrer or private/auth pages. Equal refusal, footer withdrawal, 180-day local decision and host-only cookies. See doc/features/public-analytics.md.
 
 ## Architecture
 

@@ -1,6 +1,6 @@
 # Polityka prywatności aplikacji Spendist
 
-**Wersja 1.0 — 2026-09-30**
+**Wersja 1.1 — 2026-09-30**
 
 Dokument dotyczy hostowanej wersji `https://spendist.app` i jej integracji MCP. Obowiązuje od udostępnienia tej wersji w serwisie. [English version](/polityka-prywatnosci?lang=en).
 
@@ -18,6 +18,7 @@ Polityka nie dotyczy własnych instancji oprogramowania prowadzonych przez osoby
 | Potwierdzenie rejestracji | oświadczenie o ukończeniu 18 lat, wersje dokumentów i czas ich zaakceptowania/zapoznania się z nimi | wykonanie umowy oraz uzasadniony interes w dokumentowaniu jej zawarcia — art. 6 ust. 1 lit. b i f RODO |
 | Logowanie i bezpieczeństwo | informacje o sesji i uwierzytelnianiu, adres IP, czas żądania, urządzenie i przeglądarka, logi techniczne; metadane autoryzacji i audytu MCP | wykonanie umowy oraz uzasadniony interes w zabezpieczeniu i utrzymaniu usługi — art. 6 ust. 1 lit. b i f RODO |
 | Kontakt i reklamacje | adres nadawcy, treść korespondencji i informacje potrzebne do obsługi zgłoszenia | wykonanie umowy oraz uzasadniony interes w obsłudze zgłoszeń — art. 6 ust. 1 lit. b i f RODO |
+| Statystyki publicznych treści po zgodzie | odsłony, publiczna ścieżka strony, identyfikatory cookies i dane techniczne przeglądarki | zgoda — art. 6 ust. 1 lit. a RODO |
 | Obowiązki prawne i roszczenia | dane niezbędne do wykonania konkretnego obowiązku lub obsługi roszczenia | art. 6 ust. 1 lit. c RODO albo uzasadniony interes w ustaleniu, dochodzeniu lub obronie roszczeń — art. 6 ust. 1 lit. f RODO |
 
 Podanie danych wymaganych przez formularz jest dobrowolne, ale konieczne do utworzenia Konta. Nazwa profilu nie musi być prawdziwym imieniem i nazwiskiem. Nie zbieramy daty urodzenia ani dokumentu tożsamości przy rejestracji. Hasła obsługuje Supabase Auth; nie przechowujemy ich w postaci jawnej.
@@ -37,6 +38,7 @@ Audyt zmian MCP zapisuje identyfikator klienta, narzędzie, identyfikatory obiek
 - **Supabase** — uwierzytelnianie, baza danych, pliki avatarów i backend. Główna baza projektu znajduje się w regionie **eu-west-2, Londyn, Wielka Brytania**. Nie oznacza to, że wszystkie operacje dostawcy odbywają się tylko w tym regionie. [Warunki przetwarzania Supabase](https://supabase.com/legal/customer-resources/data-processing-addendum).
 - **Cloudflare** — hosting, obsługa i ochrona ruchu, a także przekierowanie wiadomości przychodzących do `@spendist.app` do skrzynki Administratora. [Warunki przetwarzania Cloudflare](https://www.cloudflare.com/cloudflare-customer-dpa/).
 - **Google / Gmail** — odbieranie korespondencji i wysyłanie wiadomości przez prywatną skrzynkę Administratora. Nie jest to obecnie Google Workspace. Wiadomości i ich metadane są obsługiwane również zgodnie z [polityką prywatności Google](https://policies.google.com/privacy?hl=pl). Nie należy przesyłać pocztą haseł ani pełnych eksportów finansowych, jeśli nie jest to potrzebne do zgłoszenia.
+- **Google Analytics** — statystyki publicznych treści po zgodzie, opisane w pkt 7. [Polityka prywatności Google](https://policies.google.com/privacy?hl=pl) i [informacje o danych w Analytics](https://support.google.com/analytics/answer/6004245?hl=pl).
 - **Zewnętrzni klienci autoryzowani przez Użytkownika** oraz drugi uczestnik Kieszonkowego — tylko w zakresie opisanym w pkt 3.
 
 Amazon SES jest przygotowywany do wiadomości transakcyjnych, ale nie jest jeszcze skonfigurowany. Przed jego uruchomieniem zaktualizujemy informacje o używanej usłudze. Nie traktujemy planowanej konfiguracji jako działającej.
@@ -57,11 +59,18 @@ Wielka Brytania znajduje się poza Europejskim Obszarem Gospodarczym. Dostawcy k
 - Korespondencję zachowujemy przez czas potrzebny do obsługi sprawy, a gdy jest niezbędna do udokumentowania obowiązku lub roszczenia — przez właściwy okres wynikający z prawa i przedawnienia. Niepotrzebną korespondencję usuwamy.
 - Administrator nie tworzy obecnie własnych kopii bazy. Używany jest plan Supabase Free, bez gwarancji dostępnej Administratorowi automatycznej kopii do odtworzenia. Dostawca może utrzymywać własne kopie techniczne zgodnie ze swoimi warunkami. Uruchomienie dodatkowych kopii i ich retencja wymagają aktualizacji tej informacji; nie obiecujemy obecnie 90-dniowego cyklu kopii.
 
-## 7. Pamięć przeglądarki i planowana analityka
+## 7. Pamięć przeglądarki i analityka
 
 Aplikacja zapisuje dane sesji oraz preferencje języka i motywu w pamięci przeglądarki. Dane sesji służą logowaniu i bezpieczeństwu; są usuwane lub zastępowane przy wylogowaniu lub wygaśnięciu sesji. Preferencje pozostają do zmiany lub usunięcia przez Użytkownika. Usunięcie pamięci przeglądarki może wylogować Użytkownika lub przywrócić ustawienia domyślne.
 
-**Google Analytics 4 nie jest obecnie uruchomione.** Nie ustawiamy jego plików `_ga` ani `_ga_*` i nie wysyłamy zdarzeń analitycznych. Planujemy analitykę wyłącznie na stronach dla niezalogowanych. Przed uruchomieniem wdrożymy dobrowolną zgodę, blokadę tagów przed zgodą, równorzędną możliwość odmowy i łatwe wycofanie zgody oraz uzupełnimy tę Politykę o faktyczny zakres i okres przechowywania danych. Analityka nie będzie obejmować danych finansowych, treści formularzy ani danych uwierzytelniania. Brak zgody nie ograniczy usługi.
+**Google Analytics 4 uruchamiamy wyłącznie po dobrowolnej zgodzie**, dla niezalogowanych odwiedzających stronę główną, blog i dokumenty prawne. Przed zgodą i po odmowie nie ładujemy tagu Google ani nie wysyłamy pingów analitycznych. Wykluczamy panel, logowanie, rejestrację, odzyskiwanie hasła, zaproszenia i autoryzację zewnętrznych aplikacji. Pomiar zatrzymuje się po zalogowaniu i przy opuszczeniu mierzonej strony.
+
+Celem jest poznanie odwiedzalności publicznych treści. Google otrzymuje adres publicznej strony bez parametrów i fragmentu, zdarzenie odsłony oraz dane techniczne przeglądarki i urządzenia, w tym adres IP potrzebny do komunikacji i identyfikatory cookies. Nie przekazujemy danych Konta, e-maila, finansów, treści formularzy ani adresu poprzedniej strony. W konfiguracji tagu wyłączamy Google Signals i personalizację reklam oraz odmawiamy zgód reklamowych. Nie wykorzystujemy tych statystyk do reklamy.
+
+Odmowa jest równie dostępna jak zgoda i nie ogranicza działania Spendist. Zgodę można wycofać przez **Ustawienia analityki** na dole każdej strony i przycisk **Odmów / wycofaj**. Wycofanie zatrzymuje przyszły pomiar i usuwa cookies tej integracji; nie zmienia zgodności z prawem wcześniejszego przetwarzania ani automatycznie nie usuwa danych już otrzymanych przez Google. W sprawie ich usunięcia można skontaktować się z Administratorem.
+
+Decyzję zapisujemy lokalnie pod kluczem `spendist.analytics-consent` na **180 dni** — również odmowę. Nie łączymy jej z Kontem. Po zgodzie tag może ustawić hostowe cookies `_ga` i `_ga_WY8ZY07NGW` na maksymalnie **180 dni**, bez przedłużania przy każdym pomiarze. Można je także usunąć w przeglądarce. Dane otrzymane przez Google podlegają retencji skonfigurowanej w usłudze GA4 oraz zasadom Google; okres cookies nie jest okresem przechowywania raportów. Informację o aktualnych ustawieniach retencji można uzyskać od Administratora.
+
 
 ## 8. Prawa i bezpieczeństwo
 

@@ -8,6 +8,7 @@ import {
 import { BehaviorSubject } from 'rxjs';
 import { provideAppTransloco } from '../../i18n/transloco.providers';
 import { LegalPage } from './legal.page';
+import { LEGAL_VERSION } from './legal-content.generated';
 
 describe('LegalPage', () => {
   it.each(['privacy', 'terms'])(
@@ -40,7 +41,7 @@ describe('LegalPage', () => {
       const content = fixtureElement(fixture);
       expect(content.textContent).toContain('Bartłomiej Borzucki');
       expect(content.textContent).toContain('hello@spendist.app');
-      expect(content.textContent).toContain('Wersja 1.0');
+      expect(content.textContent).toContain(`Wersja ${LEGAL_VERSION}`);
       expect(content.textContent).not.toContain('Wersja robocza');
       expect(content.textContent).not.toContain('[data publikacji]');
       expect(document.documentElement.lang).toBe('pl');
@@ -55,7 +56,7 @@ describe('LegalPage', () => {
           ? 'Spendist privacy policy'
           : 'Spendist terms of service'
       );
-      expect(content.textContent).toContain('Version 1.0');
+      expect(content.textContent).toContain(`Version ${LEGAL_VERSION}`);
       expect(document.documentElement.lang).toBe('en');
       expect(
         content.querySelector('header nav a')?.getAttribute('href')

@@ -1,4 +1,12 @@
 const pl = {
+  analytics: {
+    title: 'Zgoda na statystyki odwiedzin?',
+    description:
+      'Za Twoją zgodą Google Analytics używa cookies do pomiaru odwiedzin strony głównej, bloga i dokumentów prawnych, tylko gdy jesteś niezalogowany. Nie wysyłamy danych konta, finansów ani treści formularzy. Odmowa nie wpływa na działanie Spendist. Decyzję możesz zmienić w każdej chwili przez Ustawienia analityki na dole strony.',
+    accept: 'Zezwól na analitykę',
+    reject: 'Odmów / wycofaj',
+    settings: 'Ustawienia analityki',
+  },
   appUpdate: {
     title: 'Nowa wersja jest dostępna',
     description: 'Odśwież stronę, aby pobrać najnowszą wersję Spendist.',

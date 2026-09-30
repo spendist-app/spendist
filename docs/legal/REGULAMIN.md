@@ -1,6 +1,6 @@
 # Regulamin korzystania z aplikacji Spendist
 
-**Wersja 1.0 — 2026-09-30**
+**Wersja 1.1 — 2026-09-30**
 
 Dokument obowiązuje od udostępnienia tej wersji w serwisie. [English version](/regulamin?lang=en).
 
@@ -68,7 +68,7 @@ Dokument obowiązuje od udostępnienia tej wersji w serwisie. [English version](
 1. Zasady przetwarzania danych opisuje Polityka prywatności Spendist.
 2. Dane zapisane w Panelu prywatnym są wykorzystywane wyłącznie do świadczenia, utrzymania i zabezpieczenia Aplikacji oraz realizacji obowiązków prawnych Operatora.
 3. Operator nie sprzedaje danych osobowych ani danych finansowych Użytkowników.
-4. Google Analytics nie jest obecnie uruchomione. Planowane uruchomienie dotyczy wyłącznie stron dla niezalogowanych, po dobrowolnej zgodzie i wdrożeniu możliwości jej odmowy oraz wycofania. Nie obejmie danych Konta, danych finansowych ani treści formularzy.
+4. Google Analytics mierzy wyłącznie stronę główną, blog i dokumenty prawne dla niezalogowanych, po dobrowolnej zgodzie. Odmowa i wycofanie są dostępne w Ustawieniach analityki. Pomiar wyklucza panel prywatny, strony uwierzytelniania, dane Konta, finansów i treści formularzy.
 5. Operator stosuje adekwatne środki techniczne i organizacyjne, w tym szyfrowane połączenia HTTPS, kontrolę dostępu i izolację danych użytkowników na poziomie bazy danych. Żaden system teleinformatyczny nie daje jednak absolutnej gwarancji bezpieczeństwa.
 
 ## 9. Dostępność, kopie danych i prace techniczne
@@ -113,4 +113,4 @@ Dokument obowiązuje od udostępnienia tej wersji w serwisie. [English version](
 1. Do Regulaminu stosuje się prawo polskie, z zastrzeżeniem bezwzględnie obowiązujących przepisów, których zastosowania nie można wyłączyć umową.
 2. Spory mogą być rozstrzygane przez właściwy sąd powszechny. Użytkownik może również korzystać z dostępnych pozasądowych metod rozpatrywania sporów, jeżeli przewidują je właściwe przepisy.
 3. W sprawach nieuregulowanych zastosowanie mają odpowiednie bezwzględnie obowiązujące przepisy prawa, w tym ustawa o świadczeniu usług drogą elektroniczną, jeżeli znajduje zastosowanie do Operatora i Aplikacji.
-4. Wersja 1.0 obowiązuje od udostępnienia w serwisie. Rejestracja wymaga jej akceptacji; osobom z istniejącym Kontem Aplikacja wyświetla informację i możliwość potwierdzenia aktualnych zasad. Dostęp do własnych danych i eksportu pozostaje dostępny. Bezwzględnie obowiązujące prawa Użytkownika wynikające z prawa kraju jego zamieszkania pozostają zachowane.
+4. Wersja 1.1 obowiązuje od udostępnienia w serwisie. Rejestracja wymaga jej akceptacji; osobom z istniejącym Kontem Aplikacja wyświetla informację i możliwość potwierdzenia aktualnych zasad. Dostęp do własnych danych i eksportu pozostaje dostępny. Bezwzględnie obowiązujące prawa Użytkownika wynikające z prawa kraju jego zamieszkania pozostają zachowane.

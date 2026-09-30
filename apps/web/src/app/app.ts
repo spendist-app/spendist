@@ -4,6 +4,7 @@ import { AppUpdateNotification } from './core/app-update-notification';
 import { GlobalNotice } from './core/global-notice';
 import { NavbarComponent } from './core/navbar/navbar.component';
 import { LegalNotice } from './core/legal-notice';
+import { AnalyticsConsent } from './core/analytics-consent';
 
 @Component({
   standalone: true,
@@ -13,6 +14,7 @@ import { LegalNotice } from './core/legal-notice';
     AppUpdateNotification,
     GlobalNotice,
     LegalNotice,
+    AnalyticsConsent,
   ],
   selector: 'app-root',
   templateUrl: './app.html',
