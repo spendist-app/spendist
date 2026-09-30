@@ -111,8 +111,20 @@ export function mapProfileRow(row: ProfileRow): ProfileEntity {
     id: row.id,
     fullName: row.full_name,
     username: row.username,
-    avatarUrl: row.avatar_url ?? null,
+    avatarUrl: localDefaultAvatar(row.avatar_url),
     language: row.language,
     timezone: row.timezone,
   };
+}
+
+function localDefaultAvatar(url: string | null): string | null {
+  if (!url) return null;
+
+  try {
+    if (new URL(url).hostname === 'api.dicebear.com') return null;
+  } catch {
+    return null;
+  }
+
+  return url;
 }

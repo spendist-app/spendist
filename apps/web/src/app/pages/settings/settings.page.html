@@ -12,6 +12,24 @@
   </header>
 
   <nav
+    class="mb-6 flex flex-wrap gap-4 text-sm"
+    [attr.aria-label]="'legal.navigation' | transloco"
+  >
+    <a
+      class="link"
+      routerLink="/regulamin"
+      [queryParams]="{ lang: legalLanguage() }"
+      >{{ 'legal.terms' | transloco }}</a
+    >
+    <a
+      class="link"
+      routerLink="/polityka-prywatnosci"
+      [queryParams]="{ lang: legalLanguage() }"
+      >{{ 'legal.privacy' | transloco }}</a
+    >
+  </nav>
+
+  <nav
     class="mb-6 flex max-w-full min-w-0 snap-x gap-2 overflow-x-auto pb-2 lg:hidden"
     [attr.aria-label]="'settings.workspace.navigationLabel' | transloco"
   >

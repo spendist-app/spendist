@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { AuthService } from './auth.service';
 import { SUPABASE_CLIENT } from './supabase';
+import { LEGAL_VERSION } from '../pages/legal/legal-content.generated';
 
 function createSupabaseMock() {
   const sessionState: TestSessionState = { current: null };
@@ -155,6 +156,8 @@ describe('AuthService password flows', () => {
         username: 'new_user',
         fullName: 'New User',
         timezone: 'Europe/Warsaw',
+        adultConfirmed: true,
+        termsAccepted: true,
       },
       '/allowance/invite?token=invitation'
     );
@@ -166,6 +169,15 @@ describe('AuthService password flows', () => {
           emailRedirectTo: expect.stringMatching(
             /\/auth\/confirm\?returnUrl=%2Fallowance%2Finvite%3Ftoken%3Dinvitation$/
           ),
+          data: expect.objectContaining({
+            avatar_url: null,
+            legal_acceptance: {
+              terms_version: LEGAL_VERSION,
+              privacy_version: LEGAL_VERSION,
+              accepted_at: expect.any(String),
+              adult_confirmed: true,
+            },
+          }),
         }),
       })
     );
@@ -181,6 +193,8 @@ describe('AuthService password flows', () => {
         username: 'new_user',
         fullName: 'New User',
         timezone: 'Europe/Warsaw',
+        adultConfirmed: true,
+        termsAccepted: true,
       },
       '//malicious.example/path'
     );
@@ -214,6 +228,73 @@ describe('AuthService password flows', () => {
         ),
       },
     });
+  });
+
+  it.each([
+    { adultConfirmed: false, termsAccepted: true },
+    { adultConfirmed: true, termsAccepted: false },
+  ])(
+    'does not register without both declarations: %o',
+    async (declarations) => {
+      const service = TestBed.inject(AuthService);
+
+      const result = await service.signUp({
+        email: 'new@example.com',
+        password: 'Password123',
+        username: 'new_user',
+        fullName: 'New User',
+        timezone: 'UTC',
+        ...declarations,
+      });
+
+      expect(result.error).toBeTruthy();
+      expect(supabase.auth.signUp).not.toHaveBeenCalled();
+    }
+  );
+
+  it('persists current terms confirmation and updates the active user', async () => {
+    supabase.sessionState.current = {
+      user: { id: 'user-1', user_metadata: {} },
+    };
+    const service = TestBed.inject(AuthService);
+    await Promise.resolve();
+
+    const acceptance = {
+      terms_version: LEGAL_VERSION,
+      privacy_version: LEGAL_VERSION,
+      accepted_at: '2026-09-30T12:00:00.000Z',
+      adult_confirmed: true,
+    };
+
+    supabase.auth.updateUser.mockResolvedValue({
+      data: {
+        user: { id: 'user-1', user_metadata: { legal_acceptance: acceptance } },
+      },
+      error: null,
+    });
+
+    const result = await service.acceptLegalTerms();
+
+    expect(result.error).toBeUndefined();
+    expect(supabase.auth.updateUser).toHaveBeenCalledWith({
+      data: {
+        legal_acceptance: { ...acceptance, accepted_at: expect.any(String) },
+      },
+    });
+    expect(service.session()?.user.user_metadata['legal_acceptance']).toEqual(
+      acceptance
+    );
+  });
+
+  it('does not report successful confirmation when updating Auth fails', async () => {
+    supabase.auth.updateUser.mockResolvedValue({
+      error: { message: 'Unavailable' },
+    });
+
+    const result = await TestBed.inject(AuthService).acceptLegalTerms();
+
+    expect(result.error).toBe('Unavailable');
+    expect(result.user).toBeUndefined();
   });
 
   it('exchanges an email confirmation code and establishes the session', async () => {

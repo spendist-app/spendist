@@ -141,6 +141,7 @@ export class SettingsPageComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly languageService = inject(LanguageService);
+  readonly legalLanguage = this.languageService.currentLanguage;
 
   protected readonly heroIconSvg = heroIconSvgFn;
   protected readonly formatHeroIconLabel = formatHeroIconLabelFn;

@@ -3,10 +3,17 @@ import { RouterOutlet } from '@angular/router';
 import { AppUpdateNotification } from './core/app-update-notification';
 import { GlobalNotice } from './core/global-notice';
 import { NavbarComponent } from './core/navbar/navbar.component';
+import { LegalNotice } from './core/legal-notice';
 
 @Component({
   standalone: true,
-  imports: [RouterOutlet, NavbarComponent, AppUpdateNotification, GlobalNotice],
+  imports: [
+    RouterOutlet,
+    NavbarComponent,
+    AppUpdateNotification,
+    GlobalNotice,
+    LegalNotice,
+  ],
   selector: 'app-root',
   templateUrl: './app.html',
   changeDetection: ChangeDetectionStrategy.Eager,

@@ -1,0 +1,70 @@
+@if (visible()) {
+<section
+  class="mx-auto my-4 w-[calc(100%-2rem)] max-w-6xl rounded-2xl border border-base-300 bg-base-100 p-4 sm:p-6"
+  aria-labelledby="legal-notice-title"
+>
+  <h2 id="legal-notice-title" class="font-semibold">
+    {{ 'legal.updatedTitle' | transloco }}
+  </h2>
+  <p class="mt-2 text-sm text-base-content/70">
+    {{ 'legal.updatedDescription' | transloco }}
+  </p>
+  <form
+    class="mt-4 space-y-3 text-sm"
+    [formGroup]="form"
+    (ngSubmit)="confirm()"
+  >
+    <label class="flex items-start gap-3" for="notice-adult">
+      <input
+        id="notice-adult"
+        class="checkbox checkbox-primary"
+        type="checkbox"
+        formControlName="adultConfirmed"
+        required
+      />
+      <span>{{ 'legal.adultConfirmation' | transloco }}</span>
+    </label>
+    <label class="flex items-start gap-3" for="notice-terms">
+      <input
+        id="notice-terms"
+        class="checkbox checkbox-primary"
+        type="checkbox"
+        formControlName="termsAccepted"
+        required
+      />
+      <span>
+        {{ 'legal.acceptPrefix' | transloco }}
+        <a
+          class="link"
+          routerLink="/regulamin"
+          [queryParams]="{ lang: legalLanguage() }"
+          target="_blank"
+          rel="noopener"
+          >{{ 'legal.terms' | transloco }}</a
+        >
+        {{ 'legal.privacyAcknowledgement' | transloco }}
+        <a
+          class="link"
+          routerLink="/polityka-prywatnosci"
+          [queryParams]="{ lang: legalLanguage() }"
+          target="_blank"
+          rel="noopener"
+          >{{ 'legal.privacy' | transloco }}</a
+        >.
+      </span>
+    </label>
+    @if (form.touched && form.invalid) {
+    <p class="text-error" role="alert">
+      {{ 'legal.confirmationRequired' | transloco }}
+    </p>
+    } @if (failed()) {
+    <p class="text-error" role="alert">
+      {{ 'legal.confirmationError' | transloco }}
+    </p>
+    }
+    <button type="submit" class="btn btn-primary btn-sm" [disabled]="pending()">
+      {{ (pending() ? 'legal.confirming' : 'legal.confirm') | transloco }}
+    </button>
+  </form>
+</section>
+}

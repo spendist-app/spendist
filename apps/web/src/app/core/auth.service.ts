@@ -13,6 +13,7 @@ import { ensureDefaultCategoriesForUser } from './default-categories';
 import { DEFAULT_LANGUAGE } from '../i18n/languages';
 import { logError } from './logger';
 import { safeAuthReturnUrl } from './auth-return-url';
+import { LEGAL_VERSION } from '../pages/legal/legal-content.generated';
 
 const DEFAULT_CURRENCY_ID = 1;
 
@@ -35,6 +36,8 @@ export interface SignUpPayload {
   language?: string;
   defaultCurrencyId?: number;
   avatarUrl?: string | null;
+  adultConfirmed: boolean;
+  termsAccepted: boolean;
 }
 
 export interface AuthResult {
@@ -265,6 +268,13 @@ export class AuthService implements OnDestroy {
     payload: SignUpPayload,
     returnUrl?: string | null
   ): Promise<SignUpResult> {
+    if (!payload.adultConfirmed || !payload.termsAccepted) {
+      return {
+        error:
+          'Confirm that you are 18 or older and accept the terms before signing up.',
+      };
+    }
+
     try {
       const emailRedirectTo = this.resolveEmailConfirmationUrl(returnUrl);
 
@@ -283,6 +293,7 @@ export class AuthService implements OnDestroy {
               payload.defaultCurrencyId ?? DEFAULT_CURRENCY_ID,
             timezone: payload.timezone,
             avatar_url: payload.avatarUrl ?? null,
+            legal_acceptance: this.legalAcceptanceMetadata(),
           },
         },
       });
@@ -319,6 +330,41 @@ export class AuthService implements OnDestroy {
     } catch (error) {
       return { error: this.normalizeUnknownError(error) };
     }
+  }
+
+  async acceptLegalTerms(): Promise<AuthResult> {
+    try {
+      const { data, error } = await this.supabase.auth.updateUser({
+        data: { legal_acceptance: this.legalAcceptanceMetadata() },
+      });
+
+      if (error) return { error: error.message };
+
+      if (!data?.user)
+        return { error: 'Please sign in again to confirm the terms.' };
+
+      const session = this.session();
+
+      if (session && session.user.id === data.user.id) {
+        this.state.set({
+          session: { ...session, user: data.user },
+          loading: false,
+        });
+      }
+
+      return { user: data.user };
+    } catch (error) {
+      return { error: this.normalizeUnknownError(error) };
+    }
+  }
+
+  private legalAcceptanceMetadata() {
+    return {
+      terms_version: LEGAL_VERSION,
+      privacy_version: LEGAL_VERSION,
+      accepted_at: new Date().toISOString(),
+      adult_confirmed: true,
+    };
   }
 
   async resendSignupConfirmation(

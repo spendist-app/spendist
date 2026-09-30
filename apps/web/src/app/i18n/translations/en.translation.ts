@@ -86,6 +86,17 @@ const en = {
     terms: 'Terms of Service',
     navigation: 'Legal documents',
     backToSpendist: 'Back to Spendist',
+    adultConfirmation: 'I confirm that I am 18 or older.',
+    acceptPrefix: 'I accept the',
+    privacyAcknowledgement: 'and acknowledge that I have read the',
+    confirmationRequired:
+      'Confirm that you are 18 or older and accept the terms to continue.',
+    updatedTitle: 'Spendist terms and privacy policy',
+    updatedDescription:
+      'Spendist is a free hobby project for adults. Please review the current documents. Your data and export remain available.',
+    confirm: 'Confirm',
+    confirming: 'Confirming...',
+    confirmationError: 'We could not save your confirmation. Please try again.',
   },
   navbar: {
     settings: 'Settings',
@@ -353,8 +364,6 @@ const en = {
       resendError:
         'We could not send another confirmation email. Wait a moment and try again.',
       backToLogin: 'Back to login',
-      tosPrefix: 'Before signing up, you can read the Polish drafts:',
-      tosJoin: 'and',
     },
     confirm: {
       processingTitle: 'Confirming your email',

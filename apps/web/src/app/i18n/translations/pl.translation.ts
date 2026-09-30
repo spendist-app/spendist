@@ -86,6 +86,17 @@ const pl = {
     terms: 'Regulamin',
     navigation: 'Dokumenty prawne',
     backToSpendist: 'Wróć do Spendist',
+    adultConfirmation: 'Potwierdzam, że mam ukończone 18 lat.',
+    acceptPrefix: 'Akceptuję',
+    privacyAcknowledgement: 'i potwierdzam zapoznanie się z',
+    confirmationRequired:
+      'Potwierdź ukończenie 18 lat i zaakceptuj regulamin, aby kontynuować.',
+    updatedTitle: 'Regulamin i polityka prywatności Spendist',
+    updatedDescription:
+      'Spendist jest bezpłatnym projektem hobbystycznym dla osób pełnoletnich. Zapoznaj się z aktualnymi dokumentami. Twoje dane i eksport pozostają dostępne.',
+    confirm: 'Potwierdź',
+    confirming: 'Potwierdzanie...',
+    confirmationError: 'Nie udało się zapisać potwierdzenia. Spróbuj ponownie.',
   },
   navbar: {
     settings: 'Ustawienia',
@@ -352,8 +363,6 @@ const pl = {
       resendError:
         'Nie udało się wysłać kolejnej wiadomości. Poczekaj chwilę i spróbuj ponownie.',
       backToLogin: 'Wróć do logowania',
-      tosPrefix: 'Przed rejestracją możesz przeczytać wersje robocze:',
-      tosJoin: 'oraz',
     },
     confirm: {
       processingTitle: 'Potwierdzamy Twój adres e-mail',

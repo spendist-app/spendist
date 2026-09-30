@@ -4,12 +4,19 @@ import {
   Component,
   ViewEncapsulation,
   inject,
+  computed,
+  effect,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { Meta, Title } from '@angular/platform-browser';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@ngneat/transloco';
 import { LanguageService } from '../../core/language.service';
-import { LEGAL_DOCUMENTS, type LegalDocument } from './legal-content.generated';
+import {
+  LEGAL_DOCUMENTS,
+  LEGAL_DOCUMENTS_EN,
+  type LegalDocument,
+} from './legal-content.generated';
 
 const SITE_URL = 'https://spendist.app';
 
@@ -27,15 +34,27 @@ export class LegalPage {
   private readonly meta = inject(Meta);
   private readonly documentNode = inject(DOCUMENT);
   private readonly language = inject(LanguageService);
-  protected readonly legalDocument = this.resolveDocument();
-  protected readonly alternateDocument =
-    this.legalDocument.key === 'privacy'
-      ? LEGAL_DOCUMENTS.terms
-      : LEGAL_DOCUMENTS.privacy;
+  private readonly queryParams = toSignal(this.route.queryParamMap, {
+    initialValue: this.route.snapshot.queryParamMap,
+  });
+  protected readonly locale = computed(() =>
+    this.queryParams().get('lang') === 'en' ? 'en' : 'pl'
+  );
+  protected readonly legalDocument = computed(() => this.resolveDocument());
+  protected readonly alternateDocument = computed(() => {
+    const documents =
+      this.locale() === 'en' ? LEGAL_DOCUMENTS_EN : LEGAL_DOCUMENTS;
+
+    return this.legalDocument().key === 'privacy'
+      ? documents.terms
+      : documents.privacy;
+  });
 
   constructor() {
-    this.language.setLanguage('pl');
-    this.applySeo(this.legalDocument);
+    effect(() => {
+      this.language.setLanguage(this.locale());
+      this.applySeo(this.legalDocument());
+    });
   }
 
   private resolveDocument(): LegalDocument {
@@ -45,12 +64,12 @@ export class LegalPage {
       throw new Error('Missing legalDocument route data.');
     }
 
-    return LEGAL_DOCUMENTS[key];
+    return (this.locale() === 'en' ? LEGAL_DOCUMENTS_EN : LEGAL_DOCUMENTS)[key];
   }
 
   private applySeo(document: LegalDocument): void {
     const canonical = `${SITE_URL}${document.path}`;
-    this.documentNode.documentElement.lang = 'pl';
+    this.documentNode.documentElement.lang = this.locale();
     this.title.setTitle(`${document.title} | Spendist`);
     this.meta.updateTag({ name: 'description', content: document.description });
     this.meta.updateTag({ name: 'robots', content: 'index,follow' });

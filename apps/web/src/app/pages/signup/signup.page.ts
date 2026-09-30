@@ -51,12 +51,6 @@ function buildPasswordValidators(): ValidatorFn[] {
   return base;
 }
 
-function buildAvatarUrl(username: string): string {
-  const seed = encodeURIComponent(username.trim().toLowerCase());
-
-  return `https://api.dicebear.com/7.x/initials/svg?seed=${seed}`;
-}
-
 function detectTimezone(): string {
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'UTC';
@@ -134,11 +128,18 @@ export class SignupPageComponent {
       defaultCurrencyId: this.formBuilder.control(this.initialCurrencyId, {
         validators: [Validators.required],
       }),
+      adultConfirmed: this.formBuilder.control(false, {
+        validators: [Validators.requiredTrue],
+      }),
+      termsAccepted: this.formBuilder.control(false, {
+        validators: [Validators.requiredTrue],
+      }),
     },
     { validators: [passwordsMatchValidator('password', 'confirmPassword')] }
   );
 
   readonly currencies = SUPPORTED_CURRENCIES;
+  readonly legalLanguage = this.languageService.currentLanguage;
   readonly controls = this.form.controls;
   readonly submitting = signal(false);
   readonly pendingEmail = signal<string | null>(null);
@@ -168,8 +169,14 @@ export class SignupPageComponent {
     this.errorMessage.set(null);
 
     try {
-      const { name, email, password, defaultCurrencyId } =
-        this.form.getRawValue();
+      const {
+        name,
+        email,
+        password,
+        defaultCurrencyId,
+        adultConfirmed,
+        termsAccepted,
+      } = this.form.getRawValue();
 
       const safeName = name.trim();
       const username = createUsernameFromName(safeName);
@@ -192,7 +199,8 @@ export class SignupPageComponent {
           defaultCurrencyId: Number.isFinite(numericCurrencyId)
             ? numericCurrencyId
             : this.initialCurrencyId,
-          avatarUrl: buildAvatarUrl(username),
+          adultConfirmed,
+          termsAccepted,
         },
         this.returnUrl
       );

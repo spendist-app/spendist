@@ -531,6 +531,19 @@ test('confirms a new account, signs in once, and rejects a reused link', async (
   await fillStableInput(page.locator('#confirmPassword'), DEFAULT_PASSWORD);
   await page.getByLabel('First wallet currency').selectOption({ label: 'PLN' });
   await page.getByRole('button', { name: 'Sign up' }).click();
+  await expect(
+    page.getByText(
+      'Confirm that you are 18 or older and accept the terms to continue.'
+    )
+  ).toBeVisible();
+  await expect(page.locator('#name')).toHaveValue(name);
+  await page.locator('#adultConfirmed').check();
+  await page.getByRole('button', { name: 'Sign up' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Check your email' })
+  ).not.toBeVisible();
+  await page.locator('#termsAccepted').check();
+  await page.getByRole('button', { name: 'Sign up' }).click();
 
   await expect(page).toHaveURL(/\/signup$/);
   await expect(
