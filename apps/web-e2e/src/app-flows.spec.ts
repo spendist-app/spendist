@@ -1282,6 +1282,55 @@ test('creates place and assigns it to a transaction', async ({
   await expect(placeSummary).toContainText('55');
 });
 
+test('creates and selects a place without leaving the transaction draft', async ({
+  page,
+}, testInfo) => {
+  const suffix = uniqueSuffix(testInfo);
+  const placeName = `E2E inline place ${suffix}`;
+  const description = `E2E inline purchase ${suffix}`;
+
+  await ensureAuthenticated(page);
+  await openTransactions(page);
+  await openTransactionCreateForm(page);
+
+  const dialog = page.getByRole('dialog');
+  await dialog
+    .locator('input[formcontrolname="description"]')
+    .fill(description);
+  await selectFirstTransactionCategory(page);
+  await dialog.locator('input[formcontrolname="amount"]').fill('17.50');
+  await dialog.getByRole('button', { name: 'Place', exact: true }).click();
+  await dialog.getByTestId('add-transaction-place').click();
+
+  const placeForm = dialog.getByTestId('transaction-new-place-form');
+  await expect(
+    placeForm.locator('input[formcontrolname="name"]')
+  ).toBeFocused();
+  await placeForm.locator('input[formcontrolname="name"]').fill(placeName);
+  await placeForm.locator('input[formcontrolname="city"]').fill('Kraków');
+  await placeForm.getByRole('button', { name: 'Save place' }).click();
+
+  await expect(placeForm).toHaveCount(0);
+  await expect(
+    dialog.getByRole('button', { name: 'Place', exact: true })
+  ).toContainText(placeName);
+  await expect(
+    dialog.locator('input[formcontrolname="description"]')
+  ).toHaveValue(description);
+  await expect(dialog.locator('input[formcontrolname="amount"]')).toHaveValue(
+    '17.50'
+  );
+  await dialog.getByRole('button', { name: 'Save transaction' }).click();
+
+  await expect(
+    page.locator('li').filter({ hasText: description })
+  ).toContainText(placeName);
+  await openModule(page, 'Places', 'Places');
+  await expect(
+    page.locator('article').filter({ hasText: placeName })
+  ).toBeVisible();
+});
+
 test('updates transaction exchange rate in edit form', async ({
   page,
 }, testInfo) => {

@@ -10,6 +10,8 @@ import {
   TransactionsStore,
   type CreateTransactionPayload,
   type CreateAllowanceRecipientExpensePayload,
+  type CreatePlacePayload,
+  type PlaceEntity,
 } from './transactions.store';
 
 class TransactionsStoreStub {
@@ -58,7 +60,7 @@ class TransactionsStoreStub {
       currency: 'PLN',
     },
   ]);
-  readonly places = signal([
+  readonly places = signal<readonly PlaceEntity[]>([
     {
       id: 'place-1',
       ownerId: 'user-1',
@@ -86,6 +88,8 @@ class TransactionsStoreStub {
   createTransactionsCalls = 0;
   createTransactionsPayload: CreateTransactionPayload | null = null;
   recipientExpensePayload: CreateAllowanceRecipientExpensePayload | null = null;
+  createPlacePayload: CreatePlacePayload | null = null;
+  createPlaceError: Error | null = null;
 
   dismissMutationError(): void {
     return;
@@ -108,6 +112,29 @@ class TransactionsStoreStub {
     this.createTransactionsPayload = payload;
 
     return { success: true };
+  }
+
+  async createPlace(payload: CreatePlacePayload) {
+    this.createPlacePayload = payload;
+
+    if (this.createPlaceError) {
+      throw this.createPlaceError;
+    }
+
+    const place = {
+      id: 'place-new',
+      ownerId: 'user-1',
+      name: payload.name.trim(),
+      street: payload.street || null,
+      city: payload.city || null,
+      postalCode: payload.postalCode || null,
+      country: payload.country || null,
+      note: payload.note || null,
+    };
+
+    this.places.update((places) => [...places, place]);
+
+    return place;
   }
 
   async createAllowanceRecipientExpense(
@@ -429,6 +456,115 @@ describe('TransactionCreateFormComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.componentInstance['form'].controls.placeId.value).toBe('');
+  });
+
+  it('creates a place from a transaction draft and selects it for the saved transaction', async () => {
+    const fixture = TestBed.createComponent(TransactionCreateFormComponent);
+    const store = TestBed.inject(TransactionsStoreStub);
+
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance;
+    component['form'].patchValue({
+      description: 'Lunch',
+      amount: '42',
+      categoryId: 'category-1',
+      walletId: 'wallet-1',
+    });
+
+    const compiled = fixtureElement(fixture);
+
+    const dropdownButtons = compiled.querySelectorAll<HTMLButtonElement>(
+      'button[aria-haspopup="listbox"]'
+    );
+
+    dropdownButtons[1]?.click();
+    fixture.detectChanges();
+    requiredValue(
+      compiled.querySelector<HTMLButtonElement>(
+        '[data-testid="add-transaction-place"]'
+      )
+    ).click();
+    fixture.detectChanges();
+
+    const placeForm = requiredValue(
+      compiled.querySelector<HTMLElement>(
+        '[data-testid="transaction-new-place-form"]'
+      )
+    );
+
+    const name = requiredValue(
+      placeForm.querySelector<HTMLInputElement>('input[formcontrolname="name"]')
+    );
+
+    name.value = 'New cafe';
+    name.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+
+    expect(component['form'].controls.description.value).toBe('Lunch');
+    expect(component['form'].controls.amount.value).toBe('42');
+
+    await component['saveNewPlace']();
+    fixture.detectChanges();
+
+    expect(store.createPlacePayload).toMatchObject({ name: 'New cafe' });
+    expect(component['form'].controls.placeId.value).toBe('place-new');
+    expect(compiled.textContent).toContain('New cafe');
+
+    await component['submit']();
+
+    expect(store.createTransactionsPayload).toMatchObject({
+      description: 'Lunch',
+      placeId: 'place-new',
+    });
+  });
+
+  it('keeps the transaction draft and place form open when creating a place fails', async () => {
+    const fixture = TestBed.createComponent(TransactionCreateFormComponent);
+    const store = TestBed.inject(TransactionsStoreStub);
+
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance;
+    component['form'].controls.description.setValue('Dinner');
+    component['openNewPlaceForm']();
+    component['newPlaceForm'].controls.name.setValue('New restaurant');
+    store.createPlaceError = new Error('Save failed');
+
+    await component['saveNewPlace']();
+    fixture.detectChanges();
+
+    expect(component['newPlaceFormOpen']()).toBe(true);
+    expect(component['newPlaceError']()).toBe('Save failed');
+    expect(component['form'].controls.description.value).toBe('Dinner');
+    expect(component['form'].controls.placeId.value).toBe('');
+  });
+
+  it('does not save a transaction or create a place with a blank name', async () => {
+    const fixture = TestBed.createComponent(TransactionCreateFormComponent);
+    const store = TestBed.inject(TransactionsStoreStub);
+
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance;
+    component['form'].patchValue({
+      description: 'Draft expense',
+      amount: '12',
+      categoryId: 'category-1',
+      walletId: 'wallet-1',
+    });
+    component['openNewPlaceForm']();
+    component['newPlaceForm'].controls.name.setValue('   ');
+
+    await component['saveNewPlace']();
+    await component['submit']();
+    fixture.detectChanges();
+
+    expect(component['newPlaceForm'].controls.name.invalid).toBe(true);
+    expect(component['newPlaceForm'].controls.name.touched).toBe(true);
+    expect(store.createPlacePayload).toBeNull();
+    expect(store.createTransactionsCalls).toBe(0);
+    expect(component['form'].controls.description.value).toBe('Draft expense');
   });
 
   it('shows seven recently used tags and adds one with a click', () => {

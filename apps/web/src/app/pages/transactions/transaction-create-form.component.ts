@@ -16,13 +16,14 @@ import {
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
-import { TranslocoPipe } from '@ngneat/transloco';
+import { TranslocoPipe, TranslocoService } from '@ngneat/transloco';
 import { NgIcon } from '@ng-icons/core';
 import {
   TransactionsStore,
   TagEntity,
   WalletEntity,
   PlaceEntity,
+  CreatePlacePayload,
   TransactionViewModel,
   UpdateTransactionPayload,
 } from './transactions.store';
@@ -76,12 +77,15 @@ export class TransactionCreateFormComponent {
 
   private readonly formBuilder = inject(FormBuilder);
   private readonly languageService = inject(LanguageService);
+  private readonly transloco = inject(TranslocoService);
   protected readonly store = inject(TransactionsStore);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   protected readonly descriptionInput =
     viewChild<ElementRef<HTMLInputElement>>('descriptionInput');
   protected readonly placeSearchInput =
     viewChild<ElementRef<HTMLInputElement>>('placeSearchInput');
+  protected readonly newPlaceNameInput =
+    viewChild<ElementRef<HTMLInputElement>>('newPlaceNameInput');
   private exchangeRateRequestToken = 0;
 
   readonly mode = input<'create' | 'edit'>('create');
@@ -209,6 +213,37 @@ export class TransactionCreateFormComponent {
     }),
   });
 
+  protected readonly newPlaceForm = this.formBuilder.group({
+    name: this.formBuilder.control('', {
+      validators: [
+        Validators.required,
+        Validators.pattern(/\S/),
+        Validators.maxLength(120),
+      ],
+      nonNullable: true,
+    }),
+    street: this.formBuilder.control('', {
+      validators: [Validators.maxLength(160)],
+      nonNullable: true,
+    }),
+    city: this.formBuilder.control('', {
+      validators: [Validators.maxLength(80)],
+      nonNullable: true,
+    }),
+    postalCode: this.formBuilder.control('', {
+      validators: [Validators.maxLength(32)],
+      nonNullable: true,
+    }),
+    country: this.formBuilder.control('', {
+      validators: [Validators.maxLength(80)],
+      nonNullable: true,
+    }),
+    note: this.formBuilder.control('', {
+      validators: [Validators.maxLength(500)],
+      nonNullable: true,
+    }),
+  });
+
   protected readonly controls = this.form.controls;
   private readonly selectedTagSelections = toSignal(
     this.form.controls.tags.valueChanges,
@@ -269,6 +304,9 @@ export class TransactionCreateFormComponent {
   );
   protected readonly placeDropdownOpen = signal(false);
   protected readonly placeSearch = signal('');
+  protected readonly newPlaceFormOpen = signal(false);
+  protected readonly newPlacePending = signal(false);
+  protected readonly newPlaceError = signal<string | null>(null);
   protected readonly selectedPlaceLabel = computed(() => {
     const placeId = this.selectedPlaceId();
 
@@ -501,6 +539,70 @@ export class TransactionCreateFormComponent {
     control.markAsDirty();
     control.markAsTouched();
     this.closePlaceDropdown();
+    this.closeNewPlaceForm();
+  }
+
+  protected openNewPlaceForm(): void {
+    this.closePlaceDropdown();
+    this.newPlaceForm.reset();
+    this.newPlaceError.set(null);
+    this.newPlaceFormOpen.set(true);
+
+    setTimeout(() => this.newPlaceNameInput()?.nativeElement.focus(), 0);
+  }
+
+  protected closeNewPlaceForm(): void {
+    if (this.newPlacePending()) {
+      return;
+    }
+
+    this.newPlaceFormOpen.set(false);
+    this.newPlaceError.set(null);
+  }
+
+  protected onNewPlaceEnter(event: Event): void {
+    if (!(event.target instanceof HTMLInputElement)) {
+      return;
+    }
+
+    event.preventDefault();
+    void this.saveNewPlace();
+  }
+
+  protected async saveNewPlace(): Promise<void> {
+    if (this.newPlacePending()) {
+      return;
+    }
+
+    if (
+      this.newPlaceForm.invalid ||
+      !this.newPlaceForm.controls.name.value.trim()
+    ) {
+      this.newPlaceForm.controls.name.markAsTouched();
+
+      return;
+    }
+
+    const payload: CreatePlacePayload = this.newPlaceForm.getRawValue();
+    this.newPlacePending.set(true);
+    this.newPlaceError.set(null);
+
+    try {
+      const place = await this.store.createPlace(payload);
+      this.selectPlace(place.id);
+      this.newPlaceFormOpen.set(false);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'places.errors.generic';
+
+      this.newPlaceError.set(
+        message.startsWith('places.errors.')
+          ? this.transloco.translate(message)
+          : message
+      );
+    } finally {
+      this.newPlacePending.set(false);
+    }
   }
 
   protected clearPlace(event: MouseEvent): void {
@@ -605,6 +707,10 @@ export class TransactionCreateFormComponent {
   }
 
   protected onClose(): void {
+    if (this.newPlacePending()) {
+      return;
+    }
+
     this.resetForm();
     this.closed.emit();
   }
@@ -612,7 +718,11 @@ export class TransactionCreateFormComponent {
   protected async submit(
     afterCreate: 'close' | 'continue' = 'close'
   ): Promise<void> {
-    if (this.store.transactionMutationPending()) {
+    if (
+      this.store.transactionMutationPending() ||
+      this.newPlaceFormOpen() ||
+      this.newPlacePending()
+    ) {
       return;
     }
 
@@ -830,6 +940,9 @@ export class TransactionCreateFormComponent {
     this.form.markAsUntouched();
     this.showAdvanced.set(false);
     this.closeFormDropdowns();
+    this.newPlaceFormOpen.set(false);
+    this.newPlaceError.set(null);
+    this.newPlaceForm.reset();
     this.currencyFollowsWallet.set(true);
     this.store.dismissMutationError();
     this.syncWalletCurrency(this.form.controls.walletId.value, true);
@@ -850,6 +963,7 @@ export class TransactionCreateFormComponent {
       this.form.controls.quantity.setValue(1);
       this.showAdvanced.set(false);
       this.closeFormDropdowns();
+      this.closeNewPlaceForm();
     } else {
       categoryControl.setValidators([Validators.required]);
       walletControl.setValidators([Validators.required]);

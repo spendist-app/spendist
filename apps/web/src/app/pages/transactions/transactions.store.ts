@@ -119,6 +119,15 @@ export interface PlaceEntity {
   readonly note: string | null;
 }
 
+export interface CreatePlacePayload {
+  readonly name: string;
+  readonly street: string;
+  readonly city: string;
+  readonly postalCode: string;
+  readonly country: string;
+  readonly note: string;
+}
+
 export type TransactionPresetId =
   | 'currentMonth'
   | 'previousMonth'
@@ -1440,6 +1449,54 @@ export class TransactionsStore {
       ...state,
       mutationError: null,
     }));
+  }
+
+  async createPlace(payload: CreatePlacePayload): Promise<PlaceEntity> {
+    const userId = this.userId();
+
+    if (!userId) {
+      throw new Error('places.errors.auth');
+    }
+
+    const name = payload.name.trim();
+
+    if (!name) {
+      throw new Error('places.errors.nameRequired');
+    }
+
+    const optional = (value: string, limit: number): string | null =>
+      value.trim().slice(0, limit) || null;
+
+    const { data, error } = await this.supabase
+      .from('places')
+      .insert({
+        owner_id: userId,
+        name: name.slice(0, 120),
+        street: optional(payload.street, 160),
+        city: optional(payload.city, 80),
+        postal_code: optional(payload.postalCode, 32),
+        country: optional(payload.country, 80),
+        note: optional(payload.note, 500),
+      })
+      .select('*')
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    if (!data) {
+      throw new Error('places.errors.emptyResponse');
+    }
+
+    const place = this.mapPlaceRow(data);
+
+    this.state.update((state) => ({
+      ...state,
+      places: this.sortPlaces([...state.places, place]),
+    }));
+
+    return place;
   }
 
   async ensureTags(names: readonly string[]): Promise<readonly TagEntity[]> {
