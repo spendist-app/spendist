@@ -153,8 +153,11 @@ test('requires consent, sanitizes public visits and destroys collection on auth 
   expect(collections).toHaveLength(withdrawnCount);
   expect(violations).toEqual([]);
 
-  const runtime = await page.goto('/analytics/frame.html');
-  expect(runtime?.headers()['x-robots-tag']).toBe('noindex, nofollow');
+  await page.goto('/analytics/frame.html');
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+    'content',
+    'noindex,nofollow'
+  );
   const directCount = scriptRequests.length;
   await page.waitForTimeout(200);
   expect(scriptRequests).toHaveLength(directCount);
@@ -239,8 +242,9 @@ test('Polish consent banner fits a small screen and leaves the page usable after
     exact: true,
   });
 
-  expect(await accept.getAttribute('class')).toBe(
-    await reject.getAttribute('class')
+  await expect(accept).toHaveAttribute(
+    'class',
+    (await reject.getAttribute('class')) ?? ''
   );
   expect(
     await page.evaluate(
