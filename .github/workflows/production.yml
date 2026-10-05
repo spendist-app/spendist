@@ -174,38 +174,11 @@ jobs:
             exit 1
           fi
 
-          internal_function_secret="${INTERNAL_FUNCTION_SECRET:-${ROUTINE_RUNNER_SECRET:-${RECURRING_PAYMENTS_SECRET:-}}}"
-          app_url="${CLOUDFLARE_PRODUCTION_URL:-https://spendist.app}"
-
-          if [ -z "$internal_function_secret" ]; then
-            echo "::error::Missing required GitHub secret: INTERNAL_FUNCTION_SECRET"
-            echo "::notice::Temporary fallback is ROUTINE_RUNNER_SECRET or RECURRING_PAYMENTS_SECRET."
-            exit 1
-          fi
-
-          for secret_name in AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION EMAIL_FROM; do
-            if [ -z "${!secret_name}" ]; then
-              echo "::error::Missing required GitHub secret: $secret_name"
-              exit 1
-            fi
-          done
-
           secrets_file="$(mktemp)"
           trap 'rm -f "$secrets_file"' EXIT
           chmod 600 "$secrets_file"
 
-          dotenv_value() {
-            jq -Rn --arg value "$1" '$value | @json'
-          }
-
-          {
-            printf 'INTERNAL_FUNCTION_SECRET=%s\n' "$(dotenv_value "$internal_function_secret")"
-            printf 'AWS_ACCESS_KEY_ID=%s\n' "$(dotenv_value "$AWS_ACCESS_KEY_ID")"
-            printf 'AWS_SECRET_ACCESS_KEY=%s\n' "$(dotenv_value "$AWS_SECRET_ACCESS_KEY")"
-            printf 'AWS_REGION=%s\n' "$(dotenv_value "$AWS_REGION")"
-            printf 'EMAIL_FROM=%s\n' "$(dotenv_value "$EMAIL_FROM")"
-            printf 'APP_URL=%s\n' "$(dotenv_value "${app_url%/}")"
-          } > "$secrets_file"
+          node tools/scripts/write-supabase-edge-secrets.mjs "$secrets_file"
 
           node tools/scripts/run-with-secret-redaction.mjs \
             --secret-env SUPABASE_ACCESS_TOKEN \

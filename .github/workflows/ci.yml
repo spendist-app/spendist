@@ -48,7 +48,7 @@ jobs:
         run: npm run test:recurring-edge
 
       - name: Recurring scheduler configuration tests
-        run: node --test tools/scripts/validate-supabase-functions-url.test.mjs tools/scripts/verify-recurring-scheduler.test.mjs
+        run: node --test tools/scripts/validate-supabase-functions-url.test.mjs tools/scripts/verify-recurring-scheduler.test.mjs tools/scripts/write-supabase-edge-secrets.test.mjs
 
   e2e:
     if: github.event_name == 'push' && (github.ref_name == 'master' || github.ref_name == 'develop')
