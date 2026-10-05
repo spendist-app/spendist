@@ -293,7 +293,6 @@
               class="mt-3 space-y-3 rounded-xl border border-base-300 bg-base-200/30 p-4"
               [formGroup]="newPlaceForm"
               data-testid="transaction-new-place-form"
-              (keydown.enter)="onNewPlaceEnter($event)"
             >
               <h3 class="text-sm font-semibold">
                 {{ 'places.form.title.create' | transloco }}
@@ -311,6 +310,7 @@
                   class="input input-bordered w-full"
                   formControlName="name"
                   maxlength="120"
+                  (keydown.enter)="onNewPlaceEnter($event)"
                 />
                 @if (newPlaceForm.controls.name.touched && newPlaceForm.controls.name.invalid) {
                 <span class="mt-1 text-xs text-error">
