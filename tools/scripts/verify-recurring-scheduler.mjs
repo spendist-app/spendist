@@ -15,6 +15,24 @@ function firstEnv(environment, ...names) {
   return names.map((name) => environment[name]?.trim()).find(Boolean) ?? '';
 }
 
+export function parseSupabaseQueryRows(output) {
+  let parsed;
+
+  try {
+    parsed = JSON.parse(output);
+  } catch {
+    throw new Error('Unexpected response from Supabase database query');
+  }
+
+  const rows = Array.isArray(parsed) ? parsed : parsed?.rows;
+
+  if (!Array.isArray(rows)) {
+    throw new Error('Unexpected response from Supabase database query');
+  }
+
+  return rows;
+}
+
 function readVaultSecretMatch(dbUrl, expectedSecret) {
   const digest = createHash('sha256').update(expectedSecret).digest('hex');
   const temporaryDirectory = mkdtempSync(join(tmpdir(), 'spendist-scheduler-'));
@@ -33,7 +51,18 @@ where name = 'spendist_internal_function_secret';\n`,
   try {
     result = spawnSync(
       'node_modules/.bin/supabase',
-      ['db', 'query', '--db-url', dbUrl, '--file', sqlFile],
+      [
+        'db',
+        'query',
+        '--db-url',
+        dbUrl,
+        '--file',
+        sqlFile,
+        '--output',
+        'json',
+        '--agent',
+        'no',
+      ],
       { encoding: 'utf8', maxBuffer: 1024 * 1024 }
     );
   } finally {
@@ -44,13 +73,7 @@ where name = 'spendist_internal_function_secret';\n`,
     throw new Error('Could not verify the scheduled function secret in Vault');
   }
 
-  let rows;
-
-  try {
-    rows = JSON.parse(result.stdout).rows;
-  } catch {
-    throw new Error('Unexpected response from Supabase database query');
-  }
+  const rows = parseSupabaseQueryRows(result.stdout);
 
   return rows?.length === 1 && rows[0].matches === true;
 }
