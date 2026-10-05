@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { verifyRecurringScheduler } from './verify-recurring-scheduler.mjs';
+import {
+  parseSupabaseQueryRows,
+  verifyRecurringScheduler,
+} from './verify-recurring-scheduler.mjs';
 
 const environment = {
   INTERNAL_FUNCTION_SECRET: 'test-secret',
@@ -10,6 +13,20 @@ const environment = {
   NG_APP_SUPABASE_FUNCTIONS_URL:
     'https://production.supabase.co/functions/v1',
 };
+
+test('parses CLI JSON rows in GitHub Actions and agent mode', () => {
+  assert.deepEqual(parseSupabaseQueryRows('[{"matches":true}]'), [
+    { matches: true },
+  ]);
+  assert.deepEqual(
+    parseSupabaseQueryRows('{"rows":[{"matches":false}]}'),
+    [{ matches: false }]
+  );
+  assert.throws(
+    () => parseSupabaseQueryRows(' matches\n---------\n t'),
+    /Unexpected response/
+  );
+});
 
 test('accepts matching Vault and a scoped authenticated Edge response', async () => {
   let requestedBody;
