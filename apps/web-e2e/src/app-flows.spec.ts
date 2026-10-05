@@ -1505,6 +1505,74 @@ test('backfills transactions for a recurring payment ended in the past', async (
   ).toHaveCount(2);
 });
 
+test('stopped recurring payments keep reopened amounts out of the posting form', async ({
+  page,
+}, testInfo) => {
+  const name = `E2E variable pause ${uniqueSuffix(testInfo)}`;
+  const startDate = monthStartInput(1);
+
+  await ensureAuthenticated(page);
+  await openModule(page, 'Recurring payments', 'Active recurring payments');
+  await page.getByRole('button', { name: /Add recurring/i }).last().click();
+
+  await page.locator('#recurring-name').fill(name);
+  await selectFirstCategoryOption(page);
+  await selectFirstRealOption(page.locator('#recurring-wallet'));
+  await page.locator('#recurring-amount-mode').selectOption('variable');
+  await page.locator('#recurring-schedule-frequency').selectOption('monthly');
+  await page.locator('input[formcontrolname="scheduleDayOfMonth"]').fill('1');
+  await page.locator('#recurring-start-date').fill(startDate);
+  await page.locator('#recurring-end-date').fill(futureDateInput(45));
+  await page.getByRole('button', { name: 'Save recurring payment' }).click();
+
+  const pendingSection = page
+    .getByRole('heading', { name: 'Pending amounts' })
+    .locator('..')
+    .locator('..');
+
+  const pendingRows = pendingSection.locator('li').filter({ hasText: name });
+
+  await expect(pendingRows.first()).toBeVisible();
+  await pendingRows
+    .first()
+    .getByRole('spinbutton', { name: 'Actual amount' })
+    .fill('1');
+  await pendingRows.first().getByRole('button', { name: 'Post' }).click();
+
+  const recurringCard = page.locator('li').filter({
+    has: page.getByRole('heading', { name, exact: true }),
+  });
+
+  await expect(recurringCard).toBeVisible();
+  page.once('dialog', (dialog) => dialog.accept());
+  await recurringCard.getByRole('button', { name: 'Stop' }).click();
+  await page.getByRole('button', { name: 'Stopped', exact: true }).click();
+  await expect(recurringCard).toBeVisible();
+  await expect(pendingRows).toHaveCount(0);
+
+  await openTransactions(page);
+  await filterTransactionsByDate(page, startDate);
+
+  const postedTransaction = page
+    .locator('#transactions-results > ul > li')
+    .filter({ hasText: name });
+
+  await expect(postedTransaction).toHaveCount(1);
+  page.once('dialog', (dialog) => dialog.accept());
+  await postedTransaction.getByRole('button', { name: 'Delete' }).click();
+  await expect(postedTransaction).toHaveCount(0);
+
+  await openModule(page, 'Recurring payments', 'Active recurring payments');
+  await page.getByRole('button', { name: 'Stopped', exact: true }).click();
+  await expect(recurringCard).toBeVisible();
+  await expect(pendingRows).toHaveCount(0);
+
+  page.once('dialog', (dialog) => dialog.accept());
+  await recurringCard.getByRole('button', { name: 'Resume' }).click();
+  await page.getByRole('button', { name: 'Active', exact: true }).click();
+  await expect(pendingRows.first()).toBeVisible();
+});
+
 test('creates wallet and keeps it after reload', async ({ page }, testInfo) => {
   const walletName = `E2E wallet ${uniqueSuffix(testInfo)}`;
 
