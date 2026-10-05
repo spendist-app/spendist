@@ -160,12 +160,16 @@ export const appRoutes: Route[] = [
 function blogRoutes(locale: 'pl' | 'en'): Route[] {
   const data = { blogLocale: locale } as const;
   const resolve = { blogLanguage: resolveBlogLanguage(locale) };
+
   const loadIndex = () =>
     import('./pages/blog/blog-index').then((m) => m.BlogIndex);
+
   const loadArticle = () =>
     import('./pages/blog/blog-article').then((m) => m.BlogArticle);
+
   const loadNotFound = () =>
     import('./pages/blog/blog-not-found').then((m) => m.BlogNotFound);
+
   return [
     { path: `${locale}/blog`, data, resolve, loadComponent: loadIndex },
     {
@@ -202,6 +206,7 @@ function resolveBlogLanguage(locale: 'pl' | 'en'): ResolveFn<boolean> {
     const transloco = inject(TranslocoService);
     language.setLanguage(locale);
     await firstValueFrom(transloco.load(locale));
+
     return true;
   };
 }

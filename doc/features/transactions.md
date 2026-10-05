@@ -9,6 +9,9 @@ Users can create, edit, duplicate, and delete individual records. Bulk entry can
 The single-transaction form keeps typed fields while categories and other
 reference data finish loading. Saving and adding another transaction starts a
 fresh form only after the previous entry has been saved.
+Users can create a place from the place picker without leaving the transaction
+form. The new place is selected for that transaction after it is saved; a place
+save failure leaves the transaction draft intact.
 
 When the signed-in user has an active Allowance connection as a payer, the
 single-transaction form includes a `Where should it be recorded?` target. The

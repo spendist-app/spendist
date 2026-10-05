@@ -40,7 +40,8 @@ const CATEGORY_TEMPLATES: readonly CategoryGroupTemplate[] = [
         children: [
           {
             key: 'groceries',
-            icon: canonicalHeroIconName('heroShoppingCart') ?? 'heroShoppingCart',
+            icon:
+              canonicalHeroIconName('heroShoppingCart') ?? 'heroShoppingCart',
             color: '#0EA5A5',
             name: {
               en: 'Groceries',
@@ -49,7 +50,9 @@ const CATEGORY_TEMPLATES: readonly CategoryGroupTemplate[] = [
             children: [
               {
                 key: 'biedronka',
-                icon: canonicalHeroIconName('heroBuildingStorefront') ?? 'heroBuildingStorefront',
+                icon:
+                  canonicalHeroIconName('heroBuildingStorefront') ??
+                  'heroBuildingStorefront',
                 color: '#0EA5A5',
                 name: {
                   en: 'Biedronka',
@@ -152,9 +155,11 @@ const CATEGORY_TEMPLATES: readonly CategoryGroupTemplate[] = [
 export async function ensureDefaultCategoriesForUser(
   client: SupabaseClient,
   ownerId: string,
-  language: LanguageCode,
+  language: LanguageCode
 ): Promise<void> {
-  const effectiveLanguage = isSupportedLanguage(language) ? language : DEFAULT_LANGUAGE;
+  const effectiveLanguage = isSupportedLanguage(language)
+    ? language
+    : DEFAULT_LANGUAGE;
 
   const { error: countError, count } = await client
     .from('categories')
@@ -162,7 +167,12 @@ export async function ensureDefaultCategoriesForUser(
     .eq('owner_id', ownerId);
 
   if (countError) {
-    logError('DefaultCategories', 'Failed to count existing categories', countError);
+    logError(
+      'DefaultCategories',
+      'Failed to count existing categories',
+      countError
+    );
+
     return;
   }
 
@@ -199,7 +209,12 @@ export async function ensureDefaultCategoriesForUser(
         .single();
 
       if (groupInsertError) {
-        logError('DefaultCategories', 'Failed to insert group', groupName, groupInsertError);
+        logError(
+          'DefaultCategories',
+          'Failed to insert group',
+          groupName,
+          groupInsertError
+        );
         continue;
       }
 
@@ -218,7 +233,7 @@ export async function ensureDefaultCategoriesForUser(
         groupTemplate.color,
         categoryTemplate,
         effectiveLanguage,
-        null,
+        null
       );
     }
   }
@@ -231,7 +246,7 @@ async function ensureDefaultCategory(
   groupColor: string | null,
   categoryTemplate: CategoryTemplate,
   language: LanguageCode,
-  parentId: string | null,
+  parentId: string | null
 ): Promise<string | null> {
   const categoryName = resolveTranslation(categoryTemplate.name, language);
 
@@ -242,9 +257,10 @@ async function ensureDefaultCategory(
     .eq('name', categoryName)
     .limit(1);
 
-  let categoryId = !categoryLookupError && existingCategory && existingCategory.length > 0
-    ? existingCategory[0].id
-    : null;
+  let categoryId =
+    !categoryLookupError && existingCategory && existingCategory.length > 0
+      ? existingCategory[0].id
+      : null;
 
   if (!categoryId) {
     const { data: insertedCategory, error: categoryInsertError } = await client
@@ -261,7 +277,13 @@ async function ensureDefaultCategory(
       .single();
 
     if (categoryInsertError) {
-      logError('DefaultCategories', 'Failed to insert category', categoryName, categoryInsertError);
+      logError(
+        'DefaultCategories',
+        'Failed to insert category',
+        categoryName,
+        categoryInsertError
+      );
+
       return null;
     }
 
@@ -276,17 +298,20 @@ async function ensureDefaultCategory(
       categoryTemplate.color ?? groupColor,
       childTemplate,
       language,
-      categoryId,
+      categoryId
     );
   }
 
   return categoryId;
 }
 
-function resolveTranslation(dictionary: Record<LanguageCode, string>, language: LanguageCode): string {
+function resolveTranslation(
+  dictionary: Record<LanguageCode, string>,
+  language: LanguageCode
+): string {
   return dictionary[language] ?? dictionary[DEFAULT_LANGUAGE];
 }
 
 function isSupportedLanguage(language: string): language is LanguageCode {
-  return (['en', 'pl'] as const).includes(language as LanguageCode);
+  return language === 'en' || language === 'pl';
 }

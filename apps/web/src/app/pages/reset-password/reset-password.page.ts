@@ -18,13 +18,18 @@ import { Router, RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@ngneat/transloco';
 import { AuthService } from '../../core/auth.service';
 
-const passwordsMatchValidator = (passwordKey: string, confirmPasswordKey: string) => {
+const passwordsMatchValidator = (
+  passwordKey: string,
+  confirmPasswordKey: string
+) => {
   return (group: { get: (key: string) => { value: string } | null }) => {
     const password = group.get(passwordKey)?.value ?? '';
     const confirmPassword = group.get(confirmPasswordKey)?.value ?? '';
+
     if (!password || !confirmPassword) {
       return null;
     }
+
     return password !== confirmPassword ? { passwordsMismatch: true } : null;
   };
 };
@@ -70,16 +75,20 @@ export class ResetPasswordPageComponent implements OnInit {
   readonly passwordsDoNotMatch = computed(
     () =>
       this.form.hasError('passwordsMismatch') &&
-      (this.controls.confirmPassword.dirty || this.controls.confirmPassword.touched)
+      (this.controls.confirmPassword.dirty ||
+        this.controls.confirmPassword.touched)
   );
 
   async ngOnInit(): Promise<void> {
     if (!isPlatformBrowser(this.platformId)) {
       this.checkingSession.set(false);
+
       return;
     }
 
-    const result = await this.auth.establishPasswordRecoverySession(window.location.href);
+    const result = await this.auth.establishPasswordRecoverySession(
+      window.location.href
+    );
 
     if (result.error) {
       this.errorMessage.set(result.error);
@@ -100,6 +109,7 @@ export class ResetPasswordPageComponent implements OnInit {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       this.controls.confirmPassword.markAsDirty();
+
       return;
     }
 
@@ -112,6 +122,7 @@ export class ResetPasswordPageComponent implements OnInit {
 
       if (result.error) {
         this.errorMessage.set(result.error);
+
         return;
       }
 

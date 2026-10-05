@@ -1,21 +1,21 @@
 import type { CallToolResult } from '@modelcontextprotocol/server';
 
-export function toolResult(result: unknown): CallToolResult {
+export function toolResult<T>(result: T): CallToolResult {
   return {
     content: [{ type: 'text', text: JSON.stringify(result) }],
     structuredContent: { result },
   };
 }
 
-export function toolError(error: unknown): CallToolResult {
+export function toolError(cause: unknown): CallToolResult {
   return {
     isError: true,
     content: [
       {
         type: 'text',
         text:
-          error instanceof Error
-            ? error.message
+          cause instanceof Error
+            ? cause.message
             : 'Unexpected Spendist MCP error.',
       },
     ],

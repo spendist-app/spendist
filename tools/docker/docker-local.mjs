@@ -3,6 +3,7 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
 const LOCAL_SUPABASE_PORT = '55321';
+
 const LOCAL_SUPABASE_HOSTS = new Set(['127.0.0.1', 'localhost']);
 
 export function parseSupabaseEnvironment(output) {
@@ -10,11 +11,13 @@ export function parseSupabaseEnvironment(output) {
 
   for (const line of output.split(/\r?\n/)) {
     const trimmed = line.trim();
+
     if (!trimmed || trimmed.startsWith('#')) {
       continue;
     }
 
     const separator = trimmed.indexOf('=');
+
     if (separator <= 0) {
       continue;
     }
@@ -30,6 +33,7 @@ export function parseSupabaseEnvironment(output) {
 export function resolvePublicSupabaseEnvironment(values) {
   const supabaseUrl =
     values.NG_APP_SUPABASE_URL ?? values.API_URL ?? values.SUPABASE_URL ?? '';
+
   const publishableKey =
     values.NG_APP_SUPABASE_PUBLISHABLE_KEY ??
     values.PUBLISHABLE_KEY ??
@@ -42,11 +46,13 @@ export function resolvePublicSupabaseEnvironment(values) {
   if (!supabaseUrl) {
     throw new Error('Supabase status did not return a local API URL.');
   }
+
   if (!publishableKey) {
     throw new Error('Supabase status did not return a publishable key.');
   }
 
   const parsedUrl = new URL(supabaseUrl);
+
   if (
     parsedUrl.protocol !== 'http:' ||
     !LOCAL_SUPABASE_HOSTS.has(parsedUrl.hostname) ||
@@ -58,6 +64,7 @@ export function resolvePublicSupabaseEnvironment(values) {
   }
 
   const normalizedUrl = parsedUrl.toString().replace(/\/$/, '');
+
   return {
     SPENDIST_DOCKER_SUPABASE_URL: normalizedUrl,
     SPENDIST_DOCKER_SUPABASE_PUBLISHABLE_KEY: publishableKey,
@@ -74,6 +81,7 @@ async function run(command, args, options = {}) {
 
   let stdout = '';
   let stderr = '';
+
   if (options.capture) {
     child.stdout.setEncoding('utf8');
     child.stderr.setEncoding('utf8');
@@ -90,8 +98,10 @@ async function run(command, args, options = {}) {
     child.once('exit', (exitCode, signal) => {
       if (signal) {
         reject(new Error(`${command} was terminated by ${signal}.`));
+
         return;
       }
+
       resolve(exitCode ?? 1);
     });
   });
@@ -100,6 +110,7 @@ async function run(command, args, options = {}) {
     if (options.capture && !options.quietFailure && stderr.trim()) {
       process.stderr.write(stderr);
     }
+
     throw new Error(`${command} ${args.join(' ')} exited with code ${code}.`);
   }
 
@@ -112,6 +123,7 @@ async function resolveComposeCommand() {
       capture: true,
       quietFailure: true,
     });
+
     return { command: 'docker', prefix: ['compose'] };
   } catch {
     throw new Error(
@@ -133,6 +145,7 @@ async function start() {
     capture: true,
     quietFailure: true,
   });
+
   const publicEnvironment = resolvePublicSupabaseEnvironment(
     parseSupabaseEnvironment(status)
   );
@@ -148,6 +161,7 @@ async function start() {
 async function stop() {
   const compose = await resolveComposeCommand();
   let composeError;
+
   try {
     await run(compose.command, [...compose.prefix, 'down']);
   } catch (error) {
@@ -163,12 +177,16 @@ async function stop() {
 
 async function main() {
   const command = process.argv[2];
+
   if (command === 'up') {
     await start();
+
     return;
   }
+
   if (command === 'down') {
     await stop();
+
     return;
   }
 

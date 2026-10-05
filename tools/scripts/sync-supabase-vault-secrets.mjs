@@ -4,22 +4,16 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { redactSensitiveText } from './run-with-secret-redaction.mjs';
+import { validateSupabaseFunctionsUrl } from './validate-supabase-functions-url.mjs';
 
 const LOCAL_INTERNAL_FUNCTION_SECRET = 'local-internal-function-secret';
+
 const LOCAL_FUNCTIONS_BASE_URL = 'http://kong:8000/functions/v1';
 
 function isLocalDatabaseUrl(value) {
   return /127\.0\.0\.1|localhost|supabase_db_spendist-app|db\.supabase\.internal/.test(
     value
   );
-}
-
-function requiredEnv(name) {
-  const value = process.env[name]?.trim();
-  if (!value) {
-    throw new Error(`Missing ${name}`);
-  }
-  return value;
 }
 
 function resolveDbUrl() {
@@ -45,6 +39,7 @@ function resolveFunctionsBaseUrl(isLocal) {
 
   const supabaseUrl =
     process.env.NG_APP_SUPABASE_URL?.trim() || process.env.SUPABASE_URL?.trim();
+
   if (!supabaseUrl) {
     throw new Error(
       'Missing NG_APP_SUPABASE_FUNCTIONS_URL or NG_APP_SUPABASE_URL'
@@ -57,6 +52,7 @@ function resolveFunctionsBaseUrl(isLocal) {
 function firstEnv(...names) {
   for (const name of names) {
     const value = process.env[name]?.trim();
+
     if (value) {
       return value;
     }
@@ -100,6 +96,7 @@ function runSql(dbUrl, sql) {
   writeFileSync(sqlFile, sql, { mode: 0o600 });
 
   const childEnvironment = { ...process.env };
+
   for (const name of [
     'SUPABASE_DB_URL',
     'SUPABASE_REMOTE_DB_URL',
@@ -113,6 +110,7 @@ function runSql(dbUrl, sql) {
   }
 
   let result;
+
   try {
     result = spawnSync(
       'npx',
@@ -137,6 +135,7 @@ function runSql(dbUrl, sql) {
 
   if (result.stdout)
     process.stdout.write(redactSensitiveText(result.stdout, sensitiveValues));
+
   if (result.stderr)
     process.stderr.write(redactSensitiveText(result.stderr, sensitiveValues));
 
@@ -151,12 +150,26 @@ function runSql(dbUrl, sql) {
 
 function main() {
   const dbUrl = resolveDbUrl();
+
   if (!dbUrl) {
     throw new Error('Missing SUPABASE_DB_URL or SUPABASE_REMOTE_DB_URL');
   }
 
   const isLocal = isLocalDatabaseUrl(dbUrl);
   const functionsBaseUrl = resolveFunctionsBaseUrl(isLocal);
+
+  if (!isLocal) {
+    const projectUrl =
+      process.env.NG_APP_SUPABASE_URL?.trim() ||
+      process.env.SUPABASE_URL?.trim();
+
+    if (!projectUrl) {
+      throw new Error('Missing NG_APP_SUPABASE_URL or SUPABASE_URL');
+    }
+
+    validateSupabaseFunctionsUrl(functionsBaseUrl, projectUrl);
+  }
+
   const internalFunctionSecret = firstEnv(
     'INTERNAL_FUNCTION_SECRET',
     'ROUTINE_RUNNER_SECRET',

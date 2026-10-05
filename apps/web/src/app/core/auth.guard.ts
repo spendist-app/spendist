@@ -20,6 +20,7 @@ const waitForAuthState = (
 
 export const redirectAuthenticatedToHomeGuard: CanActivateFn = () => {
   const router = inject(Router);
+
   return waitForAuthState((isAuthenticated) =>
     isAuthenticated ? router.parseUrl('/dashboard') : true
   );
@@ -27,6 +28,7 @@ export const redirectAuthenticatedToHomeGuard: CanActivateFn = () => {
 
 export const requireAuthGuard: CanActivateFn = () => {
   const router = inject(Router);
+
   return waitForAuthState((isAuthenticated) =>
     isAuthenticated ? true : router.parseUrl('/')
   );
@@ -34,6 +36,7 @@ export const requireAuthGuard: CanActivateFn = () => {
 
 export const requireAuthWithReturnUrlGuard: CanActivateFn = (_route, state) => {
   const router = inject(Router);
+
   return waitForAuthState((isAuthenticated) =>
     isAuthenticated
       ? true

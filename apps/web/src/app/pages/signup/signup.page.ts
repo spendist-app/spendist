@@ -29,9 +29,11 @@ const passwordsMatchValidator = (
   return (group: { get: (key: string) => { value: string } | null }) => {
     const password = group.get(passwordKey)?.value ?? '';
     const confirmPassword = group.get(confirmPasswordKey)?.value ?? '';
+
     if (!password || !confirmPassword) {
       return null;
     }
+
     return password !== confirmPassword ? { passwordsMismatch: true } : null;
   };
 };
@@ -40,16 +42,13 @@ const isDev = typeof ngDevMode !== 'undefined' && !!ngDevMode;
 
 function buildPasswordValidators(): ValidatorFn[] {
   const base: ValidatorFn[] = [Validators.required, Validators.minLength(8)];
+
   if (!isDev) {
     // Production: require at least one lowercase, one uppercase and one digit.
     base.push(Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/));
   }
-  return base;
-}
 
-function buildAvatarUrl(username: string): string {
-  const seed = encodeURIComponent(username.trim().toLowerCase());
-  return `https://api.dicebear.com/7.x/initials/svg?seed=${seed}`;
+  return base;
 }
 
 function detectTimezone(): string {
@@ -85,6 +84,7 @@ function createUsernameFromName(name: string): string {
   }
 
   const timestamp = Math.random().toString(36).slice(2, 6);
+
   return `user_${timestamp}`;
 }
 
@@ -128,11 +128,18 @@ export class SignupPageComponent {
       defaultCurrencyId: this.formBuilder.control(this.initialCurrencyId, {
         validators: [Validators.required],
       }),
+      adultConfirmed: this.formBuilder.control(false, {
+        validators: [Validators.requiredTrue],
+      }),
+      termsAccepted: this.formBuilder.control(false, {
+        validators: [Validators.requiredTrue],
+      }),
     },
     { validators: [passwordsMatchValidator('password', 'confirmPassword')] }
   );
 
   readonly currencies = SUPPORTED_CURRENCIES;
+  readonly legalLanguage = this.languageService.currentLanguage;
   readonly controls = this.form.controls;
   readonly submitting = signal(false);
   readonly pendingEmail = signal<string | null>(null);
@@ -154,6 +161,7 @@ export class SignupPageComponent {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       this.controls.confirmPassword.markAsDirty();
+
       return;
     }
 
@@ -161,15 +169,25 @@ export class SignupPageComponent {
     this.errorMessage.set(null);
 
     try {
-      const { name, email, password, defaultCurrencyId } =
-        this.form.getRawValue();
+      const {
+        name,
+        email,
+        password,
+        defaultCurrencyId,
+        adultConfirmed,
+        termsAccepted,
+      } = this.form.getRawValue();
+
       const safeName = name.trim();
       const username = createUsernameFromName(safeName);
+
       const language =
         this.languageService.currentLanguage() ?? FALLBACK_LANGUAGE;
+
       const numericCurrencyId = Number(defaultCurrencyId);
 
       const normalizedEmail = email.trim();
+
       const result = await this.auth.signUp(
         {
           email: normalizedEmail,
@@ -181,18 +199,21 @@ export class SignupPageComponent {
           defaultCurrencyId: Number.isFinite(numericCurrencyId)
             ? numericCurrencyId
             : this.initialCurrencyId,
-          avatarUrl: buildAvatarUrl(username),
+          adultConfirmed,
+          termsAccepted,
         },
         this.returnUrl
       );
 
       if (result.error) {
         this.errorMessage.set(result.error);
+
         return;
       }
 
       if (result.confirmationRequired) {
         this.pendingEmail.set(normalizedEmail);
+
         return;
       }
 
@@ -204,17 +225,20 @@ export class SignupPageComponent {
 
   async resendConfirmation(): Promise<void> {
     const email = this.pendingEmail();
+
     if (!email || this.resending()) {
       return;
     }
 
     this.resending.set(true);
     this.resendStatus.set(null);
+
     try {
       const result = await this.auth.resendSignupConfirmation(
         email,
         this.returnUrl
       );
+
       this.resendStatus.set(result.error ? 'error' : 'success');
     } finally {
       this.resending.set(false);

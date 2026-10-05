@@ -94,6 +94,7 @@ describe('Spendist CSV transfer parser', () => {
 
   it('accepts earlier CSV files that do not contain the optional place column', () => {
     const headers = SPENDIST_CSV_HEADERS.filter((header) => header !== 'place');
+
     const csv = [
       headers.join(','),
       'tx-1,2026-02-01T00:00:00.000Z,Lunch,expense,10,PLN,10,Food,Food/Groceries,Groceries,Main,PLN,weekly,false,,,',
@@ -131,6 +132,7 @@ describe('Spendist CSV transfer parser', () => {
       wallet: 'Main',
       tags: ['work', 'lunch'],
     });
+
     const second = createSpendistCsvFingerprint({
       occurredAt: new Date('2026-02-01T00:00:00.000Z'),
       description: 'Lunch',
@@ -166,6 +168,7 @@ describe('Spendist CSV transfer parser', () => {
       import_source: '',
       imported_at: '',
     };
+
     const csv = generateSpendistCsv([row, row]);
 
     const first = parseSpendistCsv(csv);
@@ -175,10 +178,8 @@ describe('Spendist CSV transfer parser', () => {
     expect(first.rows).toHaveLength(2);
     expect(first.rows[0].fingerprint).not.toBe(first.rows[1].fingerprint);
     expect(first.rows.map((item) => item.fingerprint)).toEqual(
-      second.rows.map((item) => item.fingerprint),
+      second.rows.map((item) => item.fingerprint)
     );
-    expect(first.rows[1].fingerprint).toBe(
-      `${first.rows[0].fingerprint}:2`,
-    );
+    expect(first.rows[1].fingerprint).toBe(`${first.rows[0].fingerprint}:2`);
   });
 });

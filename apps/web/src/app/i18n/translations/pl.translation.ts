@@ -1,4 +1,12 @@
 const pl = {
+  analytics: {
+    title: 'Zgoda na statystyki odwiedzin?',
+    description:
+      'Za Twoją zgodą Google Analytics używa cookies do pomiaru odwiedzin strony głównej, bloga i dokumentów prawnych, tylko gdy jesteś niezalogowany. Nie wysyłamy danych konta, finansów ani treści formularzy. Odmowa nie wpływa na działanie Spendist. Decyzję możesz zmienić w każdej chwili przez Ustawienia analityki na dole strony.',
+    accept: 'Zezwól na analitykę',
+    reject: 'Odmów / wycofaj',
+    settings: 'Ustawienia analityki',
+  },
   appUpdate: {
     title: 'Nowa wersja jest dostępna',
     description: 'Odśwież stronę, aby pobrać najnowszą wersję Spendist.',
@@ -86,6 +94,17 @@ const pl = {
     terms: 'Regulamin',
     navigation: 'Dokumenty prawne',
     backToSpendist: 'Wróć do Spendist',
+    adultConfirmation: 'Potwierdzam, że mam ukończone 18 lat.',
+    acceptPrefix: 'Akceptuję',
+    privacyAcknowledgement: 'i potwierdzam zapoznanie się z',
+    confirmationRequired:
+      'Potwierdź ukończenie 18 lat i zaakceptuj regulamin, aby kontynuować.',
+    updatedTitle: 'Regulamin i polityka prywatności Spendist',
+    updatedDescription:
+      'Spendist jest bezpłatnym projektem hobbystycznym dla osób pełnoletnich. Zapoznaj się z aktualnymi dokumentami. Twoje dane i eksport pozostają dostępne.',
+    confirm: 'Potwierdź',
+    confirming: 'Potwierdzanie...',
+    confirmationError: 'Nie udało się zapisać potwierdzenia. Spróbuj ponownie.',
   },
   navbar: {
     settings: 'Ustawienia',
@@ -117,7 +136,7 @@ const pl = {
       title: 'Zobacz, gdzie naprawdę',
       titleHighlight: 'trafiają Twoje pieniądze',
       subtitle:
-        'Śledź transakcje, wklejaj je zbiorczo, automatyzuj stałe koszty i analizuj przepływy między portfelami oraz walutami.',
+        'Darmowa aplikacja do zapisywania domowych wydatków i przychodów. Sprawdź, ile wydajesz na jedzenie, rachunki czy transport, i porównuj kolejne miesiące.',
       cta: 'Zacznij za darmo',
       login: 'Mam już konto',
       ctaSecondary: 'Zobacz jak to działa',
@@ -129,7 +148,8 @@ const pl = {
       bilingual: 'Po polsku i angielsku',
     },
     preview: {
-      ariaLabel: 'Podgląd pulpitu Spendist',
+      ariaLabel: 'Ilustracja podsumowania wydatków z przykładowymi danymi',
+      sample: 'Przykładowe dane — ilustracja podsumowania',
       month: 'Ten miesiąc',
       balanceLabel: 'Przepływ w miesiącu',
       income: 'Przychody',
@@ -142,7 +162,7 @@ const pl = {
       badge: 'Do codziennych finansów',
       title: 'Od jednego wydatku do pełnego obrazu',
       subtitle:
-        'Spendist łączy szybkie wprowadzanie, dokładne filtrowanie, automatyzację i przenośne dane w jednym miejscu.',
+        'Zacznij od codziennych zakupów. Z czasem dodaj kolejne portfele, uporządkuj kategorie i zapisz swoje stałe opłaty.',
       dashboard: {
         title: 'Przepływy jednym rzutem oka',
         description:
@@ -161,7 +181,7 @@ const pl = {
       recurring: {
         title: 'Płatności cykliczne pod kontrolą',
         description:
-          'Planuj stałe i zmienne kwoty, uzupełniaj historię, wstrzymuj harmonogramy i odbieraj powiadomienia.',
+          'Zapisuj cykliczne wydatki, takie jak czynsz i subskrypcje. Harmonogram tworzy transakcje w Spendist; aplikacja nie opłaca rachunków.',
       },
       currency: {
         title: 'Portfele i prawdziwe kursy',
@@ -186,45 +206,40 @@ const pl = {
       organize: {
         title: 'Kategorie, tagi i miejsca',
         description:
-          'Buduj drzewa kategorii, dobieraj kolory i Heroicons, oznaczaj transakcje tagami i łącz wydatki z miejscami.',
+          'Podziel wydatki na własne kategorie i grupy. Dodaj tagi, np. wakacje, oraz miejsca, aby łatwiej odnaleźć konkretne zakupy.',
         tagExample: '#wakacje',
         placeExample: 'Warszawa',
         recurringExample: 'Subskrypcje',
       },
     },
-    latest: {
-      badge: 'Ostatnio dodane',
-      title: 'Spendist rozwija się wokół prawdziwych potrzeb',
+    gettingStarted: {
+      badge: 'Pierwsze kroki',
+      title: 'Zacznij od dzisiejszych wydatków',
       subtitle:
-        'Ostatnie wersje przyspieszają wprowadzanie danych, ułatwiają ich odnajdywanie i automatyzują pracę bez utraty kontroli.',
-      github: 'Śledź rozwój na GitHubie',
-      bulk: {
-        title: 'Wklejanie do formularza zbiorczego',
+        'Nie musisz odtwarzać całej historii. Dane wpisujesz samodzielnie lub importujesz z obsługiwanych plików — Spendist nie łączy się z Twoim bankiem.',
+      github: 'Zobacz kod na GitHubie',
+      account: {
+        title: 'Utwórz konto',
         description:
-          'Zamieniaj dane ze schowka w sprawdzone wiersze transakcji.',
+          'Wybierz walutę pierwszego portfela i potwierdź adres e-mail.',
       },
-      filters: {
-        title: 'Dokładne filtry i sortowanie',
+      expense: {
+        title: 'Dodaj pierwszy wydatek',
         description:
-          'Filtruj po kategoriach, tagach, portfelach, datach, kwotach i źródle cyklicznym.',
+          'Otwórz Transakcje. Wpisz kwotę, wybierz datę, portfel i kategorię, a następnie zapisz.',
       },
-      automation: {
-        title: 'Historia cykliczna i powiadomienia',
+      review: {
+        title: 'Sprawdź podsumowanie',
         description:
-          'Uzupełniaj wcześniejsze harmonogramy i śledź utworzone lub oczekujące operacje.',
-      },
-      transfer: {
-        title: 'Bezpieczniejszy transfer CSV',
-        description:
-          'Sprawdź duplikaty i nowe dane słownikowe, zanim cokolwiek zaimportujesz.',
+          'Otwórz Pulpit, aby zobaczyć zapisane przychody i wydatki w wybranym miesiącu oraz podział na kategorie.',
       },
     },
     trust: {
-      badge: 'Prywatność przez wyraźną granicę',
+      badge: 'Prywatność i dostęp do danych',
       title: 'Twoje finanse nie są profilem reklamowym',
       description:
         'Dane po zalogowaniu służą do działania i ochrony Spendist. Nie są sprzedawane ani wysyłane do analityki stron publicznych.',
-      private: 'Polityki dostępu osobne dla każdego użytkownika',
+      private: 'Dostęp do własnych danych po zalogowaniu',
       analytics: 'Brak Google Analytics po zalogowaniu',
       export: 'Eksport danych transakcji',
       source: 'Publicznie dostępny kod źródłowy',
@@ -356,8 +371,6 @@ const pl = {
       resendError:
         'Nie udało się wysłać kolejnej wiadomości. Poczekaj chwilę i spróbuj ponownie.',
       backToLogin: 'Wróć do logowania',
-      tosPrefix: 'Przed rejestracją możesz przeczytać wersje robocze:',
-      tosJoin: 'oraz',
     },
     confirm: {
       processingTitle: 'Potwierdzamy Twój adres e-mail',

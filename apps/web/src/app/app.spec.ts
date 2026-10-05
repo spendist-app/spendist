@@ -1,3 +1,5 @@
+import type { Json } from '@spendist/data-access/supabase-types';
+import { fixtureElement } from '../testing/dom';
 import { TestBed } from '@angular/core/testing';
 import { signal, computed } from '@angular/core';
 import { By } from '@angular/platform-browser';
@@ -13,8 +15,8 @@ import { provideAppTransloco } from './i18n/transloco.providers';
 import { GlobalNoticeService } from './core/global-notice.service';
 
 class AuthServiceStub {
-  private readonly state = signal({
-    session: null as unknown,
+  private readonly state = signal<TestAuthState>({
+    session: null,
     loading: false,
   });
 
@@ -26,13 +28,13 @@ class AuthServiceStub {
   setAuthenticated(isAuthenticated: boolean) {
     this.state.set({
       session: isAuthenticated
-        ? ({
+        ? {
             id: 'session',
             user: {
               email: 'test@example.com',
               user_metadata: {},
             },
-          } as unknown)
+          }
         : null,
       loading: false,
     });
@@ -47,7 +49,7 @@ class NotificationsStoreStub {
     Array<{
       id: string;
       type: string;
-      payload: Record<string, unknown>;
+      payload: Json;
       read_at: string | null;
       created_at: string;
     }>
@@ -63,6 +65,7 @@ class NotificationsStoreStub {
 
   async markAllAsRead(): Promise<void> {
     this.markAllCalls += 1;
+
     return;
   }
 
@@ -89,29 +92,19 @@ describe('App', () => {
     await TestBed.configureTestingModule({
       imports: [App],
       providers: [
-        {
-          provide: AuthService,
-          useClass: AuthServiceStub,
-        },
-        {
-          provide: NotificationsStore,
-          useClass: NotificationsStoreStub,
-        },
-        {
-          provide: ProfileService,
-          useClass: ProfileServiceStub,
-        },
+        AuthServiceStub,
+        { provide: AuthService, useExisting: AuthServiceStub },
+        NotificationsStoreStub,
+        { provide: NotificationsStore, useExisting: NotificationsStoreStub },
+        ProfileServiceStub,
+        { provide: ProfileService, useExisting: ProfileServiceStub },
         provideRouter([]),
         ...provideAppTransloco(),
       ],
     }).compileComponents();
-    authStub = TestBed.inject(AuthService) as AuthServiceStub;
-    notificationsStub = TestBed.inject(
-      NotificationsStore
-    ) as unknown as NotificationsStoreStub;
-    profileStub = TestBed.inject(
-      ProfileService
-    ) as unknown as ProfileServiceStub;
+    authStub = TestBed.inject(AuthServiceStub);
+    notificationsStub = TestBed.inject(NotificationsStoreStub);
+    profileStub = TestBed.inject(ProfileServiceStub);
   });
 
   it('should create app shell', () => {
@@ -132,7 +125,7 @@ describe('App', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    const compiled = fixture.nativeElement as HTMLElement;
+    const compiled = fixtureElement(fixture);
     const status = compiled.querySelector('[role="status"]');
     expect(status?.textContent).toContain('Email confirmed');
 
@@ -146,7 +139,7 @@ describe('App', () => {
   it('should show guest navigation when signed out', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
-    const compiled = fixture.nativeElement as HTMLElement;
+    const compiled = fixtureElement(fixture);
     expect(compiled.querySelector('a[href="/login"]')).toBeTruthy();
     expect(compiled.querySelector('a[href="/signup"]')).toBeTruthy();
     expect(compiled.querySelector('a[href="/dashboard"]')).toBeFalsy();
@@ -158,17 +151,22 @@ describe('App', () => {
 
   it('should switch guest language with accessible flag buttons', async () => {
     const fixture = TestBed.createComponent(App);
-    const navbar = fixture.debugElement.query(By.directive(NavbarComponent))
-      .componentInstance as NavbarComponent;
+
+    const navbar: NavbarComponent = fixture.debugElement.query(
+      By.directive(NavbarComponent)
+    ).componentInstance;
+
     navbar.setLanguage('en');
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
-    const compiled = fixture.nativeElement as HTMLElement;
+    const compiled = fixtureElement(fixture);
     const languageGroup = compiled.querySelector('[role="group"]');
+
     const englishButton = languageGroup?.querySelector<HTMLButtonElement>(
       'button[data-language="en"]'
     );
+
     const polishButton = languageGroup?.querySelector<HTMLButtonElement>(
       'button[data-language="pl"]'
     );
@@ -194,7 +192,7 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     authStub.setAuthenticated(true);
     fixture.detectChanges();
-    const compiled = fixture.nativeElement as HTMLElement;
+    const compiled = fixtureElement(fixture);
     const avatar = compiled.querySelector('.avatar');
     expect(avatar).toBeTruthy();
     expect(compiled.textContent).not.toContain('Log in');
@@ -206,7 +204,7 @@ describe('App', () => {
     profileStub.avatarUrl.set('https://cdn.example.test/avatar.png?v=1');
     fixture.detectChanges();
 
-    const compiled = fixture.nativeElement as HTMLElement;
+    const compiled = fixtureElement(fixture);
     const avatarImage = compiled.querySelector<HTMLImageElement>('.avatar img');
 
     expect(avatarImage?.src).toBe('https://cdn.example.test/avatar.png?v=1');
@@ -216,7 +214,7 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     authStub.setAuthenticated(true);
     fixture.detectChanges();
-    const compiled = fixture.nativeElement as HTMLElement;
+    const compiled = fixtureElement(fixture);
     expect(compiled.querySelector('app-notifications-menu')).toBeTruthy();
     expect(
       compiled.querySelector('app-notifications-menu button.btn-circle')
@@ -229,7 +227,7 @@ describe('App', () => {
     notificationsStub.unreadCount.set(3);
     notificationsStub.hasUnread.set(true);
     fixture.detectChanges();
-    const compiled = fixture.nativeElement as HTMLElement;
+    const compiled = fixtureElement(fixture);
     expect(compiled.querySelector('.badge-primary')?.textContent?.trim()).toBe(
       '3'
     );
@@ -239,7 +237,7 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     authStub.setAuthenticated(true);
     fixture.detectChanges();
-    const compiled = fixture.nativeElement as HTMLElement;
+    const compiled = fixtureElement(fixture);
     expect(
       compiled.querySelector('app-notifications-menu .text-center')
     ).toBeTruthy();
@@ -250,12 +248,14 @@ describe('App', () => {
     authStub.setAuthenticated(true);
     fixture.detectChanges();
 
-    const navbar = fixture.debugElement.query(By.directive(NavbarComponent))
-      .componentInstance as NavbarComponent;
+    const navbar: NavbarComponent = fixture.debugElement.query(
+      By.directive(NavbarComponent)
+    ).componentInstance;
+
     navbar.openAboutModal();
     fixture.detectChanges();
 
-    const compiled = fixture.nativeElement as HTMLElement;
+    const compiled = fixtureElement(fixture);
     const dialog = compiled.querySelector('[role="dialog"]');
     expect(dialog).toBeTruthy();
     expect(dialog?.textContent).toContain(navbar.buildCommitShort);
@@ -281,10 +281,12 @@ describe('App', () => {
     notificationsStub.hasUnread.set(true);
     fixture.detectChanges();
 
-    const compiled = fixture.nativeElement as HTMLElement;
-    const readAllButton = compiled.querySelector(
+    const compiled = fixtureElement(fixture);
+
+    const readAllButton = compiled.querySelector<HTMLButtonElement>(
       'app-notifications-menu button.btn-xs'
-    ) as HTMLButtonElement | null;
+    );
+
     readAllButton?.click();
 
     expect(notificationsStub.markAllCalls).toBe(1);
@@ -304,13 +306,22 @@ describe('App', () => {
     ]);
     fixture.detectChanges();
 
-    const button = (
-      fixture.nativeElement as HTMLElement
-    ).querySelector<HTMLButtonElement>(
+    const button = fixtureElement(fixture).querySelector<HTMLButtonElement>(
       'app-notifications-menu li button[aria-label]'
     );
+
     button?.click();
 
     expect(notificationsStub.markReadCalls).toEqual(['notification-1']);
   });
 });
+
+interface TestSession {
+  id: string;
+  user: { email: string; user_metadata: Record<string, Json> };
+}
+
+interface TestAuthState {
+  session: TestSession | null;
+  loading: boolean;
+}

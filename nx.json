@@ -1,8 +1,8 @@
 {
   "installation": {
-    "version": "23.1.1",
+    "version": "23.2.1",
     "plugins": {
-      "@nx/angular": "23.1.1"
+      "@nx/angular": "23.2.1"
     }
   },
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
@@ -15,9 +15,16 @@
     },
     "@nx/eslint:lint": {
       "cache": true,
+      "inputs": ["default", "{workspaceRoot}/eslint.config.mjs"]
+    },
+    "oxlint": {
       "inputs": [
         "default",
-        "{workspaceRoot}/eslint.config.mjs"
+        "{workspaceRoot}/.oxlintrc.json",
+        "{workspaceRoot}/.gitignore",
+        "{workspaceRoot}/.eslintignore",
+        "{workspaceRoot}/tools/oxlint/anti-slop/**/*",
+        "{workspaceRoot}/package-lock.json"
       ]
     },
     "@nx/js:tsc": {
@@ -49,6 +56,12 @@
         "testTargetName": "vitest:test",
         "ciTargetName": "test-ci",
         "testMode": "watch"
+      }
+    },
+    {
+      "plugin": "@nx/oxlint",
+      "options": {
+        "targetName": "oxlint"
       }
     }
   ],

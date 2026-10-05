@@ -1,7 +1,9 @@
+import { z } from 'zod';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Database, Json } from '@spendist/data-access/supabase-types';
 
 export type Direction = Database['public']['Enums']['transaction_direction'];
+
 export type DeleteEntity =
   | 'transaction'
   | 'wallet'
@@ -47,8 +49,18 @@ export interface RecurringInput {
 }
 
 type PublicTables = Database['public']['Tables'];
+
 type TableName = keyof PublicTables;
+
+type ManagedTable =
+  | 'wallets'
+  | 'categories_group'
+  | 'categories'
+  | 'tags'
+  | 'places';
+
 type TableInsert<T extends TableName> = PublicTables[T]['Insert'];
+
 type TableUpdate<T extends TableName> = PublicTables[T]['Update'];
 
 function assertAmount(value: string): number {
@@ -57,25 +69,26 @@ function assertAmount(value: string): number {
       'Amount must be a non-negative decimal string with at most two decimal places.'
     );
   }
+
   const amount = Number(value);
+
   if (!Number.isSafeInteger(Math.round(amount * 100))) {
     throw new Error('Amount is outside the supported range.');
   }
+
   return amount;
 }
 
 function pageOffset(cursor?: string): number {
   if (!cursor) return 0;
+
   try {
-    const value = JSON.parse(
-      atob(cursor.replace(/-/g, '+').replace(/_/g, '/'))
-    ) as { offset?: unknown };
-    if (
-      typeof value.offset !== 'number' ||
-      value.offset < 0 ||
-      !Number.isInteger(value.offset)
-    )
-      throw new Error();
+    const value = z
+      .object({ offset: z.number().int().nonnegative() })
+      .parse(JSON.parse(atob(cursor.replace(/-/g, '+').replace(/_/g, '/'))));
+
+    if (value.offset < 0 || !Number.isInteger(value.offset)) throw new Error();
+
     return value.offset;
   } catch {
     throw new Error('Invalid cursor.');
@@ -122,17 +135,21 @@ export class SpendistDataAccess {
 
   async authenticate(): Promise<string> {
     if (this.userId) return this.userId;
+
     const { data, error } = await this.client.auth.getUser(
       this.connection.accessToken
     );
+
     if (error || !data.user)
       throw new Error('The access token is invalid or expired.');
     this.userId = data.user.id;
+
     return this.userId;
   }
 
   async profile() {
     const ownerId = await this.authenticate();
+
     const { data, error } = await this.client
       .from('profiles')
       .select(
@@ -140,7 +157,9 @@ export class SpendistDataAccess {
       )
       .eq('id', ownerId)
       .single();
+
     if (error) databaseError(error);
+
     return data;
   }
 
@@ -149,22 +168,30 @@ export class SpendistDataAccess {
       .from('currencies')
       .select('id, symbol')
       .order('symbol');
+
     if (error) databaseError(error);
+
     return data;
   }
 
-  async list<T extends TableName>(table: T, input: PageInput = {}) {
+  async list(
+    table: ManagedTable | 'recurring_transactions' | 'notifications',
+    input: PageInput = {}
+  ) {
     const ownerId = await this.authenticate();
     const offset = pageOffset(input.cursor);
     const limit = Math.min(Math.max(input.limit ?? 50, 1), 200);
-    const { data, error } = await (this.client as unknown as SupabaseClient)
+
+    const { data, error } = await this.client
       .from(table)
       .select('*')
       .eq('owner_id', ownerId)
       .order('updated_at', { ascending: false })
       .range(offset, offset + limit);
+
     if (error) databaseError(error);
     const items = data.slice(0, limit);
+
     return {
       items,
       nextCursor: data.length > limit ? nextCursor(offset + limit) : null,
@@ -173,13 +200,16 @@ export class SpendistDataAccess {
 
   async getTransaction(id: string) {
     const ownerId = await this.authenticate();
+
     const { data, error } = await this.client
       .from('transactions')
       .select('*, transaction_tags(tag_id)')
       .eq('owner_id', ownerId)
       .eq('id', id)
       .single();
+
     if (error) databaseError(error);
+
     return data;
   }
 
@@ -194,41 +224,55 @@ export class SpendistDataAccess {
     const ownerId = await this.authenticate();
     const offset = pageOffset(input.cursor);
     const limit = Math.min(Math.max(input.limit ?? 50, 1), 200);
+
     let query = this.client
       .from('transactions')
       .select('*, transaction_tags(tag_id)')
       .eq('owner_id', ownerId)
       .order('occurred_at', { ascending: false })
       .range(offset, offset + limit);
+
     if (input.from) query = query.gte('occurred_at', input.from);
+
     if (input.to) query = query.lte('occurred_at', input.to);
+
     if (input.walletId) query = query.eq('wallet_id', input.walletId);
+
     if (input.direction) query = query.eq('direction', input.direction);
     const { data, error } = await query;
+
     if (error) databaseError(error);
     const items = data.slice(0, limit);
+
     return {
       items,
       nextCursor: data.length > limit ? nextCursor(offset + limit) : null,
     };
   }
 
+  private managedTable(table: ManagedTable) {
+    return this.client.from(table);
+  }
+
   async create<
     T extends 'wallets' | 'categories_group' | 'categories' | 'tags' | 'places'
   >(table: T, values: Omit<TableInsert<T>, 'owner_id'>) {
     const ownerId = await this.authenticate();
+    // SAFETY: values is the generated insert type for this same table T with only owner_id omitted; authenticate supplies that missing owner_id.
     const payload = { ...values, owner_id: ownerId } as TableInsert<T>;
+
     return this.mutate(
       `create_${String(table)}`,
       String(table),
       undefined,
       async () => {
-        const { data, error } = await (this.client as unknown as SupabaseClient)
-          .from(table)
+        const { data, error } = await this.managedTable(table)
           .insert(payload)
           .select()
           .single();
+
         if (error) databaseError(error);
+
         return data;
       }
     );
@@ -238,19 +282,21 @@ export class SpendistDataAccess {
     T extends 'wallets' | 'categories_group' | 'categories' | 'tags' | 'places'
   >(table: T, id: string, values: Omit<TableUpdate<T>, 'id' | 'owner_id'>) {
     const ownerId = await this.authenticate();
+
     return this.mutate(
       `update_${String(table)}`,
       String(table),
       id,
       async () => {
-        const { data, error } = await (this.client as unknown as SupabaseClient)
-          .from(table)
-          .update(values as TableUpdate<T>)
+        const { data, error } = await this.managedTable(table)
+          .update(values)
           .eq('owner_id', ownerId)
           .eq('id', id)
           .select()
           .single();
+
         if (error) databaseError(error);
+
         return data;
       }
     );
@@ -258,6 +304,7 @@ export class SpendistDataAccess {
 
   async setDefaultWallet(id: string) {
     const ownerId = await this.authenticate();
+
     return this.mutate('set_default_wallet', 'wallet', id, async () => {
       const { error: targetError } = await this.client
         .from('wallets')
@@ -265,12 +312,16 @@ export class SpendistDataAccess {
         .eq('owner_id', ownerId)
         .eq('id', id)
         .single();
+
       if (targetError) databaseError(targetError);
+
       const { error: clearError } = await this.client
         .from('wallets')
         .update({ is_default: false })
         .eq('owner_id', ownerId);
+
       if (clearError) databaseError(clearError);
+
       const { data, error } = await this.client
         .from('wallets')
         .update({ is_default: true })
@@ -278,23 +329,29 @@ export class SpendistDataAccess {
         .eq('id', id)
         .select()
         .single();
+
       if (error) databaseError(error);
+
       return data;
     });
   }
 
   private async walletCurrency(walletId: string): Promise<string> {
     const ownerId = await this.authenticate();
+
     const { data, error } = await this.client
       .from('wallets')
       .select('currencies(symbol)')
       .eq('owner_id', ownerId)
       .eq('id', walletId)
       .single();
+
     if (error) databaseError(error);
-    const relation = data.currencies as unknown as { symbol: string } | null;
+    const relation = data.currencies;
+
     if (!relation?.symbol)
       throw new Error('Wallet currency could not be resolved.');
+
     return relation.symbol;
   }
 
@@ -302,12 +359,14 @@ export class SpendistDataAccess {
     const ownerId = await this.authenticate();
     const amount = assertAmount(input.amount);
     const currency = await this.walletCurrency(input.walletId);
+
     return this.mutate(
       'create_transaction',
       'transaction',
       undefined,
       async () => {
         const { tagIds = [], ...rest } = input;
+
         const payload: PublicTables['transactions']['Insert'] = {
           amount,
           amount_in_default: amount,
@@ -320,23 +379,29 @@ export class SpendistDataAccess {
           place_id: rest.placeId ?? null,
           wallet_id: rest.walletId,
         };
+
         const { data, error } = await this.client
           .from('transactions')
           .insert(payload)
           .select()
           .single();
+
         if (error) databaseError(error);
+
         if (tagIds.length) {
           const rows = [...new Set(tagIds)].map((tagId) => ({
             owner_id: ownerId,
             transaction_id: data.id,
             tag_id: tagId,
           }));
+
           const { error: tagError } = await this.client
             .from('transaction_tags')
             .insert(rows);
+
           if (tagError) databaseError(tagError);
         }
+
         return data;
       }
     );
@@ -346,31 +411,42 @@ export class SpendistDataAccess {
     if (inputs.length < 1 || inputs.length > 100)
       throw new Error('Batch size must be between 1 and 100.');
     const items = [];
+
     for (const input of inputs) items.push(await this.createTransaction(input));
+
     return { items };
   }
 
   async updateTransaction(id: string, input: Partial<TransactionInput>) {
     const ownerId = await this.authenticate();
+
     return this.mutate('update_transaction', 'transaction', id, async () => {
       const { tagIds, ...values } = input;
       const payload: PublicTables['transactions']['Update'] = {};
+
       if (values.amount !== undefined) {
         payload.amount = assertAmount(values.amount);
         payload.amount_in_default = payload.amount;
       }
+
       if (values.categoryId !== undefined)
         payload.category_id = values.categoryId;
+
       if (values.walletId !== undefined) {
         payload.wallet_id = values.walletId;
         payload.currency = await this.walletCurrency(values.walletId);
       }
+
       if (values.occurredAt !== undefined)
         payload.occurred_at = values.occurredAt;
+
       if (values.direction !== undefined) payload.direction = values.direction;
+
       if (values.description !== undefined)
         payload.description = values.description;
+
       if (values.placeId !== undefined) payload.place_id = values.placeId;
+
       const { data, error } = await this.client
         .from('transactions')
         .update(payload)
@@ -378,32 +454,40 @@ export class SpendistDataAccess {
         .eq('id', id)
         .select()
         .single();
+
       if (error) databaseError(error);
+
       if (tagIds) {
         const { error: clearError } = await this.client
           .from('transaction_tags')
           .delete()
           .eq('owner_id', ownerId)
           .eq('transaction_id', id);
+
         if (clearError) databaseError(clearError);
+
         if (tagIds.length) {
           const rows = [...new Set(tagIds)].map((tagId) => ({
             owner_id: ownerId,
             transaction_id: id,
             tag_id: tagId,
           }));
+
           const { error: tagError } = await this.client
             .from('transaction_tags')
             .insert(rows);
+
           if (tagError) databaseError(tagError);
         }
       }
+
       return data;
     });
   }
 
   async getRecurring(id: string) {
     const ownerId = await this.authenticate();
+
     const { data, error } = await this.client
       .from('recurring_transactions')
       .select(
@@ -412,13 +496,16 @@ export class SpendistDataAccess {
       .eq('owner_id', ownerId)
       .eq('id', id)
       .single();
+
     if (error) databaseError(error);
+
     return data;
   }
 
   async createRecurring(input: RecurringInput) {
     const ownerId = await this.authenticate();
     const currency = await this.walletCurrency(input.walletId);
+
     return this.mutate(
       'create_recurring_payment',
       'recurring_payment',
@@ -440,18 +527,23 @@ export class SpendistDataAccess {
           })
           .select()
           .single();
+
         if (error) databaseError(error);
+
         if (input.tagIds?.length) {
           const rows = [...new Set(input.tagIds)].map((tagId) => ({
             owner_id: ownerId,
             recurring_transaction_id: data.id,
             tag_id: tagId,
           }));
+
           const { error: tagError } = await this.client
             .from('recurring_transaction_tags')
             .insert(rows);
+
           if (tagError) databaseError(tagError);
         }
+
         return data;
       }
     );
@@ -459,6 +551,7 @@ export class SpendistDataAccess {
 
   async updateRecurring(id: string, input: Partial<RecurringInput>) {
     const ownerId = await this.authenticate();
+
     return this.mutate(
       'update_recurring_payment',
       'recurring_payment',
@@ -466,21 +559,30 @@ export class SpendistDataAccess {
       async () => {
         const { tagIds, ...values } = input;
         const payload: PublicTables['recurring_transactions']['Update'] = {};
+
         if (values.amount !== undefined)
           payload.amount = assertAmount(values.amount);
+
         if (values.categoryId !== undefined)
           payload.category_id = values.categoryId;
+
         if (values.walletId !== undefined) {
           payload.wallet_id = values.walletId;
           payload.currency = await this.walletCurrency(values.walletId);
         }
+
         if (values.name !== undefined) payload.name = values.name;
+
         if (values.startDate !== undefined)
           payload.start_date = values.startDate;
+
         if (values.endDate !== undefined) payload.end_date = values.endDate;
+
         if (values.schedule !== undefined) payload.schedule = values.schedule;
+
         if (values.direction !== undefined)
           payload.direction = values.direction;
+
         const { data, error } = await this.client
           .from('recurring_transactions')
           .update(payload)
@@ -488,26 +590,33 @@ export class SpendistDataAccess {
           .eq('id', id)
           .select()
           .single();
+
         if (error) databaseError(error);
+
         if (tagIds) {
           const { error: clearError } = await this.client
             .from('recurring_transaction_tags')
             .delete()
             .eq('owner_id', ownerId)
             .eq('recurring_transaction_id', id);
+
           if (clearError) databaseError(clearError);
+
           if (tagIds.length) {
             const rows = [...new Set(tagIds)].map((tagId) => ({
               owner_id: ownerId,
               recurring_transaction_id: id,
               tag_id: tagId,
             }));
+
             const { error: tagError } = await this.client
               .from('recurring_transaction_tags')
               .insert(rows);
+
             if (tagError) databaseError(tagError);
           }
         }
+
         return data;
       }
     );
@@ -530,6 +639,7 @@ export class SpendistDataAccess {
     values: PublicTables['recurring_transactions']['Update']
   ) {
     const ownerId = await this.authenticate();
+
     return this.mutate(tool, 'recurring_payment', id, async () => {
       const { data, error } = await this.client
         .from('recurring_transactions')
@@ -538,7 +648,9 @@ export class SpendistDataAccess {
         .eq('id', id)
         .select()
         .single();
+
       if (error) databaseError(error);
+
       return data;
     });
   }
@@ -556,7 +668,9 @@ export class SpendistDataAccess {
             p_occurrence_id: occurrenceId,
           }
         );
+
         if (error) databaseError(error);
+
         return { transactionId: data };
       }
     );
@@ -564,49 +678,62 @@ export class SpendistDataAccess {
 
   async summary(
     kind: 'cashflow' | 'category' | 'recurring' | 'place',
-    input: Record<string, unknown>
+    input: SummaryInput
   ) {
     await this.authenticate();
+
     if (kind === 'cashflow') {
       const { data, error } = await this.client.rpc(
         'monthly_cashflow_summary',
         {
           p_months: Number(input['months'] ?? 12),
-          p_wallet_id: input['walletId'] as string | undefined,
+          p_wallet_id: input.walletId,
         }
       );
+
       if (error) databaseError(error);
+
       return data;
     }
+
     if (kind === 'category') {
       const { data, error } = await this.client.rpc(
         'category_expense_summary',
         {
-          p_from: input['from'] as string | undefined,
-          p_to: input['to'] as string | undefined,
+          p_from: input.from,
+          p_to: input.to,
         }
       );
+
       if (error) databaseError(error);
+
       return data;
     }
+
     if (kind === 'recurring') {
       const { data, error } = await this.client.rpc(
         'monthly_recurring_transaction_summary',
-        { p_wallet_id: input['walletId'] as string | undefined }
+        { p_wallet_id: input.walletId }
       );
+
       if (error) databaseError(error);
+
       return data;
     }
+
     const { data, error } = await this.client.rpc('place_expense_summary', {
       p_wallet_id: String(input['walletId']),
       p_year: Number(input['year']),
     });
+
     if (error) databaseError(error);
+
     return data;
   }
 
   async allowance() {
     const ownerId = await this.authenticate();
+
     const [connections, invitations] = await Promise.all([
       this.client.rpc('get_allowance_connections'),
       this.client
@@ -617,13 +744,17 @@ export class SpendistDataAccess {
         .or(`inviter_id.eq.${ownerId},invitee_id.eq.${ownerId}`)
         .order('created_at', { ascending: false }),
     ]);
+
     if (connections.error) databaseError(connections.error);
+
     if (invitations.error) databaseError(invitations.error);
+
     return { connections: connections.data, invitations: invitations.data };
   }
 
   async markNotificationRead(id: string) {
     const ownerId = await this.authenticate();
+
     return this.mutate(
       'mark_notification_read',
       'notification',
@@ -636,7 +767,9 @@ export class SpendistDataAccess {
           .eq('id', id)
           .select()
           .single();
+
         if (error) databaseError(error);
+
         return data;
       }
     );
@@ -644,6 +777,7 @@ export class SpendistDataAccess {
 
   async exportData() {
     const ownerId = await this.authenticate();
+
     const tables = [
       'wallets',
       'categories_group',
@@ -656,16 +790,21 @@ export class SpendistDataAccess {
       'recurring_transaction_tags',
       'recurring_transaction_occurrences',
     ] as const;
-    const result: Record<string, unknown> = {};
+
+    const result: Partial<Record<TableName, PublicTables[TableName]['Row'][]>> =
+      {};
+
     for (const table of tables) {
       const { data, error } = await this.client
         .from(table)
         .select('*')
         .eq('owner_id', ownerId)
         .limit(1000);
+
       if (error) databaseError(error);
       result[table] = data;
     }
+
     return {
       exportedAt: new Date().toISOString(),
       limitPerTable: 1000,
@@ -675,6 +814,7 @@ export class SpendistDataAccess {
 
   async prepareDelete(entityType: DeleteEntity, entityId: string) {
     const ownerId = await this.authenticate();
+
     const table = (
       {
         transaction: 'transactions',
@@ -686,16 +826,20 @@ export class SpendistDataAccess {
         recurring_payment: 'recurring_transactions',
       } as const
     )[entityType];
+
     const { data: target, error: targetError } = await this.client
       .from(table)
       .select('id, updated_at')
       .eq('owner_id', ownerId)
       .eq('id', entityId)
       .single();
+
     if (targetError) databaseError(targetError);
     const effects = await this.deleteEffects(entityType, entityId);
+
     return this.mutate('prepare_delete', entityType, entityId, async () => {
-      const client = this.client as unknown as SupabaseClient;
+      const client = this.client;
+
       const { data, error } = await client
         .from('mcp_delete_confirmations')
         .insert({
@@ -707,7 +851,9 @@ export class SpendistDataAccess {
         })
         .select('token, expires_at, effects')
         .single();
+
       if (error) databaseError(error);
+
       return data;
     });
   }
@@ -718,6 +864,7 @@ export class SpendistDataAccess {
   ): Promise<Json> {
     const ownerId = await this.authenticate();
     const effects: Record<string, number> = {};
+
     if (
       entityType === 'wallet' ||
       entityType === 'category' ||
@@ -729,26 +876,32 @@ export class SpendistDataAccess {
           : entityType === 'category'
           ? 'category_id'
           : 'place_id';
+
       const { count } = await this.client
         .from('transactions')
         .select('*', { count: 'exact', head: true })
         .eq('owner_id', ownerId)
         .eq(column, entityId);
+
       effects['transactions'] = count ?? 0;
     }
+
     if (entityType === 'tag') {
       const { count } = await this.client
         .from('transaction_tags')
         .select('*', { count: 'exact', head: true })
         .eq('owner_id', ownerId)
         .eq('tag_id', entityId);
+
       effects['transactionTags'] = count ?? 0;
     }
+
     return effects;
   }
 
   async confirmDelete(token: string) {
-    const client = this.client as unknown as SupabaseClient;
+    const client = this.client;
+
     return this.mutate(
       'confirm_delete',
       'delete_confirmation',
@@ -757,7 +910,9 @@ export class SpendistDataAccess {
         const { data, error } = await client.rpc('confirm_mcp_delete', {
           p_token: token,
         });
+
         if (error) databaseError(error);
+
         return data;
       }
     );
@@ -767,15 +922,18 @@ export class SpendistDataAccess {
     const ownerId = await this.authenticate();
     const offset = pageOffset(input.cursor);
     const limit = Math.min(Math.max(input.limit ?? 50, 1), 200);
-    const client = this.client as unknown as SupabaseClient;
+    const client = this.client;
+
     const { data, error } = await client
       .from('mcp_audit_events')
       .select('*')
       .eq('owner_id', ownerId)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit);
+
     if (error) databaseError(error);
     const items = data.slice(0, limit);
+
     return {
       items,
       nextCursor: data.length > limit ? nextCursor(offset + limit) : null,
@@ -790,7 +948,8 @@ export class SpendistDataAccess {
   ): Promise<T> {
     const ownerId = await this.authenticate();
     const requestId = crypto.randomUUID();
-    const client = this.client as unknown as SupabaseClient;
+    const client = this.client;
+
     const { data: audit, error: auditError } = await client
       .from('mcp_audit_events')
       .insert({
@@ -803,13 +962,16 @@ export class SpendistDataAccess {
       })
       .select('id')
       .single();
+
     if (auditError) databaseError(auditError);
+
     try {
       const result = await action();
       await client
         .from('mcp_audit_events')
         .update({ outcome: 'succeeded', finished_at: new Date().toISOString() })
         .eq('id', audit.id);
+
       return result;
     } catch (error) {
       await client
@@ -824,4 +986,12 @@ export class SpendistDataAccess {
       throw error;
     }
   }
+}
+
+export interface SummaryInput {
+  readonly months?: number;
+  readonly walletId?: string;
+  readonly from?: string;
+  readonly to?: string;
+  readonly year?: number;
 }

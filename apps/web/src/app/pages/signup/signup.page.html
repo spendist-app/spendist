@@ -182,6 +182,55 @@
         </div>
       </fieldset>
 
+      <div class="space-y-3 text-sm">
+        <label class="flex items-start gap-3" for="adultConfirmed">
+          <input
+            id="adultConfirmed"
+            class="checkbox checkbox-primary mt-0.5"
+            type="checkbox"
+            formControlName="adultConfirmed"
+            required
+          />
+          <span>{{ 'legal.adultConfirmation' | transloco }}</span>
+        </label>
+        <label class="flex items-start gap-3" for="termsAccepted">
+          <input
+            id="termsAccepted"
+            class="checkbox checkbox-primary mt-0.5"
+            type="checkbox"
+            formControlName="termsAccepted"
+            required
+          />
+          <span>
+            {{ 'legal.acceptPrefix' | transloco }}
+            <a
+              class="link"
+              routerLink="/regulamin"
+              [queryParams]="{ lang: legalLanguage() }"
+              target="_blank"
+              rel="noopener"
+              >{{ 'legal.terms' | transloco }}</a
+            >
+            {{ 'legal.privacyAcknowledgement' | transloco }}
+            <a
+              class="link"
+              routerLink="/polityka-prywatnosci"
+              [queryParams]="{ lang: legalLanguage() }"
+              target="_blank"
+              rel="noopener"
+              >{{ 'legal.privacy' | transloco }}</a
+            >.
+          </span>
+        </label>
+        @if ((controls.adultConfirmed.touched &&
+        controls.adultConfirmed.invalid) || (controls.termsAccepted.touched &&
+        controls.termsAccepted.invalid)) {
+        <p class="text-error" role="alert">
+          {{ 'legal.confirmationRequired' | transloco }}
+        </p>
+        }
+      </div>
+
       <button
         class="btn btn-primary w-full"
         type="submit"
@@ -194,16 +243,6 @@
       </button>
     </form>
 
-    <p class="text-xs text-base-content/60 text-center">
-      {{ 'auth.signup.tosPrefix' | transloco }}
-      <a class="link" routerLink="/regulamin"
-        >{{ 'legal.terms' | transloco }}</a
-      >
-      {{ 'auth.signup.tosJoin' | transloco }}
-      <a class="link" routerLink="/polityka-prywatnosci"
-        >{{ 'legal.privacy' | transloco }}</a
-      >.
-    </p>
     }
   </div>
 </section>

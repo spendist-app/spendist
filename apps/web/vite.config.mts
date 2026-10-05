@@ -19,7 +19,7 @@ const resolveBuildCommit = (): string => {
 
   try {
     return execSync('git rev-parse HEAD', {
-      cwd: resolve(__dirname, '../..'),
+      cwd: resolve(import.meta.dirname, '../..'),
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],
     }).trim();
@@ -32,7 +32,7 @@ export default defineConfig(() => {
   const buildCommit = resolveBuildCommit();
 
   return {
-    root: __dirname,
+    root: import.meta.dirname,
     cacheDir: '../../node_modules/.vite/apps/web',
     plugins: [angular(), nxViteTsPaths(), nxCopyAssetsPlugin(['*.md'])],
     // Uncomment this if you are using workers.

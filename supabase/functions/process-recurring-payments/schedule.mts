@@ -6,6 +6,7 @@ export type RecurringTransactionSchedule = {
 };
 
 type CronField = ReadonlySet<number>;
+
 export type ParsedCron = readonly [
   CronField,
   CronField,
@@ -22,9 +23,11 @@ export function dueOccurrences(
   maxRuns: number
 ): Date[] {
   const startDate = parseDateStart(recurring.start_date);
+
   const lastRun = recurring.last_run_at
     ? new Date(recurring.last_run_at)
     : null;
+
   const start = floorToMinute(
     new Date(
       Math.max(
@@ -34,6 +37,7 @@ export function dueOccurrences(
       )
     )
   );
+
   const endDate = recurring.end_date ? parseDateEnd(recurring.end_date) : now;
   const end = new Date(Math.min(now.getTime(), endDate.getTime()));
   const runs: Date[] = [];
@@ -55,7 +59,7 @@ export function shouldFinalizeRecurring(
   recurring: RecurringTransactionSchedule,
   now: Date
 ): boolean {
-  if (!isRecurringEnded(recurring, now)) {
+  if (!recurring.end_date || !isRecurringEnded(recurring, now)) {
     return false;
   }
 
@@ -65,12 +69,13 @@ export function shouldFinalizeRecurring(
 
   return (
     new Date(recurring.last_run_at).getTime() <=
-    parseDateEnd(recurring.end_date as string).getTime()
+    parseDateEnd(recurring.end_date).getTime()
   );
 }
 
 export function parseCron(expression: string): ParsedCron | null {
   const fields = expression.trim().split(/\s+/);
+
   if (fields.length !== 5) {
     return null;
   }
@@ -107,6 +112,7 @@ function parseCronField(field: string, min: number, max: number): CronField {
   for (const part of field.split(',')) {
     const [rangePart, stepPart] = part.split('/');
     const step = stepPart ? Number(stepPart) : 1;
+
     if (!Number.isInteger(step) || step < 1) {
       continue;
     }
@@ -119,6 +125,7 @@ function parseCronField(field: string, min: number, max: number): CronField {
         : [Number(rangePart), Number(rangePart)];
 
     const [start, end] = range;
+
     if (
       !Number.isInteger(start) ||
       !Number.isInteger(end) ||
@@ -153,6 +160,7 @@ function matchesCron(
 function floorToMinute(value: Date): Date {
   const next = new Date(value);
   next.setUTCSeconds(0, 0);
+
   return next;
 }
 

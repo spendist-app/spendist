@@ -4,11 +4,14 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 
 const workspaceRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+
 const publicRoot = resolve(workspaceRoot, 'apps/web/public');
+
 const mark = await readFile(
   resolve(publicRoot, 'brand/spendist-mark.svg'),
   'utf8'
 );
+
 const markDataUrl = `data:image/svg+xml;base64,${Buffer.from(mark).toString(
   'base64'
 )}`;
@@ -100,6 +103,7 @@ const outputs = [
 ];
 
 const browser = await chromium.launch({ headless: true });
+
 const page = await browser.newPage();
 
 for (const output of outputs) {
@@ -110,9 +114,11 @@ for (const output of outputs) {
   const background = output.transparent
     ? 'transparent'
     : 'linear-gradient(145deg, #FFFDFB 0%, #E6FFFC 100%)';
+
   const markSize = Math.round(
     Math.min(output.width, output.height) * output.markScale
   );
+
   const wordmark = output.wordmark ? '<span>Spendist</span>' : '';
 
   await page.setContent(`

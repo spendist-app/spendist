@@ -1,14 +1,11 @@
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
-import { SupabaseClient } from '@supabase/supabase-js';
+
 import type { Tables } from '@spendist/data-access/supabase-types';
 import { AuthService } from './auth.service';
 import { LanguageService } from './language.service';
 import { logError } from './logger';
 import { SUPABASE_CLIENT } from './supabase';
-import {
-  SUPPORTED_LANGUAGES,
-  type LanguageCode,
-} from '../i18n/languages';
+import { SUPPORTED_LANGUAGES } from '../i18n/languages';
 
 type ProfileRow = Tables<'profiles'>;
 
@@ -25,7 +22,7 @@ export interface ProfileEntity {
   providedIn: 'root',
 })
 export class ProfileService {
-  private readonly supabase = inject<SupabaseClient>(SUPABASE_CLIENT);
+  private readonly supabase = inject(SUPABASE_CLIENT);
   private readonly auth = inject(AuthService);
   private readonly languageService = inject(LanguageService);
   private readonly profileState = signal<ProfileEntity | null>(null);
@@ -42,14 +39,17 @@ export class ProfileService {
       }
 
       const userId = this.auth.session()?.user.id ?? null;
+
       if (userId === this.activeUserId) {
         return;
       }
 
       this.activeUserId = userId;
+
       if (!userId) {
         this.requestToken += 1;
         this.profileState.set(null);
+
         return;
       }
 
@@ -81,11 +81,12 @@ export class ProfileService {
         throw error;
       }
 
-      this.setProfile(data ? mapProfileRow(data as ProfileRow) : null);
+      this.setProfile(data ? mapProfileRow(data) : null);
     } catch (error) {
       if (token === this.requestToken) {
         this.profileState.set(null);
       }
+
       logError('ProfileService', 'Failed to load profile', error);
     }
   }
@@ -96,11 +97,12 @@ export class ProfileService {
     }
 
     const language = profile.language;
-    if (
-      SUPPORTED_LANGUAGES.some((option) => option.code === language)
-    ) {
-      this.languageService.setLanguage(language as LanguageCode);
-    }
+
+    const supported = SUPPORTED_LANGUAGES.find(
+      (option) => option.code === language
+    );
+
+    if (supported) this.languageService.setLanguage(supported.code);
   }
 }
 
@@ -109,8 +111,20 @@ export function mapProfileRow(row: ProfileRow): ProfileEntity {
     id: row.id,
     fullName: row.full_name,
     username: row.username,
-    avatarUrl: row.avatar_url ?? null,
+    avatarUrl: localDefaultAvatar(row.avatar_url),
     language: row.language,
     timezone: row.timezone,
   };
+}
+
+function localDefaultAvatar(url: string | null): string | null {
+  if (!url) return null;
+
+  try {
+    if (new URL(url).hostname === 'api.dicebear.com') return null;
+  } catch {
+    return null;
+  }
+
+  return url;
 }

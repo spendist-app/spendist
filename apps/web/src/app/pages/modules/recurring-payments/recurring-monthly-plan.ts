@@ -23,17 +23,12 @@ export function calculateRecurringMonthlyPlan(
   recurringTransactions: readonly RecurringPlanItem[],
   generatedExpense: number,
   defaultCurrency: string,
-  now: Date,
+  now: Date
 ): RecurringMonthlyPlan {
-  const monthEnd = new Date(Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth() + 1,
-    0,
-    23,
-    59,
-    59,
-    999,
-  ));
+  const monthEnd = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59, 999)
+  );
+
   let scheduledExpense = 0;
   let scheduledCount = 0;
 
@@ -46,20 +41,15 @@ export function calculateRecurringMonthlyPlan(
       continue;
     }
 
-    const occurrenceCount = countScheduledOccurrences(
-      recurring,
-      now,
-      monthEnd,
-    );
+    const occurrenceCount = countScheduledOccurrences(recurring, now, monthEnd);
+
     if (occurrenceCount === 0) {
       continue;
     }
 
     scheduledCount += occurrenceCount;
-    scheduledExpense += occurrenceCount * amountInDefaultCurrency(
-      recurring,
-      defaultCurrency,
-    );
+    scheduledExpense +=
+      occurrenceCount * amountInDefaultCurrency(recurring, defaultCurrency);
   }
 
   return {
@@ -72,7 +62,7 @@ export function calculateRecurringMonthlyPlan(
 
 function amountInDefaultCurrency(
   recurring: RecurringPlanItem,
-  defaultCurrency: string,
+  defaultCurrency: string
 ): number {
   if (recurring.currency.toUpperCase() === defaultCurrency.toUpperCase()) {
     return recurring.amount;

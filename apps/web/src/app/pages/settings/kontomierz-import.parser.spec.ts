@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { KONTOMIERZ_SHEET_NAME, parseKontomierzWorksheet } from './kontomierz-import.parser';
+import {
+  KONTOMIERZ_SHEET_NAME,
+  parseKontomierzWorksheet,
+} from './kontomierz-import.parser';
 
 const HEADERS = [
   'Data',
@@ -35,8 +38,30 @@ describe('parseKontomierzWorksheet', () => {
       name: KONTOMIERZ_SHEET_NAME,
       rows: [
         HEADERS,
-        ['31.12.2025', -51.59, 'PLN', null, 'Pasibus', 'Rozrywka', 'Restauracje', null, null, 'Portfel nr 1'],
-        ['30.12.2025', 150, 'PLN', null, 'Zwrot', 'Przychód', 'Zapłata za usługę', null, null, 'Portfel nr 1'],
+        [
+          '31.12.2025',
+          -51.59,
+          'PLN',
+          null,
+          'Pasibus',
+          'Rozrywka',
+          'Restauracje',
+          null,
+          null,
+          'Portfel nr 1',
+        ],
+        [
+          '30.12.2025',
+          150,
+          'PLN',
+          null,
+          'Zwrot',
+          'Przychód',
+          'Zapłata za usługę',
+          null,
+          null,
+          'Portfel nr 1',
+        ],
       ],
     });
 
@@ -112,13 +137,29 @@ describe('parseKontomierzWorksheet', () => {
 
     expect(result.rows[0].tagNames).toEqual(['crkd']);
     expect(result.rows[0].description).toContain('Research słów kluczowych');
-    expect(result.rows[0].description).toContain('Komentarz z Kontomierza: Do Amazon KDP');
+    expect(result.rows[0].description).toContain(
+      'Komentarz z Kontomierza: Do Amazon KDP'
+    );
   });
 
   it('uses fallback category names when category cells are empty', () => {
     const result = parseKontomierzWorksheet({
       name: KONTOMIERZ_SHEET_NAME,
-      rows: [HEADERS, ['30.12.2023', -5317, 'PLN', null, 'Aldi', null, null, null, null, 'Portfel nr 1']],
+      rows: [
+        HEADERS,
+        [
+          '30.12.2023',
+          -5317,
+          'PLN',
+          null,
+          'Aldi',
+          null,
+          null,
+          null,
+          null,
+          'Portfel nr 1',
+        ],
+      ],
     });
 
     expect(result.rows[0].groupName).toBe('Brak kategorii');
@@ -200,13 +241,30 @@ describe('parseKontomierzWorksheet', () => {
       parseKontomierzWorksheet({
         name: KONTOMIERZ_SHEET_NAME,
         rows: [['Data', 'Kwota']],
-      }).issues[0].message,
+      }).issues[0].message
     ).toContain('Missing required columns');
 
     const result = parseKontomierzWorksheet({
       name: KONTOMIERZ_SHEET_NAME,
-      rows: [HEADERS, ['2023-12-30', -10, 'PLN', null, 'Aldi', 'Zakupy', 'Spożywcze', null, null, 'Portfel nr 1']],
+      rows: [
+        HEADERS,
+        [
+          '2023-12-30',
+          -10,
+          'PLN',
+          null,
+          'Aldi',
+          'Zakupy',
+          'Spożywcze',
+          null,
+          null,
+          'Portfel nr 1',
+        ],
+      ],
     });
-    expect(result.issues).toEqual([{ rowNumber: 2, message: 'Invalid transaction date.' }]);
+
+    expect(result.issues).toEqual([
+      { rowNumber: 2, message: 'Invalid transaction date.' },
+    ]);
   });
 });

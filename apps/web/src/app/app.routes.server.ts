@@ -18,22 +18,27 @@ export const serverRoutes: ServerRoute[] = [
 
 function blogServerRoutes(locale: 'pl' | 'en'): ServerRoute[] {
   const articles = blogArticles(locale);
+
   const categories = blogCategories(locale).filter((category) =>
     articles.some((article) => article.category === category.slug)
   );
+
   const archivePages = Array.from(
     { length: Math.max(0, Math.ceil(articles.length / BLOG_PAGE_SIZE) - 1) },
     (_, index) => ({ page: String(index + 2) })
   );
+
   const categoryPages = categories.flatMap((category) => {
     const total = articles.filter(
       (article) => article.category === category.slug
     ).length;
+
     return Array.from(
       { length: Math.max(0, Math.ceil(total / BLOG_PAGE_SIZE) - 1) },
       (_, index) => ({ categorySlug: category.slug, page: String(index + 2) })
     );
   });
+
   return [
     { path: `${locale}/blog`, renderMode: RenderMode.Prerender },
     {

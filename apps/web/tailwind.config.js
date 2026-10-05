@@ -1,18 +1,22 @@
 const fs = require('fs');
 
 const daisyuiModule = require('daisyui');
+
 const daisyuiPlugin = daisyuiModule?.default ?? daisyuiModule;
 
 function readDaisyuiThemes() {
   try {
     const themesPath = require.resolve('daisyui/theme/object.js');
+
     const raw = fs
       .readFileSync(themesPath, 'utf8')
       .replace(/export default\s*/, '')
       .replace(/;?\s*$/, '');
+
     return JSON.parse(raw);
   } catch (error) {
     console.warn('Unable to load DaisyUI theme defaults:', error);
+
     return {};
   }
 }
@@ -20,6 +24,7 @@ function readDaisyuiThemes() {
 const daisyuiThemes = readDaisyuiThemes();
 
 const lightDefaults = daisyuiThemes.light ?? {};
+
 const darkDefaults = daisyuiThemes.dark ?? {};
 
 /** @type {import('tailwindcss').Config} */

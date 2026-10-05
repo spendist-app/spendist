@@ -39,13 +39,17 @@ export class RecurringPaymentListComponent {
   readonly editRequested = output<void>();
   readonly createRequested = output<void>();
   readonly pendingAmounts = signal<Partial<Record<string, string>>>({});
-  readonly filterOptions: readonly RecurringPaymentsFilter[] = ['active', 'stopped', 'all'];
+  readonly filterOptions: readonly RecurringPaymentsFilter[] = [
+    'active',
+    'stopped',
+    'all',
+  ];
 
   readonly transactions = computed(() =>
     this.store
       .filteredRecurringTransactions()
       .slice()
-      .sort((a, b) => a.name.localeCompare(b.name)),
+      .sort((a, b) => a.name.localeCompare(b.name))
   );
 
   constructor() {
@@ -56,10 +60,13 @@ export class RecurringPaymentListComponent {
     const intervalId = window.setInterval(() => {
       this.now.set(new Date());
     }, 60_000);
+
     this.destroyRef.onDestroy(() => window.clearInterval(intervalId));
   }
 
-  linkDirectionLabel(direction: RecurringTransactionEntity['direction']): string {
+  linkDirectionLabel(
+    direction: RecurringTransactionEntity['direction']
+  ): string {
     return direction === 'income'
       ? 'modules.recurringPayments.list.direction.income'
       : 'modules.recurringPayments.list.direction.expense';
@@ -81,6 +88,7 @@ export class RecurringPaymentListComponent {
 
   scheduleLabel(transaction: RecurringTransactionEntity): string {
     const fields = transaction.schedule.trim().split(/\s+/);
+
     if (fields.length !== 5) {
       return transaction.schedule;
     }
@@ -95,25 +103,45 @@ export class RecurringPaymentListComponent {
 
     if (dayOfMonth === '*' && dayOfWeek === '*') {
       const local = this.utcDailyScheduleToLocal(hourNumber, minuteNumber);
-      return this.transloco.translate('modules.recurringPayments.list.schedule.daily', {
-        time: local.time,
-      });
+
+      return this.transloco.translate(
+        'modules.recurringPayments.list.schedule.daily',
+        {
+          time: local.time,
+        }
+      );
     }
 
     if (dayOfMonth === '*' && dayOfWeek !== '*') {
-      const local = this.utcWeeklyScheduleToLocal(hourNumber, minuteNumber, dayOfWeek);
-      return this.transloco.translate('modules.recurringPayments.list.schedule.weekly', {
-        day: this.weekdayLabel(local.dayOfWeek),
-        time: local.time,
-      });
+      const local = this.utcWeeklyScheduleToLocal(
+        hourNumber,
+        minuteNumber,
+        dayOfWeek
+      );
+
+      return this.transloco.translate(
+        'modules.recurringPayments.list.schedule.weekly',
+        {
+          day: this.weekdayLabel(local.dayOfWeek),
+          time: local.time,
+        }
+      );
     }
 
     if (dayOfMonth !== '*' && dayOfWeek === '*') {
-      const local = this.utcMonthlyScheduleToLocal(hourNumber, minuteNumber, dayOfMonth);
-      return this.transloco.translate('modules.recurringPayments.list.schedule.monthly', {
-        day: local.dayOfMonth,
-        time: local.time,
-      });
+      const local = this.utcMonthlyScheduleToLocal(
+        hourNumber,
+        minuteNumber,
+        dayOfMonth
+      );
+
+      return this.transloco.translate(
+        'modules.recurringPayments.list.schedule.monthly',
+        {
+          day: local.dayOfMonth,
+          time: local.time,
+        }
+      );
     }
 
     return transaction.schedule;
@@ -126,17 +154,23 @@ export class RecurringPaymentListComponent {
 
     const now = this.now();
     const searchUntil = new Date(now.getTime() + 370 * 24 * 60 * 60 * 1000);
+
     return nextScheduledOccurrence(transaction, now, searchUntil);
   }
 
   nextRunLabel(nextRunAt: Date | null): string {
     if (!nextRunAt) {
-      return this.transloco.translate('modules.recurringPayments.list.nextRun.none');
+      return this.transloco.translate(
+        'modules.recurringPayments.list.nextRun.none'
+      );
     }
 
     const diffMs = nextRunAt.getTime() - this.now().getTime();
+
     if (diffMs <= 0) {
-      return this.transloco.translate('modules.recurringPayments.list.nextRun.dueNow');
+      return this.transloco.translate(
+        'modules.recurringPayments.list.nextRun.dueNow'
+      );
     }
 
     const totalMinutes = Math.ceil(diffMs / 60_000);
@@ -145,26 +179,36 @@ export class RecurringPaymentListComponent {
     const minutes = totalMinutes % 60;
 
     if (days > 0) {
-      return this.transloco.translate('modules.recurringPayments.list.nextRun.inDaysHours', {
-        days,
-        hours,
-      });
+      return this.transloco.translate(
+        'modules.recurringPayments.list.nextRun.inDaysHours',
+        {
+          days,
+          hours,
+        }
+      );
     }
 
     if (hours > 0) {
-      return this.transloco.translate('modules.recurringPayments.list.nextRun.inHoursMinutes', {
-        hours,
-        minutes,
-      });
+      return this.transloco.translate(
+        'modules.recurringPayments.list.nextRun.inHoursMinutes',
+        {
+          hours,
+          minutes,
+        }
+      );
     }
 
-    return this.transloco.translate('modules.recurringPayments.list.nextRun.inMinutes', {
-      minutes,
-    });
+    return this.transloco.translate(
+      'modules.recurringPayments.list.nextRun.inMinutes',
+      {
+        minutes,
+      }
+    );
   }
 
   isEditing(transaction: RecurringTransactionEntity): boolean {
     const editing = this.store.editingRecurring();
+
     return !!editing && editing.id === transaction.id;
   }
 
@@ -178,10 +222,15 @@ export class RecurringPaymentListComponent {
   }
 
   async confirmStop(transaction: RecurringTransactionEntity): Promise<void> {
-    const message = this.transloco.translate('modules.recurringPayments.list.confirmStop', {
-      name: transaction.name,
-    });
+    const message = this.transloco.translate(
+      'modules.recurringPayments.list.confirmStop',
+      {
+        name: transaction.name,
+      }
+    );
+
     const shouldStop = window.confirm(message);
+
     if (!shouldStop) {
       return;
     }
@@ -194,10 +243,15 @@ export class RecurringPaymentListComponent {
   }
 
   async confirmResume(transaction: RecurringTransactionEntity): Promise<void> {
-    const message = this.transloco.translate('modules.recurringPayments.list.confirmResume', {
-      name: transaction.name,
-    });
+    const message = this.transloco.translate(
+      'modules.recurringPayments.list.confirmResume',
+      {
+        name: transaction.name,
+      }
+    );
+
     const shouldResume = window.confirm(message);
+
     if (!shouldResume) {
       return;
     }
@@ -210,10 +264,15 @@ export class RecurringPaymentListComponent {
   }
 
   async confirmDelete(transaction: RecurringTransactionEntity): Promise<void> {
-    const message = this.transloco.translate('modules.recurringPayments.list.confirmDelete', {
-      name: transaction.name,
-    });
+    const message = this.transloco.translate(
+      'modules.recurringPayments.list.confirmDelete',
+      {
+        name: transaction.name,
+      }
+    );
+
     const shouldDelete = window.confirm(message);
+
     if (!shouldDelete) {
       return;
     }
@@ -226,15 +285,20 @@ export class RecurringPaymentListComponent {
   }
 
   updatePendingAmount(occurrenceId: string, event: Event): void {
-    const target = event.target as HTMLInputElement | null;
+    const target =
+      event.target instanceof HTMLInputElement ? event.target : null;
+
     this.pendingAmounts.update((amounts) => ({
       ...amounts,
       [occurrenceId]: target?.value ?? '',
     }));
   }
 
-  async completeOccurrence(occurrence: RecurringOccurrenceEntity): Promise<void> {
+  async completeOccurrence(
+    occurrence: RecurringOccurrenceEntity
+  ): Promise<void> {
     const amount = Number(this.pendingAmounts()[occurrence.id]);
+
     if (!Number.isFinite(amount) || amount <= 0) {
       return;
     }
@@ -244,6 +308,7 @@ export class RecurringPaymentListComponent {
       this.pendingAmounts.update((amounts) => {
         const next = { ...amounts };
         delete next[occurrence.id];
+
         return next;
       });
     } catch (error) {
@@ -258,32 +323,52 @@ export class RecurringPaymentListComponent {
 
     const end = new Date(transaction.endDate);
     end.setHours(23, 59, 59, 999);
+
     return this.now().getTime() > end.getTime();
   }
 
-  private utcDailyScheduleToLocal(hour: number, minute: number): { readonly time: string } {
+  private utcDailyScheduleToLocal(
+    hour: number,
+    minute: number
+  ): UtcDailyScheduleToLocalResult {
     const now = new Date();
-    const localDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), hour, minute, 0, 0));
+
+    const localDate = new Date(
+      Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate(),
+        hour,
+        minute,
+        0,
+        0
+      )
+    );
+
     return { time: this.formatTime(localDate) };
   }
 
   private utcWeeklyScheduleToLocal(
     hour: number,
     minute: number,
-    dayOfWeek: string,
-  ): { readonly time: string; readonly dayOfWeek: string } {
+    dayOfWeek: string
+  ): UtcWeeklyScheduleToLocalResult {
     const now = new Date();
     const targetDay = this.clampCronNumber(dayOfWeek, 0, 7, 1) % 7;
     const daysUntilTarget = (targetDay - now.getUTCDay() + 7) % 7;
-    const localDate = new Date(Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate() + daysUntilTarget,
-      hour,
-      minute,
-      0,
-      0,
-    ));
+
+    const localDate = new Date(
+      Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate() + daysUntilTarget,
+        hour,
+        minute,
+        0,
+        0
+      )
+    );
+
     return {
       time: this.formatTime(localDate),
       dayOfWeek: `${localDate.getDay()}`,
@@ -293,12 +378,24 @@ export class RecurringPaymentListComponent {
   private utcMonthlyScheduleToLocal(
     hour: number,
     minute: number,
-    dayOfMonth: string,
-  ): { readonly time: string; readonly dayOfMonth: number } {
+    dayOfMonth: string
+  ): UtcMonthlyScheduleToLocalResult {
     const now = new Date();
     const targetDay = this.clampCronNumber(dayOfMonth, 1, 31, 1);
+
     for (let offset = 0; offset < 12; offset += 1) {
-      const candidate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + offset, targetDay, hour, minute, 0, 0));
+      const candidate = new Date(
+        Date.UTC(
+          now.getUTCFullYear(),
+          now.getUTCMonth() + offset,
+          targetDay,
+          hour,
+          minute,
+          0,
+          0
+        )
+      );
+
       if (candidate.getUTCDate() === targetDay) {
         return {
           time: this.formatTime(candidate),
@@ -307,15 +404,24 @@ export class RecurringPaymentListComponent {
       }
     }
 
-    const fallback = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, hour, minute, 0, 0));
+    const fallback = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, hour, minute, 0, 0)
+    );
+
     return {
       time: this.formatTime(fallback),
       dayOfMonth: fallback.getDate(),
     };
   }
 
-  private clampCronNumber(value: string | number | undefined, min: number, max: number, fallback: number): number {
+  private clampCronNumber(
+    value: string | number | undefined,
+    min: number,
+    max: number,
+    fallback: number
+  ): number {
     const parsed = Number(value);
+
     if (!Number.isFinite(parsed)) {
       return fallback;
     }
@@ -326,11 +432,13 @@ export class RecurringPaymentListComponent {
   private formatTime(value: Date): string {
     const hour = `${value.getHours()}`.padStart(2, '0');
     const minute = `${value.getMinutes()}`.padStart(2, '0');
+
     return `${hour}:${minute}`;
   }
 
   private weekdayLabel(dayOfWeek: string): string {
     const normalized = dayOfWeek === '7' ? '0' : dayOfWeek;
+
     const key = {
       '0': 'sunday',
       '1': 'monday',
@@ -345,7 +453,22 @@ export class RecurringPaymentListComponent {
       return dayOfWeek;
     }
 
-    return this.transloco.translate(`modules.recurringPayments.list.weekdays.${key}`);
+    return this.transloco.translate(
+      `modules.recurringPayments.list.weekdays.${key}`
+    );
   }
+}
 
+interface UtcDailyScheduleToLocalResult {
+  readonly time: string;
+}
+
+interface UtcWeeklyScheduleToLocalResult {
+  readonly time: string;
+  readonly dayOfWeek: string;
+}
+
+interface UtcMonthlyScheduleToLocalResult {
+  readonly time: string;
+  readonly dayOfMonth: number;
 }

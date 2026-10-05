@@ -6,6 +6,7 @@ import type {
 } from './blog.types';
 
 export const BLOG_PAGE_SIZE = 12;
+
 export const BLOG_LOCALES: readonly BlogLocale[] = ['pl', 'en'];
 
 export function isBlogLocale(

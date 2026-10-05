@@ -1,5 +1,14 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  signal,
+} from '@angular/core';
+import {
+  NonNullableFormBuilder,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@ngneat/transloco';
 import { AuthService } from '../../core/auth.service';
@@ -43,6 +52,7 @@ export class LoginPageComponent {
 
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+
       return;
     }
 
@@ -56,6 +66,7 @@ export class LoginPageComponent {
 
       if (result.error) {
         this.errorMessage.set(result.error);
+
         return;
       }
 

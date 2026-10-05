@@ -87,6 +87,14 @@ All content in `doc/`, `llm.txt`, and `llm-full.txt` is English. Document curren
 - Add focused regression coverage for user-visible behavior. Add/update E2E coverage when auth or guards change.
 - Before hand-off, run the smallest relevant Nx checks and `git diff --check`. State any check that could not run and why.
 
+## Linting: ESLint and Oxlint
+
+- The project uses the official `@nx/oxlint` integration alongside ESLint. ESLint still checks Angular templates; passing `web:lint` alone does not complete lint verification.
+- Follow `.oxlintrc.json` and the vendored anti-slop rules in `tools/oxlint/anti-slop/`. All enabled rules are errors; the full check allows zero warnings and has no baseline.
+- Before hand-off or push of code/test changes, run **both** `npm exec -- nx run web:lint` and `npm run lint:oxlint`. The latter runs every Nx Oxlint target (including `web-e2e`, MCP, and libraries), then checks the whole repository, including tools and Supabase functions. A successful `web:oxlint` alone is insufficient.
+- Fix violations in the changed code. Do not disable rules, add ignore patterns, or weaken severity just to make the checks pass. Type assertions require a specific `SAFETY:` comment documenting the checked invariant. Keep blank lines between logical statement groups as required by `anti-slop/require-readable-spacing`, including in tests.
+- For diagnosis, run the failing project's Oxlint target with `--deny-warnings` or use `--output-style=static` on the Nx aggregate command to expose its output. Re-run the full `npm run lint:oxlint` after fixing it.
+
 ## Delivery conventions
 
 - Use Conventional Commits with the affected scope, for example `feat(web): add spending dashboard`.

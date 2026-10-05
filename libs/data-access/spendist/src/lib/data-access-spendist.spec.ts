@@ -9,6 +9,7 @@ describe('SpendistDataAccess', () => {
       accessToken: 'local-test-token',
       clientId: 'test-client',
     });
+
     expect(access.connection.clientId).toBe('test-client');
   });
 });

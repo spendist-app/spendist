@@ -2,7 +2,7 @@
 
 ## Places
 
-Places are reusable spending locations or merchants. A place can have a name, street, city, postal code, country, and note. Users can create, edit, delete, and search places, then attach them to transactions.
+Places are reusable spending locations or merchants. A place can have a name, street, city, postal code, country, and note. Users can create, edit, delete, and search places, then attach them to transactions. The single-transaction form also lets users create a place with these fields while entering a transaction. Saving it selects the new place without clearing the transaction draft; a failed save keeps both forms open for correction.
 
 ## Dashboard
 
@@ -16,4 +16,3 @@ The dashboard is a read-only overview based on recorded transactions. It shows:
 Wallet selection scopes applicable data. Empty states explain missing wallet, month, transaction, or place data.
 
 The dashboard reports existing records only; it does not forecast investments or recommend financial actions.
-

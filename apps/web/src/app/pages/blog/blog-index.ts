@@ -32,9 +32,8 @@ export class BlogIndex {
   private readonly language = inject(LanguageService);
   private readonly transloco = inject(TranslocoService);
   private readonly seo = inject(BlogSeoService);
-  protected readonly locale = this.route.snapshot.data[
-    'blogLocale'
-  ] as BlogLocale;
+  protected readonly locale: BlogLocale =
+    this.route.snapshot.data['blogLocale'] === 'pl' ? 'pl' : 'en';
   protected readonly basePath = blogPath(this.locale);
   protected readonly categorySlug =
     this.route.snapshot.paramMap.get('categorySlug');
@@ -55,6 +54,7 @@ export class BlogIndex {
   );
   protected readonly filteredArticles = computed(() => {
     const tag = this.activeTag();
+
     return blogArticles(this.locale).filter(
       (article) =>
         (!this.categorySlug || article.category === this.categorySlug) &&
@@ -99,6 +99,7 @@ export class BlogIndex {
     const categoryPrefix = this.category
       ? `${this.basePath}/category/${this.category.slug}`
       : this.basePath;
+
     return page === 1 ? categoryPrefix : `${categoryPrefix}/page/${page}`;
   }
 
@@ -108,14 +109,18 @@ export class BlogIndex {
           category: this.category.name,
         })
       : this.transloco.translate('blog.index.seoTitle');
+
     const description =
       this.category?.description ??
       String(this.transloco.translate('blog.index.description'));
+
     const path = this.pagePath(this.page);
+
     const robots =
       tag || this.invalid()
         ? 'noindex,follow'
         : 'index,follow,max-image-preview:large';
+
     this.seo.apply({
       title,
       description,

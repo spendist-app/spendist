@@ -1,9 +1,11 @@
+import type { Json } from '@spendist/data-access/supabase-types';
 import { DOCUMENT } from '@angular/common';
 import { Injectable, inject } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
 import type { BlogLocale } from './blog.types';
 
 const SITE_URL = 'https://spendist.app';
+
 const DEFAULT_IMAGE = `${SITE_URL}/brand/social/social-share-1200x630.png`;
 
 export interface BlogSeoConfig {
@@ -20,7 +22,10 @@ export interface BlogSeoConfig {
   readonly category?: string;
   readonly tags?: readonly string[];
   readonly alternates?: readonly { locale: BlogLocale; path: string }[];
-  readonly jsonLd?: readonly Record<string, unknown>[];
+  readonly jsonLd?: readonly Record<
+    string,
+    Json | readonly string[] | undefined
+  >[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -31,9 +36,11 @@ export class BlogSeoService {
 
   apply(config: BlogSeoConfig): void {
     const canonical = `${SITE_URL}${config.path}`;
+
     const image = config.image?.startsWith('http')
       ? config.image
       : `${SITE_URL}${config.image ?? DEFAULT_IMAGE.replace(SITE_URL, '')}`;
+
     this.document.documentElement.lang = config.locale;
     this.title.setTitle(config.title);
     this.updateName('description', config.description);
@@ -57,6 +64,7 @@ export class BlogSeoService {
     );
     this.replaceLink('canonical', canonical);
     this.removeManaged('link[rel="alternate"]');
+
     for (const alternate of config.alternates ?? []) {
       this.appendLink(
         'alternate',
@@ -64,18 +72,24 @@ export class BlogSeoService {
         alternate.locale
       );
     }
+
     this.appendFeed(config.locale);
     this.clearArticleMeta();
+
     if (config.type === 'article') {
       if (config.publishedAt)
         this.updateProperty('article:published_time', config.publishedAt);
+
       if (config.updatedAt)
         this.updateProperty('article:modified_time', config.updatedAt);
+
       if (config.category)
         this.updateProperty('article:section', config.category);
+
       for (const tag of config.tags ?? [])
         this.appendProperty('article:tag', tag);
     }
+
     this.replaceJsonLd(config.jsonLd ?? []);
   }
 
@@ -93,6 +107,7 @@ export class BlogSeoService {
 
   private clearArticleMeta(): void {
     this.removeManaged('meta[data-blog-seo="true"]');
+
     for (const property of [
       'article:published_time',
       'article:modified_time',
@@ -112,6 +127,7 @@ export class BlogSeoService {
     link.rel = rel;
     link.href = href;
     link.setAttribute('data-blog-seo', 'true');
+
     if (hreflang) link.hreflang = hreflang;
     this.document.head.appendChild(link);
   }
@@ -127,8 +143,11 @@ export class BlogSeoService {
     this.document.head.appendChild(link);
   }
 
-  private replaceJsonLd(entries: readonly Record<string, unknown>[]): void {
+  private replaceJsonLd(
+    entries: readonly Record<string, Json | readonly string[] | undefined>[]
+  ): void {
     this.removeManaged('script[data-blog-json-ld="true"]');
+
     for (const entry of entries) {
       const script = this.document.createElement('script');
       script.type = 'application/ld+json';

@@ -3,6 +3,7 @@ import worker from '../../../../worker';
 describe('blog Worker routing', () => {
   it('returns the localized branded page with an HTTP 404 status', async () => {
     const requestedPaths: string[] = [];
+
     const response = await worker.fetch(
       new Request('https://spendist.app/pl/blog/nie-istnieje', {
         headers: { accept: 'text/html' },
@@ -12,6 +13,7 @@ describe('blog Worker routing', () => {
           fetch: async (request: Request) => {
             const pathname = new URL(request.url).pathname;
             requestedPaths.push(pathname);
+
             return pathname === '/pl/blog-not-found/index.html'
               ? new Response('<h1>Nie znaleziono artykułu</h1>', {
                   headers: { 'content-type': 'text/html; charset=utf-8' },
@@ -56,12 +58,14 @@ describe('blog Worker routing', () => {
     'serves %s from the repository LLM asset',
     async (publicPath, assetPath) => {
       const requestedPaths: string[] = [];
+
       const response = await worker.fetch(
         new Request(`https://spendist.app${publicPath}`),
         {
           ASSETS: {
             fetch: async (request: Request) => {
               requestedPaths.push(new URL(request.url).pathname);
+
               return new Response('# Spendist');
             },
           },

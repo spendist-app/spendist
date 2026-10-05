@@ -24,6 +24,20 @@ test('shows the public landing page with core calls to action', async ({
   await expect(page.getByText('Fast and bulk entry')).toBeVisible();
   await expect(page.getByText('Recurring costs that keep up')).toBeVisible();
   await expect(page.getByText('Your data stays portable')).toBeVisible();
+  await page.getByRole('link', { name: 'See how it works' }).click();
+
+  const guide = page.getByRole('region', {
+    name: 'Start with today’s expenses',
+  });
+
+  await expect(guide).toBeVisible();
+  await expect(guide.getByRole('listitem')).toHaveCount(3);
+  await expect(
+    guide.getByRole('heading', { name: 'Add your first expense' })
+  ).toBeVisible();
+  await expect(
+    page.getByText('Sample data — spending summary illustration')
+  ).toBeVisible();
 
   await expect(
     page.getByRole('link', { name: 'I already have an account' })
@@ -33,7 +47,7 @@ test('shows the public landing page with core calls to action', async ({
     '/signup'
   );
   await expect(
-    page.getByRole('link', { name: 'Follow development on GitHub' })
+    page.getByRole('link', { name: 'View the code on GitHub' })
   ).toHaveAttribute('href', 'https://github.com/spendist-app/spendist');
   await expect(
     page.getByRole('link', { name: 'Blog' }).first()
@@ -239,14 +253,18 @@ test('keeps the published blog usable on a mobile viewport', async ({
       name: 'Pomysły na bardziej przejrzyste finanse',
     })
   ).toBeVisible();
+
   const horizontalOverflow = await page.evaluate(
     () => document.documentElement.scrollWidth > window.innerWidth
   );
+
   expect(horizontalOverflow).toBe(false);
+
   const navbarLayout = await page.locator('nav.navbar').evaluate((navbar) => {
     const children = [...navbar.children].map((child) =>
       child.getBoundingClientRect()
     );
+
     return {
       height: navbar.getBoundingClientRect().height,
       rowCenters: children.map((child) =>
@@ -254,6 +272,7 @@ test('keeps the published blog usable on a mobile viewport', async ({
       ),
     };
   });
+
   expect(navbarLayout.height).toBeLessThanOrEqual(72);
   expect(
     Math.max(...navbarLayout.rowCenters) - Math.min(...navbarLayout.rowCenters)

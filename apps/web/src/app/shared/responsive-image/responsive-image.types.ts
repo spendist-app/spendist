@@ -13,3 +13,8 @@ export interface WebImage {
   readonly avifSrcset: string;
   readonly webpSrcset: string;
 }
+
+/** Manifest IDs map to generated assets with a complete responsive-image contract. */
+export interface WebImageCatalog {
+  readonly [id: string]: WebImage;
+}

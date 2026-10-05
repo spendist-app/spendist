@@ -1,13 +1,13 @@
 # Regulamin korzystania z aplikacji Spendist
 
-**Wersja robocza 0.1 z 17 lipca 2026 r.**
+**Wersja 1.1 — 2026-09-30**
 
-> Dokument wymaga weryfikacji prawnej przed publikacją.
+Dokument obowiązuje od udostępnienia tej wersji w serwisie. [English version](/regulamin?lang=en).
 
 ## 1. Informacje ogólne
 
 1. Niniejszy regulamin określa zasady korzystania z aplikacji internetowej Spendist dostępnej pod adresem `https://spendist.app` („Aplikacja”).
-2. Aplikacja służy do samodzielnego zapisywania i analizowania informacji o finansach osobistych, w szczególności transakcji, portfeli, kategorii i płatności cyklicznych.
+2. Spendist jest bezpłatnym projektem hobbystycznym. Serwis jest dostępny międzynarodowo, bez ograniczenia do konkretnego kraju. Aplikacja służy do samodzielnego zapisywania i analizowania informacji o finansach osobistych, w szczególności transakcji, portfeli, kategorii i płatności cyklicznych.
 3. Usługodawcą i operatorem hostowanej wersji Aplikacji jest **Bartłomiej Borzucki**, osoba fizyczna, adres: **ul. Zakładowa 11u/5, 50-231 Wrocław**, e-mail: **hello@spendist.app** („Operator”).
 4. Regulamin jest udostępniany bezpłatnie w sposób umożliwiający jego zapisanie i odtworzenie.
 
@@ -23,7 +23,7 @@
 1. **Użytkownik** – osoba fizyczna korzystająca z Aplikacji.
 2. **Konto** – indywidualny profil umożliwiający dostęp do funkcji Aplikacji po zalogowaniu.
 3. **Dane Użytkownika** – dane zapisane przez Użytkownika w Aplikacji, w tym dane konta i dane finansowe.
-4. **Strony publiczne** – części serwisu dostępne bez zalogowania, w szczególności landing page oraz strony logowania, rejestracji i odzyskiwania dostępu.
+4. **Strony publiczne** – części serwisu dostępne bez zalogowania, w szczególności landing page, blog, dokumenty prawne oraz strony logowania, rejestracji i odzyskiwania dostępu.
 5. **Panel prywatny** – części Aplikacji dostępne po zalogowaniu, w szczególności dashboard, transakcje, ustawienia i moduły użytkownika.
 
 ## 4. Zakres usługi
@@ -31,7 +31,8 @@
 1. Operator udostępnia nieodpłatnie funkcje Aplikacji w ich aktualnym zakresie.
 2. Spendist jest narzędziem pomocniczym. Nie jest bankiem, biurem rachunkowym, doradcą finansowym, podatkowym ani inwestycyjnym.
 3. Informacje i wyliczenia prezentowane w Aplikacji nie stanowią porady finansowej, podatkowej ani prawnej. Użytkownik powinien samodzielnie weryfikować ich poprawność przed podjęciem decyzji.
-4. Operator może rozwijać, zmieniać lub wycofywać funkcje, z poszanowaniem praw nabytych Użytkowników i obowiązujących przepisów.
+4. Moduł Kieszonkowe zapisuje powiązane dane pomiędzy Kontami pełnoletnich osób po przyjęciu zaproszenia. Nie przesyła pieniędzy. Podłączone aplikacje i klienci MCP mogą odczytywać dane i wykonywać obsługiwane działania dopiero po autoryzacji Użytkownika; szczegóły dostępu i odwołania opisuje Polityka prywatności.
+5. Operator może rozwijać, zmieniać lub wycofywać funkcje, z poszanowaniem praw nabytych Użytkowników i obowiązujących przepisów.
 
 ## 5. Wymagania techniczne
 
@@ -45,7 +46,7 @@
 ## 6. Konto i zawarcie umowy
 
 1. Konto może utworzyć osoba, która ukończyła 18 lat i posiada pełną zdolność do czynności prawnych.
-2. Utworzenie Konta wymaga podania prawidłowych danych oznaczonych jako obowiązkowe, ustawienia hasła oraz zaakceptowania Regulaminu i Polityki prywatności.
+2. Utworzenie Konta wymaga podania prawidłowych danych oznaczonych jako obowiązkowe, ustawienia hasła oraz potwierdzenia ukończenia 18 lat, zaakceptowania Regulaminu i potwierdzenia zapoznania się z Polityką prywatności. Nie wymagamy dokumentu tożsamości ani podania daty urodzenia; potwierdzenie wieku jest oświadczeniem Użytkownika.
 3. Umowa o świadczenie usługi drogą elektroniczną zostaje zawarta z chwilą skutecznego utworzenia Konta i obowiązuje do jego usunięcia.
 4. Użytkownik może korzystać ze Stron publicznych bez tworzenia Konta.
 5. Jedna osoba nie powinna automatycznie tworzyć wielu Kont ani używać Aplikacji w sposób zakłócający jej działanie.
@@ -67,15 +68,16 @@
 1. Zasady przetwarzania danych opisuje Polityka prywatności Spendist.
 2. Dane zapisane w Panelu prywatnym są wykorzystywane wyłącznie do świadczenia, utrzymania i zabezpieczenia Aplikacji oraz realizacji obowiązków prawnych Operatora.
 3. Operator nie sprzedaje danych osobowych ani danych finansowych Użytkowników.
-4. Google Analytics może zbierać dane statystyczne wyłącznie na Stronach publicznych, po uzyskaniu wymaganej zgody. Google Analytics nie jest uruchamiany w Panelu prywatnym i nie otrzymuje danych wprowadzanych po zalogowaniu.
+4. Google Analytics mierzy wyłącznie stronę główną, blog i dokumenty prawne dla niezalogowanych, po dobrowolnej zgodzie. Odmowa i wycofanie są dostępne w Ustawieniach analityki. Pomiar wyklucza panel prywatny, strony uwierzytelniania, dane Konta, finansów i treści formularzy.
 5. Operator stosuje adekwatne środki techniczne i organizacyjne, w tym szyfrowane połączenia HTTPS, kontrolę dostępu i izolację danych użytkowników na poziomie bazy danych. Żaden system teleinformatyczny nie daje jednak absolutnej gwarancji bezpieczeństwa.
 
 ## 9. Dostępność, kopie danych i prace techniczne
 
-1. Operator dokłada uzasadnionych starań, aby Aplikacja była dostępna i działała poprawnie, ale nie gwarantuje nieprzerwanej dostępności ani braku błędów.
+1. Usługa jest rozwijana i utrzymywana hobbystycznie, bez opłat za Konto i bez gwarantowanego poziomu dostępności lub wsparcia. Operator dokłada uzasadnionych starań, aby Aplikacja była dostępna i działała poprawnie, ale nie gwarantuje nieprzerwanej dostępności ani braku błędów.
 2. Przerwy mogą wynikać z prac technicznych, awarii, aktualizacji, działania dostawców infrastruktury lub zdarzeń pozostających poza kontrolą Operatora.
 3. Użytkownik powinien okresowo eksportować dane, których utrata mogłaby mieć dla niego istotne znaczenie.
-4. Aplikacja nie powinna być jedynym miejscem przechowywania dokumentacji wymaganej przez prawo lub potrzebnej do rozliczeń podatkowych.
+4. Operator nie tworzy obecnie własnych kopii bazy, a używany plan Supabase Free nie zapewnia gwarancji kopii dostępnej Operatorowi do odtworzenia. Nie gwarantujemy odzyskania danych po awarii ani po ich usunięciu.
+5. Aplikacja nie powinna być jedynym miejscem przechowywania dokumentacji wymaganej przez prawo lub potrzebnej do rozliczeń podatkowych.
 
 ## 10. Odpowiedzialność
 
@@ -89,8 +91,8 @@
 
 ## 11. Rezygnacja i usunięcie Konta
 
-1. Użytkownik może w każdej chwili zaprzestać korzystania z Aplikacji i zażądać usunięcia Konta, kontaktując się z Operatorem pod adresem **hello@spendist.app**. Docelowo usunięcie może być dostępne również w ustawieniach Konta.
-2. Usunięcie Konta oznacza rozwiązanie umowy i rozpoczęcie usuwania danych zgodnie z Polityką prywatności oraz obowiązującymi okresami retencji i kopii zapasowych.
+1. Użytkownik może w każdej chwili usunąć Konto w ustawieniach po potwierdzeniu hasła i świadomego zamiaru usunięcia albo zgłosić żądanie na **hello@spendist.app**. Samo wylogowanie lub zaprzestanie korzystania nie usuwa Konta.
+2. Poprawnie zakończone samodzielne usunięcie trwale usuwa Konto, pliki avatarów i przypisane mu dane produkcyjne oraz rozwiązuje umowę. Nie ma okresu przywracania. Zakres pozostałej korespondencji, logów i własnych rekordów drugiego uczestnika Kieszonkowego opisuje Polityka prywatności.
 3. Przed usunięciem Konta Użytkownik powinien wyeksportować potrzebne dane. Usunięcie może być nieodwracalne.
 4. Operator może rozwiązać umowę w przypadku istotnego lub powtarzającego się naruszenia Regulaminu, po uprzednim wezwaniu do zaprzestania naruszeń, chyba że natychmiastowe działanie jest konieczne dla bezpieczeństwa lub wymagane prawem.
 
@@ -111,4 +113,4 @@
 1. Do Regulaminu stosuje się prawo polskie, z zastrzeżeniem bezwzględnie obowiązujących przepisów, których zastosowania nie można wyłączyć umową.
 2. Spory mogą być rozstrzygane przez właściwy sąd powszechny. Użytkownik może również korzystać z dostępnych pozasądowych metod rozpatrywania sporów, jeżeli przewidują je właściwe przepisy.
 3. W sprawach nieuregulowanych zastosowanie mają odpowiednie bezwzględnie obowiązujące przepisy prawa, w tym ustawa o świadczeniu usług drogą elektroniczną, jeżeli znajduje zastosowanie do Operatora i Aplikacji.
-4. Regulamin obowiązuje od **[data publikacji]**.
+4. Wersja 1.1 obowiązuje od udostępnienia w serwisie. Rejestracja wymaga jej akceptacji; osobom z istniejącym Kontem Aplikacja wyświetla informację i możliwość potwierdzenia aktualnych zasad. Dostęp do własnych danych i eksportu pozostaje dostępny. Bezwzględnie obowiązujące prawa Użytkownika wynikające z prawa kraju jego zamieszkania pozostają zachowane.

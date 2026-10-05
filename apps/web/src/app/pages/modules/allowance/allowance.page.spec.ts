@@ -1,3 +1,5 @@
+import type { UpdateAllowanceRecipientExpensePayload } from './allowance.service';
+import { fixtureElement } from '../../../../testing/dom';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { TranslocoService } from '@ngneat/transloco';
@@ -41,20 +43,28 @@ class AllowanceServiceStub {
   readonly recipientExpenses = signal([recipientExpense]);
   readonly error = signal<string | null>(null);
   readonly pending = signal(false);
-  updateCall: { id: string; payload: unknown } | null = null;
+  updateCall: {
+    id: string;
+    payload: UpdateAllowanceRecipientExpensePayload;
+  } | null = null;
   deleteCall: string | null = null;
 
   async load(): Promise<void> {
     return;
   }
 
-  async updateRecipientExpense(id: string, payload: unknown): Promise<boolean> {
+  async updateRecipientExpense(
+    id: string,
+    payload: UpdateAllowanceRecipientExpensePayload
+  ): Promise<boolean> {
     this.updateCall = { id, payload };
+
     return true;
   }
 
   async deleteRecipientExpense(id: string): Promise<boolean> {
     this.deleteCall = id;
+
     return true;
   }
 }
@@ -86,7 +96,8 @@ describe('AllowancePageComponent recipient expenses', () => {
         set: {
           providers: [
             { provide: AllowanceService, useValue: allowance },
-            { provide: TransactionsStore, useClass: TransactionsStoreStub },
+            TransactionsStoreStub,
+            { provide: TransactionsStore, useExisting: TransactionsStoreStub },
           ],
         },
       })
@@ -104,7 +115,7 @@ describe('AllowancePageComponent recipient expenses', () => {
     fixture.detectChanges();
 
     expect(
-      fixture.nativeElement.querySelector(
+      fixtureElement(fixture).querySelector(
         '[data-testid="recipient-expense-card"]'
       )
     ).not.toBeNull();

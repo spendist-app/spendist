@@ -14,6 +14,7 @@ import { backupStorageObjects } from './storage-backup.mjs';
 
 test('encrypted backup round trip is authenticated', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'spendist-crypto-test-'));
+
   try {
     const input = path.join(root, 'input.bin');
     const encrypted = path.join(root, 'backup.enc');
@@ -38,6 +39,7 @@ test('encrypted backup round trip is authenticated', async () => {
 
 test('checksum verification rejects a changed archive', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'spendist-hash-test-'));
+
   try {
     const backup = path.join(root, 'backup.enc');
     const checksum = `${backup}.sha256`;
@@ -55,10 +57,12 @@ test('checksum verification rejects a changed archive', async () => {
 
 test('storage backup downloads nested objects without trusting object paths', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'spendist-storage-test-'));
+
   const files = new Map([
     ['root.png', Buffer.from('root image')],
     ['users/avatar.png', Buffer.from('nested image')],
   ]);
+
   const fakeClient = {
     storage: {
       listBuckets: async () => ({
@@ -88,6 +92,7 @@ test('storage backup downloads nested objects without trusting object paths', as
               error: null,
             };
           }
+
           return {
             data: [
               {
@@ -106,18 +111,21 @@ test('storage backup downloads nested objects without trusting object paths', as
       }),
     },
   };
+
   try {
     const manifest = await backupStorageObjects({
       outputRoot: root,
       client: fakeClient,
       log: () => undefined,
     });
+
     assert.equal(manifest.buckets.length, 1);
     assert.equal(manifest.objects.length, 2);
     assert.deepEqual(manifest.objects.map((object) => object.name).sort(), [
       'root.png',
       'users/avatar.png',
     ]);
+
     for (const object of manifest.objects) {
       const archived = await readFile(path.join(root, object.archivePath));
       assert.deepEqual(archived, files.get(object.name));

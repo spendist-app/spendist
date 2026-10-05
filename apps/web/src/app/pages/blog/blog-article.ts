@@ -26,9 +26,8 @@ export class BlogArticle {
   private readonly language = inject(LanguageService);
   private readonly transloco = inject(TranslocoService);
   private readonly seo = inject(BlogSeoService);
-  protected readonly locale = this.route.snapshot.data[
-    'blogLocale'
-  ] as BlogLocale;
+  protected readonly locale: BlogLocale =
+    this.route.snapshot.data['blogLocale'] === 'pl' ? 'pl' : 'en';
   protected readonly basePath = blogPath(this.locale);
   protected readonly article = findBlogArticle(
     this.locale,
@@ -55,13 +54,17 @@ export class BlogArticle {
         locale: this.locale,
         robots: 'noindex,follow',
       });
+
       return;
     }
+
     const article = this.article;
     const published = `${article.publishedAt}T00:00:00Z`;
+
     const modified = article.updatedAt
       ? `${article.updatedAt}T00:00:00Z`
       : null;
+
     const categoryName = this.category?.name ?? article.category;
     this.seo.apply({
       title: `${article.title} | Spendist`,

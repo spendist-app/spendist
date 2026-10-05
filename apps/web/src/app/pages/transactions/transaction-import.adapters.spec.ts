@@ -1,3 +1,4 @@
+import { requiredValue } from '../../../testing/dom';
 import { describe, expect, it } from 'vitest';
 import {
   detectTransactionImport,
@@ -9,7 +10,7 @@ const CSV_HEADER =
   'id,occurred_at,description,direction,amount,currency,amount_in_default,category_group,category_path,category,wallet,wallet_currency,tags,place,is_automatic,recurring_scheduled_for,import_source,imported_at';
 
 function csvRow(overrides: Partial<Record<string, string>> = {}): string {
-  const values: Record<string, string> = {
+  const values = {
     id: 'source-1',
     occurred_at: '2026-08-01T12:00:00.000Z',
     description: 'Groceries',
@@ -30,13 +31,17 @@ function csvRow(overrides: Partial<Record<string, string>> = {}): string {
     imported_at: '',
     ...overrides,
   };
+
   return CSV_HEADER.split(',')
-    .map((header) => values[header] ?? '')
+    .map(
+      (header) =>
+        Object.entries(values).find(([key]) => key === header)?.[1] ?? ''
+    )
     .join(',');
 }
 
-function receipt(overrides: Record<string, unknown> = {}): string {
-  return JSON.stringify({
+function receiptFixture<T>(overrides: T) {
+  return {
     IDZ: 'receipt-123',
     header: [{ headerData: { date: '2026-08-01T12:00:00.000Z' } }],
     body: [
@@ -55,7 +60,11 @@ function receipt(overrides: Record<string, unknown> = {}): string {
     data: 'ignored signed payload',
     sign: 'ignored signature',
     ...overrides,
-  });
+  };
+}
+
+function receipt<T = Record<never, never>>(overrides?: T): string {
+  return JSON.stringify(receiptFixture(overrides ?? {}));
 }
 
 describe('transaction import adapters', () => {
@@ -77,8 +86,9 @@ describe('transaction import adapters', () => {
     const csv = detectTransactionImport(
       `${CSV_HEADER}\n${csvRow({ amount: 'not-a-number' })}`
     );
-    const invalidReceipt = JSON.parse(receipt()) as Record<string, unknown>;
-    delete invalidReceipt['header'];
+
+    const { header, ...invalidReceipt } = receiptFixture({});
+    expect(header).toHaveLength(1);
     const biedronka = detectTransactionImport(JSON.stringify(invalidReceipt));
 
     expect(csv).toMatchObject({
@@ -110,6 +120,7 @@ describe('transaction import adapters', () => {
     const batch = transactionImportAdapter('spendist_csv').parse(
       `${CSV_HEADER}\n${csvRow()}`
     );
+
     expect(batch.walletName).toBe('Main wallet');
     expect(batch.direction).toBe('expense');
     expect(batch.rows[0]).toMatchObject({
@@ -139,6 +150,7 @@ describe('transaction import adapters', () => {
     const rows = Array.from({ length: 501 }, (_, index) =>
       csvRow({ id: `source-${index}`, description: `Row ${index}` })
     );
+
     expect(() =>
       transactionImportAdapter('spendist_csv').parse(
         `${CSV_HEADER}\n${rows.join('\n')}`
@@ -150,6 +162,7 @@ describe('transaction import adapters', () => {
     const batch = transactionImportAdapter('biedronka_e_receipt').parse(
       receipt()
     );
+
     expect(batch.rows).toHaveLength(1);
     expect(batch.rows[0].amount).toBe(6);
     expect(batch.rows[0].description).toBe('Banan Luz C · 0,950 × 6,99 PLN');
@@ -158,20 +171,18 @@ describe('transaction import adapters', () => {
   });
 
   it('rejects storno and inconsistent Biedronka totals', () => {
-    const storno = JSON.parse(receipt()) as {
-      body: Array<Record<string, Record<string, unknown>>>;
-    };
-    storno.body[0]['sellLine']['isStorno'] = true;
+    const storno = receiptFixture({});
+
+    requiredValue(storno.body[0]['sellLine'])['isStorno'] = true;
     expect(() =>
       transactionImportAdapter('biedronka_e_receipt').parse(
         JSON.stringify(storno)
       )
     ).toThrowError(TransactionImportError);
 
-    const inconsistent = JSON.parse(receipt()) as {
-      body: Array<Record<string, Record<string, unknown>>>;
-    };
-    inconsistent.body[2]['sumInCurrency']['fiscalTotal'] = 601;
+    const inconsistent = receiptFixture({});
+
+    requiredValue(inconsistent.body[2]['sumInCurrency'])['fiscalTotal'] = 601;
     expect(() =>
       transactionImportAdapter('biedronka_e_receipt').parse(
         JSON.stringify(inconsistent)

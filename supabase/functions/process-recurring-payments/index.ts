@@ -1,3 +1,4 @@
+import { z } from 'npm:zod@4.4.3';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.89.0';
 import {
   dueOccurrences,
@@ -6,14 +7,14 @@ import {
   shouldFinalizeRecurring,
 } from './schedule.mts';
 
-type RecurringTransaction = {
-  id: string;
-  schedule: string;
-  start_date: string;
-  end_date: string | null;
-  last_run_at: string | null;
-  is_paused: boolean;
-};
+const recurringTransactionSchema = z.object({
+  id: z.string(),
+  schedule: z.string(),
+  start_date: z.string(),
+  end_date: z.string().nullable(),
+  last_run_at: z.string().nullable(),
+  is_paused: z.boolean(),
+});
 
 type RequestBody = {
   recurringId?: string;
@@ -21,10 +22,13 @@ type RequestBody = {
 };
 
 const DEFAULT_LOOKBACK_DAYS = 31;
+
 const DEFAULT_MAX_RUNS = 100;
+
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers':
+    'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
@@ -43,11 +47,18 @@ Deno.serve(async (request) => {
   const authorization = request.headers.get('Authorization') ?? '';
   const token = authorization.replace(/^Bearer\s+/i, '').trim();
   const body = await parseRequestBody(request);
-  const configuredSecret = firstEnv('INTERNAL_FUNCTION_SECRET', 'ROUTINE_RUNNER_SECRET', 'RECURRING_PAYMENTS_SECRET');
+
+  const configuredSecret = firstEnv(
+    'INTERNAL_FUNCTION_SECRET',
+    'ROUTINE_RUNNER_SECRET',
+    'RECURRING_PAYMENTS_SECRET'
+  );
+
   const isSecretAuthorized = !!configuredSecret && token === configuredSecret;
   const isSingleRecurringBackfill = !!body.recurringId;
 
   const supabaseUrl = requiredEnv('SUPABASE_URL');
+
   const serviceKey =
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ??
     Deno.env.get('SUPABASE_SECRET_KEY') ??
@@ -58,8 +69,17 @@ Deno.serve(async (request) => {
   }
 
   const now = floorToMinute(new Date());
-  const lookbackDays = positiveIntegerEnv('RECURRING_PAYMENTS_LOOKBACK_DAYS', DEFAULT_LOOKBACK_DAYS);
-  const maxRuns = positiveIntegerEnv('RECURRING_PAYMENTS_MAX_RUNS', DEFAULT_MAX_RUNS);
+
+  const lookbackDays = positiveIntegerEnv(
+    'RECURRING_PAYMENTS_LOOKBACK_DAYS',
+    DEFAULT_LOOKBACK_DAYS
+  );
+
+  const maxRuns = positiveIntegerEnv(
+    'RECURRING_PAYMENTS_MAX_RUNS',
+    DEFAULT_MAX_RUNS
+  );
+
   const earliest = new Date(now.getTime() - lookbackDays * 24 * 60 * 60 * 1000);
 
   const supabase = createClient(supabaseUrl, serviceKey, {
@@ -82,7 +102,11 @@ Deno.serve(async (request) => {
         autoRefreshToken: false,
       },
     });
-    const { data: userData, error: userError } = await authClient.auth.getUser(token);
+
+    const { data: userData, error: userError } = await authClient.auth.getUser(
+      token
+    );
+
     if (userError || !userData.user) {
       return json({ error: 'Unauthorized' }, 401);
     }
@@ -115,22 +139,31 @@ Deno.serve(async (request) => {
     return json({ error: 'Recurring transaction not found' }, 404);
   }
 
-  const processed: Array<{ recurringId: string; runAt: string; transactionId: string | null }> = [];
+  const processed: Array<{
+    recurringId: string;
+    runAt: string;
+    transactionId: string | null;
+  }> = [];
+
   const skipped: Array<{ recurringId: string; reason: string }> = [];
 
-  for (const recurring of (data ?? []) as RecurringTransaction[]) {
+  for (const recurring of z
+    .array(recurringTransactionSchema)
+    .parse(data ?? [])) {
     if (processed.length >= maxRuns) {
       skipped.push({ recurringId: recurring.id, reason: 'max_runs_reached' });
       continue;
     }
 
     const schedule = parseCron(recurring.schedule);
+
     if (!schedule) {
       skipped.push({ recurringId: recurring.id, reason: 'invalid_schedule' });
       continue;
     }
 
     const remainingRuns = maxRuns - processed.length;
+
     const dueRunCandidates = dueOccurrences(
       recurring,
       schedule,
@@ -140,6 +173,7 @@ Deno.serve(async (request) => {
       now,
       remainingRuns + 1
     );
+
     const hasMoreDueRuns = dueRunCandidates.length > remainingRuns;
     const dueRuns = dueRunCandidates.slice(0, remainingRuns);
     let allDueRunsSucceeded = true;
@@ -162,7 +196,7 @@ Deno.serve(async (request) => {
       processed.push({
         recurringId: recurring.id,
         runAt: runAt.toISOString(),
-        transactionId: transactionId as string | null,
+        transactionId: z.string().nullable().parse(transactionId),
       });
     }
 
@@ -192,7 +226,7 @@ Deno.serve(async (request) => {
       processed.push({
         recurringId: recurring.id,
         runAt: now.toISOString(),
-        transactionId: transactionId as string | null,
+        transactionId: z.string().nullable().parse(transactionId),
       });
     }
   }
@@ -210,6 +244,7 @@ Deno.serve(async (request) => {
 function floorToMinute(value: Date): Date {
   const next = new Date(value);
   next.setUTCSeconds(0, 0);
+
   return next;
 }
 
@@ -219,15 +254,18 @@ function isoDate(value: Date): string {
 
 function requiredEnv(name: string): string {
   const value = Deno.env.get(name);
+
   if (!value) {
     throw new Error(`Missing ${name}`);
   }
+
   return value;
 }
 
 function firstEnv(...names: string[]): string {
   for (const name of names) {
     const value = Deno.env.get(name)?.trim();
+
     if (value) {
       return value;
     }
@@ -238,32 +276,30 @@ function firstEnv(...names: string[]): string {
 
 function positiveIntegerEnv(name: string, fallback: number): number {
   const value = Number(Deno.env.get(name) ?? fallback);
+
   return Number.isInteger(value) && value > 0 ? value : fallback;
 }
 
 async function parseRequestBody(request: Request): Promise<RequestBody> {
   const contentType = request.headers.get('content-type') ?? '';
+
   if (!contentType.toLowerCase().includes('application/json')) {
     return {};
   }
 
   try {
-    const body = await request.json();
-    if (!body || typeof body !== 'object') {
-      return {};
-    }
-
-    const candidate = body as Record<string, unknown>;
-    return {
-      recurringId: typeof candidate['recurringId'] === 'string' ? candidate['recurringId'] : undefined,
-      backfill: candidate['backfill'] === true,
-    };
+    return z
+      .object({
+        recurringId: z.string().optional().catch(undefined),
+        backfill: z.boolean().catch(false).optional(),
+      })
+      .parse(await request.json());
   } catch {
     return {};
   }
 }
 
-function json(body: unknown, status = 200): Response {
+function json<T>(body: T, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: {

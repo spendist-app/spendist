@@ -97,15 +97,19 @@ export class AllowancePageComponent implements OnInit {
     effect(() => {
       const connection = this.allowance.activePayerConnections()[0];
       const category = this.transactions.categories()[0];
+
       const wallet =
         this.transactions.wallets().find((item) => item.isDefault) ??
         this.transactions.wallets()[0];
+
       if (!this.scheduleForm.controls.connectionId.value && connection) {
         this.scheduleForm.controls.connectionId.setValue(connection.id);
       }
+
       if (!this.scheduleForm.controls.categoryId.value && category) {
         this.scheduleForm.controls.categoryId.setValue(category.id);
       }
+
       if (!this.scheduleForm.controls.walletId.value && wallet) {
         this.scheduleForm.patchValue({
           walletId: wallet.id,
@@ -122,24 +126,32 @@ export class AllowancePageComponent implements OnInit {
   async sendInvite(): Promise<void> {
     if (this.inviteForm.invalid) {
       this.inviteForm.markAllAsTouched();
+
       return;
     }
+
     const success = await this.allowance.invite(
       this.inviteForm.getRawValue().email
     );
+
     if (success) this.inviteForm.reset({ email: '' });
   }
 
   async createSchedule(): Promise<void> {
     if (this.scheduleForm.invalid) {
       this.scheduleForm.markAllAsTouched();
+
       return;
     }
+
     const value = this.scheduleForm.getRawValue();
+
     if (value.amountMode === 'fixed' && value.amount <= 0) {
       this.scheduleForm.controls.amount.setErrors({ min: true });
+
       return;
     }
+
     const success = await this.allowance.createSchedule({
       connectionId: value.connectionId,
       name: value.name,
@@ -157,6 +169,7 @@ export class AllowancePageComponent implements OnInit {
       startDate: value.startDate,
       endDate: value.endDate || null,
     });
+
     if (success) {
       this.scheduleForm.patchValue({ name: '', amount: 0 });
       this.scheduleForm.markAsPristine();
@@ -185,24 +198,31 @@ export class AllowancePageComponent implements OnInit {
 
   async saveRecipientExpense(): Promise<void> {
     const transactionId = this.editingRecipientExpenseId();
+
     if (!transactionId || this.recipientExpenseForm.invalid) {
       this.recipientExpenseForm.markAllAsTouched();
+
       return;
     }
+
     const value = this.recipientExpenseForm.getRawValue();
     const occurredAt = new Date(`${value.occurredOn}T00:00:00.000Z`);
+
     if (Number.isNaN(occurredAt.getTime())) {
       this.recipientExpenseForm.controls.occurredOn.setErrors({
         invalid: true,
       });
+
       return;
     }
+
     const success = await this.allowance.updateRecipientExpense(transactionId, {
       occurredAt,
       description: value.description.trim() || null,
       amount: value.amount,
       currency: value.currency,
     });
+
     if (success) this.cancelRecipientExpenseEdit();
   }
 
@@ -215,10 +235,13 @@ export class AllowancePageComponent implements OnInit {
         { description: expense.description ?? '' }
       )
     );
+
     if (!confirmed) return;
+
     const success = await this.allowance.deleteRecipientExpense(
       expense.transactionId
     );
+
     if (success && this.editingRecipientExpenseId() === expense.transactionId) {
       this.cancelRecipientExpenseEdit();
     }
@@ -226,6 +249,7 @@ export class AllowancePageComponent implements OnInit {
 
   formatRecipientExpenseDate(value: Date): string {
     const locale = this.transloco.getActiveLang() === 'pl' ? 'pl-PL' : 'en';
+
     return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(
       value
     );
@@ -239,6 +263,7 @@ export class AllowancePageComponent implements OnInit {
 
   scheduleLabel(schedule: AllowanceSchedule): string {
     const now = new Date();
+
     const next = nextScheduledOccurrence(
       {
         schedule: schedule.schedule,
@@ -250,10 +275,13 @@ export class AllowancePageComponent implements OnInit {
       now,
       new Date(now.getTime() + 370 * 24 * 60 * 60 * 1000)
     );
+
     if (!next) {
       return this.transloco.translate('modules.allowance.schedule.noUpcoming');
     }
+
     const locale = this.transloco.getActiveLang() === 'pl' ? 'pl-PL' : 'en';
+
     return this.transloco.translate('modules.allowance.schedule.nextRun', {
       date: new Intl.DateTimeFormat(locale, {
         dateStyle: 'medium',
@@ -271,6 +299,7 @@ export class AllowancePageComponent implements OnInit {
     const [hours, minutes] = time.split(':').map(Number);
     const now = new Date();
     let base: Date;
+
     if (frequency === 'weekly') {
       const daysUntilTarget = (weekday - now.getDay() + 7) % 7;
       base = new Date(
@@ -298,19 +327,24 @@ export class AllowancePageComponent implements OnInit {
         minutes
       );
     }
+
     const minute = base.getUTCMinutes();
     const hour = base.getUTCHours();
+
     if (frequency === 'weekly') {
       return `${minute} ${hour} * * ${base.getUTCDay()}`;
     }
+
     if (frequency === 'monthly') {
       return `${minute} ${hour} ${base.getUTCDate()} * *`;
     }
+
     return `${minute} ${hour} * * *`;
   }
 
   private today(): string {
     const now = new Date();
+
     return [
       now.getFullYear(),
       String(now.getMonth() + 1).padStart(2, '0'),

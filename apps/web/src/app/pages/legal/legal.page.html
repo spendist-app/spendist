@@ -5,11 +5,21 @@
       <span>Spendist</span>
     </a>
     <nav [attr.aria-label]="'legal.navigation' | transloco">
-      <a [routerLink]="alternateDocument.path">{{ alternateDocument.title }}</a>
+      <a
+        [routerLink]="alternateDocument().path"
+        [queryParams]="{ lang: locale() }"
+        >{{ alternateDocument().title }}</a
+      >
+      <a
+        [routerLink]="legalDocument().path"
+        [queryParams]="{ lang: locale() === 'pl' ? 'en' : 'pl' }"
+        [attr.hreflang]="locale() === 'pl' ? 'en' : 'pl'"
+        >{{ locale() === 'pl' ? 'English' : 'Polski' }}</a
+      >
     </nav>
   </header>
 
-  <article class="legal-content" [innerHTML]="legalDocument.html"></article>
+  <article class="legal-content" [innerHTML]="legalDocument().html"></article>
 
   <footer class="legal-footer">
     <a routerLink="/">{{ 'legal.backToSpendist' | transloco }}</a>

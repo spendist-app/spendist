@@ -1,3 +1,4 @@
+import { fixtureElement } from '../../../testing/dom';
 import { TestBed } from '@angular/core/testing';
 import {
   ActivatedRoute,
@@ -46,7 +47,7 @@ describe('BlogArticle', () => {
     expect(seo.apply).toHaveBeenCalledWith(
       expect.objectContaining({ path: '/pl/blog', robots: 'noindex,follow' })
     );
-    expect(fixture.nativeElement.querySelector('.not-found h1')).toBeTruthy();
+    expect(fixtureElement(fixture).querySelector('.not-found h1')).toBeTruthy();
   });
 
   it('keeps table-of-contents fragments on the localized article route', async () => {
@@ -56,8 +57,9 @@ describe('BlogArticle', () => {
     await fixture.whenStable();
 
     const links = Array.from(
-      fixture.nativeElement.querySelectorAll<HTMLAnchorElement>('.toc a')
+      fixtureElement(fixture).querySelectorAll<HTMLAnchorElement>('.toc a')
     );
+
     expect(links.length).toBeGreaterThan(0);
     expect(
       links.every((link) =>

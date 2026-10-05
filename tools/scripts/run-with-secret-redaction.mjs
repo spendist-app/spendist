@@ -1,21 +1,28 @@
 #!/usr/bin/env node
 
+import { z } from 'zod';
+
 import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 
 const REDACTION = '[REDACTED]';
 
 function addVariant(variants, value) {
-  if (typeof value === 'string' && value.length > 0) {
-    variants.add(value);
+  const parsed = z.string().min(1).safeParse(value);
+
+  if (parsed.success) {
+    variants.add(parsed.data);
   }
 }
 
 export function secretVariants(values) {
   const variants = new Set();
 
-  for (const value of values) {
-    if (typeof value !== 'string' || value.length === 0) continue;
+  for (let value of values) {
+    const parsed = z.string().min(1).safeParse(value);
+
+    if (!parsed.success) continue;
+    value = parsed.data;
 
     addVariant(variants, value);
     addVariant(variants, encodeURIComponent(value));
@@ -64,6 +71,7 @@ function parseArguments(args, environment) {
     }
 
     const name = args[index + 1];
+
     if (!/^[A-Z_][A-Z0-9_]*$/.test(name)) {
       throw new Error(`Invalid environment variable name: ${name}`);
     }
@@ -76,9 +84,10 @@ function parseArguments(args, environment) {
     throw new Error('Missing command after --');
   }
 
-  const secretValues = secretNames
-    .map((name) => environment[name] ?? '')
-    .filter(Boolean);
+  const secretValues = secretNames.flatMap((name) =>
+    environment[name] ? [environment[name]] : []
+  );
+
   const commandArgs = args.slice(index + 2).map((argument) =>
     argument.replaceAll(/\{ENV:([A-Z_][A-Z0-9_]*)\}/g, (_, name) => {
       if (!secretNames.includes(name)) {
@@ -88,7 +97,9 @@ function parseArguments(args, environment) {
       }
 
       const value = environment[name];
+
       if (!value) throw new Error(`Missing environment variable: ${name}`);
+
       return value;
     })
   );
@@ -111,6 +122,7 @@ export function run(
     args,
     environment
   );
+
   const result = execute(command, commandArgs, {
     env: environment,
     encoding: 'utf8',
@@ -119,6 +131,7 @@ export function run(
 
   if (result.stdout)
     stdout.write(redactSensitiveText(result.stdout, secretValues));
+
   if (result.stderr)
     stderr.write(redactSensitiveText(result.stderr, secretValues));
 
@@ -126,6 +139,7 @@ export function run(
     stderr.write(
       `${redactSensitiveText(result.error.message, secretValues)}\n`
     );
+
     return 1;
   }
 

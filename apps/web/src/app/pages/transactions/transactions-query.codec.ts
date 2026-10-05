@@ -1,3 +1,5 @@
+import { z } from 'zod';
+import type { Json } from '@spendist/data-access/supabase-types';
 import type {
   TransactionPresetId,
   TransactionSortId,
@@ -29,11 +31,20 @@ export const TRANSACTION_QUERY_KEYS = [
   'advanced',
 ] as const;
 
-type QueryParams = Readonly<Record<string, unknown>>;
+export type QueryParams = Readonly<
+  Record<string, Json | readonly Json[] | undefined>
+>;
 
-export function defaultTransactionUrlState(now = new Date()): TransactionUrlState {
+export interface SerializedTransactionQuery {
+  [key: string]: string | readonly string[];
+}
+
+export function defaultTransactionUrlState(
+  now = new Date()
+): TransactionUrlState {
   const year = now.getUTCFullYear();
   const month = now.getUTCMonth();
+
   return {
     filters: {
       selectedCategoryIds: [],
@@ -72,6 +83,7 @@ export function parseTransactionQuery(
   } else if (parsedFrom || parsedTo) {
     const candidateFrom = parsedFrom;
     const candidateTo = parsedTo ? endOfDay(parsedTo) : null;
+
     if (!candidateFrom || !candidateTo || candidateFrom <= candidateTo) {
       from = candidateFrom;
       to = candidateTo;
@@ -81,14 +93,18 @@ export function parseTransactionQuery(
 
   const minimumAmount = parseAmount(stringValue(params['min']));
   const maximumCandidate = parseAmount(stringValue(params['max']));
+
   const maximumAmount =
-    minimumAmount !== null && maximumCandidate !== null && maximumCandidate < minimumAmount
+    minimumAmount !== null &&
+    maximumCandidate !== null &&
+    maximumCandidate < minimumAmount
       ? null
       : maximumCandidate;
+
   const sortCandidate = stringValue(params['sort']);
-  const sort: TransactionSortId = SORTS.includes(sortCandidate as TransactionSortId)
-    ? (sortCandidate as TransactionSortId)
-    : 'dateDesc';
+
+  const sort =
+    SORTS.find((candidate) => candidate === sortCandidate) ?? 'dateDesc';
 
   return {
     filters: {
@@ -111,44 +127,71 @@ export function parseTransactionQuery(
 
 export function serializeTransactionQuery(
   state: TransactionUrlState
-): Record<string, string | readonly string[]> {
-  const result: Record<string, string | readonly string[]> = {};
+): SerializedTransactionQuery {
+  const result: SerializedTransactionQuery = {};
+
   if (state.filters.sort !== 'dateDesc') result['sort'] = state.filters.sort;
+
   if (state.panel !== 'categories') result['panel'] = state.panel;
+
   if (state.hideEmpty) result['hideEmpty'] = '1';
+
   if (state.advanced) result['advanced'] = '1';
   const categories = canonicalList(state.filters.selectedCategoryIds);
   const tags = canonicalList(state.filters.selectedTagIds);
+
   if (categories.length) result['category'] = categories;
+
   if (tags.length) result['tag'] = tags;
   add(result, 'place', state.filters.selectedPlaceId);
   add(result, 'q', state.filters.searchTerm.trim());
   add(result, 'min', formatAmount(state.filters.minimumAmount));
   add(result, 'max', formatAmount(state.filters.maximumAmount));
+
   if (state.filters.from) result['from'] = formatDate(state.filters.from);
+
   if (state.filters.to) result['to'] = formatDate(state.filters.to);
+
   if (!state.filters.from && !state.filters.to) {
     result['period'] = 'all';
   }
+
   return result;
 }
 
 const SORTS: readonly TransactionSortId[] = [
-  'dateDesc', 'dateAsc', 'amountDesc', 'amountAsc', 'descriptionAsc', 'descriptionDesc',
+  'dateDesc',
+  'dateAsc',
+  'amountDesc',
+  'amountAsc',
+  'descriptionAsc',
+  'descriptionDesc',
 ];
 
-function stringValue(value: unknown): string {
-  return typeof value === 'string' ? value : Array.isArray(value) && typeof value[0] === 'string' ? value[0] : '';
+function stringValue(value: Json | readonly Json[] | undefined): string {
+  const parsed = z.string().safeParse(Array.isArray(value) ? value[0] : value);
+
+  return parsed.success ? parsed.data : '';
 }
 
-function parseList(value: unknown): readonly string[] {
+function parseList(
+  value: Json | readonly Json[] | undefined
+): readonly string[] {
   const values = Array.isArray(value) ? value : [value];
-  return Array.from(new Set(values.flatMap((item) => stringValue(item).split(','))
-    .map((item) => cleanId(item)).filter((item): item is string => !!item))).sort();
+
+  return Array.from(
+    new Set(
+      values
+        .flatMap((item) => stringValue(item).split(','))
+        .map((item) => cleanId(item))
+        .filter((item): item is string => !!item)
+    )
+  ).sort();
 }
 
 function cleanId(value: string): string | null {
   const token = value.trim();
+
   return /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(token)
     ? token
     : null;
@@ -156,7 +199,13 @@ function cleanId(value: string): string | null {
 
 function canonicalList(values: readonly string[]): readonly string[] {
   return Array.from(
-    new Set(values.map((value) => value.trim()).filter(Boolean))
+    new Set(
+      values.flatMap((value) => {
+        const normalized = value.trim();
+
+        return normalized ? [normalized] : [];
+      })
+    )
   ).sort();
 }
 
@@ -164,21 +213,32 @@ function parseDate(value: string): Date | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
   const [year, month, day] = value.split('-').map(Number);
   const date = new Date(Date.UTC(year, month - 1, day));
-  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day ? date : null;
+
+  return date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+    ? date
+    : null;
 }
 
 function formatDate(value: Date): string {
-  return `${value.getUTCFullYear()}-${String(value.getUTCMonth() + 1).padStart(2, '0')}-${String(value.getUTCDate()).padStart(2, '0')}`;
+  return `${value.getUTCFullYear()}-${String(value.getUTCMonth() + 1).padStart(
+    2,
+    '0'
+  )}-${String(value.getUTCDate()).padStart(2, '0')}`;
 }
 
 function parseAmount(value: string): number | null {
   if (!/^(?:0|[1-9]\d*)(?:\.\d+)?$/.test(value)) return null;
   const amount = Number(value);
+
   return Number.isFinite(amount) ? amount : null;
 }
 
 function formatAmount(value: number | null): string | null {
-  return value === null || !Number.isFinite(value) || value < 0 ? null : String(value);
+  return value === null || !Number.isFinite(value) || value < 0
+    ? null
+    : String(value);
 }
 
 function sameDate(left: Date | null, right: Date | null): boolean {
@@ -193,6 +253,7 @@ function inferPreset(
   if (!from || !to) return 'custom';
   const year = now.getUTCFullYear();
   const month = now.getUTCMonth();
+
   const ranges: readonly [TransactionPresetId, Date, Date][] = [
     [
       'currentMonth',
@@ -215,14 +276,32 @@ function inferPreset(
       new Date(Date.UTC(year - 1, 11, 31, 23, 59, 59, 999)),
     ],
   ];
-  return ranges.find(([, start, end]) => sameDate(from, start) && sameDate(to, end))?.[0]
-    ?? 'custom';
+
+  return (
+    ranges.find(
+      ([, start, end]) => sameDate(from, start) && sameDate(to, end)
+    )?.[0] ?? 'custom'
+  );
 }
 
 function endOfDay(value: Date): Date {
-  return new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate(), 23, 59, 59, 999));
+  return new Date(
+    Date.UTC(
+      value.getUTCFullYear(),
+      value.getUTCMonth(),
+      value.getUTCDate(),
+      23,
+      59,
+      59,
+      999
+    )
+  );
 }
 
-function add(target: Record<string, string | readonly string[]>, key: string, value: string | null): void {
+function add(
+  target: Record<string, string | readonly string[]>,
+  key: string,
+  value: string | null
+): void {
   if (value) target[key] = value;
 }

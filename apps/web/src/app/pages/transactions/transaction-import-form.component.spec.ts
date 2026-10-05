@@ -1,3 +1,4 @@
+import { requiredValue, fixtureElement } from '../../../testing/dom';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -39,30 +40,16 @@ class LanguageServiceStub {
   readonly currentLanguage = signal<LanguageCode>('en');
 }
 
-interface ImportFormHarness {
-  sourceMode(): 'file' | 'paste';
-  pastedCsv(): string;
-  parsed(): { rows: readonly unknown[] } | null;
-  errorKey(): string | null;
-  canContinue(): boolean;
-  aiPromptOpen(): boolean;
-  aiPromptCopied(): boolean;
-  aiPrompt(): string;
-  selectSourceMode(mode: 'file' | 'paste'): void;
-  onPastedCsvChange(value: string): void;
-  openAiPrompt(): void;
-  copyAiPrompt(): Promise<void>;
-  continueToReview(): void;
-}
-
 describe('TransactionImportFormComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [TransactionImportFormComponent],
       providers: [
         provideAppTransloco(),
-        { provide: TransactionsStore, useClass: TransactionsStoreStub },
-        { provide: LanguageService, useClass: LanguageServiceStub },
+        TransactionsStoreStub,
+        { provide: TransactionsStore, useExisting: TransactionsStoreStub },
+        LanguageServiceStub,
+        { provide: LanguageService, useExisting: LanguageServiceStub },
       ],
     }).compileComponents();
     vi.useFakeTimers();
@@ -74,38 +61,40 @@ describe('TransactionImportFormComponent', () => {
 
   it('validates pasted Spendist CSV automatically', async () => {
     const fixture = TestBed.createComponent(TransactionImportFormComponent);
-    const component = fixture.componentInstance as unknown as ImportFormHarness;
-    component.selectSourceMode('paste');
+    const component = fixture.componentInstance;
+    component['selectSourceMode']('paste');
 
-    component.onPastedCsvChange(CSV);
+    component['onPastedCsvChange'](CSV);
     await vi.advanceTimersByTimeAsync(300);
     fixture.detectChanges();
 
-    expect(component.parsed()?.rows).toHaveLength(1);
-    expect(component.errorKey()).toBeNull();
-    expect(component.canContinue()).toBe(true);
+    expect(component['parsed']()?.rows).toHaveLength(1);
+    expect(component['errorKey']()).toBeNull();
+    expect(component['canContinue']()).toBe(true);
     expect(
-      fixture.nativeElement.querySelector(
-        '[data-testid="transaction-import-review"]'
+      requiredValue(
+        fixtureElement(fixture).querySelector<HTMLButtonElement>(
+          '[data-testid="transaction-import-review"]'
+        )
       ).disabled
     ).toBe(false);
   });
 
   it('shows a CSV validation error without exposing the review action', async () => {
     const fixture = TestBed.createComponent(TransactionImportFormComponent);
-    const component = fixture.componentInstance as unknown as ImportFormHarness;
-    component.selectSourceMode('paste');
+    const component = fixture.componentInstance;
+    component['selectSourceMode']('paste');
 
-    component.onPastedCsvChange('occurred_at,direction,amount\ninvalid');
+    component['onPastedCsvChange']('occurred_at,direction,amount\ninvalid');
     await vi.advanceTimersByTimeAsync(300);
     fixture.detectChanges();
 
-    expect(component.parsed()).toBeNull();
-    expect(component.errorKey()).toBe(
+    expect(component['parsed']()).toBeNull();
+    expect(component['errorKey']()).toBe(
       'transactions.import.errors.invalid_file'
     );
     expect(
-      fixture.nativeElement.querySelector(
+      fixtureElement(fixture).querySelector(
         '[data-testid="transaction-import-review"]'
       )
     ).toBeNull();
@@ -113,17 +102,17 @@ describe('TransactionImportFormComponent', () => {
 
   it('clears source and validation when switching input methods', async () => {
     const fixture = TestBed.createComponent(TransactionImportFormComponent);
-    const component = fixture.componentInstance as unknown as ImportFormHarness;
-    component.selectSourceMode('paste');
-    component.onPastedCsvChange(CSV);
+    const component = fixture.componentInstance;
+    component['selectSourceMode']('paste');
+    component['onPastedCsvChange'](CSV);
     await vi.advanceTimersByTimeAsync(300);
 
-    component.selectSourceMode('file');
+    component['selectSourceMode']('file');
 
-    expect(component.sourceMode()).toBe('file');
-    expect(component.pastedCsv()).toBe('');
-    expect(component.parsed()).toBeNull();
-    expect(component.errorKey()).toBeNull();
+    expect(component['sourceMode']()).toBe('file');
+    expect(component['pastedCsv']()).toBe('');
+    expect(component['parsed']()).toBeNull();
+    expect(component['errorKey']()).toBeNull();
   });
 
   it('prepares and copies an AI prompt with user catalogs', async () => {
@@ -131,32 +120,36 @@ describe('TransactionImportFormComponent', () => {
       navigator,
       'clipboard'
     );
+
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,
       value: { writeText },
     });
     const fixture = TestBed.createComponent(TransactionImportFormComponent);
-    const component = fixture.componentInstance as unknown as ImportFormHarness;
-    component.selectSourceMode('paste');
-    component.openAiPrompt();
+    const component = fixture.componentInstance;
+    component['selectSourceMode']('paste');
+    component['openAiPrompt']();
     fixture.detectChanges();
 
-    expect(component.aiPromptOpen()).toBe(true);
-    expect(component.aiPrompt()).toContain('"wallet": "Main wallet"');
-    expect(component.aiPrompt()).toContain('"category_group": "Home"');
-    expect(component.aiPrompt()).toContain('"weekly"');
-    expect(component.aiPrompt()).not.toContain('wallet-1');
+    expect(component['aiPromptOpen']()).toBe(true);
+    expect(component['aiPrompt']()).toContain('"wallet": "Main wallet"');
+    expect(component['aiPrompt']()).toContain('"category_group": "Home"');
+    expect(component['aiPrompt']()).toContain('"weekly"');
+    expect(component['aiPrompt']()).not.toContain('wallet-1');
     expect(
-      fixture.nativeElement.querySelector(
-        '[data-testid="transaction-import-ai-prompt"]'
+      requiredValue(
+        fixtureElement(fixture).querySelector<HTMLTextAreaElement>(
+          '[data-testid="transaction-import-ai-prompt"]'
+        )
       ).value
-    ).toBe(component.aiPrompt());
+    ).toBe(component['aiPrompt']());
 
-    await component.copyAiPrompt();
+    await component['copyAiPrompt']();
 
-    expect(writeText).toHaveBeenCalledWith(component.aiPrompt());
-    expect(component.aiPromptCopied()).toBe(true);
+    expect(writeText).toHaveBeenCalledWith(component['aiPrompt']());
+    expect(component['aiPromptCopied']()).toBe(true);
+
     if (clipboardDescriptor) {
       Object.defineProperty(navigator, 'clipboard', clipboardDescriptor);
     } else {
@@ -165,32 +158,33 @@ describe('TransactionImportFormComponent', () => {
   });
 
   it('disables AI prompt preparation without a wallet', () => {
-    const store = TestBed.inject(
-      TransactionsStore
-    ) as unknown as TransactionsStoreStub;
+    const store = TestBed.inject(TransactionsStoreStub);
+
     store.wallets.set([]);
     const fixture = TestBed.createComponent(TransactionImportFormComponent);
     fixture.detectChanges();
 
-    const button = fixture.nativeElement.querySelector(
+    const button = fixtureElement(fixture).querySelector<HTMLButtonElement>(
       '[data-testid="transaction-import-ai-prompt-open"]'
-    ) as HTMLButtonElement | null;
+    );
+
     expect(button).toBeNull();
 
-    const component = fixture.componentInstance as unknown as ImportFormHarness;
-    component.selectSourceMode('paste');
+    const component = fixture.componentInstance;
+    component['selectSourceMode']('paste');
     fixture.detectChanges();
     expect(
-      fixture.nativeElement.querySelector(
-        '[data-testid="transaction-import-ai-prompt-open"]'
+      requiredValue(
+        fixtureElement(fixture).querySelector<HTMLButtonElement>(
+          '[data-testid="transaction-import-ai-prompt-open"]'
+        )
       ).disabled
     ).toBe(true);
   });
 
   it('uses the CSV group to disambiguate duplicate category names', async () => {
-    const store = TestBed.inject(
-      TransactionsStore
-    ) as unknown as TransactionsStoreStub;
+    const store = TestBed.inject(TransactionsStoreStub);
+
     store.groups.set([
       { id: 'group-1', name: 'Home' },
       { id: 'group-2', name: 'Work' },
@@ -210,16 +204,16 @@ describe('TransactionImportFormComponent', () => {
       },
     ]);
     const fixture = TestBed.createComponent(TransactionImportFormComponent);
-    const component = fixture.componentInstance as unknown as ImportFormHarness;
+    const component = fixture.componentInstance;
     let preparedCategoryId = '';
     fixture.componentInstance.prepared.subscribe((prefill) => {
       preparedCategoryId = prefill.rows[0]?.categoryId ?? '';
     });
-    component.selectSourceMode('paste');
-    component.onPastedCsvChange(CSV);
+    component['selectSourceMode']('paste');
+    component['onPastedCsvChange'](CSV);
     await vi.advanceTimersByTimeAsync(300);
 
-    component.continueToReview();
+    component['continueToReview']();
 
     expect(preparedCategoryId).toBe('category-home');
   });

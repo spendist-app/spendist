@@ -95,6 +95,7 @@ export class TransactionImportFormComponent implements OnDestroy {
   );
   protected readonly canContinue = computed(() => {
     const parsed = this.parsed();
+
     return (
       !!parsed &&
       !!this.walletId() &&
@@ -155,12 +156,14 @@ export class TransactionImportFormComponent implements OnDestroy {
     this.clearCopyStatusTimer();
     this.aiPromptCopied.set(false);
     this.aiPromptCopyFailed.set(false);
+
     try {
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(this.aiPrompt());
       } else if (!this.copyWithTextarea(this.aiPrompt())) {
         throw new Error('Clipboard copy is unavailable.');
       }
+
       this.aiPromptCopied.set(true);
       this.copyStatusTimer = setTimeout(() => {
         this.aiPromptCopied.set(false);
@@ -181,6 +184,7 @@ export class TransactionImportFormComponent implements OnDestroy {
     this.pastedCsv.set(value);
     this.resetValidation();
     this.processing.set(false);
+
     if (!value.trim()) return;
 
     this.detectedFormat.set('spendist_csv');
@@ -192,8 +196,13 @@ export class TransactionImportFormComponent implements OnDestroy {
   }
 
   protected async onFileSelected(event: Event): Promise<void> {
-    const input = event.currentTarget as HTMLInputElement;
-    const file = input.files?.[0];
+    const input =
+      event.currentTarget instanceof HTMLInputElement
+        ? event.currentTarget
+        : null;
+
+    const file = input?.files?.[0];
+
     if (!file) return;
     await this.processFile(file);
   }
@@ -212,6 +221,7 @@ export class TransactionImportFormComponent implements OnDestroy {
     event.preventDefault();
     this.dragActive.set(false);
     const file = event.dataTransfer?.files[0];
+
     if (!file) return;
     await this.processFile(file);
   }
@@ -219,6 +229,7 @@ export class TransactionImportFormComponent implements OnDestroy {
   protected removeFile(): void {
     this.fileReadVersion += 1;
     const input = this.fileInput()?.nativeElement;
+
     if (input) input.value = '';
     this.resetSource();
   }
@@ -228,11 +239,14 @@ export class TransactionImportFormComponent implements OnDestroy {
     this.processing.set(true);
     this.resetValidation();
     this.fileName.set(file.name);
+
     try {
       const text = await file.text();
+
       if (readVersion !== this.fileReadVersion) return;
       const detection = detectTransactionImport(text);
       this.detectedFormat.set(detection.format);
+
       if (detection.status === 'valid') {
         this.applyBatch(detection.batch);
       } else {
@@ -254,6 +268,7 @@ export class TransactionImportFormComponent implements OnDestroy {
       const batch = transactionImportAdapter('spendist_csv').parse(
         this.pastedCsv()
       );
+
       this.applyBatch(batch);
     } catch (error) {
       this.errorKey.set(this.importErrorKey(error));
@@ -272,17 +287,22 @@ export class TransactionImportFormComponent implements OnDestroy {
 
   protected continueToReview(): void {
     const batch = this.parsed();
+
     if (!batch || !this.canContinue()) return;
+
     const commonCategory =
       batch.format === 'biedronka_e_receipt' ? this.categoryId() : '';
+
     const selectedWallet = this.store
       .wallets()
       .find((wallet) => wallet.id === this.walletId());
+
     const sourceWalletMatched =
       batch.format === 'spendist_csv' &&
       !!batch.walletName &&
       !!selectedWallet &&
       this.normalize(batch.walletName) === this.normalize(selectedWallet.name);
+
     const rows = batch.rows.map((row) => ({
       ...row,
       categoryId:
@@ -297,6 +317,7 @@ export class TransactionImportFormComponent implements OnDestroy {
           : null,
       },
     }));
+
     this.prepared.emit({
       mode: 'import',
       walletId: this.walletId(),
@@ -309,18 +330,23 @@ export class TransactionImportFormComponent implements OnDestroy {
   protected categoryLabel(categoryId: string): string {
     const categories = this.store.categories();
     const category = categories.find((item) => item.id === categoryId);
+
     if (!category) return '';
     const path = [category.name];
     let parentId = category.parentId;
+
     while (parentId) {
       const parent = categories.find((item) => item.id === parentId);
+
       if (!parent) break;
       path.unshift(parent.name);
       parentId = parent.parentId;
     }
+
     const group = this.store
       .groups()
       .find((item) => item.id === category.groupId);
+
     return group ? `${group.name} / ${path.join(' / ')}` : path.join(' / ');
   }
 
@@ -328,6 +354,7 @@ export class TransactionImportFormComponent implements OnDestroy {
     if (!name)
       return this.store.defaultWalletId() ?? this.store.wallets()[0]?.id ?? '';
     const key = this.normalize(name);
+
     return (
       this.store.wallets().find((wallet) => this.normalize(wallet.name) === key)
         ?.id ?? ''
@@ -338,13 +365,17 @@ export class TransactionImportFormComponent implements OnDestroy {
     if (path.length === 0) return '';
     const expected = path.map((part) => this.normalize(part));
     const leaf = expected.at(-1);
+
     const leafMatches = this.store
       .categories()
       .filter((category) => this.normalize(category.name) === leaf);
+
     const normalizedGroupName = this.normalize(groupName);
+
     const matchingGroup = this.store
       .groups()
       .find((group) => this.normalize(group.name) === normalizedGroupName);
+
     const matches =
       normalizedGroupName === this.normalize(SPENDIST_UNGROUPED_CATEGORY)
         ? leafMatches.filter((category) => !category.groupId)
@@ -353,21 +384,25 @@ export class TransactionImportFormComponent implements OnDestroy {
             (category) => category.groupId === matchingGroup.id
           )
         : leafMatches;
+
     if (matches.length === 1) return matches[0].id;
+
     return (
       matches.find((category) => {
         const label = this.categoryLabel(category.id)
           .split('/')
           .map((part) => this.normalize(part));
+
         return expected.every((part) => label.includes(part));
       })?.id ?? ''
     );
   }
 
-  private importErrorKey(error: unknown): string {
-    if (!(error instanceof TransactionImportError))
+  private importErrorKey(cause: unknown): string {
+    if (!(cause instanceof TransactionImportError))
       return 'transactions.import.errors.invalid';
-    return `transactions.import.errors.${error.code}`;
+
+    return `transactions.import.errors.${cause.code}`;
   }
 
   private normalize(value: string): string {
@@ -408,6 +443,7 @@ export class TransactionImportFormComponent implements OnDestroy {
     textarea.style.opacity = '0';
     this.document.body.appendChild(textarea);
     textarea.select();
+
     try {
       return this.document.execCommand('copy');
     } finally {

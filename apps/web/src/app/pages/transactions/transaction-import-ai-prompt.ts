@@ -2,6 +2,7 @@ import type { LanguageCode } from '../../i18n/languages';
 import { SPENDIST_CSV_HEADERS } from '../settings/spendist-csv-transfer.parser';
 
 export const SPENDIST_AI_PROMPT_IMPORT_SOURCE = 'spendist_ai_prompt';
+
 export const SPENDIST_UNGROUPED_CATEGORY = '__ungrouped__';
 
 export interface AiPromptWallet {
@@ -43,6 +44,7 @@ interface AiPromptCategoryOption {
 
 export function buildAiReceiptCsvPrompt(input: AiReceiptPromptInput): string {
   const categories = buildCategoryOptions(input.groups, input.categories);
+
   const reservedTagNames = new Set(
     [
       ...input.groups.map((group) => group.name),
@@ -50,6 +52,7 @@ export function buildAiReceiptCsvPrompt(input: AiReceiptPromptInput): string {
       ...input.places.map((place) => place.name),
     ].map(normalizeCatalogName)
   );
+
   const catalog = {
     wallets: [...input.wallets].sort(compareByName).map((wallet) => ({
       wallet: wallet.name,
@@ -67,11 +70,15 @@ export function buildAiReceiptCsvPrompt(input: AiReceiptPromptInput): string {
       ),
     ].sort(compareText),
     places: [
-      ...new Set(input.places.map((place) => place.name.trim()).filter(Boolean)),
+      ...new Set(
+        input.places.map((place) => place.name.trim()).filter(Boolean)
+      ),
     ].sort(compareText),
   };
+
   const context = JSON.stringify(catalog, null, 2);
   const header = SPENDIST_CSV_HEADERS.join(',');
+
   return input.language === 'pl'
     ? polishPrompt(header, context)
     : englishPrompt(header, context);
@@ -86,6 +93,7 @@ function buildCategoryOptions(
   categories: readonly AiPromptCategory[]
 ): readonly AiPromptCategoryOption[] {
   const groupsById = new Map(groups.map((group) => [group.id, group.name]));
+
   const categoriesById = new Map(
     categories.map((category) => [category.id, category])
   );
@@ -112,13 +120,16 @@ function categoryPath(
   const path = [category.name];
   const visited = new Set([category.id]);
   let parentId = category.parentId;
+
   while (parentId && path.length < 3 && !visited.has(parentId)) {
     visited.add(parentId);
     const parent = categoriesById.get(parentId);
+
     if (!parent) break;
     path.unshift(parent.name);
     parentId = parent.parentId;
   }
+
   return path;
 }
 

@@ -1,9 +1,8 @@
+import { z } from 'zod';
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import {
-  PostgrestError,
   PostgrestResponse,
   PostgrestSingleResponse,
-  SupabaseClient,
 } from '@supabase/supabase-js';
 import { AuthService } from '../../../core/auth.service';
 import { logError } from '../../../core/logger';
@@ -24,7 +23,9 @@ import type {
 } from '@spendist/data-access/supabase-types';
 
 export type RecurringTransactionDirection = TransactionDirection;
+
 export type RecurringAmountMode = 'fixed' | 'variable';
+
 export type RecurringPaymentsFilter = 'active' | 'stopped' | 'all';
 
 export interface RecurringCategorySummary {
@@ -131,6 +132,7 @@ type RecurringOverviewRow = Readonly<
 >;
 
 type RecurringTransactionTagRow = Tables<'recurring_transaction_tags'>;
+
 type RecurringOccurrenceRow = Tables<'recurring_transaction_occurrences'>;
 
 export interface CreateRecurringTransactionPayload {
@@ -163,16 +165,15 @@ function parseNumber(value: string | number | null | undefined): number {
   if (value === null || value === undefined) {
     return 0;
   }
-  if (typeof value === 'number') {
-    return value;
-  }
+
   const parsed = Number(value);
+
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
 @Injectable()
 export class RecurringPaymentsStore {
-  private readonly supabase = inject<SupabaseClient>(SUPABASE_CLIENT);
+  private readonly supabase = inject(SUPABASE_CLIENT);
   private readonly auth = inject(AuthService);
 
   private readonly userId = signal<string | null>(null);
@@ -204,6 +205,7 @@ export class RecurringPaymentsStore {
   readonly stats = computed(() => this.state().stats);
   readonly monthlyPlan = computed<RecurringMonthlyPlan>(() => {
     const state = this.state();
+
     return calculateRecurringMonthlyPlan(
       state.recurringTransactions,
       state.stats.monthlyExpense,
@@ -254,6 +256,7 @@ export class RecurringPaymentsStore {
   readonly defaultWalletId = computed(() => {
     const wallets = this.state().wallets;
     const preferred = wallets.find((wallet) => wallet.isDefault);
+
     return preferred?.id ?? wallets[0]?.id ?? null;
   });
   readonly empty = computed(
@@ -265,9 +268,11 @@ export class RecurringPaymentsStore {
   readonly editingRecurring = computed<RecurringTransactionEntity | null>(
     () => {
       const id = this.editingId();
+
       if (!id) {
         return null;
       }
+
       return (
         this.state().recurringTransactions.find(
           (transaction) => transaction.id === id
@@ -284,6 +289,7 @@ export class RecurringPaymentsStore {
       }
 
       const session = this.auth.session();
+
       if (!session) {
         this.userId.set(null);
         this.state.set({
@@ -304,6 +310,7 @@ export class RecurringPaymentsStore {
           defaultCurrency: DEFAULT_CURRENCY,
           wallets: [],
         });
+
         return;
       }
 
@@ -313,6 +320,7 @@ export class RecurringPaymentsStore {
       if (previousUserId !== currentUserId) {
         this.userId.set(currentUserId);
         void this.refresh();
+
         return;
       }
 
@@ -332,6 +340,7 @@ export class RecurringPaymentsStore {
       const exists = currentState.recurringTransactions.some(
         (transaction) => transaction.id === editingId
       );
+
       if (!exists) {
         this.editingId.set(null);
       }
@@ -340,6 +349,7 @@ export class RecurringPaymentsStore {
 
   async refresh(): Promise<void> {
     const userId = this.userId();
+
     if (!userId) {
       this.state.set({
         loading: false,
@@ -359,6 +369,7 @@ export class RecurringPaymentsStore {
         defaultCurrency: DEFAULT_CURRENCY,
         wallets: [],
       });
+
       return;
     }
 
@@ -430,54 +441,73 @@ export class RecurringPaymentsStore {
 
       const overviewRow =
         this.ensureNoErrorMaybeSingle<RecurringOverviewRow>(overviewResult);
+
       const transactionRows =
         this.ensureNoErrorArray<RecurringTransactionRow>(transactionsResult);
+
       const occurrenceRows =
         this.ensureNoErrorArray<RecurringOccurrenceRow>(occurrencesResult);
+
       const groups = this.ensureNoErrorArray<CategoryGroupRow>(
         groupsResult
       ).map((group) => this.mapGroupRow(group));
+
       const categories = this.ensureNoErrorArray<CategoryRow>(
         categoriesResult
       ).map((category) => this.mapCategoryRow(category));
+
       const tags = this.ensureNoErrorArray<TagRow>(tagsResult).map((tag) =>
         this.mapTagRow(tag)
       );
+
       const recurringTagRows =
         this.ensureNoErrorArray<RecurringTransactionTagRow>(
           recurringTagsResult
         );
+
       const currencyRows = this.ensureNoErrorArray<CurrencyRow>(
         currenciesResult
       ).map((row) => this.mapCurrencyRow(row));
+
       const currencies = this.sortCurrencies(currencyRows);
+
       const currencyLookup = new Map(
         currencyRows.map((currency) => [currency.id, currency.symbol])
       );
+
       const walletRows = this.ensureNoErrorArray<WalletRow>(walletsResult);
+
       const wallets = this.sortWallets(
         walletRows.map((wallet) => this.mapWalletRow(wallet, currencyLookup))
       );
+
       const walletLookup = new Map(
         wallets.map((wallet) => [wallet.id, wallet])
       );
+
       const categoryLookup = new Map(
         categories.map((category) => [category.id, category])
       );
+
       const tagLookup = new Map(tags.map((tag) => [tag.id, tag]));
+
       const recurringTags = this.buildRecurringTagMap(
         recurringTagRows,
         tagLookup
       );
+
       const transactions = transactionRows.map((row) =>
         this.mapTransactionRow(row, walletLookup, categoryLookup, recurringTags)
       );
+
       const transactionLookup = new Map(
         transactions.map((transaction) => [transaction.id, transaction])
       );
+
       const pendingOccurrences = occurrenceRows.map((row) =>
         this.mapOccurrenceRow(row, transactionLookup)
       );
+
       const defaultWallet =
         wallets.find((wallet) => wallet.isDefault) ?? wallets[0] ?? null;
 
@@ -515,6 +545,7 @@ export class RecurringPaymentsStore {
     const transaction = this.state().recurringTransactions.find(
       (item) => item.id === recurringId
     );
+
     if (!transaction) {
       return;
     }
@@ -546,16 +577,21 @@ export class RecurringPaymentsStore {
     names: readonly string[]
   ): Promise<readonly RecurringTagSummary[]> {
     const userId = this.requireUserId();
+
     const sanitized = Array.from(
       new Set(
-        names
-          .map((name) => name.trim().replace(/\s+/g, ' ').slice(0, 60))
-          .filter(Boolean)
+        names.flatMap((name) => {
+          const normalized = name.trim().replace(/\s+/g, ' ').slice(0, 60);
+
+          return normalized ? [normalized] : [];
+        })
       )
     );
+
     const existingByName = new Map(
       this.state().tags.map((tag) => [tag.name.toLowerCase(), tag])
     );
+
     const missing = sanitized.filter(
       (name) => !existingByName.has(name.toLowerCase())
     );
@@ -565,11 +601,12 @@ export class RecurringPaymentsStore {
         .from('tags')
         .insert(missing.map((name) => ({ owner_id: userId, name })))
         .select('*');
+
       if (error) {
         throw error;
       }
 
-      const created = (data ?? []).map((row) => this.mapTagRow(row as TagRow));
+      const created = (data ?? []).map((row) => this.mapTagRow(row));
       this.state.update((state) => ({
         ...state,
         tags: [...state.tags, ...created].sort((left, right) =>
@@ -581,6 +618,7 @@ export class RecurringPaymentsStore {
     const tagsByName = new Map(
       this.state().tags.map((tag) => [tag.name.toLowerCase(), tag])
     );
+
     return sanitized
       .map((name) => tagsByName.get(name.toLowerCase()))
       .filter((tag): tag is RecurringTagSummary => Boolean(tag));
@@ -599,11 +637,13 @@ export class RecurringPaymentsStore {
     const trimmedSchedule = payload.schedule.trim();
     const trimmedName = payload.name.trim();
     const wallet = this.resolveWallet(payload.walletId);
+
     if (!wallet) {
       throw new RecurringPaymentsStoreError(
         'modules.recurringPayments.form.fields.wallet.error'
       );
     }
+
     const currency =
       this.normalizeCurrency(payload.currency) ?? wallet.currency;
 
@@ -684,11 +724,13 @@ export class RecurringPaymentsStore {
     const trimmedSchedule = payload.schedule.trim();
     const trimmedName = payload.name.trim();
     const wallet = this.resolveWallet(payload.walletId);
+
     if (!wallet) {
       throw new RecurringPaymentsStoreError(
         'modules.recurringPayments.form.fields.wallet.error'
       );
     }
+
     const currency =
       this.normalizeCurrency(payload.currency) ?? wallet.currency;
 
@@ -961,7 +1003,9 @@ export class RecurringPaymentsStore {
       endDate: row.end_date ? new Date(row.end_date) : null,
       schedule: row.schedule,
       amount: parseNumber(row.amount),
-      amountMode: (row.amount_mode ?? 'fixed') as RecurringAmountMode,
+      amountMode: z
+        .enum(['fixed', 'variable'])
+        .parse(row.amount_mode ?? 'fixed'),
       currency: row.currency,
       exchangeRate:
         row.exchange_rate != null ? parseNumber(row.exchange_rate) : null,
@@ -988,6 +1032,7 @@ export class RecurringPaymentsStore {
 
     const end = new Date(transaction.endDate);
     end.setHours(23, 59, 59, 999);
+
     return now.getTime() > end.getTime();
   }
 
@@ -1016,11 +1061,13 @@ export class RecurringPaymentsStore {
 
     for (const row of rows) {
       const tag = tagLookup.get(row.tag_id);
+
       if (!tag) {
         continue;
       }
 
       const existing = map.get(row.recurring_transaction_id);
+
       if (existing) {
         existing.push(tag);
       } else {
@@ -1088,6 +1135,7 @@ export class RecurringPaymentsStore {
     currencyLookup: ReadonlyMap<number, string>
   ): WalletEntity {
     const currencyId = row.currency_id ?? 1;
+
     return {
       id: row.id,
       ownerId: row.owner_id,
@@ -1103,9 +1151,11 @@ export class RecurringPaymentsStore {
       if (a.isDefault && !b.isDefault) {
         return -1;
       }
+
       if (!a.isDefault && b.isDefault) {
         return 1;
       }
+
       return a.name.localeCompare(b.name);
     });
   }
@@ -1114,6 +1164,7 @@ export class RecurringPaymentsStore {
     candidate: string | null | undefined
   ): WalletEntity | null {
     const wallets = this.state().wallets;
+
     if (wallets.length === 0) {
       return null;
     }
@@ -1122,12 +1173,14 @@ export class RecurringPaymentsStore {
 
     if (normalized) {
       const match = wallets.find((wallet) => wallet.id === normalized);
+
       if (match) {
         return match;
       }
     }
 
     const preferred = wallets.find((wallet) => wallet.isDefault);
+
     if (preferred) {
       return preferred;
     }
@@ -1145,11 +1198,13 @@ export class RecurringPaymentsStore {
     candidate: string | null | undefined
   ): string | null {
     const normalized = candidate?.trim().toUpperCase() ?? '';
+
     if (!/^[A-Z]{3}$/.test(normalized)) {
       return null;
     }
 
     const currencies = this.state().currencies;
+
     if (currencies.length === 0) {
       return normalized;
     }
@@ -1183,7 +1238,12 @@ export class RecurringPaymentsStore {
       );
     }
 
-    const data = result.data as { skippedCount?: number } | null;
+    const parsed = z
+      .object({ skippedCount: z.number().optional() })
+      .safeParse(result.data);
+
+    const data = parsed.success ? parsed.data : null;
+
     if ((data?.skippedCount ?? 0) > 0) {
       throw new RecurringPaymentsStoreError(
         'modules.recurringPayments.form.notifications.backfillError'
@@ -1195,9 +1255,11 @@ export class RecurringPaymentsStore {
     if (result.error) {
       throw result.error;
     }
+
     if (result.data === null) {
       throw new RecurringPaymentsStoreError('Missing data response.');
     }
+
     return result.data;
   }
 
@@ -1207,6 +1269,7 @@ export class RecurringPaymentsStore {
     if (result.error) {
       throw result.error;
     }
+
     return result.data ?? null;
   }
 
@@ -1214,6 +1277,7 @@ export class RecurringPaymentsStore {
     if (result.error) {
       throw result.error;
     }
+
     return result.data ?? [];
   }
 
@@ -1229,27 +1293,19 @@ export class RecurringPaymentsStore {
     }
   }
 
-  private describeError(error: unknown): string {
-    if (error instanceof RecurringPaymentsStoreError) {
-      return error.message;
-    }
+  private describeError(cause: unknown): string {
+    const parsed = z.object({ message: z.string() }).safeParse(cause);
 
-    if (error && typeof error === 'object') {
-      const maybePostgrestError = error as PostgrestError;
-
-      if ('message' in maybePostgrestError && maybePostgrestError.message) {
-        return maybePostgrestError.message;
-      }
-    }
-
-    return 'Unexpected error';
+    return parsed.success ? parsed.data.message : 'Unexpected error';
   }
 
   private requireUserId(): string {
     const userId = this.userId();
+
     if (!userId) {
       throw new RecurringPaymentsStoreError('User is not authenticated.');
     }
+
     return userId;
   }
 }

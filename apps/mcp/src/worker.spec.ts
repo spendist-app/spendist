@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import type { AuthInfo } from '@modelcontextprotocol/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SupabaseTokenVerifier } from './auth';
@@ -22,7 +23,7 @@ const authInfo: AuthInfo = {
   extra: { userId: 'test-user' },
 };
 
-function authorizedRequest(body: object, headers: HeadersInit = {}): Request {
+function authorizedRequest<T>(body: T, headers: HeadersInit = {}): Request {
   return new Request(env.MCP_RESOURCE_URL, {
     method: 'POST',
     headers: {
@@ -109,6 +110,7 @@ describe('Spendist MCP Worker', () => {
       SupabaseTokenVerifier.prototype,
       'verifyAccessToken'
     );
+
     const response = await app.request(
       authorizedRequest(
         { jsonrpc: '2.0', id: 1, method: 'server/discover' },
@@ -127,6 +129,7 @@ describe('Spendist MCP Worker', () => {
       SupabaseTokenVerifier.prototype,
       'verifyAccessToken'
     );
+
     const response = await app.request(
       authorizedRequest(
         { jsonrpc: '2.0', id: 1, method: 'server/discover' },
@@ -145,6 +148,7 @@ describe('Spendist MCP Worker', () => {
       SupabaseTokenVerifier.prototype,
       'verifyAccessToken'
     ).mockResolvedValue(authInfo);
+
     const response = await app.request(
       authorizedRequest(
         {
@@ -172,13 +176,19 @@ describe('Spendist MCP Worker', () => {
     );
 
     expect(response.status).toBe(200);
-    const payload = (await response.json()) as {
-      result?: {
-        resultType?: string;
-        supportedVersions?: string[];
-        _meta?: Record<string, unknown>;
-      };
-    };
+
+    const payload = z
+      .object({
+        result: z
+          .object({
+            resultType: z.string().optional(),
+            supportedVersions: z.array(z.string()).optional(),
+            _meta: z.record(z.string(), z.json()).optional(),
+          })
+          .optional(),
+      })
+      .parse(await response.json());
+
     expect(payload.result).toMatchObject({
       resultType: 'complete',
       supportedVersions: ['2026-07-28'],
@@ -193,6 +203,7 @@ describe('Spendist MCP Worker', () => {
       SupabaseTokenVerifier.prototype,
       'verifyAccessToken'
     ).mockResolvedValue(authInfo);
+
     const response = await app.request(
       authorizedRequest(
         {
@@ -226,6 +237,7 @@ describe('Spendist MCP Worker', () => {
       SupabaseTokenVerifier.prototype,
       'verifyAccessToken'
     ).mockResolvedValue(authInfo);
+
     const response = await app.request(
       authorizedRequest(
         {
@@ -253,14 +265,29 @@ describe('Spendist MCP Worker', () => {
     );
 
     expect(response.status).toBe(200);
-    const payload = (await response.json()) as {
-      result?: {
-        resultType?: string;
-        ttlMs?: number;
-        cacheScope?: string;
-        tools?: Array<{ name: string; inputSchema?: { $schema?: string } }>;
-      };
-    };
+
+    const payload = z
+      .object({
+        result: z
+          .object({
+            resultType: z.string().optional(),
+            ttlMs: z.number().optional(),
+            cacheScope: z.string().optional(),
+            tools: z
+              .array(
+                z.object({
+                  name: z.string(),
+                  inputSchema: z
+                    .object({ $schema: z.string().optional() })
+                    .optional(),
+                })
+              )
+              .optional(),
+          })
+          .optional(),
+      })
+      .parse(await response.json());
+
     expect(payload.result).toMatchObject({
       resultType: 'complete',
       ttlMs: 0,
@@ -280,6 +307,7 @@ describe('Spendist MCP Worker', () => {
       SupabaseTokenVerifier.prototype,
       'verifyAccessToken'
     ).mockResolvedValue(authInfo);
+
     const response = await app.request(
       authorizedRequest({
         jsonrpc: '2.0',

@@ -43,6 +43,10 @@
         </a>
       </div>
 
+      <a class="text-link" href="#getting-started"
+        >{{ 'landing.hero.ctaSecondary' | transloco }}</a
+      >
+
       <ul
         class="hero-proof"
         [attr.aria-label]="'landing.proof.label' | transloco"
@@ -127,6 +131,7 @@
           </div>
         </div>
       </div>
+      <p class="preview-caption">{{ 'landing.preview.sample' | transloco }}</p>
     </div>
   </section>
 
@@ -211,11 +216,19 @@
     </div>
   </section>
 
-  <section class="latest-section" aria-labelledby="latest-title">
+  <section
+    id="getting-started"
+    class="latest-section"
+    aria-labelledby="getting-started-title"
+  >
     <div class="latest-copy">
-      <span class="eyebrow">{{ 'landing.latest.badge' | transloco }}</span>
-      <h2 id="latest-title">{{ 'landing.latest.title' | transloco }}</h2>
-      <p>{{ 'landing.latest.subtitle' | transloco }}</p>
+      <span class="eyebrow"
+        >{{ 'landing.gettingStarted.badge' | transloco }}</span
+      >
+      <h2 id="getting-started-title">
+        {{ 'landing.gettingStarted.title' | transloco }}
+      </h2>
+      <p>{{ 'landing.gettingStarted.subtitle' | transloco }}</p>
       <a
         class="text-link"
         href="https://github.com/spendist-app/spendist"
@@ -223,7 +236,7 @@
         rel="noopener noreferrer"
       >
         <ng-icon [svg]="codeIcon" size="19" aria-hidden="true"></ng-icon>
-        {{ 'landing.latest.github' | transloco }}
+        {{ 'landing.gettingStarted.github' | transloco }}
       </a>
     </div>
 
@@ -231,29 +244,22 @@
       <li>
         <span>01</span>
         <div>
-          <h3>{{ 'landing.latest.bulk.title' | transloco }}</h3>
-          <p>{{ 'landing.latest.bulk.description' | transloco }}</p>
+          <h3>{{ 'landing.gettingStarted.account.title' | transloco }}</h3>
+          <p>{{ 'landing.gettingStarted.account.description' | transloco }}</p>
         </div>
       </li>
       <li>
         <span>02</span>
         <div>
-          <h3>{{ 'landing.latest.filters.title' | transloco }}</h3>
-          <p>{{ 'landing.latest.filters.description' | transloco }}</p>
+          <h3>{{ 'landing.gettingStarted.expense.title' | transloco }}</h3>
+          <p>{{ 'landing.gettingStarted.expense.description' | transloco }}</p>
         </div>
       </li>
       <li>
         <span>03</span>
         <div>
-          <h3>{{ 'landing.latest.automation.title' | transloco }}</h3>
-          <p>{{ 'landing.latest.automation.description' | transloco }}</p>
-        </div>
-      </li>
-      <li>
-        <span>04</span>
-        <div>
-          <h3>{{ 'landing.latest.transfer.title' | transloco }}</h3>
-          <p>{{ 'landing.latest.transfer.description' | transloco }}</p>
+          <h3>{{ 'landing.gettingStarted.review.title' | transloco }}</h3>
+          <p>{{ 'landing.gettingStarted.review.description' | transloco }}</p>
         </div>
       </li>
     </ol>

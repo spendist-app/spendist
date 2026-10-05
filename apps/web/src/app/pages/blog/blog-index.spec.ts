@@ -1,3 +1,4 @@
+import { fixtureElement } from '../../../testing/dom';
 import { TestBed } from '@angular/core/testing';
 import {
   ActivatedRoute,
@@ -51,13 +52,14 @@ describe('BlogIndex', () => {
         robots: 'index,follow,max-image-preview:large',
       })
     );
-    const cards = fixture.nativeElement.querySelectorAll(
-      '.article-card'
-    ) as NodeListOf<HTMLElement>;
+
+    const cards =
+      fixtureElement(fixture).querySelectorAll<HTMLElement>('.article-card');
+
     expect(cards).toHaveLength(3);
     expect(cards[0]?.textContent).toContain('Recurring Payments');
     expect(
-      fixture.nativeElement.querySelector('.empty-state h2')
+      fixtureElement(fixture).querySelector('.empty-state h2')
     ).not.toBeTruthy();
   });
 });

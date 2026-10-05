@@ -23,54 +23,71 @@ export const SUPPORTED_CURRENCIES: readonly CurrencyOption[] = [
 
 const FALLBACK_CURRENCY_ID = 2;
 
-const REGION_CURRENCY: Readonly<Record<string, string>> = {
-  AU: 'AUD',
-  CA: 'CAD',
-  CH: 'CHF',
-  CN: 'CNY',
-  CZ: 'CZK',
-  DK: 'DKK',
-  GB: 'GBP',
-  IN: 'INR',
-  JP: 'JPY',
-  NO: 'NOK',
-  NZ: 'NZD',
-  PL: 'PLN',
-  SE: 'SEK',
-  US: 'USD',
-};
+const REGION_CURRENCY = new Map(
+  Object.entries({
+    AU: 'AUD',
+    CA: 'CAD',
+    CH: 'CHF',
+    CN: 'CNY',
+    CZ: 'CZK',
+    DK: 'DKK',
+    GB: 'GBP',
+    IN: 'INR',
+    JP: 'JPY',
+    NO: 'NOK',
+    NZ: 'NZD',
+    PL: 'PLN',
+    SE: 'SEK',
+    US: 'USD',
+  })
+);
 
-const LANGUAGE_CURRENCY: Readonly<Record<string, string>> = {
-  pl: 'PLN',
-  en: 'USD',
-};
+const LANGUAGE_CURRENCY = new Map(
+  Object.entries({
+    pl: 'PLN',
+    en: 'USD',
+  })
+);
 
 export function resolveCurrencyIdBySymbol(symbol: string): number | null {
   const normalized = symbol.trim().toUpperCase();
-  return SUPPORTED_CURRENCIES.find((currency) => currency.symbol === normalized)?.id ?? null;
+
+  return (
+    SUPPORTED_CURRENCIES.find((currency) => currency.symbol === normalized)
+      ?.id ?? null
+  );
 }
 
-export function detectPreferredCurrencyId(language: string, locales: readonly string[] = []): number {
+export function detectPreferredCurrencyId(
+  language: string,
+  locales: readonly string[] = []
+): number {
   for (const locale of locales) {
     const region = extractRegion(locale);
-    const currency = region ? REGION_CURRENCY[region] : null;
+    const currency = region ? REGION_CURRENCY.get(region) : null;
+
     if (currency) {
       return resolveCurrencyIdBySymbol(currency) ?? FALLBACK_CURRENCY_ID;
     }
   }
 
   const languageCode = language.trim().toLowerCase().split('-')[0] ?? '';
-  const currency = LANGUAGE_CURRENCY[languageCode];
-  return currency ? resolveCurrencyIdBySymbol(currency) ?? FALLBACK_CURRENCY_ID : FALLBACK_CURRENCY_ID;
+  const currency = LANGUAGE_CURRENCY.get(languageCode);
+
+  return currency
+    ? resolveCurrencyIdBySymbol(currency) ?? FALLBACK_CURRENCY_ID
+    : FALLBACK_CURRENCY_ID;
 }
 
 function extractRegion(locale: string): string | null {
   try {
     const region = new Intl.Locale(locale).region;
+
     return region ? region.toUpperCase() : null;
   } catch {
     const parts = locale.split(/[-_]/);
     const region = parts.find((part) => /^[a-z]{2}$/i.test(part));
+
     return region ? region.toUpperCase() : null;
   }
 }

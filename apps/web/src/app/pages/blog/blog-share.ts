@@ -32,7 +32,7 @@ export class BlogShare {
   private readonly document = inject(DOCUMENT);
   protected readonly copied = signal(false);
   protected readonly nativeShareAvailable =
-    isPlatformBrowser(this.platformId) && typeof navigator.share === 'function';
+    isPlatformBrowser(this.platformId) && navigator.share;
   protected readonly encodedUrl = computed(() =>
     encodeURIComponent(this.url())
   );
@@ -47,6 +47,7 @@ export class BlogShare {
 
   protected async share(): Promise<void> {
     if (!this.nativeShareAvailable) return;
+
     try {
       await navigator.share({ title: this.title(), url: this.url() });
     } catch {
@@ -56,6 +57,7 @@ export class BlogShare {
 
   protected async copy(): Promise<void> {
     if (!isPlatformBrowser(this.platformId)) return;
+
     try {
       await navigator.clipboard.writeText(this.url());
     } catch {
@@ -66,6 +68,7 @@ export class BlogShare {
       this.document.execCommand('copy');
       input.remove();
     }
+
     this.copied.set(true);
     setTimeout(() => this.copied.set(false), 2000);
   }
