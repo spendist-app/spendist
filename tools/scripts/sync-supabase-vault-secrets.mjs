@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { redactSensitiveText } from './run-with-secret-redaction.mjs';
+import { validateSupabaseFunctionsUrl } from './validate-supabase-functions-url.mjs';
 
 const LOCAL_INTERNAL_FUNCTION_SECRET = 'local-internal-function-secret';
 
@@ -156,6 +157,18 @@ function main() {
 
   const isLocal = isLocalDatabaseUrl(dbUrl);
   const functionsBaseUrl = resolveFunctionsBaseUrl(isLocal);
+
+  if (!isLocal) {
+    const projectUrl =
+      process.env.NG_APP_SUPABASE_URL?.trim() ||
+      process.env.SUPABASE_URL?.trim();
+
+    if (!projectUrl) {
+      throw new Error('Missing NG_APP_SUPABASE_URL or SUPABASE_URL');
+    }
+
+    validateSupabaseFunctionsUrl(functionsBaseUrl, projectUrl);
+  }
 
   const internalFunctionSecret = firstEnv(
     'INTERNAL_FUNCTION_SECRET',

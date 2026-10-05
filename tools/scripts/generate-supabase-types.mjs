@@ -2,6 +2,8 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
+import { redactSensitiveText } from './run-with-secret-redaction.mjs';
+
 const OUTPUT_PATH = resolve(
   'libs',
   'data-access',
@@ -41,13 +43,22 @@ function main() {
       'public,storage',
     ],
     {
-      stdio: ['ignore', 'pipe', 'inherit'],
+      stdio: ['ignore', 'pipe', 'pipe'],
       env: process.env,
     }
   );
 
+  if (result.stderr) {
+    process.stderr.write(
+      redactSensitiveText(result.stderr.toString('utf8'), [dbUrl])
+    );
+  }
+
   if (result.error) {
-    console.error('[supabase-types] Failed to run Supabase CLI:', result.error);
+    console.error(
+      '[supabase-types] Failed to run Supabase CLI:',
+      redactSensitiveText(result.error.message, [dbUrl])
+    );
     process.exit(1);
   }
 

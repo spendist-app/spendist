@@ -69,3 +69,35 @@ test('wrapper redacts child output and preserves its exit code', () => {
   assert.equal(stderr, '[REDACTED]');
   assert.doesNotMatch(`${stdout}${stderr}`, new RegExp(secret));
 });
+
+test('wrapper redacts credential-bearing npm notices from Supabase CLI', () => {
+  const dbUrl = 'postgresql://postgres:p%40ssword@example.test/postgres';
+  let stdout = '';
+  let stderr = '';
+
+  const status = run(
+    [
+      '--secret-env',
+      'SUPABASE_REMOTE_DB_URL',
+      '--',
+      'node_modules/.bin/supabase',
+      'db',
+      'query',
+      '--db-url',
+      '{ENV:SUPABASE_REMOTE_DB_URL}',
+    ],
+    { SUPABASE_REMOTE_DB_URL: dbUrl },
+    () => ({
+      status: 1,
+      stdout: '',
+      stderr: `npm notice cli supabase db query --db-url ${dbUrl}\nconnection failed for password p@ssword`,
+    }),
+    { write: (value) => (stdout += value) },
+    { write: (value) => (stderr += value) }
+  );
+
+  assert.equal(status, 1);
+  assert.equal(stdout, '');
+  assert.doesNotMatch(stderr, /p%40ssword|p@ssword/);
+  assert.match(stderr, /\[REDACTED\]/);
+});

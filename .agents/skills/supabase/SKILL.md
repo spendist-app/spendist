@@ -35,6 +35,8 @@ npm run db:pull:local
 npm run db:types:local
 npm run db:push:remote
 npm run db:pull:remote
+npm run db:query:remote -- --file /tmp/read-only-query.sql
+npm run db:migrations:remote
 npm run db:types:remote
 ```
 
@@ -69,7 +71,7 @@ Before pushing remote migrations or when history drift is suspected, compare loc
 
 ```bash
 npx supabase migration list --local
-dotenv -e .env -- sh -c 'npx supabase migration list --db-url "$SUPABASE_REMOTE_DB_URL"'
+npm run db:migrations:remote
 ```
 
 If remote-only migrations exist, capture them into `.agent/*` for analysis first, then add matching files under `supabase/migrations` before proceeding. Never leave required production migrations only in the remote database.
