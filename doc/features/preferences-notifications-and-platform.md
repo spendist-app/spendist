@@ -22,7 +22,7 @@ The light/dark theme is saved locally. Without a saved value, the browser's dark
 
 ## Notifications
 
-The notification menu is scoped to the authenticated user and refreshes through Supabase Realtime. It shows recent records and an unread count; users can mark all unread displayed notifications as read.
+The notification menu is scoped to the authenticated user and refreshes through Supabase Realtime. It shows recent records and an unread count; users can mark all unread displayed notifications as read. Each notification uses the details stored for its own type, such as a recurring transaction's name, amount, and currency or an Allowance inviter's name. Allowance invitation actions use the stored invitation ID.
 
 Current notification types include automatic recurring transaction creation, a recurring payment ending, and exchange-rate synchronisation failure.
 

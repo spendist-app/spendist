@@ -21,7 +21,7 @@ const notificationPayload = z.object({
   inviter_name: z.unknown(),
   payer_name: z.unknown(),
   recipient_name: z.unknown(),
-});
+}).partial();
 
 @Component({
   standalone: true,
