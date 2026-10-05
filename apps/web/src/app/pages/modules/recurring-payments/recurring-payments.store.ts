@@ -233,7 +233,19 @@ export class RecurringPaymentsStore {
       return !transaction.isPaused && !this.isNaturallyEnded(transaction, now);
     });
   });
-  readonly pendingOccurrences = computed(() => this.state().pendingOccurrences);
+  readonly pendingOccurrences = computed(() => {
+    const state = this.state();
+
+    const activeRecurringIds = new Set(
+      state.recurringTransactions
+        .filter((transaction) => !transaction.isPaused)
+        .map((transaction) => transaction.id)
+    );
+
+    return state.pendingOccurrences.filter((occurrence) =>
+      activeRecurringIds.has(occurrence.recurringTransactionId)
+    );
+  });
   readonly categories = computed(() => this.state().categories);
   readonly groups = computed(() => this.state().groups);
   readonly groupedCategories = computed(() =>

@@ -6,6 +6,8 @@ Recurring payments model expected repeated income or expense, such as a subscrip
 
 Users can create, edit, delete, and filter recurring records by active, stopped, or all status. The module also exposes statistics, category/tag summaries, a monthly plan, and pending occurrences.
 
+Variable-amount occurrences ask for an actual amount only while their recurring record is active. Stopping a record hides its outstanding amount prompts, including a prompt reopened after its posted transaction is deleted. Resuming the record makes still-unposted occurrences available again.
+
 ## Automatic transaction creation
 
 Supabase-native scheduled work evaluates due occurrences and creates ordinary Spendist transaction records. Those records are marked automatic and appear in transactions and the dashboard's recurring widget. Related activity can appear as notifications.
