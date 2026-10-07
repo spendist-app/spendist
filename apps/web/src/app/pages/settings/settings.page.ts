@@ -39,6 +39,7 @@ import { HeroIconPickerComponent } from '../../shared/icons/hero-icon-picker.com
 import { KontomierzImportStore } from './kontomierz-import.store';
 import { SpendistCsvTransferStore } from './spendist-csv-transfer.store';
 import { SPENDIST_CSV_HEADERS } from './spendist-csv-transfer.parser';
+import { EmailPreferences } from './email-preferences';
 import { AuthService } from '../../core/auth.service';
 
 type SettingsPanelId =
@@ -122,6 +123,7 @@ interface ParentCategoryOption {
   selector: 'app-settings-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    EmailPreferences,
     ReactiveFormsModule,
     NgIcon,
     HeroIconPickerComponent,

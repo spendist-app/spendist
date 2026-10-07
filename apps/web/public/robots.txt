@@ -11,6 +11,7 @@ Disallow: /signup
 Disallow: /forgot-password
 Disallow: /reset-password
 Disallow: /auth/
+Disallow: /admin
 Disallow: /dashboard
 Disallow: /home
 Disallow: /transactions

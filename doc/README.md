@@ -4,6 +4,7 @@ This directory is the English, LLM-oriented source of truth for current user-vis
 
 ## Feature index
 
+- [Email and private administration](features/email-and-administration.md)
 - [Authentication and account security](features/authentication-and-account-security.md)
 - [Transactions](features/transactions.md)
 - [Financial organization and data portability](features/financial-organization-and-data-portability.md)

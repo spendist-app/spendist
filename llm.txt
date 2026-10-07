@@ -39,3 +39,7 @@ Spendist is a GPL-3.0, open-source personal-finance web application. It helps a 
 Start with `doc/README.md`, then read `llm-full.txt` for detailed behavior, route ownership, and architecture. The Worker publicly serves these files at both `/llm.txt` and the conventional `/llms.txt`, plus `/llm-full.txt` and `/llms-full.txt`. Keep `doc/`, both LLM files, `sitemap.xml`, and `robots.txt` current when product behavior or public routes change.
 
 Public landing onboarding: `/` explains household expense tracking in Polish and English, links to signup/login and source code, and includes a three-step getting-started guide. Its financial illustration is labelled as sample data. Bank connections and bill execution are not offered. See `doc/features/public-landing.md`.
+
+## Email and administration
+
+Locally implemented, production activation pending approval: unified SES queue for Supabase Auth, Allowance invitations and opt-in notifications; 100 reserved recipient attempts per rolling 24 hours; atomic admission, per-account/recipient limits, bounded retries, no automatic uncertain resend. Server-only SES/SNS credentials, five-minute regional SES monitoring and deduplicated independent SNS alerts. Private /admin reads aggregate statistics through an is_admin-checked database RPC; recipients and message content stay private. Settings offers opt-in notification email. See doc/features/email-and-administration.md and docs/email/DEPLOYMENT.md.

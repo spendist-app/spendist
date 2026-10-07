@@ -1,0 +1,33 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadSesAccount",
+      "Effect": "Allow",
+      "Action": "ses:GetAccount",
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "REPLACE_REGION"
+        },
+        "Bool": {
+          "aws:SecureTransport": "true"
+        }
+      }
+    },
+    {
+      "Sid": "OnlySpendistAlertTopic",
+      "Effect": "Allow",
+      "Action": "sns:Publish",
+      "Resource": "arn:aws:sns:REPLACE_REGION:REPLACE_ACCOUNT_ID:spendist-email-alerts",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "REPLACE_REGION"
+        },
+        "Bool": {
+          "aws:SecureTransport": "true"
+        }
+      }
+    }
+  ]
+}

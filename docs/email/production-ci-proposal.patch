@@ -1,0 +1,30 @@
+--- a/.github/workflows/production.yml
++++ b/.github/workflows/production.yml
+@@ -153,6 +153,27 @@
+             --secret-env SUPABASE_ACCESS_TOKEN \
+             --secret-env SUPABASE_PROJECT_REF \
+             -- npm exec -- supabase functions deploy send-allowance-invitation \
++            --project-ref '{ENV:SUPABASE_PROJECT_REF}' \
++            --no-verify-jwt
++
++          node tools/scripts/run-with-secret-redaction.mjs \
++            --secret-env SUPABASE_ACCESS_TOKEN \
++            --secret-env SUPABASE_PROJECT_REF \
++            -- npm exec -- supabase functions deploy auth-email \
++            --project-ref '{ENV:SUPABASE_PROJECT_REF}' \
++            --no-verify-jwt
++
++          node tools/scripts/run-with-secret-redaction.mjs \
++            --secret-env SUPABASE_ACCESS_TOKEN \
++            --secret-env SUPABASE_PROJECT_REF \
++            -- npm exec -- supabase functions deploy process-email \
++            --project-ref '{ENV:SUPABASE_PROJECT_REF}' \
++            --no-verify-jwt
++
++          node tools/scripts/run-with-secret-redaction.mjs \
++            --secret-env SUPABASE_ACCESS_TOKEN \
++            --secret-env SUPABASE_PROJECT_REF \
++            -- npm exec -- supabase functions deploy monitor-email \
+             --project-ref '{ENV:SUPABASE_PROJECT_REF}' \
+             --no-verify-jwt
+ 

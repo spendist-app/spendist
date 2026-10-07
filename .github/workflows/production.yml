@@ -156,6 +156,27 @@ jobs:
             --project-ref '{ENV:SUPABASE_PROJECT_REF}' \
             --no-verify-jwt
 
+          node tools/scripts/run-with-secret-redaction.mjs \
+            --secret-env SUPABASE_ACCESS_TOKEN \
+            --secret-env SUPABASE_PROJECT_REF \
+            -- npm exec -- supabase functions deploy auth-email \
+            --project-ref '{ENV:SUPABASE_PROJECT_REF}' \
+            --no-verify-jwt
+
+          node tools/scripts/run-with-secret-redaction.mjs \
+            --secret-env SUPABASE_ACCESS_TOKEN \
+            --secret-env SUPABASE_PROJECT_REF \
+            -- npm exec -- supabase functions deploy process-email \
+            --project-ref '{ENV:SUPABASE_PROJECT_REF}' \
+            --no-verify-jwt
+
+          node tools/scripts/run-with-secret-redaction.mjs \
+            --secret-env SUPABASE_ACCESS_TOKEN \
+            --secret-env SUPABASE_PROJECT_REF \
+            -- npm exec -- supabase functions deploy monitor-email \
+            --project-ref '{ENV:SUPABASE_PROJECT_REF}' \
+            --no-verify-jwt
+
       - name: Sync Supabase Edge Function Secrets
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -163,10 +184,6 @@ jobs:
           INTERNAL_FUNCTION_SECRET: ${{ secrets.INTERNAL_FUNCTION_SECRET }}
           ROUTINE_RUNNER_SECRET: ${{ secrets.ROUTINE_RUNNER_SECRET }}
           RECURRING_PAYMENTS_SECRET: ${{ secrets.RECURRING_PAYMENTS_SECRET }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
           CLOUDFLARE_PRODUCTION_URL: ${{ secrets.CLOUDFLARE_PRODUCTION_URL }}
         run: |
           if [ -z "$SUPABASE_PROJECT_REF" ]; then
@@ -186,10 +203,6 @@ jobs:
             --secret-env INTERNAL_FUNCTION_SECRET \
             --secret-env ROUTINE_RUNNER_SECRET \
             --secret-env RECURRING_PAYMENTS_SECRET \
-            --secret-env AWS_ACCESS_KEY_ID \
-            --secret-env AWS_SECRET_ACCESS_KEY \
-            --secret-env AWS_REGION \
-            --secret-env EMAIL_FROM \
             -- npm exec -- supabase secrets set \
               --project-ref '{ENV:SUPABASE_PROJECT_REF}' \
               --env-file "$secrets_file"

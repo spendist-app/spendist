@@ -50,15 +50,7 @@ after seven days, and can be used once.
 
 ## Deployment
 
-Apply the database migration before deploying the
-`send-allowance-invitation` Edge Function. The production workflow reuses the
-existing `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, and
-`EMAIL_FROM` GitHub secrets, and derives `APP_URL` from
-`CLOUDFLARE_PRODUCTION_URL` with `https://spendist.app` as the fallback. The
-AWS identity must have permission to call SES `SendEmail`, and the sender in
-`EMAIL_FROM` must be verified in the configured SES region. The workflow
-synchronizes these values to Supabase Edge Function secrets; Supabase provides
-the project URL and API keys to the function runtime.
+Invitations now use the shared transactional email queue through the `email_allowance_invite` RPC and revised Edge Function. Its runtime needs only Supabase public configuration; AWS sending permissions belong to the separate queue worker. Apply the additive queue migration and deploy the worker before enabling delivery. See [email and administration](email-and-administration.md) and the [deployment approval package](../../docs/email/DEPLOYMENT.md).
 
 ## Boundary
 

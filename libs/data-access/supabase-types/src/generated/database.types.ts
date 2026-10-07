@@ -885,6 +885,7 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           creation_date: string
+          email_notifications: boolean
           full_name: string
           id: string
           is_admin: boolean
@@ -897,6 +898,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           creation_date?: string
+          email_notifications?: boolean
           full_name: string
           id: string
           is_admin?: boolean
@@ -909,6 +911,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           creation_date?: string
+          email_notifications?: boolean
           full_name?: string
           id?: string
           is_admin?: boolean
@@ -1603,6 +1606,36 @@ export type Database = {
         Args: { p_connection_id: string }
         Returns: undefined
       }
+      email_admin_status: { Args: never; Returns: Json }
+      email_alert_claim: { Args: { p_token: string }; Returns: Json }
+      email_alert_complete: {
+        Args: { p_id: string; p_success: boolean; p_token: string }
+        Returns: undefined
+      }
+      email_allowance_invite: {
+        Args: { p_email: string; p_language?: string }
+        Returns: Json
+      }
+      email_claim: { Args: never; Returns: Json }
+      email_complete: {
+        Args: {
+          p_id: string
+          p_message_id?: string
+          p_result: string
+          p_token: string
+        }
+        Returns: undefined
+      }
+      email_enqueue: {
+        Args: { p_key: string; p_messages: Json; p_owner: string }
+        Returns: string
+      }
+      email_monitor_claim: { Args: never; Returns: string }
+      email_monitor_record: {
+        Args: { p_region: string; p_snapshot: Json; p_token: string }
+        Returns: boolean
+      }
+      email_monitor_release: { Args: { p_token: string }; Returns: undefined }
       enqueue_recurring_transaction: {
         Args: { p_recurring_id: string; p_run_at?: string }
         Returns: string
