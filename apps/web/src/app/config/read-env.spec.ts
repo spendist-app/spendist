@@ -11,6 +11,20 @@ afterEach(() => {
 });
 
 describe('readEnv', () => {
+  it.each(['env', '__env'])(
+    'reads %s when the other runtime container is absent',
+    (source) => {
+      const other = source === 'env' ? '__env' : 'env';
+      vi.stubGlobal(primary, undefined);
+      vi.stubGlobal(source, { [primary]: 'https://production.example' });
+      vi.stubGlobal(other, undefined);
+      Reflect.deleteProperty(globalThis, other);
+      vi.stubEnv(primary, 'http://127.0.0.1:55321');
+
+      expect(readEnv([primary])).toBe('https://production.example');
+    }
+  );
+
   it('checks all direct aliases before nested runtime values', () => {
     vi.stubGlobal(primary, 123);
     vi.stubGlobal(alias, 'direct-alias');

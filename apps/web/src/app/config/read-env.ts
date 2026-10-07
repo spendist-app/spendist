@@ -35,7 +35,7 @@ function buildEnv() {
 /** Resolve validated strings in the same source and alias order in every runtime. */
 export function readEnv(keys: readonly string[]): string | undefined {
   const nested = z
-    .object({ env: z.unknown(), __env: z.unknown() })
+    .object({ env: z.unknown().optional(), __env: z.unknown().optional() })
     .safeParse(globalThis);
 
   const sources = [

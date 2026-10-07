@@ -6,7 +6,9 @@
     "!/**/*.*",
     "!/**/*__*",
     "!/**/*__*/**",
-    "!/analytics/**"
+    "!/analytics/**",
+    "!/admin",
+    "!/admin/**"
   ],
   "assetGroups": [
     {
@@ -19,7 +21,8 @@
           "/index.html",
           "/manifest.webmanifest",
           "/*.css",
-          "/*.js"
+          "/*.js",
+          "!/env.js"
         ]
       }
     },

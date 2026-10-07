@@ -1,12 +1,12 @@
 # Email and private administration
 
-Status: implemented locally; AWS configuration and production activation require approval.
+Status: backend, monitor and private panel deployed with application sending disabled. AWS production access and an actual quota of 100 recipients/24h remain pending. The signed Auth hook is implemented but not activated; existing Supabase Auth mail remains outside this queue until that cutover.
 
 ## User behavior
 
 Authentication emails use `noreply@spendist.app`; Allowance invitations and optional notification emails use `hello@spendist.app`. Settings offers an opt-in email-notification toggle, disabled by default. Notification emails contain a generic dashboard link, without amounts, account names, transaction details or notification payloads. Existing in-app notifications remain available when an email is skipped.
 
-All supported email paths use one Postgres queue: Supabase Auth through a signed Send Email Hook, server-created notifications through a database trigger, and Allowance invitations through an atomic invitation-and-queue RPC. Supported Auth actions are signup, recovery, magic link, invite, secure email change and reauthentication. Secure email changes count both recipients and queue both messages atomically. The hook overrides SMTP; configuring only SES SMTP would bypass this queue and is not the supported deployment.
+The shared Postgres queue supports Supabase Auth through a signed Send Email Hook, server-created notifications through a database trigger, and Allowance invitations through an atomic invitation-and-queue RPC. The Auth path is awaiting the conditional production cutover. Supported Auth actions are signup, recovery, magic link, invite, secure email change and reauthentication. Secure email changes count both recipients and queue both messages atomically. Once activated, the hook overrides SMTP; configuring only SES SMTP would bypass this queue and is not the supported deployment.
 
 There is a rolling 24-hour application limit of 100 reserved recipient attempts, including definitive throttled retries. Queue admission additionally allows at most 100 recipients per rolling day, five per account per hour, ten per account per day, and three per recipient per hour with a 60-second recipient cooldown. Admission can therefore stop before 100 messages are sent. Optional notification admission failures are skipped without rolling back financial operations; invitations roll back if they cannot be queued. Auth rejects admission with a temporary error. At capacity, registration confirmation, resend and password recovery are also delayed or unavailable. Password login with an already confirmed account continues to work.
 
@@ -25,6 +25,8 @@ Message subjects and bodies are removed after a terminal outcome. Jobs (includin
 The private `/admin` route is excluded from indexing. Only an authenticated user whose `public.profiles.is_admin` is true receives statistics. This existing column defaults to false; the migration adds insert-time protection as well as update protection. User metadata is never a source of authority. Assignment requires a trusted server/database operator, and is not exposed as a browser RPC.
 
 The database checks administrator status on every `email_admin_status` call. The route guard is supplemental. The panel displays application reservations, SES accepted messages, actual regional SES usage/quota/rate, expected quota/rate, warning thresholds, observation times, stale/read-failure state, queue counts, and the last 50 alert events. No secrets, recipients or mail content are returned.
+
+Administration uses client rendering so direct links and refreshes check the current browser session instead of following a prerendered login redirect. The production Worker serves the client shell for `/admin`, with no-store and noindex headers; every statistics request still requires database administrator authorization. The service worker excludes administrator navigation and /env.js, which is always served by the Worker from production runtime bindings. Production security headers reject local loopback connections.
 
 ## Monitoring and alerts
 

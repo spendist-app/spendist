@@ -95,6 +95,16 @@ const withSecurityHeaders = (
     const url = new URL(request.url);
     const { pathname } = url;
 
+    if (url.hostname !== 'localhost' && url.hostname !== '127.0.0.1') {
+      headers.set(
+        'Content-Security-Policy',
+        CONTENT_SECURITY_POLICY.replace(
+          ' http://127.0.0.1:55321 http://localhost:55321 ws://127.0.0.1:55321 ws://localhost:55321',
+          ''
+        )
+      );
+    }
+
     if (
       url.protocol === 'http:' &&
       (url.hostname === 'localhost' || url.hostname === '127.0.0.1')
@@ -151,7 +161,7 @@ const withSecurityHeaders = (
   });
 };
 
-const envResponse = (env: Env): Response => {
+const envResponse = (env: Env, request: Request): Response => {
   const payload = JSON.stringify(buildEnvPayload(env));
   const body = `globalThis.__env = ${payload};\nglobalThis.env = globalThis.__env;\n`;
 
@@ -162,7 +172,7 @@ const envResponse = (env: Env): Response => {
     },
   });
 
-  return withSecurityHeaders(response);
+  return withSecurityHeaders(response, request);
 };
 
 const shouldServeHtmlFallback = (request: Request): boolean => {
@@ -215,7 +225,26 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === '/env.js') {
-      return envResponse(env);
+      return envResponse(env, request);
+    }
+
+    if (
+      /^\/admin(?:\/|$)/.test(url.pathname) &&
+      (request.method === 'GET' || request.method === 'HEAD')
+    ) {
+      const response = await env.ASSETS.fetch(
+        new Request(new URL('/index.csr', url), request)
+      );
+
+      const headers = new Headers(response.headers);
+
+      headers.set('Cache-Control', 'no-store');
+      headers.set('X-Robots-Tag', 'noindex, nofollow');
+
+      return withSecurityHeaders(
+        new Response(response.body, { status: response.status, headers }),
+        request
+      );
     }
 
     const llmAssetPath = LLM_ASSET_ALIASES.get(url.pathname);

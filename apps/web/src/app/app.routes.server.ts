@@ -6,6 +6,7 @@ import {
 } from './pages/blog/blog-content';
 
 export const serverRoutes: ServerRoute[] = [
+  { path: 'admin', renderMode: RenderMode.Client },
   ...blogServerRoutes('pl'),
   ...blogServerRoutes('en'),
   { path: 'polityka-prywatnosci', renderMode: RenderMode.Prerender },
