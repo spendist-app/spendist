@@ -49,8 +49,20 @@ const pl = {
   emailPreferences: {
     title: 'Powiadomienia mailowe',
     description:
-      'Opcjonalne powiadomienia zawierają link do Spendist, bez danych finansowych. Wiadomości logowania i zaproszenia pozostają niezbędne. Wszystkie maile współdzielą limit 100 odbiorców w ruchomych 24 godzinach.',
+      'Opcjonalny mail podaje rodzaj powiadomienia i link do Spendist, bez kwot, nazw ani opisów. Wiadomości logowania i zaproszenia pozostają niezbędne. Wszystkie maile współdzielą limit 100 odbiorców w ruchomych 24 godzinach.',
     label: 'Wysyłaj mi powiadomienia mailowe',
+    typesLabel: 'Wysyłaj maile o:',
+    types: {
+      recurring_transaction_created: 'Utworzonych transakcjach cyklicznych',
+      recurring_transaction_ended: 'Zakończonych płatnościach cyklicznych',
+      allowance_invitation_accepted:
+        'Zaakceptowanych zaproszeniach do Kieszonkowego',
+      allowance_invitation_declined:
+        'Odrzuconych zaproszeniach do Kieszonkowego',
+      allowance_received: 'Otrzymanym kieszonkowym',
+      allowance_expense_added: 'Wydatkach z kieszonkowego',
+      exchange_rates_sync_failed: 'Błędach synchronizacji kursów walut',
+    },
     error: 'Nie udało się odczytać lub zapisać ustawienia.',
   },
 

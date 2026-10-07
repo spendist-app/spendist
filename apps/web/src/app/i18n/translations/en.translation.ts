@@ -49,8 +49,18 @@ const en = {
   emailPreferences: {
     title: 'Email notifications',
     description:
-      'Optional notifications contain a link to Spendist, without financial details. Authentication and invitation emails remain necessary. All emails share a limit of 100 recipients per rolling 24 hours.',
+      'Optional emails name the notification type and link to Spendist, without amounts, names or descriptions. Authentication and invitation emails remain necessary. All emails share a limit of 100 recipients per rolling 24 hours.',
     label: 'Send me email notifications',
+    typesLabel: 'Email me about:',
+    types: {
+      recurring_transaction_created: 'Created recurring transactions',
+      recurring_transaction_ended: 'Ended recurring payments',
+      allowance_invitation_accepted: 'Accepted Allowance invitations',
+      allowance_invitation_declined: 'Declined Allowance invitations',
+      allowance_received: 'Received allowance',
+      allowance_expense_added: 'Allowance expenses',
+      exchange_rates_sync_failed: 'Exchange rate sync failures',
+    },
     error: 'Could not save or read your preference.',
   },
 

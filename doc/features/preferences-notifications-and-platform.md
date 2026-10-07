@@ -24,7 +24,9 @@ The light/dark theme is saved locally. Without a saved value, the browser's dark
 
 The notification menu is scoped to the authenticated user and refreshes through Supabase Realtime. It shows recent records and an unread count; users can mark all unread displayed notifications as read. Each notification uses the details stored for its own type, such as a recurring transaction's name, amount, and currency or an Allowance inviter's name. Allowance invitation actions use the stored invitation ID.
 
-Current notification types include automatic recurring transaction creation, a recurring payment ending, and exchange-rate synchronisation failure.
+Current notification types include automatic recurring transaction creation, a recurring payment ending, exchange-rate synchronisation failure (administrators only), Allowance invitations received, accepted or declined, received allowance, and Allowance expenses added to a recipient's account.
+
+Each notification can also be sent by email. Settings has a global opt-in switch, disabled by default, and per-type checkboxes stored in `profiles.email_notification_muted_types`. Emails name only the notification type and link to the dashboard; see [Email and administration](email-and-administration.md).
 
 ## Platform behavior
 

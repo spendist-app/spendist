@@ -75,6 +75,59 @@ begin
   if (select status from spendist_email.jobs where id=(job->>'id')::uuid)<>'unknown' then raise exception 'Uncertain delivery requeued'; end if;
 end;
 $$;
+-- Notification emails honour the global opt-in and the per-type opt-out, and never include payload values.
+insert into auth.users(id,aud,role,email,email_confirmed_at,raw_user_meta_data,created_at,updated_at)
+values ('71000000-0000-0000-0000-000000000002','authenticated','authenticated','notify@example.test',now(),
+  '{"full_name":"Notify Test","language":"pl"}',now(),now());
+update public.profiles set email_notifications=true,email_notification_muted_types='{recurring_transaction_created}'
+  where id='71000000-0000-0000-0000-000000000002';
+do $$
+declare blocked boolean := false;
+begin
+  begin
+    update public.profiles set email_notification_muted_types='{unknown_type}' where id='71000000-0000-0000-0000-000000000002';
+  exception when check_violation then blocked:=true; end;
+  if not blocked then raise exception 'Unknown muted notification type accepted'; end if;
+end;
+$$;
+do $$
+declare owner uuid:='71000000-0000-0000-0000-000000000002'; job spendist_email.jobs;
+begin
+  insert into public.notifications(owner_id,type,payload)
+    values(owner,'allowance_received','{"description":"Secret gift","amount":"123.45","currency":"PLN"}');
+  select * into job from spendist_email.jobs where owner_id=owner;
+  if job.id is null or job.kind<>'notification' or job.notification_type<>'allowance_received' then
+    raise exception 'Notification email not queued';
+  end if;
+  if job.subject<>'Spendist: Otrzymano kieszonkowe' or job.body not like 'Otrzymano kieszonkowe.%' then
+    raise exception 'Notification email does not name its type';
+  end if;
+  if job.body like '%Secret%' or job.body like '%123.45%' then raise exception 'Notification email leaked payload'; end if;
+  update spendist_email.jobs set created_at=now()-interval '2 days' where owner_id=owner;
+
+  insert into public.notifications(owner_id,type) values(owner,'recurring_transaction_created');
+  insert into public.notifications(owner_id,type) values(owner,'allowance_invitation_received');
+  if (select count(*) from spendist_email.jobs where owner_id=owner)<>1 then
+    raise exception 'Muted or invitation notification queued an email';
+  end if;
+
+  update public.profiles set email_notifications=false where id=owner;
+  insert into public.notifications(owner_id,type) values(owner,'allowance_expense_added');
+  if (select count(*) from spendist_email.jobs where owner_id=owner)<>1 then raise exception 'Opted-out user queued an email'; end if;
+
+  update public.profiles set email_notifications=true,email_notification_muted_types='{}' where id=owner;
+  insert into public.notifications(owner_id,type) values(owner,'allowance_expense_added');
+  select * into job from spendist_email.jobs where owner_id=owner and notification_type='allowance_expense_added';
+  if job.id is null then raise exception 'Unmuted notification not queued'; end if;
+
+  update public.profiles set email_notification_muted_types='{allowance_expense_added}' where id=owner;
+  update spendist_email.jobs set status='expired' where owner_id=owner and id<>job.id;
+  update spendist_email.control set next_send_at=now()-interval '1 second';
+  if public.email_claim() is not null then raise exception 'Claimed notification muted after enqueue'; end if;
+  if (select status from spendist_email.jobs where id=job.id)<>'expired' then raise exception 'Muted notification not expired'; end if;
+  delete from spendist_email.jobs where owner_id=owner;
+end;
+$$;
 -- Every retry consumes another reservation; definitive throttles stop after three attempts.
 insert into spendist_email.jobs(owner_id,dedupe_key,recipient,kind,subject,body,expires_at)
 values('71000000-0000-0000-0000-000000000001','retry-test','retry@example.test','auth','Retry','Test',now()+interval '1 hour');
