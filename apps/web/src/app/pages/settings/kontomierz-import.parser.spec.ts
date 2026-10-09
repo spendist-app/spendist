@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   KONTOMIERZ_SHEET_NAME,
   parseKontomierzWorksheet,
+  selectKontomierzWorksheet,
 } from './kontomierz-import.parser';
 
 const HEADERS = [
@@ -266,5 +267,39 @@ describe('parseKontomierzWorksheet', () => {
     expect(result.issues).toEqual([
       { rowNumber: 2, message: 'Invalid transaction date.' },
     ]);
+  });
+});
+
+describe('selectKontomierzWorksheet', () => {
+  it('prefers the Kontomierz sheet and drops blank rows', () => {
+    const occurredAt = new Date(Date.UTC(2025, 11, 31));
+
+    const worksheet = selectKontomierzWorksheet([
+      { sheet: 'Summary', data: [['ignored']] },
+      {
+        sheet: KONTOMIERZ_SHEET_NAME,
+        data: [HEADERS, [null, null, ''], [occurredAt, -51.59, 'PLN', true]],
+      },
+    ]);
+
+    expect(worksheet.name).toBe(KONTOMIERZ_SHEET_NAME);
+    expect(worksheet.rows).toEqual([
+      HEADERS,
+      [occurredAt, -51.59, 'PLN', true],
+    ]);
+  });
+
+  it('falls back to the first sheet and nulls unsupported cells', () => {
+    const worksheet = selectKontomierzWorksheet([
+      { sheet: 'Arkusz1', data: [[{ formula: '=A1' }, 'Tekst']] },
+    ]);
+
+    expect(worksheet).toEqual({ name: 'Arkusz1', rows: [[null, 'Tekst']] });
+  });
+
+  it('rejects a workbook without sheets', () => {
+    expect(() => selectKontomierzWorksheet([])).toThrow(
+      'settings.panels.kontomierzImport.errors.emptyWorkbook'
+    );
   });
 });
