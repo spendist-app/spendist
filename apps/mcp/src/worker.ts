@@ -13,6 +13,7 @@ import {
 import { Hono } from 'hono';
 import { requireEnvironment, type McpEnvironment } from './config';
 import { SupabaseTokenVerifier } from './auth';
+import { MCP_REQUESTABLE_SCOPES, allowsWrite } from './scopes';
 import { createSpendistMcpServer } from './server';
 
 preloadSchemas();
@@ -48,6 +49,7 @@ function metadataOptions(env: McpEnvironment): AuthMetadataOptions {
     resourceServerUrl: new URL(env.MCP_RESOURCE_URL),
     serviceDocumentationUrl: new URL('https://spendist.app/docs/mcp'),
     resourceName: 'Spendist MCP',
+    scopesSupported: MCP_REQUESTABLE_SCOPES,
   };
 }
 
@@ -77,12 +79,15 @@ function handlerFor(env: McpEnvironment): McpHttpHandler {
         throw new Error('Authenticated MCP request context is required.');
       }
 
-      return createSpendistMcpServer({
-        supabaseUrl: env.SUPABASE_URL,
-        publishableKey: env.SUPABASE_PUBLISHABLE_KEY,
-        accessToken: authInfo.token,
-        clientId: authInfo.clientId,
-      });
+      return createSpendistMcpServer(
+        {
+          supabaseUrl: env.SUPABASE_URL,
+          publishableKey: env.SUPABASE_PUBLISHABLE_KEY,
+          accessToken: authInfo.token,
+          clientId: authInfo.clientId,
+        },
+        { allowWrite: allowsWrite(authInfo.scopes) }
+      );
     },
     { legacy: 'stateless' }
   );

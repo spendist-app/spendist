@@ -140,6 +140,17 @@ const en = {
     scope: 'OAuth scope',
     warning:
       'Only continue if you trust this application. You can revoke its OAuth grant later.',
+    redirectTitle: 'Approving sends access to',
+    redirectUnknown: 'Unknown address',
+    clientUnverified:
+      'The name and website above are chosen by the application and are not verified by Spendist.',
+    thirdPartyWarning:
+      'This is a third-party application, not operated by Spendist. Approving sends access to your Spendist account to {{host}}. Continue only if you started this connection and recognize that domain.',
+    thirdPartyWarningUnknown:
+      'This is a third-party application, not operated by Spendist, and its redirect address is unknown. Do not continue unless you started this connection.',
+    allowWrite: 'Also allow changes to my data',
+    allowWriteHint:
+      'Without this, the application can only read your data. With it, the application can create and update records, mark notifications as read, and delete records after a separate confirmation.',
     deny: 'Deny',
     approve: 'Allow access',
   },

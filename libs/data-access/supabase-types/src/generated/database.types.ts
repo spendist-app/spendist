@@ -474,6 +474,32 @@ export type Database = {
           },
         ]
       }
+      mcp_client_write_grants: {
+        Row: {
+          client_id: string
+          granted_at: string
+          owner_id: string
+        }
+        Insert: {
+          client_id: string
+          granted_at?: string
+          owner_id: string
+        }
+        Update: {
+          client_id?: string
+          granted_at?: string
+          owner_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mcp_client_write_grants_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mcp_delete_confirmations: {
         Row: {
           created_at: string
@@ -1757,6 +1783,10 @@ export type Database = {
       }
       set_allowance_invitation_delivery: {
         Args: { p_invitation_id: string; p_status: string }
+        Returns: undefined
+      }
+      set_mcp_client_write_access: {
+        Args: { p_allow_write: boolean; p_client_id: string }
         Returns: undefined
       }
       spendist_mcp_access_token_hook: { Args: { event: Json }; Returns: Json }

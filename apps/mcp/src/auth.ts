@@ -7,6 +7,7 @@ import {
   type OAuthTokenVerifier,
 } from '@modelcontextprotocol/server';
 import type { McpEnvironment } from './config';
+import { grantedScopes } from './scopes';
 
 interface TokenClaims {
   aud?: string | string[];
@@ -15,6 +16,7 @@ interface TokenClaims {
   iss?: string;
   scope?: string;
   spendist_mcp?: boolean;
+  spendist_mcp_write?: boolean;
   sub?: string;
 }
 
@@ -33,6 +35,7 @@ export function decodeClaims(token: string): TokenClaims {
         iss: z.string().optional(),
         scope: z.string().optional(),
         spendist_mcp: z.boolean().optional(),
+        spendist_mcp_write: z.boolean().optional(),
         sub: z.string().optional(),
       })
       .parse(JSON.parse(atob(normalized)));
@@ -99,7 +102,7 @@ export class SupabaseTokenVerifier implements OAuthTokenVerifier {
     return {
       token,
       clientId: claims.client_id ?? 'unknown-oauth-client',
-      scopes: claims.scope?.split(' ').filter(Boolean) ?? [],
+      scopes: grantedScopes(claims.scope, claims.spendist_mcp_write === true),
       expiresAt: claims.exp,
       resource: new URL(this.env.MCP_RESOURCE_URL),
       extra: { userId: data.user.id },

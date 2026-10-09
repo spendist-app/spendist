@@ -12,6 +12,12 @@ describe('decodeClaims', () => {
     ).toMatchObject({ sub: 'user', spendist_mcp: true });
   });
 
+  it('decodes the Spendist MCP write claim', () => {
+    expect(
+      decodeClaims(token({ sub: 'user', spendist_mcp_write: true }))
+    ).toMatchObject({ spendist_mcp_write: true });
+  });
+
   it('rejects decoded claims with an invalid field type', () => {
     expect(() => decodeClaims(token({ sub: 123 }))).toThrow(
       'Malformed access token'

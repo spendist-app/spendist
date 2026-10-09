@@ -142,6 +142,17 @@ const pl = {
     scope: 'Zakres OAuth',
     warning:
       'Kontynuuj tylko wtedy, gdy ufasz tej aplikacji. Później możesz cofnąć jej zgodę OAuth.',
+    redirectTitle: 'Zgoda przekaże dostęp do',
+    redirectUnknown: 'Nieznany adres',
+    clientUnverified:
+      'Nazwę i stronę powyżej wybiera sama aplikacja; Spendist ich nie weryfikuje.',
+    thirdPartyWarning:
+      'To aplikacja zewnętrzna, której Spendist nie prowadzi. Zgoda przekaże dostęp do Twojego konta Spendist domenie {{host}}. Kontynuuj tylko wtedy, gdy to Ty rozpoczynasz to połączenie i znasz tę domenę.',
+    thirdPartyWarningUnknown:
+      'To aplikacja zewnętrzna, której Spendist nie prowadzi, a jej adres przekierowania jest nieznany. Nie kontynuuj, jeśli to nie Ty rozpoczynasz to połączenie.',
+    allowWrite: 'Zezwól także na zmiany w moich danych',
+    allowWriteHint:
+      'Bez tej opcji aplikacja może tylko odczytywać dane. Z nią może tworzyć i aktualizować rekordy, oznaczać powiadomienia jako przeczytane oraz usuwać rekordy po osobnym potwierdzeniu.',
     deny: 'Odmów',
     approve: 'Zezwól na dostęp',
   },
