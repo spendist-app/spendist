@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { readEnv } from './read-env';
 
-const primary = 'SPENDIST_TEST_ENV_PRIMARY';
+const primary = 'SUPABASE_URL';
 
-const alias = 'SPENDIST_TEST_ENV_ALIAS';
+const alias = 'NG_APP_SUPABASE_URL';
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -57,5 +57,16 @@ describe('readEnv', () => {
     vi.stubEnv(primary, undefined);
 
     expect(readEnv([primary])).toBeUndefined();
+  });
+
+  it('does not read privileged database values from any runtime source', () => {
+    const fakePassword = 'FAKE_DB_PASSWORD_FOR_TEST_ONLY';
+    const databaseUrl = `postgresql://postgres:${fakePassword}@db.invalid/postgres`;
+
+    vi.stubGlobal('SUPABASE_REMOTE_DB_URL', databaseUrl);
+    vi.stubGlobal('env', { SUPABASE_REMOTE_DB_URL: databaseUrl });
+    vi.stubEnv('SUPABASE_REMOTE_DB_URL', databaseUrl);
+
+    expect(readEnv(['SUPABASE_REMOTE_DB_URL'])).toBeUndefined();
   });
 });
