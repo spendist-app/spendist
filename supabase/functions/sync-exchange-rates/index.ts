@@ -1,4 +1,5 @@
 import { z } from 'npm:zod@4.4.3';
+import { bearerSecretMatches } from '../_shared/internal-auth.ts';
 import {
   createClient,
   type SupabaseClient,
@@ -75,11 +76,9 @@ Deno.serve(async (request) => {
     'EXCHANGE_RATES_SYNC_SECRET'
   );
 
-  const token = (request.headers.get('Authorization') ?? '')
-    .replace(/^Bearer\s+/i, '')
-    .trim();
-
-  if (!configuredSecret || token !== configuredSecret) {
+  if (
+    !bearerSecretMatches(request.headers.get('Authorization'), configuredSecret)
+  ) {
     return json({ error: 'Unauthorized' }, 401);
   }
 

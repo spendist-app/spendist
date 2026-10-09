@@ -1,5 +1,6 @@
 import { z } from 'npm:zod@4.4.3';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { withAllowedOrigin } from '../_shared/cors.ts';
 
 type DeleteAccountBody = {
   password?: string;
@@ -10,13 +11,16 @@ const AVATAR_BUCKET = 'avatars';
 const MAX_AVATAR_BATCHES = 20;
 
 const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers':
     'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-Deno.serve(async (request) => {
+Deno.serve(async (request) =>
+  withAllowedOrigin(request, await handleRequest(request))
+);
+
+async function handleRequest(request: Request): Promise<Response> {
   if (request.method === 'OPTIONS') {
     return new Response(null, {
       status: 204,
@@ -107,7 +111,7 @@ Deno.serve(async (request) => {
   }
 
   return json({ deleted: true }, 200);
-});
+}
 
 async function deleteAvatarObjects(
   admin: SupabaseClient,
