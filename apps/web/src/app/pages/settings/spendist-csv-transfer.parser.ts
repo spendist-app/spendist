@@ -448,11 +448,11 @@ function escapeCsvCell(value: string): string {
 }
 
 function escapeFormulaValue(value: string): string {
-  return /^[=+\-@]/.test(value) ? `'${value}` : value;
+  return /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
 }
 
 function unescapeFormulaValue(value: string): string {
-  return /^'[=+\-@]/.test(value) ? value.slice(1) : value;
+  return /^'[=+\-@\t\r]/.test(value) ? value.slice(1) : value;
 }
 
 function parseCategoryPath(value: string): readonly string[] {

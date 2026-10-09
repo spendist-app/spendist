@@ -23,7 +23,7 @@ const contentSecurityPolicyDirectives = {
   objectSrc: ["'none'"],
   frameAncestors: ["'none'"],
   scriptSrc: ["'self'"],
-  scriptSrcAttr: ["'unsafe-inline'"],
+  scriptSrcAttr: ["'none'"],
   styleSrc: ["'self'", "'unsafe-inline'"],
   imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
   fontSrc: ["'self'", 'data:', 'https:'],

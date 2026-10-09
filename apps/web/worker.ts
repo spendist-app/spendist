@@ -22,7 +22,8 @@ const CONTENT_SECURITY_POLICY = [
   "object-src 'none'",
   "frame-ancestors 'none'",
   "script-src 'self'",
-  "script-src-attr 'unsafe-inline'",
+  // Critical CSS inlining is disabled, so the build emits no inline handlers.
+  "script-src-attr 'none'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data: https:",
@@ -54,15 +55,39 @@ const LLM_ASSET_ALIASES = new Map([
   ['/llms-full.txt', '/llm-full.txt'],
 ]);
 
+// /env.js is public. Never publish a secret or service-role key that was
+// configured under a public variable name by mistake.
+const publicSupabaseKey = (key: string): string => {
+  if (key.startsWith('sb_secret_')) {
+    return '';
+  }
+
+  const [, payload] = key.split('.');
+
+  if (!payload) {
+    return key;
+  }
+
+  try {
+    const claims = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+    const role = /"role"\s*:\s*"([^"]*)"/.exec(claims)?.[1];
+
+    return role && role !== 'anon' ? '' : key;
+  } catch {
+    return key;
+  }
+};
+
 const buildEnvPayload = (env: Env) => {
   const supabaseUrl = env.SUPABASE_URL ?? env.NG_APP_SUPABASE_URL ?? '';
 
-  const publishableKey =
+  const publishableKey = publicSupabaseKey(
     env.SUPABASE_PUBLISHABLE_KEY ??
-    env.SUPABASE_ANON_KEY ??
-    env.NG_APP_SUPABASE_PUBLISHABLE_KEY ??
-    env.NG_APP_SUPABASE_ANON_KEY ??
-    '';
+      env.SUPABASE_ANON_KEY ??
+      env.NG_APP_SUPABASE_PUBLISHABLE_KEY ??
+      env.NG_APP_SUPABASE_ANON_KEY ??
+      ''
+  );
 
   const buildCommit =
     env.NG_APP_BUILD_COMMIT ?? env.CF_PAGES_COMMIT_SHA ?? env.GITHUB_SHA ?? '';
@@ -81,9 +106,36 @@ const buildEnvPayload = (env: Env) => {
   };
 };
 
+const supabaseConnectSources = (env: Env): string => {
+  const urls = [
+    env.SUPABASE_URL ?? env.NG_APP_SUPABASE_URL ?? '',
+    env.NG_APP_SUPABASE_FUNCTIONS_URL ?? '',
+  ].filter(Boolean);
+
+  const sources = new Set<string>();
+
+  for (const value of urls) {
+    try {
+      const { origin, protocol, host } = new URL(value);
+
+      if (protocol !== 'https:') {
+        return 'https:';
+      }
+
+      sources.add(origin);
+      sources.add(`wss://${host}`);
+    } catch {
+      return 'https:';
+    }
+  }
+
+  return sources.size > 0 ? [...sources].join(' ') : 'https:';
+};
+
 const withSecurityHeaders = (
   response: Response,
-  request?: Request
+  request: Request,
+  env: Env
 ): Response => {
   const headers = new Headers(response.headers);
 
@@ -91,67 +143,66 @@ const withSecurityHeaders = (
     headers.set(name, value);
   }
 
-  if (request) {
-    const url = new URL(request.url);
-    const { pathname } = url;
+  const url = new URL(request.url);
+  const { pathname } = url;
 
-    if (url.hostname !== 'localhost' && url.hostname !== '127.0.0.1') {
-      headers.set(
-        'Content-Security-Policy',
-        CONTENT_SECURITY_POLICY.replace(
-          ' http://127.0.0.1:55321 http://localhost:55321 ws://127.0.0.1:55321 ws://localhost:55321',
-          ''
-        )
-      );
-    }
+  if (url.hostname !== 'localhost' && url.hostname !== '127.0.0.1') {
+    // Production pages talk only to Supabase; do not allow exfiltration to arbitrary HTTPS hosts.
+    headers.set(
+      'Content-Security-Policy',
+      CONTENT_SECURITY_POLICY.replace(
+        "connect-src 'self' https: http://127.0.0.1:55321 http://localhost:55321 ws://127.0.0.1:55321 ws://localhost:55321",
+        `connect-src 'self' ${supabaseConnectSources(env)}`
+      )
+    );
+  }
 
-    if (
-      url.protocol === 'http:' &&
-      (url.hostname === 'localhost' || url.hostname === '127.0.0.1')
-    ) {
-      // Local HTTP development cannot upgrade a same-origin frame to HTTPS.
-      headers.set(
-        'Content-Security-Policy',
-        CONTENT_SECURITY_POLICY.replace('; upgrade-insecure-requests', '')
-      );
-    }
+  if (
+    url.protocol === 'http:' &&
+    (url.hostname === 'localhost' || url.hostname === '127.0.0.1')
+  ) {
+    // Local HTTP development cannot upgrade a same-origin frame to HTTPS.
+    headers.set(
+      'Content-Security-Policy',
+      CONTENT_SECURITY_POLICY.replace('; upgrade-insecure-requests', '')
+    );
+  }
 
-    if (
-      pathname === '/analytics/frame.html' ||
-      pathname === '/analytics/frame'
-    ) {
-      headers.set(
-        'Content-Security-Policy',
-        [
-          "default-src 'none'",
-          "base-uri 'none'",
-          "frame-ancestors 'self'",
-          "script-src 'self' https://www.googletagmanager.com",
-          'connect-src https://*.google-analytics.com https://www.googletagmanager.com',
-          'img-src https://*.google-analytics.com',
-          "form-action 'none'",
-        ].join('; ')
-      );
-      headers.set('X-Frame-Options', 'SAMEORIGIN');
-      headers.set('Referrer-Policy', 'no-referrer');
-      headers.set('Cache-Control', 'no-store');
-      headers.set('X-Robots-Tag', 'noindex, nofollow');
-    }
+  if (
+    pathname === '/analytics/frame.html' ||
+    pathname === '/analytics/frame'
+  ) {
+    headers.set(
+      'Content-Security-Policy',
+      [
+        "default-src 'none'",
+        "base-uri 'none'",
+        "frame-ancestors 'self'",
+        "script-src 'self' https://www.googletagmanager.com",
+        'connect-src https://*.google-analytics.com https://www.googletagmanager.com',
+        'img-src https://*.google-analytics.com',
+        "form-action 'none'",
+      ].join('; ')
+    );
+    headers.set('X-Frame-Options', 'SAMEORIGIN');
+    headers.set('Referrer-Policy', 'no-referrer');
+    headers.set('Cache-Control', 'no-store');
+    headers.set('X-Robots-Tag', 'noindex, nofollow');
+  }
 
-    if (SERVICE_WORKER_ASSET_PATHS.has(pathname)) {
-      headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-    }
+  if (SERVICE_WORKER_ASSET_PATHS.has(pathname)) {
+    headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+  }
 
-    if (/^\/llms?(?:-full)?\.txt$/.test(pathname)) {
-      headers.set('Content-Type', 'text/plain; charset=utf-8');
-    }
+  if (/^\/llms?(?:-full)?\.txt$/.test(pathname)) {
+    headers.set('Content-Type', 'text/plain; charset=utf-8');
+  }
 
-    if (
-      /^\/(pl|en)\/blog(?:\/|$)/.test(pathname) &&
-      url.searchParams.has('tag')
-    ) {
-      headers.set('X-Robots-Tag', 'noindex, follow');
-    }
+  if (
+    /^\/(pl|en)\/blog(?:\/|$)/.test(pathname) &&
+    url.searchParams.has('tag')
+  ) {
+    headers.set('X-Robots-Tag', 'noindex, follow');
   }
 
   return new Response(response.body, {
@@ -172,7 +223,7 @@ const envResponse = (env: Env, request: Request): Response => {
     },
   });
 
-  return withSecurityHeaders(response, request);
+  return withSecurityHeaders(response, request, env);
 };
 
 const shouldServeHtmlFallback = (request: Request): boolean => {
@@ -243,7 +294,8 @@ export default {
 
       return withSecurityHeaders(
         new Response(response.body, { status: response.status, headers }),
-        request
+        request,
+        env
       );
     }
 
@@ -262,15 +314,16 @@ export default {
       if (/^\/(pl|en)\/blog(?:\/|$)/.test(url.pathname)) {
         return withSecurityHeaders(
           await blogNotFoundResponse(request, env),
-          request
+          request,
+          env
         );
       }
 
       const fallbackResponse = await fallbackToIndex(request, env);
 
-      return withSecurityHeaders(fallbackResponse, request);
+      return withSecurityHeaders(fallbackResponse, request, env);
     }
 
-    return withSecurityHeaders(assetResponse, request);
+    return withSecurityHeaders(assetResponse, request, env);
   },
 };

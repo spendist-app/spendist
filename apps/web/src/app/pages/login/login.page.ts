@@ -11,6 +11,7 @@ import {
 } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@ngneat/transloco';
+import { safeAuthReturnUrl } from '../../core/auth-return-url';
 import { AuthService } from '../../core/auth.service';
 
 @Component({
@@ -41,7 +42,7 @@ export class LoginPageComponent {
   readonly passwordResetSuccess = signal(
     this.route.snapshot.queryParamMap.get('passwordReset') === 'success'
   );
-  private readonly returnUrl = safeReturnUrl(
+  private readonly returnUrl = safeAuthReturnUrl(
     this.route.snapshot.queryParamMap.get('returnUrl')
   );
 
@@ -75,10 +76,4 @@ export class LoginPageComponent {
       this.submitting.set(false);
     }
   }
-}
-
-function safeReturnUrl(value: string | null): string {
-  return value?.startsWith('/') && !value.startsWith('//')
-    ? value
-    : '/dashboard';
 }

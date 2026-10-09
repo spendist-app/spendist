@@ -38,6 +38,34 @@ describe('Spendist CSV transfer parser', () => {
     expect(csv).toContain('home; weekly');
   });
 
+  it('escapes cells that start with a tab or carriage return', () => {
+    const csv = generateSpendistCsv([
+      {
+        id: 'tx-1',
+        occurred_at: '2026-02-03T00:00:00.000Z',
+        description: '\t=HYPERLINK("https://example.test")',
+        direction: 'expense',
+        amount: 1,
+        currency: 'PLN',
+        amount_in_default: 1,
+        category_group: 'Food',
+        category_path: 'Food/Groceries',
+        category: 'Groceries',
+        wallet: 'Main',
+        wallet_currency: 'PLN',
+        tags: [],
+        place: '\r=1+1',
+        is_automatic: false,
+        recurring_scheduled_for: '',
+        import_source: '',
+        imported_at: '',
+      },
+    ]);
+
+    expect(csv).toContain('"\'\t=HYPERLINK(""https://example.test"")"');
+    expect(csv).toContain('"\'\r=1+1"');
+  });
+
   it('parses exported Spendist CSV back to import rows', () => {
     const csv = generateSpendistCsv([
       {
