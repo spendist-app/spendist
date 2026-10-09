@@ -1,3 +1,7 @@
+@AGENTS.md
+
+The repository guide above (`AGENTS.md`) is the single source of truth for every coding agent: Codex, Claude Code, Gemini CLI, OpenCode and GitHub Copilot. Keep project rules there; this file only adds Claude Code specifics. Repo skills live in `.agents/skills/` and are linked into `.claude/skills/`.
+
 <!-- nx configuration start-->
 <!-- Leave the start & end comments to automatically receive updates. -->
 
