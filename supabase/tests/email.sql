@@ -128,6 +128,31 @@ begin
   delete from spendist_email.jobs where owner_id=owner;
 end;
 $$;
+-- Notification and invitation volume cannot consume the auth email reserve.
+insert into spendist_email.jobs(owner_id,dedupe_key,recipient,kind,subject,body,expires_at)
+select '71000000-0000-0000-0000-000000000001','budget-'||i,'budget-'||i||'@example.test','notification','Budget','Test',now()+interval '1 hour'
+from generate_series(1,60) i;
+do $$
+declare owner uuid:='71000000-0000-0000-0000-000000000001';
+begin
+  if public.email_enqueue(owner,'budget-notification',jsonb_build_array(jsonb_build_object('recipient','notify@example.test',
+    'kind','notification','subject','Test','body','Test only','expires_at',now()+interval '15 minutes'))) is not null then
+    raise exception 'Non-auth email exceeded its share of the daily budget';
+  end if;
+  if public.email_enqueue(owner,'budget-auth',jsonb_build_array(jsonb_build_object('recipient','reset@example.test',
+    'kind','auth','subject','Test','body','Test only','expires_at',now()+interval '15 minutes'))) is null then
+    raise exception 'Auth email blocked by non-auth volume';
+  end if;
+  begin
+    perform public.email_enqueue(owner,'mixed-batch',jsonb_build_array(
+      jsonb_build_object('recipient','a@example.test','kind','auth','subject','T','body','T','expires_at',now()+interval '15 minutes'),
+      jsonb_build_object('recipient','b@example.test','kind','notification','subject','T','body','T','expires_at',now()+interval '15 minutes')));
+    raise exception 'Mixed email batch accepted';
+  exception when invalid_parameter_value then null;
+  end;
+  delete from spendist_email.jobs where owner_id=owner;
+end;
+$$;
 -- Every retry consumes another reservation; definitive throttles stop after three attempts.
 insert into spendist_email.jobs(owner_id,dedupe_key,recipient,kind,subject,body,expires_at)
 values('71000000-0000-0000-0000-000000000001','retry-test','retry@example.test','auth','Retry','Test',now()+interval '1 hour');

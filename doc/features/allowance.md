@@ -10,15 +10,24 @@ income entry.
 An invitation can be accepted from an in-app notification or a single-use
 email link. The recipient may already have a Spendist account or create one
 with the invited email address. Either participant can disconnect. Disconnecting
-keeps history and pauses future allowance schedules.
+keeps history and pauses future allowance schedules. The counterpart's email
+address is shown only while the connection is active.
+
+Invitations are created only through the email invitation path, which requires
+a confirmed email address on the inviter's account and applies the shared email
+rate limits.
 
 ## Transactions and schedules
 
 A manual allowance creates two ordinary Spendist transactions atomically. The
 payer owns an expense and the recipient owns an income. The shared pair
 identifier supplies the Allowance badge and keeps amount and currency in sync.
-The payer can remove both entries; the recipient can organize local category,
-wallet, tags, place, description, and date without exposing those choices.
+While the connection is active, the payer can change the amount or currency of
+both entries or remove both entries. After a disconnect the payer can still edit
+payer-only fields of their own expense, but cannot change the amount or
+currency, and deleting removes only the payer's expense; the recipient keeps
+their income. The recipient can organize local category, wallet, tags, place,
+description, and date without exposing those choices.
 
 A payer can also record a purchase directly on a recipient's account, for
 example when a child pays for an item from their allowance while the payer is
