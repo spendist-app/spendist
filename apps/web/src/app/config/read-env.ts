@@ -13,6 +13,17 @@ declare global {
   }
 }
 
+const PUBLIC_ENV_KEYS = new Set([
+  'SUPABASE_URL',
+  'NG_APP_SUPABASE_URL',
+  'SUPABASE_ANON_KEY',
+  'SUPABASE_PUBLISHABLE_KEY',
+  'NG_APP_SUPABASE_ANON_KEY',
+  'NG_APP_SUPABASE_PUBLISHABLE_KEY',
+  'NG_APP_SUPABASE_FUNCTIONS_URL',
+  'NG_APP_BUILD_COMMIT',
+]);
+
 function buildEnv() {
   try {
     // Vite SSR requires explicit property access on its import.meta.env proxy.
@@ -35,7 +46,7 @@ function buildEnv() {
 /** Resolve validated strings in the same source and alias order in every runtime. */
 export function readEnv(keys: readonly string[]): string | undefined {
   const nested = z
-    .object({ env: z.unknown(), __env: z.unknown() })
+    .object({ env: z.unknown().optional(), __env: z.unknown().optional() })
     .safeParse(globalThis);
 
   const sources = [
@@ -48,6 +59,8 @@ export function readEnv(keys: readonly string[]): string | undefined {
 
   for (const source of sources) {
     for (const key of keys) {
+      if (!PUBLIC_ENV_KEYS.has(key)) continue;
+
       const parsed = z.object({ [key]: z.string().min(1) }).safeParse(source);
 
       if (parsed.success) return parsed.data[key];

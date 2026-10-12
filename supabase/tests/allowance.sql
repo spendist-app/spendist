@@ -44,6 +44,9 @@ declare
   v_variable_recurring_id uuid;
   v_occurrence_id uuid;
   v_blocked boolean := false;
+  v_late_pair jsonb;
+  v_late_payer_id uuid;
+  v_late_recipient_id uuid;
 begin
   perform set_config('request.jwt.claim.sub', v_parent::text, true);
 
@@ -56,10 +59,20 @@ begin
   select id into v_wallet_id
   from public.wallets where owner_id = v_parent and is_default;
 
-  v_invitation := public.create_allowance_invitation(
+  begin
+    perform public.create_allowance_invitation('allowance-child@example.test');
+  exception when insufficient_privilege then
+    v_blocked := true;
+  end;
+  if not v_blocked then
+    raise exception 'Direct invitation creation bypassed the email wrapper';
+  end if;
+  v_blocked := false;
+
+  v_invitation := public.email_allowance_invite(
     'allowance-child@example.test'
   );
-  v_invitation_id := (v_invitation ->> 'invitation_id')::uuid;
+  v_invitation_id := (v_invitation ->> 'invitationId')::uuid;
 
   perform set_config('request.jwt.claim.sub', v_child::text, true);
   v_connection_id := public.respond_allowance_invitation(
@@ -374,6 +387,21 @@ begin
     raise exception 'Variable allowance payer transaction was not completed';
   end if;
 
+  perform set_config('request.jwt.claim.sub', v_parent::text, true);
+  v_late_pair := public.create_allowance_transaction(
+    v_connection_id,
+    v_category_id,
+    v_wallet_id,
+    '2026-05-25 08:00:00+00',
+    'Late allowance',
+    40,
+    'PLN',
+    null,
+    '{}'::uuid[]
+  );
+  v_late_payer_id := (v_late_pair ->> 'payer_transaction_id')::uuid;
+  v_late_recipient_id := (v_late_pair ->> 'recipient_transaction_id')::uuid;
+
   perform set_config('request.jwt.claim.sub', v_child::text, true);
   perform public.disconnect_allowance_connection(v_connection_id);
   if exists (
@@ -410,6 +438,50 @@ begin
   ) then
     raise exception 'Allowance schedules were not paused after disconnect';
   end if;
+
+  if exists (
+    select 1 from public.get_allowance_connections()
+    where id = v_connection_id and counterpart_email is not null
+  ) then
+    raise exception 'Disconnected counterpart email remained visible';
+  end if;
+
+  v_blocked := false;
+  begin
+    perform public.update_allowance_transaction(
+      v_late_payer_id, v_category_id, v_wallet_id,
+      '2026-05-25 08:00:00+00', 'Late allowance', 400, 'PLN', null
+    );
+  exception when insufficient_privilege then
+    v_blocked := true;
+  end;
+  if not v_blocked then
+    raise exception 'Disconnected payer changed the recipient amount';
+  end if;
+
+  perform public.update_allowance_transaction(
+    v_late_payer_id, v_category_id, v_wallet_id,
+    '2026-05-25 08:00:00+00', 'Late allowance renamed', 40, 'PLN', null
+  );
+  perform public.delete_allowance_transaction(v_late_payer_id);
+  if exists (select 1 from public.transactions where id = v_late_payer_id) then
+    raise exception 'Disconnected payer could not delete own allowance expense';
+  end if;
+
+  perform set_config('request.jwt.claim.sub', v_child::text, true);
+  if not exists (
+    select 1 from public.transactions
+    where id = v_late_recipient_id and amount = 40
+  ) then
+    raise exception 'Disconnected payer removed the recipient income';
+  end if;
+
+  begin
+    update public.notifications set payload = '{}'::jsonb where owner_id = v_child;
+    raise exception 'Notification payload update was not blocked';
+  exception when insufficient_privilege then
+    null;
+  end;
 end;
 $$;
 

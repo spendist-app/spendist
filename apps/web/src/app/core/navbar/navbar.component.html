@@ -43,7 +43,10 @@
             class="menu menu-sm mt-1 rounded-xl border border-base-200 bg-base-100 p-2 shadow"
           >
             <li>
-              <a class="rounded-lg px-3 py-2 text-sm" routerLink="/modules/mortgages">
+              <a
+                class="rounded-lg px-3 py-2 text-sm"
+                routerLink="/modules/mortgages"
+              >
                 {{ 'navbar.modulesMortgages' | transloco }}
               </a>
             </li>
@@ -64,7 +67,10 @@
               </a>
             </li>
             <li>
-              <a class="rounded-lg px-3 py-2 text-sm" routerLink="/modules/allowance">
+              <a
+                class="rounded-lg px-3 py-2 text-sm"
+                routerLink="/modules/allowance"
+              >
                 {{ 'navbar.modulesAllowance' | transloco }}
               </a>
             </li>
@@ -298,6 +304,16 @@
                 {{ 'navbar.settings' | transloco }}
               </a>
             </li>
+            @if (adminAccess.allowed()) {
+            <li>
+              <a
+                routerLink="/admin"
+                role="menuitem"
+                (click)="closeAccountMenu()"
+                >{{ 'emailAdmin.title' | transloco }}</a
+              >
+            </li>
+            }
             <li>
               <button type="button" (click)="openAboutModal()" role="menuitem">
                 {{ 'navbar.about.menuItem' | transloco }}

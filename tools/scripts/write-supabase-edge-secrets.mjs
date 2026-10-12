@@ -17,13 +17,8 @@ export function renderSupabaseEdgeSecrets(environment) {
 
   const values = {
     INTERNAL_FUNCTION_SECRET: internalSecret,
-    AWS_ACCESS_KEY_ID: environment.AWS_ACCESS_KEY_ID?.trim() ?? '',
-    AWS_SECRET_ACCESS_KEY: environment.AWS_SECRET_ACCESS_KEY?.trim() ?? '',
-    AWS_REGION: environment.AWS_REGION?.trim() ?? '',
-    EMAIL_FROM: environment.EMAIL_FROM?.trim() ?? '',
     APP_URL: (
-      environment.CLOUDFLARE_PRODUCTION_URL?.trim() ||
-      'https://spendist.app'
+      environment.CLOUDFLARE_PRODUCTION_URL?.trim() || 'https://spendist.app'
     ).replace(/\/$/, ''),
   };
 

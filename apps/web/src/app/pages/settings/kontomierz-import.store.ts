@@ -15,13 +15,12 @@ import { SettingsStore } from './settings.store';
 import {
   KONTOMIERZ_FALLBACK_CATEGORY,
   KONTOMIERZ_IMPORT_SOURCE,
-  KONTOMIERZ_SHEET_NAME,
   KontomierzImportRow,
   KontomierzParseIssue,
   KontomierzParseResult,
   KontomierzWorksheet,
-  type KontomierzCell,
   parseKontomierzWorksheet,
+  selectKontomierzWorksheet,
 } from './kontomierz-import.parser';
 
 export interface KontomierzImportSummary {
@@ -313,31 +312,9 @@ export class KontomierzImportStore {
       );
     }
 
-    const [{ read, utils }, buffer] = await Promise.all([
-      import('xlsx/xlsx.mjs'),
-      file.arrayBuffer(),
-    ]);
+    const { default: readXlsxFile } = await import('read-excel-file/browser');
 
-    const workbook = read(buffer, { type: 'array', cellDates: false });
-
-    const sheetName =
-      workbook.SheetNames.find((name) => name === KONTOMIERZ_SHEET_NAME) ??
-      workbook.SheetNames[0];
-
-    const sheet = sheetName ? workbook.Sheets[sheetName] : null;
-
-    if (!sheetName || !sheet) {
-      throw new Error('settings.panels.kontomierzImport.errors.emptyWorkbook');
-    }
-
-    return {
-      name: sheetName,
-      rows: utils.sheet_to_json<KontomierzCell[]>(sheet, {
-        header: 1,
-        blankrows: false,
-        raw: true,
-      }),
-    };
+    return selectKontomierzWorksheet(await readXlsxFile(file));
   }
 
   private async ensureGroups(

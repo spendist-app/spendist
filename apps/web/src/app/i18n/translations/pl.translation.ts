@@ -1,4 +1,71 @@
 const pl = {
+  emailAdmin: {
+    title: 'Administracja',
+    refresh: 'Odśwież',
+    delay:
+      'Odczyt SES odbywa się co 5 minut. Ten widok odświeżasz ręcznie. Przyjęcie przez AWS nie potwierdza dostarczenia do skrzynki. Monitoring i SNS mogą ulec awarii; alerty nie blokują wydatków.',
+    error: 'Brak dostępu lub statystyki są niedostępne.',
+    stale:
+      'Brak aktualnych danych SES. Wysyłka jest zablokowana do udanego odczytu.',
+    accepted: 'Przyjęte przez SES · ostatnie 24h',
+    attempts: 'Zarezerwowane próby · ostatnie 24h',
+    awsUsage: 'Odbiorcy AWS · ostatnie 24h',
+    state: 'Stan',
+    awsState: 'Stan wysyłki AWS',
+    enabled: 'Włączona',
+    disabled: 'Wyłączona',
+    region: 'Region AWS',
+    expected: 'Oczekiwana kwota i tempo AWS',
+    rate: 'Rzeczywiste tempo wysyłki AWS',
+    thresholds: 'Progi ostrzeżeń',
+    lastAttempt: 'Ostatnia próba odczytu',
+    lastSuccess: 'Ostatni udany odczyt',
+    queue: 'Kolejka · przechowywana 7 dni',
+    queued: 'W kolejce',
+    sending: 'Wysyłane',
+    failed: 'Nieudane',
+    unknown: 'Niepewny wynik',
+    expired: 'Wygasłe',
+    alerts: 'Ostatnie alerty',
+    event: 'Zdarzenie',
+    observed: 'Wykryto',
+    published: 'Przyjęte przez SNS / próby',
+    active: 'Aktywne',
+    resolved: 'Rozwiązane',
+    noAlerts: 'Brak zapisanych alertów.',
+    events: {
+      usage_80: 'Wykorzystanie 80%',
+      usage_95: 'Wykorzystanie 95%',
+      aws_quota_exhausted: 'Wyczerpana kwota AWS',
+      app_limit_exhausted: 'Wyczerpany limit aplikacji',
+      quota_mismatch: 'Inna kwota lub region AWS',
+      sending_disabled: 'Wysyłka AWS wyłączona',
+      ses_account_problem: 'Problem z kontem SES',
+      monitor_read_failed: 'Błąd odczytu SES',
+      delivery_problem: 'Błąd wysyłki lub niepewny wynik',
+      queue_delayed: 'Opóźniona kolejka',
+    },
+  },
+  emailPreferences: {
+    title: 'Powiadomienia mailowe',
+    description:
+      'Opcjonalny mail podaje rodzaj powiadomienia i link do Spendist, bez kwot, nazw ani opisów. Wiadomości logowania i zaproszenia pozostają niezbędne. Wszystkie maile współdzielą limit 100 odbiorców w ruchomych 24 godzinach.',
+    label: 'Wysyłaj mi powiadomienia mailowe',
+    typesLabel: 'Wysyłaj maile o:',
+    types: {
+      recurring_transaction_created: 'Utworzonych transakcjach cyklicznych',
+      recurring_transaction_ended: 'Zakończonych płatnościach cyklicznych',
+      allowance_invitation_accepted:
+        'Zaakceptowanych zaproszeniach do Kieszonkowego',
+      allowance_invitation_declined:
+        'Odrzuconych zaproszeniach do Kieszonkowego',
+      allowance_received: 'Otrzymanym kieszonkowym',
+      allowance_expense_added: 'Wydatkach z kieszonkowego',
+      exchange_rates_sync_failed: 'Błędach synchronizacji kursów walut',
+    },
+    error: 'Nie udało się odczytać lub zapisać ustawienia.',
+  },
+
   analytics: {
     title: 'Zgoda na statystyki odwiedzin?',
     description:
@@ -75,6 +142,17 @@ const pl = {
     scope: 'Zakres OAuth',
     warning:
       'Kontynuuj tylko wtedy, gdy ufasz tej aplikacji. Później możesz cofnąć jej zgodę OAuth.',
+    redirectTitle: 'Zgoda przekaże dostęp do',
+    redirectUnknown: 'Nieznany adres',
+    clientUnverified:
+      'Nazwę i stronę powyżej wybiera sama aplikacja; Spendist ich nie weryfikuje.',
+    thirdPartyWarning:
+      'To aplikacja zewnętrzna, której Spendist nie prowadzi. Zgoda przekaże dostęp do Twojego konta Spendist domenie {{host}}. Kontynuuj tylko wtedy, gdy to Ty rozpoczynasz to połączenie i znasz tę domenę.',
+    thirdPartyWarningUnknown:
+      'To aplikacja zewnętrzna, której Spendist nie prowadzi, a jej adres przekierowania jest nieznany. Nie kontynuuj, jeśli to nie Ty rozpoczynasz to połączenie.',
+    allowWrite: 'Zezwól także na zmiany w moich danych',
+    allowWriteHint:
+      'Bez tej opcji aplikacja może tylko odczytywać dane. Z nią może tworzyć i aktualizować rekordy, oznaczać powiadomienia jako przeczytane oraz usuwać rekordy po osobnym potwierdzeniu.',
     deny: 'Odmów',
     approve: 'Zezwól na dostęp',
   },

@@ -82,4 +82,55 @@ begin
 end;
 $$;
 
+do $$
+declare
+  v_owner_id constant uuid := '20000000-0000-0000-0000-000000000001';
+  client_change_blocked boolean := false;
+begin
+  perform set_config(
+    'request.jwt.claims',
+    json_build_object('sub', v_owner_id, 'role', 'authenticated')::text,
+    true
+  );
+  perform public.set_mcp_client_write_access('test-client', true);
+
+  perform set_config(
+    'request.jwt.claims',
+    json_build_object(
+      'sub', v_owner_id, 'role', 'authenticated', 'client_id', 'other-client'
+    )::text,
+    true
+  );
+
+  begin
+    perform public.set_mcp_client_write_access('other-client', true);
+  exception when others then
+    client_change_blocked := true;
+  end;
+  if not client_change_blocked then
+    raise exception 'An OAuth client token granted itself MCP write access';
+  end if;
+end;
+$$;
+
+reset role;
+
+do $$
+declare
+  granted jsonb;
+  ungranted jsonb;
+begin
+  granted := public.spendist_mcp_access_token_hook(
+    '{"claims":{"client_id":"test-client","sub":"20000000-0000-0000-0000-000000000001"}}'::jsonb
+  );
+  ungranted := public.spendist_mcp_access_token_hook(
+    '{"claims":{"client_id":"other-client","sub":"20000000-0000-0000-0000-000000000001"}}'::jsonb
+  );
+  if (granted #>> '{claims,spendist_mcp_write}')::boolean is not true
+     or (ungranted #>> '{claims,spendist_mcp_write}')::boolean is not false then
+    raise exception 'MCP access-token hook did not apply the write grant';
+  end if;
+end;
+$$;
+
 rollback;

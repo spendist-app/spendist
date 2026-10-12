@@ -6,6 +6,8 @@ import {
   parseDateStart,
   shouldFinalizeRecurring,
 } from './schedule.mts';
+import { bearerSecretMatches } from '../_shared/internal-auth.ts';
+import { withAllowedOrigin } from '../_shared/cors.ts';
 
 const recurringTransactionSchema = z.object({
   id: z.string(),
@@ -26,13 +28,16 @@ const DEFAULT_LOOKBACK_DAYS = 31;
 const DEFAULT_MAX_RUNS = 100;
 
 const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers':
     'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-Deno.serve(async (request) => {
+Deno.serve(async (request) =>
+  withAllowedOrigin(request, await handleRequest(request))
+);
+
+async function handleRequest(request: Request): Promise<Response> {
   if (request.method === 'OPTIONS') {
     return new Response(null, {
       status: 204,
@@ -54,8 +59,16 @@ Deno.serve(async (request) => {
     'RECURRING_PAYMENTS_SECRET'
   );
 
-  const isSecretAuthorized = !!configuredSecret && token === configuredSecret;
+  const isSecretAuthorized = bearerSecretMatches(
+    request.headers.get('Authorization'),
+    configuredSecret
+  );
+
   const isSingleRecurringBackfill = !!body.recurringId;
+
+  if (!isSecretAuthorized && !isSingleRecurringBackfill) {
+    return json({ error: 'Unauthorized' }, 401);
+  }
 
   const supabaseUrl = requiredEnv('SUPABASE_URL');
 
@@ -91,8 +104,8 @@ Deno.serve(async (request) => {
 
   let ownerId: string | null = null;
 
-  if (!isSecretAuthorized && (configuredSecret || isSingleRecurringBackfill)) {
-    if (!isSingleRecurringBackfill || !authorization) {
+  if (!isSecretAuthorized) {
+    if (!token) {
       return json({ error: 'Unauthorized' }, 401);
     }
 
@@ -132,7 +145,9 @@ Deno.serve(async (request) => {
   const { data, error } = await query;
 
   if (error) {
-    return json({ error: error.message }, 500);
+    console.error('Failed to load recurring transactions', error.code);
+
+    return json({ error: 'Failed to load recurring transactions' }, 500);
   }
 
   if (body.recurringId && (data ?? []).length === 0) {
@@ -188,7 +203,8 @@ Deno.serve(async (request) => {
       );
 
       if (rpcError) {
-        skipped.push({ recurringId: recurring.id, reason: rpcError.message });
+        console.error('Failed to enqueue recurring transaction', rpcError.code);
+        skipped.push({ recurringId: recurring.id, reason: 'enqueue_failed' });
         allDueRunsSucceeded = false;
         break;
       }
@@ -219,7 +235,8 @@ Deno.serve(async (request) => {
       );
 
       if (rpcError) {
-        skipped.push({ recurringId: recurring.id, reason: rpcError.message });
+        console.error('Failed to enqueue recurring transaction', rpcError.code);
+        skipped.push({ recurringId: recurring.id, reason: 'enqueue_failed' });
         continue;
       }
 
@@ -239,7 +256,7 @@ Deno.serve(async (request) => {
     now: now.toISOString(),
     backfill: !!body.backfill || !!body.recurringId,
   });
-});
+}
 
 function floorToMinute(value: Date): Date {
   const next = new Date(value);

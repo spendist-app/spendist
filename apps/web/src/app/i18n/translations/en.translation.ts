@@ -1,4 +1,69 @@
 const en = {
+  emailAdmin: {
+    title: 'Administration',
+    refresh: 'Refresh',
+    delay:
+      'SES is read every 5 minutes. This view is refreshed manually. AWS acceptance does not confirm inbox delivery. Monitoring and SNS can fail; alerts are not a spending block.',
+    error: 'Access denied or statistics unavailable.',
+    stale:
+      'SES data is missing or stale. Sending is blocked until a successful read.',
+    accepted: 'SES accepted · last 24h',
+    attempts: 'Reserved attempts · last 24h',
+    awsUsage: 'AWS recipients · last 24h',
+    state: 'Status',
+    awsState: 'AWS sending status',
+    enabled: 'Enabled',
+    disabled: 'Disabled',
+    region: 'AWS region',
+    expected: 'Expected AWS quota and rate',
+    rate: 'Actual AWS sending rate',
+    thresholds: 'Warning thresholds',
+    lastAttempt: 'Last read attempt',
+    lastSuccess: 'Last successful read',
+    queue: 'Queue · retained 7 days',
+    queued: 'Queued',
+    sending: 'Sending',
+    failed: 'Failed',
+    unknown: 'Uncertain result',
+    expired: 'Expired',
+    alerts: 'Recent alerts',
+    event: 'Event',
+    observed: 'Observed',
+    published: 'SNS accepted / attempts',
+    active: 'Active',
+    resolved: 'Resolved',
+    noAlerts: 'No alerts recorded.',
+    events: {
+      usage_80: '80% usage',
+      usage_95: '95% usage',
+      aws_quota_exhausted: 'AWS quota exhausted',
+      app_limit_exhausted: 'Application limit exhausted',
+      quota_mismatch: 'AWS quota or region differs',
+      sending_disabled: 'AWS sending disabled',
+      ses_account_problem: 'SES account problem',
+      monitor_read_failed: 'SES read failed',
+      delivery_problem: 'Delivery failure or uncertain result',
+      queue_delayed: 'Queue delayed',
+    },
+  },
+  emailPreferences: {
+    title: 'Email notifications',
+    description:
+      'Optional emails name the notification type and link to Spendist, without amounts, names or descriptions. Authentication and invitation emails remain necessary. All emails share a limit of 100 recipients per rolling 24 hours.',
+    label: 'Send me email notifications',
+    typesLabel: 'Email me about:',
+    types: {
+      recurring_transaction_created: 'Created recurring transactions',
+      recurring_transaction_ended: 'Ended recurring payments',
+      allowance_invitation_accepted: 'Accepted Allowance invitations',
+      allowance_invitation_declined: 'Declined Allowance invitations',
+      allowance_received: 'Received allowance',
+      allowance_expense_added: 'Allowance expenses',
+      exchange_rates_sync_failed: 'Exchange rate sync failures',
+    },
+    error: 'Could not save or read your preference.',
+  },
+
   analytics: {
     title: 'Allow visit statistics?',
     description:
@@ -75,6 +140,17 @@ const en = {
     scope: 'OAuth scope',
     warning:
       'Only continue if you trust this application. You can revoke its OAuth grant later.',
+    redirectTitle: 'Approving sends access to',
+    redirectUnknown: 'Unknown address',
+    clientUnverified:
+      'The name and website above are chosen by the application and are not verified by Spendist.',
+    thirdPartyWarning:
+      'This is a third-party application, not operated by Spendist. Approving sends access to your Spendist account to {{host}}. Continue only if you started this connection and recognize that domain.',
+    thirdPartyWarningUnknown:
+      'This is a third-party application, not operated by Spendist, and its redirect address is unknown. Do not continue unless you started this connection.',
+    allowWrite: 'Also allow changes to my data',
+    allowWriteHint:
+      'Without this, the application can only read your data. With it, the application can create and update records, mark notifications as read, and delete records after a separate confirmation.',
     deny: 'Deny',
     approve: 'Allow access',
   },

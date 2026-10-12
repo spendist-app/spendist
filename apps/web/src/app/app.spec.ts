@@ -7,6 +7,7 @@ import { provideRouter } from '@angular/router';
 import { TranslocoService } from '@ngneat/transloco';
 import { firstValueFrom } from 'rxjs';
 import { App } from './app';
+import { AdminAccessService } from './core/admin-access.service';
 import { AuthService } from './core/auth.service';
 import { NavbarComponent } from './core/navbar/navbar.component';
 import { NotificationsStore } from './core/notifications/notifications.store';
@@ -92,6 +93,7 @@ describe('App', () => {
     await TestBed.configureTestingModule({
       imports: [App],
       providers: [
+        { provide: AdminAccessService, useValue: { allowed: signal(false) } },
         AuthServiceStub,
         { provide: AuthService, useExisting: AuthServiceStub },
         NotificationsStoreStub,

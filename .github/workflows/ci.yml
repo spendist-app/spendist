@@ -50,6 +50,22 @@ jobs:
       - name: Recurring scheduler configuration tests
         run: node --test tools/scripts/validate-supabase-functions-url.test.mjs tools/scripts/verify-recurring-scheduler.test.mjs tools/scripts/write-supabase-edge-secrets.test.mjs
 
+      - name: Audit browser build with fake privileged credentials
+        env:
+          SUPABASE_DB_URL: postgresql://postgres:FAKE_CI_DB_PASSWORD_LOCAL@db.invalid/postgres
+          SUPABASE_REMOTE_DB_URL: postgresql://postgres:FAKE_CI_DB_PASSWORD_REMOTE@db.invalid/postgres
+          SUPABASE_PSQL_DB_URL: postgresql://postgres:FAKE_CI_DB_PASSWORD_POOLER@db.invalid/postgres
+          SUPABASE_SERVICE_ROLE_KEY: FAKE_CI_SUPABASE_SERVICE_ROLE_KEY
+          SUPABASE_SECRET_KEY: sb_secret_FAKE_CI_SUPABASE_SECRET_KEY
+          AWS_ACCESS_KEY_ID: AKIAFAKECIACCESSKEY1
+          AWS_SECRET_ACCESS_KEY: FAKE_CI_AWS_SECRET_ACCESS_KEY
+          INTERNAL_FUNCTION_SECRET: FAKE_CI_INTERNAL_FUNCTION_SECRET
+          VITE_PRIVATE_CANARY: FAKE_CI_VITE_PRIVATE_CANARY
+        run: |
+          node --test tools/scripts/check-public-assets-secrets.test.mjs
+          npx nx build web --configuration production
+          node tools/scripts/check-public-assets-secrets.mjs
+
   e2e:
     if: github.event_name == 'push' && (github.ref_name == 'master' || github.ref_name == 'develop')
     runs-on: ubuntu-latest

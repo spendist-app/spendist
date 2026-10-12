@@ -7,9 +7,16 @@ import {
   requireAuthGuard,
   requireAuthWithReturnUrlGuard,
 } from './core/auth.guard';
+import { requireAdminGuard } from './core/admin.guard';
 import { LanguageService } from './core/language.service';
 
 export const appRoutes: Route[] = [
+  {
+    path: 'admin',
+    canActivate: [requireAdminGuard],
+    loadComponent: () =>
+      import('./pages/admin/admin.page').then((m) => m.AdminPage),
+  },
   {
     path: '',
     canActivate: [redirectAuthenticatedToHomeGuard],

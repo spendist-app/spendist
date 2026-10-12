@@ -21,11 +21,42 @@
       } @else if (error()) {
       <div class="alert alert-error" role="alert">{{ error() }}</div>
       } @else if (details(); as authorization) {
+      <div class="rounded-box border border-warning bg-warning/10 p-4">
+        <p class="text-sm font-semibold">
+          {{ 'oauthConsent.redirectTitle' | transloco }}
+        </p>
+        @if (redirectHost(); as host) {
+        <p class="mt-1 break-all text-2xl font-bold" data-testid="redirect-host">
+          {{ host }}
+        </p>
+        <p class="mt-1 break-all text-xs text-base-content/70">
+          {{ authorization.redirect_uri }}
+        </p>
+        } @else {
+        <p class="mt-1 text-sm font-semibold" data-testid="redirect-host">
+          {{ 'oauthConsent.redirectUnknown' | transloco }}
+        </p>
+        }
+      </div>
+
       <div class="rounded-box border border-base-300 p-4">
         <h2 class="font-semibold">{{ authorization.client.name }}</h2>
+        @if (authorization.client.uri) {
         <p class="mt-1 break-all text-sm text-base-content/70">
           {{ authorization.client.uri }}
         </p>
+        }
+        <p class="mt-2 text-xs text-base-content/60">
+          {{ 'oauthConsent.clientUnverified' | transloco }}
+        </p>
+      </div>
+
+      <div class="alert alert-warning text-sm" role="alert">
+        @if (redirectHost(); as host) {
+        {{ 'oauthConsent.thirdPartyWarning' | transloco: { host } }}
+        } @else {
+        {{ 'oauthConsent.thirdPartyWarningUnknown' | transloco }}
+        }
       </div>
 
       <div>
@@ -36,15 +67,35 @@
           class="mt-2 list-inside list-disc space-y-1 text-sm text-base-content/80"
         >
           <li>{{ 'oauthConsent.accessRead' | transloco }}</li>
+          @if (allowWrite()) {
           <li>{{ 'oauthConsent.accessWrite' | transloco }}</li>
           <li>{{ 'oauthConsent.accessDelete' | transloco }}</li>
+          }
         </ul>
+        <label class="label mt-3 cursor-pointer items-start justify-start gap-3">
+          <input
+            class="checkbox checkbox-sm mt-0.5"
+            type="checkbox"
+            data-testid="allow-write"
+            [checked]="allowWrite()"
+            [disabled]="deciding()"
+            (change)="toggleAllowWrite()"
+          />
+          <span class="whitespace-normal text-sm">
+            <span class="font-medium">
+              {{ 'oauthConsent.allowWrite' | transloco }}
+            </span>
+            <span class="block text-xs text-base-content/60">
+              {{ 'oauthConsent.allowWriteHint' | transloco }}
+            </span>
+          </span>
+        </label>
         <p class="mt-3 text-xs text-base-content/60">
           {{ 'oauthConsent.scope' | transloco }}: {{ authorization.scope }}
         </p>
       </div>
 
-      <div class="alert alert-warning text-sm">
+      <div class="alert text-sm">
         {{ 'oauthConsent.warning' | transloco }}
       </div>
 

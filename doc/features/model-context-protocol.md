@@ -4,20 +4,32 @@ Spendist provides an MCP server for user-authorized personal-finance workflows. 
 
 ## User-visible behavior
 
-- Users can connect a compatible MCP client and approve access through Spendist's OAuth consent page at `/oauth/consent`.
+- Users can connect a compatible MCP client and approve access through Spendist's OAuth consent page at `/oauth/consent`. The page prominently shows the host of the redirect URI that will receive access, labels the client name and website as unverified and self-declared, and warns that the client is a third-party application.
+- The consent page has an unchecked **Also allow changes to my data** option. Without it, the client gets read-only MCP access. The decision is stored per user and client and applies to tokens issued afterwards, including refreshed tokens.
+- A signed-out user who opens the consent link is sent to login and returned to the same consent URL, including `authorization_id`.
 - Users can review and revoke OAuth grants at `/settings/connected-apps`; revocation invalidates the client's refresh-token access.
 - Read tools cover the profile, wallets, currencies, category groups, categories, tags, places, transactions, recurring payments, notifications, Allowance state, dashboard summaries, audit metadata, and a portable JSON export.
-- Write tools cover the ordinary creation and update flows for wallets, taxonomy, places, transactions, recurring payments, recurring occurrences, notification read state, and default-wallet selection.
+- Write tools are registered only for tokens with write access. They cover the ordinary creation and update flows for wallets, taxonomy, places, transactions, recurring payments, recurring occurrences, notification read state, and default-wallet selection.
 - Relationships are always represented by stable UUIDs. Monetary inputs are decimal strings so an MCP host does not silently round user-entered values.
+- Tools that overwrite or remove data (updates, default-wallet selection, pause/resume, occurrence completion, marking notifications read, and `confirm_delete`) carry `destructiveHint: true`; create tools and `prepare_delete` are additive.
+- Successful tool results keep the JSON payload as the first text block and add a second block stating that names, descriptions, notes, and other string fields are untrusted user-authored data. The server instructions say the same.
 - Deletion is a two-call flow. `prepare_delete` returns the expected effects and a confirmation token that expires after five minutes. `confirm_delete` accepts the token only for the same user and unchanged record and consumes it once.
 
 ## Authorization and data ownership
 
 The remote server is an OAuth 2.1 protected resource. Supabase Auth provides authorization-code flow with PKCE, dynamic client registration, consent, refresh tokens, and grant revocation. Dynamic registration remains advertised because it is the registration mechanism currently provided by Supabase Auth; Spendist does not advertise Client ID Metadata Document support. Access tokens for OAuth clients receive the MCP audience and a `spendist_mcp` claim through the custom access-token hook.
 
+### Scopes and write access
+
+Supabase Auth only accepts the standard scopes `openid`, `email`, `profile`, `phone`, and `offline_access`, and rejects custom scopes at authorization time. Protected-resource metadata therefore advertises `scopes_supported: ["email"]`, which is also the Supabase default scope and is sufficient for read-only access. Clients cannot request write access through OAuth scopes.
+
+Write access is a Spendist scope named `spendist:write`. The user grants it per client on the consent page; the decision is stored in `public.mcp_client_write_grants` through `set_mcp_client_write_access`, which rejects tokens that carry an OAuth `client_id`, so a connected client cannot grant itself write access. The access-token hook sets the boolean `spendist_mcp_write` claim, and the Worker maps it to the `spendist:write` scope. Revoking a client at `/settings/connected-apps` also removes its write grant. A `spendist:write` value inside the standard `scope` claim is ignored.
+
+Limitation: the scope check is enforced by the MCP server. An OAuth access token is still a Supabase user token, so a client that calls the Supabase API directly is limited only by RLS ownership, not by the MCP write scope. **Planned:** enforce the write grant in database policies for OAuth-client tokens.
+
 The Cloudflare Worker verifies issuer, audience, expiry, MCP claim, user identity, and the token with Supabase Auth. Every database operation then uses the user's bearer token plus the public publishable key. The server has no service-role key, so existing RLS ownership policies remain authoritative.
 
-STDIO uses a user-supplied access token from `SPENDIST_ACCESS_TOKEN`. It writes protocol messages only to stdout and diagnostics only to stderr.
+STDIO uses a user-supplied access token from `SPENDIST_ACCESS_TOKEN` and is read-only unless `SPENDIST_MCP_ALLOW_WRITE=true` is set. It writes protocol messages only to stdout and diagnostics only to stderr.
 
 ## Protocol and transport compatibility
 
@@ -48,7 +60,8 @@ Every mutation first creates an owner-scoped `mcp_audit_events` row. Audit rows 
 - Worker environments: `wrangler.mcp.toml`
 - Production deployment: `.github/workflows/production.yml`
 - OAuth consent UI: `apps/web/src/app/pages/oauth-consent/`
-- Security migration: `supabase/migrations/202608100015_add_mcp_security.sql`
+- Security migrations: `supabase/migrations/202608100015_add_mcp_security.sql` and `supabase/migrations/202610091400_add_mcp_write_grants.sql`
+- Scope policy: `apps/mcp/src/scopes.ts`
 
 `mcp.spendist.app` uses a proxied Cloudflare DNS record and a zone Worker Route owned by the separate `spendist-mcp` Worker; it is not an alias to the `spendist-app` web Worker. The DNS record must exist before deployment, and Wrangler attaches the route when the MCP Worker is deployed. The production workflow validates the MCP application, atomically supplies the required Supabase and OAuth secrets during deployment, and verifies both the public health response and RFC 9728 protected-resource metadata.
 

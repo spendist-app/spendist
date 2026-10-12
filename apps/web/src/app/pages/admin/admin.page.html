@@ -1,0 +1,128 @@
+<section class="mx-auto max-w-5xl space-y-6 px-4 py-10">
+  <header class="flex flex-wrap items-center justify-between gap-4">
+    <h1 class="text-3xl font-semibold">{{ 'emailAdmin.title' | transloco }}</h1>
+    <button
+      class="btn btn-outline"
+      type="button"
+      (click)="refresh()"
+      [disabled]="loading()"
+    >
+      {{ 'emailAdmin.refresh' | transloco }}
+    </button>
+  </header>
+  <p>{{ 'emailAdmin.delay' | transloco }}</p>
+  @if (error()) {
+  <div role="alert" class="alert alert-error">
+    {{ 'emailAdmin.error' | transloco }}
+  </div>
+  } @if (status(); as state) { @if (state.read_error ||
+  stale(state.last_success_at)) {
+  <div role="alert" class="alert alert-warning">
+    {{ 'emailAdmin.stale' | transloco }}
+  </div>
+  }
+  <div class="grid gap-4 sm:grid-cols-3">
+    <div class="stat rounded-box bg-base-200">
+      <div class="stat-title">{{ 'emailAdmin.accepted' | transloco }}</div>
+      <div class="stat-value">{{ state.sent_24h }}</div>
+    </div>
+    <div class="stat rounded-box bg-base-200">
+      <div class="stat-title">{{ 'emailAdmin.attempts' | transloco }}</div>
+      <div class="stat-value">
+        {{ state.attempts_24h }} / {{ state.app_limit }}
+      </div>
+    </div>
+    <div class="stat rounded-box bg-base-200">
+      <div class="stat-title">{{ 'emailAdmin.awsUsage' | transloco }}</div>
+      <div class="stat-value text-2xl">
+        {{ state.snapshot?.sent_24h ?? '—' }} / {{ state.snapshot?.aws_limit ??
+        '—' }}
+      </div>
+    </div>
+  </div>
+  <dl class="grid gap-3 rounded-box border border-base-300 p-5 sm:grid-cols-2">
+    <div>
+      <dt class="font-semibold">{{ 'emailAdmin.state' | transloco }}</dt>
+      <dd>
+        {{ (state.enabled ? 'emailAdmin.enabled' : 'emailAdmin.disabled') |
+        transloco }}
+      </dd>
+    </div>
+    <div>
+      <dt class="font-semibold">{{ 'emailAdmin.awsState' | transloco }}</dt>
+      <dd>
+        {{ state.snapshot?.enforcement_status ?? '—' }} / {{
+        (state.snapshot?.sending_enabled ? 'emailAdmin.enabled' :
+        'emailAdmin.disabled') | transloco }}
+      </dd>
+    </div>
+    <div>
+      <dt class="font-semibold">{{ 'emailAdmin.region' | transloco }}</dt>
+      <dd>{{ state.region ?? '—' }}</dd>
+    </div>
+    <div>
+      <dt class="font-semibold">{{ 'emailAdmin.expected' | transloco }}</dt>
+      <dd>
+        {{ state.expected_aws_limit }} / 24h · {{ state.expected_rate }} / s
+      </dd>
+    </div>
+    <div>
+      <dt class="font-semibold">{{ 'emailAdmin.rate' | transloco }}</dt>
+      <dd>{{ state.snapshot?.max_rate ?? '—' }} / s</dd>
+    </div>
+    <div>
+      <dt class="font-semibold">{{ 'emailAdmin.thresholds' | transloco }}</dt>
+      <dd>80% / 95%</dd>
+    </div>
+    <div>
+      <dt class="font-semibold">{{ 'emailAdmin.lastAttempt' | transloco }}</dt>
+      <dd>{{ (state.last_attempt_at | date:'medium') ?? '—' }}</dd>
+    </div>
+    <div>
+      <dt class="font-semibold">{{ 'emailAdmin.lastSuccess' | transloco }}</dt>
+      <dd>{{ (state.last_success_at | date:'medium') ?? '—' }}</dd>
+    </div>
+  </dl>
+  <h2 class="text-xl font-semibold">{{ 'emailAdmin.queue' | transloco }}</h2>
+  <dl class="grid gap-3 sm:grid-cols-3">
+    <div>{{ 'emailAdmin.queued' | transloco }}: {{ state.queue.queued }}</div>
+    <div>{{ 'emailAdmin.sending' | transloco }}: {{ state.queue.sending }}</div>
+    <div>{{ 'emailAdmin.failed' | transloco }}: {{ state.queue.failed }}</div>
+    <div>{{ 'emailAdmin.unknown' | transloco }}: {{ state.queue.unknown }}</div>
+    <div>{{ 'emailAdmin.expired' | transloco }}: {{ state.queue.expired }}</div>
+  </dl>
+  <h2 class="text-xl font-semibold">{{ 'emailAdmin.alerts' | transloco }}</h2>
+  <div class="overflow-x-auto">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>{{ 'emailAdmin.event' | transloco }}</th>
+          <th>{{ 'emailAdmin.state' | transloco }}</th>
+          <th>{{ 'emailAdmin.observed' | transloco }}</th>
+          <th>{{ 'emailAdmin.published' | transloco }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (alert of state.alerts; track alert.created_at + alert.code) {
+        <tr>
+          <td>{{ ('emailAdmin.events.' + alert.code) | transloco }}</td>
+          <td>
+            {{ (alert.active ? 'emailAdmin.active' : 'emailAdmin.resolved') |
+            transloco }}
+          </td>
+          <td>{{ alert.created_at | date:'medium' }}</td>
+          <td>
+            {{ (alert.published_at | date:'medium') ?? '—' }} ({{
+            alert.publish_attempts }}/3)
+          </td>
+        </tr>
+        } @empty {
+        <tr>
+          <td colspan="4">{{ 'emailAdmin.noAlerts' | transloco }}</td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  }
+</section>

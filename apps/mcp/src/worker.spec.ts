@@ -3,6 +3,7 @@ import type { AuthInfo } from '@modelcontextprotocol/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SupabaseTokenVerifier } from './auth';
 import type { McpEnvironment } from './config';
+import { MCP_WRITE_SCOPE } from './scopes';
 import app from './worker';
 
 const env: McpEnvironment = {
@@ -22,6 +23,62 @@ const authInfo: AuthInfo = {
   resource: new URL(env.MCP_RESOURCE_URL),
   extra: { userId: 'test-user' },
 };
+
+const writeAuthInfo: AuthInfo = {
+  ...authInfo,
+  scopes: ['email', MCP_WRITE_SCOPE],
+};
+
+const ListedTools = z.object({
+  result: z.object({
+    tools: z.array(
+      z.object({
+        name: z.string(),
+        annotations: z
+          .object({
+            readOnlyHint: z.boolean().optional(),
+            destructiveHint: z.boolean().optional(),
+          })
+          .optional(),
+      })
+    ),
+  }),
+});
+
+async function listTools(info: AuthInfo) {
+  vi.spyOn(
+    SupabaseTokenVerifier.prototype,
+    'verifyAccessToken'
+  ).mockResolvedValue(info);
+
+  const response = await app.request(
+    authorizedRequest(
+      {
+        jsonrpc: '2.0',
+        id: 3,
+        method: 'tools/list',
+        params: {
+          _meta: {
+            'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+            'io.modelcontextprotocol/clientCapabilities': {},
+          },
+        },
+      },
+      {
+        'MCP-Protocol-Version': '2026-07-28',
+        'Mcp-Method': 'tools/list',
+      }
+    ),
+    undefined,
+    env
+  );
+
+  expect(response.status).toBe(200);
+
+  const { tools } = ListedTools.parse(await response.json()).result;
+
+  return new Map(tools.map((tool) => [tool.name, tool.annotations]));
+}
 
 function authorizedRequest<T>(body: T, headers: HeadersInit = {}): Request {
   return new Request(env.MCP_RESOURCE_URL, {
@@ -64,6 +121,7 @@ describe('Spendist MCP Worker', () => {
       resource: env.MCP_RESOURCE_URL,
       authorization_servers: [env.MCP_OAUTH_ISSUER],
       resource_name: 'Spendist MCP',
+      scopes_supported: ['email'],
     });
   });
 
@@ -328,5 +386,42 @@ describe('Spendist MCP Worker', () => {
     await expect(response.text()).resolves.toContain(
       '"protocolVersion":"2025-11-25"'
     );
+  });
+
+  it('exposes only read-only tools without the write scope', async () => {
+    const tools = await listTools(authInfo);
+
+    expect(tools.has('list_transactions')).toBe(true);
+    expect(tools.has('export_data')).toBe(true);
+
+    for (const name of [
+      'create_transaction',
+      'update_transaction',
+      'mark_notification_read',
+      'prepare_delete',
+      'confirm_delete',
+    ]) {
+      expect(tools.has(name)).toBe(false);
+    }
+
+    for (const annotations of tools.values()) {
+      expect(annotations?.readOnlyHint).toBe(true);
+    }
+  });
+
+  it('registers mutating tools with destructive hints for the write scope', async () => {
+    const tools = await listTools(writeAuthInfo);
+
+    expect(tools.get('create_transaction')).toMatchObject({
+      readOnlyHint: false,
+      destructiveHint: false,
+    });
+    expect(tools.get('update_transaction')).toMatchObject({
+      readOnlyHint: false,
+      destructiveHint: true,
+    });
+    expect(tools.get('update_wallet')?.destructiveHint).toBe(true);
+    expect(tools.get('confirm_delete')?.destructiveHint).toBe(true);
+    expect(tools.get('prepare_delete')?.destructiveHint).toBe(false);
   });
 });

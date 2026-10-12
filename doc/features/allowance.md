@@ -10,15 +10,24 @@ income entry.
 An invitation can be accepted from an in-app notification or a single-use
 email link. The recipient may already have a Spendist account or create one
 with the invited email address. Either participant can disconnect. Disconnecting
-keeps history and pauses future allowance schedules.
+keeps history and pauses future allowance schedules. The counterpart's email
+address is shown only while the connection is active.
+
+Invitations are created only through the email invitation path, which requires
+a confirmed email address on the inviter's account and applies the shared email
+rate limits.
 
 ## Transactions and schedules
 
 A manual allowance creates two ordinary Spendist transactions atomically. The
 payer owns an expense and the recipient owns an income. The shared pair
 identifier supplies the Allowance badge and keeps amount and currency in sync.
-The payer can remove both entries; the recipient can organize local category,
-wallet, tags, place, description, and date without exposing those choices.
+While the connection is active, the payer can change the amount or currency of
+both entries or remove both entries. After a disconnect the payer can still edit
+payer-only fields of their own expense, but cannot change the amount or
+currency, and deleting removes only the payer's expense; the recipient keeps
+their income. The recipient can organize local category, wallet, tags, place,
+description, and date without exposing those choices.
 
 A payer can also record a purchase directly on a recipient's account, for
 example when a child pays for an item from their allowance while the payer is
@@ -50,15 +59,7 @@ after seven days, and can be used once.
 
 ## Deployment
 
-Apply the database migration before deploying the
-`send-allowance-invitation` Edge Function. The production workflow reuses the
-existing `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, and
-`EMAIL_FROM` GitHub secrets, and derives `APP_URL` from
-`CLOUDFLARE_PRODUCTION_URL` with `https://spendist.app` as the fallback. The
-AWS identity must have permission to call SES `SendEmail`, and the sender in
-`EMAIL_FROM` must be verified in the configured SES region. The workflow
-synchronizes these values to Supabase Edge Function secrets; Supabase provides
-the project URL and API keys to the function runtime.
+Invitations now use the shared transactional email queue through the `email_allowance_invite` RPC and revised Edge Function. Its runtime needs only Supabase public configuration; AWS sending permissions belong to the separate queue worker. Apply the additive queue migration and deploy the worker before enabling delivery. See [email and administration](email-and-administration.md) and the [deployment approval package](../../docs/email/DEPLOYMENT.md).
 
 ## Boundary
 

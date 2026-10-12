@@ -39,11 +39,24 @@ export class ConnectedAppsPageComponent {
     this.error.set(null);
     const { error } = await this.supabase.auth.oauth.revokeGrant({ clientId });
 
-    if (error) this.error.set(error.message);
-    else
-      this.grants.update((items) =>
-        items.filter((item) => item.client.id !== clientId)
-      );
+    if (error) {
+      this.error.set(error.message);
+      this.revoking.set(null);
+
+      return;
+    }
+
+    this.grants.update((items) =>
+      items.filter((item) => item.client.id !== clientId)
+    );
+
+    const { error: writeError } = await this.supabase.rpc(
+      'set_mcp_client_write_access',
+      { p_client_id: clientId, p_allow_write: false }
+    );
+
+    if (writeError) this.error.set(writeError.message);
+
     this.revoking.set(null);
   }
 

@@ -1,4 +1,5 @@
-import { inject } from '@angular/core';
+import { isPlatformServer } from '@angular/common';
+import { PLATFORM_ID, inject } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { CanActivateFn, Router, UrlTree } from '@angular/router';
 import { filter, map, take } from 'rxjs/operators';
@@ -34,7 +35,15 @@ export const requireAuthGuard: CanActivateFn = () => {
   );
 };
 
+/**
+ * Prerendering has no session and no request query string. Redirecting there
+ * would bake a static login stub that drops query parameters such as the OAuth
+ * `authorization_id`, so the check runs in the browser, where `state.url`
+ * keeps the full query.
+ */
 export const requireAuthWithReturnUrlGuard: CanActivateFn = (_route, state) => {
+  if (isPlatformServer(inject(PLATFORM_ID))) return true;
+
   const router = inject(Router);
 
   return waitForAuthState((isAuthenticated) =>

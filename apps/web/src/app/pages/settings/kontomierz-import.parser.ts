@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import type { TransactionDirection } from '@spendist/data-access/supabase-types';
 
 export const KONTOMIERZ_IMPORT_SOURCE = 'kontomierz';
@@ -104,6 +105,34 @@ const OPTIONAL_HEADERS: readonly HeaderKey[] = [
 ];
 
 const ALL_HEADERS = [...REQUIRED_HEADERS, ...OPTIONAL_HEADERS];
+
+const kontomierzCellSchema = z
+  .union([z.string(), z.number(), z.boolean(), z.date()])
+  .nullable()
+  .catch(null);
+
+export interface KontomierzSpreadsheetSheet {
+  readonly sheet: string;
+  readonly data: readonly (readonly unknown[])[];
+}
+
+export function selectKontomierzWorksheet(
+  sheets: readonly KontomierzSpreadsheetSheet[]
+): KontomierzWorksheet {
+  const sheet =
+    sheets.find((candidate) => candidate.sheet === KONTOMIERZ_SHEET_NAME) ??
+    sheets[0];
+
+  if (!sheet) {
+    throw new Error('settings.panels.kontomierzImport.errors.emptyWorkbook');
+  }
+
+  const rows = sheet.data
+    .map((row) => row.map((cell) => kontomierzCellSchema.parse(cell)))
+    .filter((row) => row.some((cell) => cell !== null && cell !== ''));
+
+  return { name: sheet.sheet, rows };
+}
 
 export function parseKontomierzWorksheet(
   worksheet: KontomierzWorksheet

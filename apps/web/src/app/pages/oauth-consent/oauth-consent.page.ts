@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   afterNextRender,
+  computed,
   inject,
   signal,
 } from '@angular/core';
@@ -13,9 +14,21 @@ import { SUPABASE_CLIENT } from '../../core/supabase';
 interface OAuthAuthorizationDetails {
   authorization_id: string;
   redirect_url?: string;
+  /** Supabase Auth returns the client's validated redirect URI for consent. */
+  redirect_uri?: string;
   client: { id: string; name: string; uri: string; logo_uri: string };
   user: { id: string; email: string };
   scope: string;
+}
+
+export function redirectHost(uri: string | undefined): string | null {
+  if (!uri) return null;
+
+  try {
+    return new URL(uri).host || null;
+  } catch {
+    return null;
+  }
 }
 
 @Component({
@@ -34,6 +47,11 @@ export class OAuthConsentPageComponent {
   readonly loading = signal(true);
   readonly deciding = signal(false);
   readonly error = signal<string | null>(null);
+  readonly allowWrite = signal(false);
+
+  readonly redirectHost = computed(() =>
+    redirectHost(this.details()?.redirect_uri)
+  );
 
   private readonly authorizationId =
     this.route.snapshot.queryParamMap.get('authorization_id') ??
@@ -43,10 +61,31 @@ export class OAuthConsentPageComponent {
     afterNextRender(() => void this.load());
   }
 
+  toggleAllowWrite(): void {
+    this.allowWrite.update((value) => !value);
+  }
+
   async decide(action: 'approve' | 'deny'): Promise<void> {
-    if (!this.authorizationId || this.deciding()) return;
+    const details = this.details();
+
+    if (!this.authorizationId || !details || this.deciding()) return;
+
     this.deciding.set(true);
     this.error.set(null);
+
+    if (action === 'approve') {
+      const { error } = await this.supabase.rpc(
+        'set_mcp_client_write_access',
+        { p_client_id: details.client.id, p_allow_write: this.allowWrite() }
+      );
+
+      if (error) {
+        this.error.set(error.message);
+        this.deciding.set(false);
+
+        return;
+      }
+    }
 
     const response =
       action === 'approve'
