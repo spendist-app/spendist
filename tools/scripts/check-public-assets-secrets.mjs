@@ -37,6 +37,10 @@ const DB_URL_KEYS = new Set([
   'SUPABASE_PSQL_DB_URL',
 ]);
 
+// Shorter values match arbitrary bytes in images and bundles, so a literal
+// search cannot tell a leak from noise. Real credentials are longer.
+const MIN_SECRET_LENGTH = 12;
+
 const PRIVATE_PATTERNS = [
   {
     name: 'password-bearing PostgreSQL URL',
@@ -67,7 +71,7 @@ function valueVariants(key, value) {
     }
   }
 
-  return [...variants].filter(Boolean);
+  return [...variants].filter((variant) => variant.length >= MIN_SECRET_LENGTH);
 }
 
 function privateValues(environment) {
@@ -79,6 +83,14 @@ function privateValues(environment) {
     return parsed.success
       ? [{ key, variants: valueVariants(key, parsed.data) }]
       : [];
+  });
+}
+
+function shortValueKeys(environment) {
+  return PRIVATE_ENV_KEYS.filter((key) => {
+    const parsed = z.string().min(1).safeParse(environment[key]);
+
+    return parsed.success && parsed.data.length < MIN_SECRET_LENGTH;
   });
 }
 
@@ -134,7 +146,11 @@ export async function scanPublicAssets(directory, environment = process.env) {
     }
   }
 
-  return { filesScanned: files.length, findings };
+  return {
+    filesScanned: files.length,
+    findings,
+    skippedShortKeys: shortValueKeys(environment),
+  };
 }
 
 if (
@@ -144,7 +160,15 @@ if (
   const directory = process.argv[2] ?? 'dist/apps/web/browser';
 
   try {
-    const { filesScanned, findings } = await scanPublicAssets(directory);
+    const { filesScanned, findings, skippedShortKeys } = await scanPublicAssets(
+      directory
+    );
+
+    for (const key of skippedShortKeys) {
+      console.warn(
+        `::warning::${key} is shorter than ${MIN_SECRET_LENGTH} characters; its literal value was not scanned.`
+      );
+    }
 
     for (const { path, rule } of findings) {
       console.error(`Public asset contains ${rule}: ${path}`);
