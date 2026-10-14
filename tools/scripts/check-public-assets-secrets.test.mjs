@@ -97,3 +97,24 @@ test('detects the separate email credentials without returning secret values', a
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test('skips values too short to identify a credential and reports their keys', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'spendist-short-assets-'));
+
+  try {
+    await writeFile(join(directory, 'image.bin'), Buffer.from('xxNOxxTk8=xx'));
+
+    const result = await scanPublicAssets(directory, {
+      AWS_ACCESS_KEY_ID: 'NO',
+      RECURRING_PAYMENTS_SECRET: 'NO',
+    });
+
+    assert.deepEqual(result.findings, []);
+    assert.deepEqual(result.skippedShortKeys, [
+      'AWS_ACCESS_KEY_ID',
+      'RECURRING_PAYMENTS_SECRET',
+    ]);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
