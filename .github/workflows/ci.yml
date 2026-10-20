@@ -66,6 +66,71 @@ jobs:
           npx nx build web --configuration production
           node tools/scripts/check-public-assets-secrets.mjs
 
+      - name: Public SEO through the Cloudflare asset router
+        env:
+          CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV: 'false'
+          WRANGLER_SEND_METRICS: 'false'
+        run: |
+          npm exec -- wrangler dev --local --ip 127.0.0.1 --port 8787 > /tmp/spendist-seo-worker.log 2>&1 &
+          worker_pid=$!
+          trap 'kill "$worker_pid" 2>/dev/null || true' EXIT
+          ready=false
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8787/sitemap.xml > /dev/null; then
+              ready=true
+              break
+            fi
+            sleep 1
+          done
+          if [ "$ready" != true ]; then
+            cat /tmp/spendist-seo-worker.log
+            exit 1
+          fi
+          npm run test:public-seo
+
+  data-api-grants:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Rebuild without implicit Data API grants
+        shell: bash
+        run: |
+          set -euo pipefail
+          bootstrap="supabase/migrations/00000000000000_ci_explicit_grants.sql"
+          test ! -e "$bootstrap"
+          trap 'rm -f "$bootstrap"' EXIT
+          cp supabase/tests/disable-implicit-data-api-grants.sql "$bootstrap"
+          npm exec -- supabase db start
+          npm exec -- supabase db reset --local --no-seed
+
+      - name: Verify explicit table grants in an isolated schema-only database
+        shell: bash
+        run: |
+          set -euo pipefail
+          container="supabase_db_spendist-app"
+          docker exec "$container" createdb -U supabase_admin --template=template0 spendist_grants_test
+          docker exec "$container" pg_dump -U supabase_admin -d postgres \
+            --schema-only --no-publications --no-subscriptions \
+            --exclude-extension=pg_cron --exclude-extension=pg_net \
+            --exclude-schema=cron --exclude-schema=net \
+            | docker exec -i "$container" psql -U supabase_admin -d spendist_grants_test -v ON_ERROR_STOP=1
+          docker exec -i "$container" psql -U supabase_admin -d spendist_grants_test \
+            -v ON_ERROR_STOP=1 < supabase/tests/data-api-grants.sql
+
+      - name: Stop isolated Supabase stack
+        if: always()
+        run: npm exec -- supabase stop --no-backup
+
   e2e:
     if: github.event_name == 'push' && (github.ref_name == 'master' || github.ref_name == 'develop')
     runs-on: ubuntu-latest

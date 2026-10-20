@@ -694,9 +694,9 @@ const pl = {
         changeIcon: 'Zmień ikonę',
       },
       spendistCsv: {
-        label: 'Export/import Spendist',
+        label: 'Eksport/import Spendist',
         description: 'CSV, filtry, przenoszenie danych',
-        header: 'Export/import from Spendist',
+        header: 'Eksport/import danych Spendist',
         text: 'Eksportuj transakcje do CSV albo zaimportuj plik wygenerowany przez Spendist. Ten import jest niezależny od Kontomierza.',
         export: {
           title: 'Eksport transakcji',
@@ -724,7 +724,7 @@ const pl = {
           import: 'Importuj transakcje',
         },
         schema: {
-          title: 'Accepted CSV schema',
+          title: 'Format pliku CSV',
           description:
             'Eksportowany plik jest wzorcem importu. Kolumny wymagane są opisane poniżej.',
           columns: {
@@ -745,6 +745,7 @@ const pl = {
             wallet_currency:
               'Wymagane, gdy portfel nie istnieje; kod waluty ISO.',
             tags: 'Opcjonalne; tagi rozdzielone średnikiem.',
+            place: 'Opcjonalne; nazwa miejsca przypisanego do transakcji.',
             is_automatic: 'Opcjonalne; true/false, domyślnie false.',
             recurring_scheduled_for:
               'Opcjonalne; używane tylko przy is_automatic=true.',

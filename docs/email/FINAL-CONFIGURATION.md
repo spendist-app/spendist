@@ -1,5 +1,25 @@
 # Remaining production configuration
 
+## Production activation — 2026-10-20 (supersedes older gates below)
+
+The owner explicitly approved immediate sending with the temporary AWS production quota of 50,000 recipients/rolling 24h and 14/s, while requesting a decrease to 200/24h and 1/s. This replaces the earlier requirement to wait for an enforced AWS quota of 100 or 200. Account credit is not treated as a spending cap.
+
+Live checks: the SES Stockholm console and the existing five-minute monitor agree on production access, Healthy, sending enabled, actual quota 50,000 and rate 14. Before activation, the queue was empty and the three schedules were active. A guarded trusted update set `enabled=true`, retained `app_limit=100`, and set expected AWS quota/rate to 200/1. The quota mismatch remains visible until AWS applies the decrease. No IAM permissions, AWS keys, paid support or add-ons were changed.
+
+The Send Email HTTPS hook now points to this project's `auth-email` function and is enabled. Its signing secret was freshly generated in memory, synchronized to the existing server-only Edge secret, verified by digest, and installed in Auth; no value was logged or persisted locally. The existing MCP access-token hook remains enabled. The first form save showed a success toast but did not survive reload; the same configuration was entered using native paste and verified after reload before any test. Both hook and queue are active together.
+
+A single password-recovery email for the owner's existing account passed the signed hook, entered the shared queue, and was accepted by SES: `status=sent`, `attempts=1`, non-null SES message ID, no error, one rolling-day reservation. No password was changed. This proves the Auth/queue/worker/SES path; the owner confirmed inbox receipt on 2026-10-20. Registration, email-change and optional-notification inbox delivery were not separately tested in production during this activation.
+
+At 22:22:52 Europe/Warsaw, the quota-decrease case 179139569000996 received an explicit request to APPLY 200 recipients/rolling 24h and 1/s while retaining production access, referencing the approved production case 179139517600834. The reply also asks AWS to clarify contradictory statements about proactive increases. The request is submitted; the decrease is not yet applied. See [activation evidence](ACTIVATION-2026-10-20.md).
+
+## Live check — 2026-10-16
+
+Later on 2026-10-16, the AWS console showed the SES account still in the sandbox at 200 recipients/rolling 24 hours and 1/s. AWS separately said it cannot enforce the requested 100/24h account quota; its lowest available value is 200/24h at 1/s. The owner accepted that floor and authorized the [production-access reply](AWS-SES-PRODUCTION-REPLY-2026-10-16.md), submitted at 23:01:49 Europe/Warsaw. The case now shows `Customer action completed`, awaiting AWS review. The original 100-recipient AWS activation condition below is unsatisfiable as written. Do not activate the Auth hook or queue until AWS grants production access, the actual account quota/rate are re-read, and the expected AWS quota and cutover checks are deliberately updated for 200.
+
+A test signup for `test-1016@spendist.app` received a confirmation message from Supabase Auth, and the user confirmed the account successfully. A read-only production query found no job for that recipient in `spendist_email.jobs`. At 20:35 UTC, the monitor's last successful AWS observation reported `production_access=false`, an actual SES quota of 200 recipients per 24 hours, rate 1/s, `sent_24h=0`, and healthy AWS sending. The application's shared email queue remained `enabled=false`.
+
+The Supabase-to-SES Auth cutover described below has therefore **not happened** as of this check. Account confirmation currently works through Supabase Auth. Keep the queue and Auth hook coordinated; do not enable the hook alone while the worker is disabled. The owner is checking the AWS production-access request and separate quota-decrease case. No mail configuration was changed during this check.
+
 Updated 2026-10-07. The owner approved the concrete deployment and credentials described below. See the execution evidence for what is deployed and what remains conditional.
 
 ## Read-only preflight findings

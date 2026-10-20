@@ -1,5 +1,9 @@
 # Spendist email deployment approval package
 
+## Activated configuration — 2026-10-20
+
+Sending and the signed Auth hook are active after explicit owner approval of the temporary AWS production quota 50,000/24h and 14/s. The application retains its shared 100-recipient/rolling-24h cap and approximately 1/s worker pace. Expected AWS quota/rate are 200/1; the mismatch alert is intentionally retained pending the requested decrease. This supersedes older activation gates and prepared/pending status below. The real recovery test passed Auth signature verification, queue admission and SES acceptance in one attempt; the owner confirmed inbox receipt on 2026-10-20. No code, IAM grant or new paid resource was deployed in this cutover. See [current evidence](ACTIVATION-2026-10-20.md).
+
 Prepared 2026-10-07. **Application code is not deployed or activated. Approved AWS resources and five SES DNS records are configured; sending is not activated. SNS sent its subscription confirmation email; no application mail or test alert has been sent.**
 
 ## Confirmed inputs and remaining checks

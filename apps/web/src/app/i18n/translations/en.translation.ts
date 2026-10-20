@@ -743,6 +743,7 @@ const en = {
             wallet_currency:
               'Required when the wallet does not exist; ISO currency code.',
             tags: 'Optional; semicolon-separated tag names.',
+            place: 'Optional; place name associated with the transaction.',
             is_automatic: 'Optional; true/false, defaults to false.',
             recurring_scheduled_for:
               'Optional; used only when is_automatic=true.',

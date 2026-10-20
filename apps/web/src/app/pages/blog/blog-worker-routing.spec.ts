@@ -1,39 +1,51 @@
 import worker from '../../../../worker';
 
 describe('blog Worker routing', () => {
-  it('returns the localized branded page with an HTTP 404 status', async () => {
-    const requestedPaths: string[] = [];
+  it.each(['pl', 'en'])(
+    'returns the %s branded page with an HTTP 404 status',
+    async (locale) => {
+      const requestedPaths: string[] = [];
 
-    const response = await worker.fetch(
-      new Request('https://spendist.app/pl/blog/nie-istnieje', {
-        headers: { accept: 'text/html' },
-      }),
-      {
-        ASSETS: {
-          fetch: async (request: Request) => {
-            const pathname = new URL(request.url).pathname;
-            requestedPaths.push(pathname);
+      const response = await worker.fetch(
+        new Request(`https://spendist.app/${locale}/blog/nie-istnieje`, {
+          headers: { accept: 'text/html' },
+        }),
+        {
+          ASSETS: {
+            fetch: async (request: Request) => {
+              const pathname = new URL(request.url).pathname;
+              requestedPaths.push(pathname);
 
-            return pathname === '/pl/blog-not-found/index.html'
-              ? new Response('<h1>Nie znaleziono artykułu</h1>', {
-                  headers: { 'content-type': 'text/html; charset=utf-8' },
-                })
-              : new Response(null, { status: 404 });
+              if (pathname.endsWith('/index.html')) {
+                return new Response(null, {
+                  status: 307,
+                  headers: { location: `/${locale}/blog-not-found` },
+                });
+              }
+
+              return pathname === `/${locale}/blog-not-found`
+                ? new Response('<h1>Nie znaleziono artykułu</h1>', {
+                    headers: { 'content-type': 'text/html; charset=utf-8' },
+                  })
+                : new Response(null, { status: 404 });
+            },
           },
-        },
-      }
-    );
+        }
+      );
 
-    expect(requestedPaths).toEqual([
-      '/pl/blog/nie-istnieje',
-      '/pl/blog-not-found/index.html',
-    ]);
-    expect(response.status).toBe(404);
-    expect(await response.text()).toContain('Nie znaleziono artykułu');
-    expect(response.headers.get('Content-Security-Policy')).toContain(
-      "default-src 'self'"
-    );
-  });
+      expect(requestedPaths).toEqual([
+        `/${locale}/blog/nie-istnieje`,
+        `/${locale}/blog-not-found`,
+      ]);
+      expect(response.status).toBe(404);
+      expect(await response.text()).toContain('Nie znaleziono artykułu');
+      expect(response.headers.get('Location')).toBeNull();
+      expect(response.headers.get('X-Robots-Tag')).toBe('noindex, follow');
+      expect(response.headers.get('Content-Security-Policy')).toContain(
+        "default-src 'self'"
+      );
+    }
+  );
 
   it('adds a noindex response header to tag-filtered archives', async () => {
     const response = await worker.fetch(
