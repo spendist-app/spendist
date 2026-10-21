@@ -4,6 +4,7 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { TranslocoService } from '@ngneat/transloco';
 import { firstValueFrom } from 'rxjs';
+import { FeatureFlagsService } from '../../core/feature-flags.service';
 import { provideAppTransloco } from '../../i18n/transloco.providers';
 import { TransactionCreateFormComponent } from './transaction-create-form.component';
 import {
@@ -152,15 +153,18 @@ class TransactionsStoreStub {
 
 describe('TransactionCreateFormComponent', () => {
   const recentDefaultsStorageKey = 'spendist.transactionForm.recentDefaults';
+  const previewVisible = signal(true);
 
   beforeEach(async () => {
     sessionStorage.clear();
+    previewVisible.set(true);
 
     await TestBed.configureTestingModule({
       imports: [TransactionCreateFormComponent],
       providers: [
         TransactionsStoreStub,
         { provide: TransactionsStore, useExisting: TransactionsStoreStub },
+        { provide: FeatureFlagsService, useValue: { previewVisible } },
         ...provideAppTransloco(),
       ],
     }).compileComponents();
@@ -267,6 +271,41 @@ describe('TransactionCreateFormComponent', () => {
       currency: 'PLN',
     });
     expect(store.createTransactionsCalls).toBe(0);
+  });
+
+  it('shows the transaction target last among the advanced fields', () => {
+    const fixture = TestBed.createComponent(TransactionCreateFormComponent);
+    fixture.detectChanges();
+
+    const compiled = fixtureElement(fixture);
+    expect(
+      compiled.querySelector('[data-testid="transaction-target"]')
+    ).toBeNull();
+
+    fixture.componentInstance['toggleAdvanced']();
+    fixture.detectChanges();
+
+    const advancedSelects = Array.from(
+      compiled.querySelectorAll('section select')
+    ).map((select) => select.getAttribute('formControlName'));
+
+    expect(advancedSelects.at(-1)).toBe('transactionTarget');
+  });
+
+  it('hides the transaction target when preview modules are hidden', () => {
+    previewVisible.set(false);
+
+    const fixture = TestBed.createComponent(TransactionCreateFormComponent);
+    fixture.detectChanges();
+
+    fixture.componentInstance['toggleAdvanced']();
+    fixture.detectChanges();
+
+    expect(
+      fixtureElement(fixture).querySelector(
+        '[data-testid="transaction-target"]'
+      )
+    ).toBeNull();
   });
 
   it('keeps the existing paired Allowance transaction target', async () => {

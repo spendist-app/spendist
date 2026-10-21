@@ -1,4 +1,9 @@
 const pl = {
+  featureFlags: {
+    hidePreview: 'Ukryj moduły w podglądzie',
+    hidePreviewHelp:
+      'Ukrywa Kieszonkowe i Kredyty hipoteczne, żeby zobaczyć aplikację jak zwykły użytkownik. Zwykli użytkownicy nigdy nie widzą tych modułów. Ustawienie dotyczy tylko tej przeglądarki.',
+  },
   emailAdmin: {
     title: 'Administracja',
     refresh: 'Odśwież',

@@ -26,6 +26,8 @@ The private `/admin` route is excluded from indexing. Only an authenticated user
 
 The database checks administrator status on every `email_admin_status` call. The route guard is supplemental. The panel displays application reservations, SES accepted messages, actual regional SES usage/quota/rate, expected quota/rate, warning thresholds, observation times, stale/read-failure state, queue counts, and the last 50 alert events. No secrets, recipients or mail content are returned.
 
+The panel also has a `Hide preview modules` switch. Administrators see preview modules (Allowance and Mortgages) by default; the switch hides them in the current browser (`localStorage`) so the administrator sees the regular user interface. Other users never see preview modules. Visibility is enforced only in the web front end.
+
 Administration uses client rendering so direct links and refreshes check the current browser session instead of following a prerendered login redirect. The production Worker serves the client shell for `/admin`, with no-store and noindex headers; every statistics request still requires database administrator authorization. The service worker excludes administrator navigation and /env.js, which is always served by the Worker from production runtime bindings. Production security headers reject local loopback connections.
 
 ## Monitoring and alerts

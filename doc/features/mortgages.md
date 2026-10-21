@@ -14,6 +14,14 @@ nominal rate. A variable period uses the mortgage margin plus WIBOR 1M, 3M,
 reduce-payment strategy. Full payment holidays produce no principal or
 interest payment and extend the schedule.
 
+## Preview visibility
+
+Mortgages is a preview module. The web application shows its navigation links and
+route only to administrators (`public.profiles.is_admin`); other users are
+redirected to `/dashboard`. An administrator can hide preview modules for
+their own browser from `/admin`. This is a front-end visibility flag only: the
+database, RLS, RPCs, MCP tools, and existing transactions are unchanged.
+
 ## Simulation and reference rates
 
 Each generated revision stores every installment, its principal and interest

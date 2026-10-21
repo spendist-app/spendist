@@ -17,6 +17,19 @@ Invitations are created only through the email invitation path, which requires
 a confirmed email address on the inviter's account and applies the shared email
 rate limits.
 
+## Preview visibility
+
+Allowance is a preview module. The web application shows its navigation links and
+route only to administrators (`public.profiles.is_admin`); other users are
+redirected to `/dashboard`. An administrator can hide preview modules for
+their own browser from `/admin`. This is a front-end visibility flag only: the
+database, RLS, RPCs, MCP tools, and existing transactions are unchanged.
+
+Related front-end surfaces follow the same flag: the transaction form target
+and Allowance email-notification preferences. Invitation notifications and the
+`/allowance/invite` link stay reachable so a pending invitation can still be
+answered.
+
 ## Transactions and schedules
 
 A manual allowance creates two ordinary Spendist transactions atomically. The

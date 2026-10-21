@@ -1,4 +1,9 @@
 const en = {
+  featureFlags: {
+    hidePreview: 'Hide preview modules',
+    hidePreviewHelp:
+      'Hides Allowance and Mortgages so you see the app like a regular user. Regular users never see these modules. The setting applies only to this browser.',
+  },
   emailAdmin: {
     title: 'Administration',
     refresh: 'Refresh',

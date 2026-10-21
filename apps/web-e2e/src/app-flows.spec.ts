@@ -9,6 +9,8 @@ import {
 
 const DEFAULT_EMAIL = 'e2e-shared-user@gmail.com';
 
+const DEFAULT_ADMIN_EMAIL = 'e2e-admin-user@gmail.com';
+
 const DEFAULT_PASSWORD = 'Test1234!';
 
 const DASHBOARD_HEADING = 'Your personalised command centre';
@@ -145,8 +147,10 @@ function previousMonthEndInput(): string {
     .slice(0, 10);
 }
 
-async function ensureAuthenticated(page: Page): Promise<void> {
-  const email = envValueOrDefault('E2E_AUTH_EMAIL', DEFAULT_EMAIL);
+async function ensureAuthenticated(
+  page: Page,
+  email = envValueOrDefault('E2E_AUTH_EMAIL', DEFAULT_EMAIL)
+): Promise<void> {
   const password = envValueOrDefault('E2E_AUTH_PASSWORD', DEFAULT_PASSWORD);
 
   await page.goto('/login');
@@ -1667,11 +1671,25 @@ test('creates category group and category', async ({ page }, testInfo) => {
   await expect(page.getByText(categoryName).first()).toBeVisible();
 });
 
+test('hides preview modules from an ordinary account', async ({ page }) => {
+  await ensureAuthenticated(page);
+  await page.getByRole('button', { name: 'Modules' }).click();
+  await expect(page.getByRole('link', { name: 'Places' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Mortgages' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Allowance' })).toHaveCount(0);
+
+  await page.goto('/modules/mortgages');
+  await expect(page).toHaveURL(/\/dashboard$/, { timeout: 15000 });
+});
+
 test('creates a mortgage simulation and attaches planned installments', async ({
   page,
 }, testInfo) => {
   const name = `E2E mortgage ${uniqueSuffix(testInfo)}`;
-  await ensureAuthenticated(page);
+  await ensureAuthenticated(
+    page,
+    envValueOrDefault('E2E_ADMIN_EMAIL', DEFAULT_ADMIN_EMAIL)
+  );
   await openModule(page, 'Mortgages', 'Mortgage loans');
   await page.getByRole('button', { name: 'Create mortgage' }).click();
 

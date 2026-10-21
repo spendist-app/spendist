@@ -13,8 +13,9 @@ Users can create a place from the place picker without leaving the transaction
 form. The new place is selected for that transaction after it is saved; a place
 save failure leaves the transaction draft intact.
 
-When the signed-in user has an active Allowance connection as a payer, the
-single-transaction form includes a `Where should it be recorded?` target. The
+When the signed-in user has an active Allowance connection as a payer and can
+see preview modules, the last field of the single-transaction form's advanced
+section is a `Where should it be recorded?` target. The
 user can record the transaction only on their own account, create the existing
 paired allowance expense and recipient income, or create an expense only on
 the recipient's account. A recipient-only expense uses the recipient's default

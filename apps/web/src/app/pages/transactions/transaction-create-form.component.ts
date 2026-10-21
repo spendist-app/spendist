@@ -32,6 +32,7 @@ import { parseAmountInput } from './transaction-amount.parser';
 import { heroIconSvg } from '../../shared/icons/heroicons';
 import { logError } from '../../core/logger';
 import { LanguageService } from '../../core/language.service';
+import { FeatureFlagsService } from '../../core/feature-flags.service';
 import {
   CategorySelectComponent,
   CategorySelectOption,
@@ -79,6 +80,7 @@ export class TransactionCreateFormComponent {
   private readonly languageService = inject(LanguageService);
   private readonly transloco = inject(TranslocoService);
   protected readonly store = inject(TransactionsStore);
+  private readonly featureFlags = inject(FeatureFlagsService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   protected readonly descriptionInput =
     viewChild<ElementRef<HTMLInputElement>>('descriptionInput');
@@ -131,8 +133,13 @@ export class TransactionCreateFormComponent {
   protected readonly places = computed<readonly PlaceEntity[]>(() =>
     this.store.places()
   );
-  protected readonly allowanceConnections = computed(
-    () => this.store.allowanceConnections?.() ?? []
+  protected readonly allowanceConnections = computed(() =>
+    this.featureFlags.previewVisible()
+      ? (this.store.allowanceConnections?.() ?? [])
+      : []
+  );
+  protected readonly showTransactionTarget = computed(
+    () => !this.isEditMode() && this.allowanceConnections().length > 0
   );
   private readonly selectedWalletCurrency = signal(
     this.store.defaultCurrency()
@@ -961,7 +968,6 @@ export class TransactionCreateFormComponent {
       walletControl.clearValidators();
       this.form.controls.direction.setValue('expense');
       this.form.controls.quantity.setValue(1);
-      this.showAdvanced.set(false);
       this.closeFormDropdowns();
       this.closeNewPlaceForm();
     } else {

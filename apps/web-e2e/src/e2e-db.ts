@@ -13,6 +13,8 @@ const RETRY_BASE_DELAY_MS = 5000;
 
 const DEFAULT_EMAIL = 'e2e-shared-user@gmail.com';
 
+const DEFAULT_ADMIN_EMAIL = 'e2e-admin-user@gmail.com';
+
 const DEFAULT_PASSWORD = 'Test1234!';
 
 const LOCAL_SUPABASE_JWT_SECRET =
@@ -97,11 +99,37 @@ export async function ensureE2EAccount(): Promise<void> {
     throw new Error('Missing Supabase publishable/anon key for e2e bootstrap.');
   }
 
-  const email = envValueOrDefault('E2E_AUTH_EMAIL', DEFAULT_EMAIL);
   const password = envValueOrDefault('E2E_AUTH_PASSWORD', DEFAULT_PASSWORD);
   const baseUrl = supabaseUrl.replace(/\/+$/, '');
   const serviceRoleKey = resolveServiceRoleKey(envFile);
 
+  await ensureAccount(
+    baseUrl,
+    publishableKey,
+    serviceRoleKey,
+    envValueOrDefault('E2E_AUTH_EMAIL', DEFAULT_EMAIL),
+    password
+  );
+
+  // Preview modules are visible only to administrators, so their flows use a separate account.
+  const adminId = await ensureAccount(
+    baseUrl,
+    publishableKey,
+    serviceRoleKey,
+    envValueOrDefault('E2E_ADMIN_EMAIL', DEFAULT_ADMIN_EMAIL),
+    password
+  );
+
+  await grantAdministrator(baseUrl, serviceRoleKey, adminId);
+}
+
+async function ensureAccount(
+  baseUrl: string,
+  publishableKey: string,
+  serviceRoleKey: string,
+  email: string,
+  password: string
+): Promise<string> {
   const signedIn = await signIn(baseUrl, publishableKey, email, password);
 
   if (!signedIn.ok) {
@@ -132,6 +160,28 @@ export async function ensureE2EAccount(): Promise<void> {
     data.access_token,
     data.user.id
   );
+
+  return data.user.id;
+}
+
+async function grantAdministrator(
+  baseUrl: string,
+  serviceRoleKey: string,
+  userId: string
+): Promise<void> {
+  const response = await fetch(`${baseUrl}/rest/v1/profiles?id=eq.${userId}`, {
+    method: 'PATCH',
+    headers: { ...authHeaders(serviceRoleKey), Prefer: 'return=minimal' },
+    body: JSON.stringify({ is_admin: true }),
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `[e2e-db] Failed to grant e2e administrator (${
+        response.status
+      }): ${truncateForLog(await response.text())}`
+    );
+  }
 }
 
 async function ensureUserBootstrapData(
@@ -501,7 +551,6 @@ function createServiceRoleJwt(secret: string): string {
     iat: now,
     iss: 'supabase',
     role: 'service_role',
-    sub: 'service_role',
   };
 
   const signingInput = `${base64UrlEncode(
