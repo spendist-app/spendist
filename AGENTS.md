@@ -76,6 +76,7 @@ All content in `doc/`, `llm.txt`, and `llm-full.txt` is English. Document curren
 - Prefer additive, backwards-compatible migrations. Synchronize migration history before a remote push.
 - Commit every new migration or Edge Function with the code that needs it.
 - Keep RLS ownership boundaries intact. Do not log secrets, access tokens, or financial payloads.
+- New public tables need explicit per-role GRANT statements in the creating migration; RLS alone does not grant Data API access. Do not grant anonymous access to financial data. Update `supabase/tests/data-api-grants.sql` when classifying a new table; CI rebuilds without implicit table/sequence grants.
 - For CSP/security work, inspect generated output and the Cloudflare Worker runtime path. Local Supabase Realtime requires supported localhost WebSocket origins in `connect-src`.
 
 ## Development and verification

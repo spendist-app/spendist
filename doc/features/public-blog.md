@@ -35,6 +35,10 @@ Published Markdown is converted to sanitized HTML during the build. Article H2/H
 
 Blog pages provide canonical URLs, robots directives, Open Graph, Twitter cards, RSS discovery, and JSON-LD. Article pages use `BlogPosting` and breadcrumbs. The visually separated sharing panel uses icon-only Web Share, copy-link, Facebook, LinkedIn, and X actions with accessible labels; it does not load third-party social SDKs. Edition home pages have reciprocal PL/EN `hreflang`; article pages do not, because posts are independent. The generated sitemap contains the landing page, both edition indexes, published articles, and non-empty category archives. Unknown blog URLs receive a branded `noindex` page and the Cloudflare Worker returns HTTP 404.
 
+Public page URLs are extensionless without a trailing slash (except `/`). Cloudflare's `assets.html_handling = "drop-trailing-slash"` serves the prerendered HTML at the same URLs used by the sitemap, canonical tags, Open Graph and RSS. Trailing-slash and explicit HTML aliases redirect to that form with query parameters preserved. The landing page sets its own root canonical while mounted. The Worker fetches canonical asset paths for HTML fallbacks so the localized blog 404 includes a body instead of wrapping an asset redirect.
+
+After a production build, start `npm exec -- wrangler dev --local --port 8787` and run `npm run test:public-seo`. This HTTP check verifies every generated sitemap URL, canonical/Open Graph metadata, HEAD responses, HTML alias redirects, and localized 404/tag behavior against the real asset router. Pass a deployed origin as an argument for a read-only post-deployment check. CI runs this check locally without a browser or database.
+
 ## User-visible behavior and limits
 
 - Layouts are mobile-first and responsive.

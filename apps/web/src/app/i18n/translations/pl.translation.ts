@@ -1,4 +1,9 @@
 const pl = {
+  featureFlags: {
+    hidePreview: 'Ukryj moduły w podglądzie',
+    hidePreviewHelp:
+      'Ukrywa Kieszonkowe i Kredyty hipoteczne, żeby zobaczyć aplikację jak zwykły użytkownik. Zwykli użytkownicy nigdy nie widzą tych modułów. Ustawienie dotyczy tylko tej przeglądarki.',
+  },
   emailAdmin: {
     title: 'Administracja',
     refresh: 'Odśwież',
@@ -694,9 +699,9 @@ const pl = {
         changeIcon: 'Zmień ikonę',
       },
       spendistCsv: {
-        label: 'Export/import Spendist',
+        label: 'Eksport/import Spendist',
         description: 'CSV, filtry, przenoszenie danych',
-        header: 'Export/import from Spendist',
+        header: 'Eksport/import danych Spendist',
         text: 'Eksportuj transakcje do CSV albo zaimportuj plik wygenerowany przez Spendist. Ten import jest niezależny od Kontomierza.',
         export: {
           title: 'Eksport transakcji',
@@ -724,7 +729,7 @@ const pl = {
           import: 'Importuj transakcje',
         },
         schema: {
-          title: 'Accepted CSV schema',
+          title: 'Format pliku CSV',
           description:
             'Eksportowany plik jest wzorcem importu. Kolumny wymagane są opisane poniżej.',
           columns: {
@@ -745,6 +750,7 @@ const pl = {
             wallet_currency:
               'Wymagane, gdy portfel nie istnieje; kod waluty ISO.',
             tags: 'Opcjonalne; tagi rozdzielone średnikiem.',
+            place: 'Opcjonalne; nazwa miejsca przypisanego do transakcji.',
             is_automatic: 'Opcjonalne; true/false, domyślnie false.',
             recurring_scheduled_for:
               'Opcjonalne; używane tylko przy is_automatic=true.',
@@ -1204,6 +1210,9 @@ const pl = {
       pasteDescription:
         'Po wklejeniu zawartość zostanie automatycznie rozpoznana i sprawdzona.',
       pasteLabel: 'Wklej zawartość CSV',
+      pasteClear: 'Wyczyść',
+      pasteHint:
+        'Pierwszy wiersz musi zawierać nagłówki kolumn, jak w podpowiedzi w pustym polu. Pełny opis kolumn znajdziesz w „Schemacie CSV”.',
       ai: {
         action: 'Przygotuj prompt dla AI',
         badge: 'Pomoc AI',

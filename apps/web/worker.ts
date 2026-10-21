@@ -168,10 +168,7 @@ const withSecurityHeaders = (
     );
   }
 
-  if (
-    pathname === '/analytics/frame.html' ||
-    pathname === '/analytics/frame'
-  ) {
+  if (pathname === '/analytics/frame.html' || pathname === '/analytics/frame') {
     headers.set(
       'Content-Security-Policy',
       [
@@ -227,7 +224,7 @@ const envResponse = (env: Env, request: Request): Response => {
 };
 
 const shouldServeHtmlFallback = (request: Request): boolean => {
-  if (request.method !== 'GET') {
+  if (request.method !== 'GET' && request.method !== 'HEAD') {
     return false;
   }
 
@@ -241,12 +238,10 @@ const fallbackToIndex = async (
   env: Env
 ): Promise<Response> => {
   const url = new URL(request.url);
-  url.pathname = '/index.html';
+  // Fetch the canonical asset URL: /index.html would return a redirect.
+  url.pathname = '/';
 
-  const fallbackRequest = new Request(url.toString(), {
-    method: 'GET',
-    headers: request.headers,
-  });
+  const fallbackRequest = new Request(url.toString(), request);
 
   return env.ASSETS.fetch(fallbackRequest);
 };
@@ -258,16 +253,20 @@ const blogNotFoundResponse = async (
   const { pathname } = new URL(request.url);
   const locale = pathname.startsWith('/pl/blog') ? 'pl' : 'en';
   const url = new URL(request.url);
-  url.pathname = `/${locale}/blog-not-found/index.html`;
+  // Asset HTML handling redirects explicit index.html paths instead of serving
+  // their body. Use the extensionless URL to return the actual branded page.
+  url.pathname = `/${locale}/blog-not-found`;
 
-  const response = await env.ASSETS.fetch(
-    new Request(url.toString(), { headers: request.headers })
-  );
+  const response = await env.ASSETS.fetch(new Request(url.toString(), request));
+
+  const headers = new Headers(response.headers);
+
+  headers.set('X-Robots-Tag', 'noindex, follow');
 
   return new Response(response.body, {
     status: 404,
     statusText: 'Not Found',
-    headers: response.headers,
+    headers,
   });
 };
 

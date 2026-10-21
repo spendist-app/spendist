@@ -8,6 +8,7 @@ import {
   requireAuthWithReturnUrlGuard,
 } from './core/auth.guard';
 import { requireAdminGuard } from './core/admin.guard';
+import { requirePreviewFeatureGuard } from './core/feature.guard';
 import { LanguageService } from './core/language.service';
 
 export const appRoutes: Route[] = [
@@ -129,7 +130,7 @@ export const appRoutes: Route[] = [
   },
   {
     path: 'modules/mortgages',
-    canActivate: [requireAuthGuard],
+    canActivate: [requirePreviewFeatureGuard],
     loadComponent: () =>
       import('./pages/modules/mortgages/mortgages.page').then(
         (m) => m.MortgagesPage
@@ -145,7 +146,7 @@ export const appRoutes: Route[] = [
   },
   {
     path: 'modules/allowance',
-    canActivate: [requireAuthGuard],
+    canActivate: [requirePreviewFeatureGuard],
     loadComponent: () =>
       import('./pages/modules/allowance/allowance.page').then(
         (m) => m.AllowancePageComponent

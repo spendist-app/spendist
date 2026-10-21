@@ -14,17 +14,19 @@ coverImageAlt: 'DO UZUPEŁNIENIA: opis okładki po przygotowaniu grafiki'
 draft: true
 ---
 
-Najtrudniejszy moment w prowadzeniu budżetu to pierwszy tydzień. Większość osób rezygnuje nie dlatego, że aplikacja jest zła, tylko dlatego, że próbuje od razu wpisać całą historię. Ten poradnik pokazuje krótszą drogę: jedno konto, jeden portfel, wydatki z bieżącego tygodnia i pierwsze podsumowanie. Całość zajmuje około kwadransa.
+Nie musisz wpisywać całej historii, żeby zacząć prowadzić budżet. Ten poradnik pokazuje pierwsze kroki: jedno konto, jeden portfel, kilka wydatków i podsumowanie. Możesz zacząć od wymyślonych zakupów, żeby poznać aplikację bez wprowadzania własnych danych finansowych.
 
 Spendist jest darmowy i open source. Nie łączy się z bankiem i niczego za ciebie nie płaci; wpisujesz wydatki samodzielnie albo importujesz obsługiwane pliki. Eksport do CSV jest dostępny od pierwszego dnia, więc dane zawsze możesz zabrać ze sobą.
 
 ## Krok 1: konto i potwierdzenie e-maila
 
-Wejdź na [spendist.app](https://spendist.app/) i wybierz rejestrację. Podaj adres e-mail, hasło, nazwę użytkownika oraz domyślną walutę. Po wysłaniu formularza sprawdź skrzynkę (również folder spam) i kliknij link potwierdzający. Link loguje cię od razu i otwiera dashboard.
+Wejdź na [spendist.app](https://spendist.app/) i wybierz **Zarejestruj się**. Wypełnij pole **Imię i nazwisko**, podaj adres e-mail, hasło i jego potwierdzenie oraz wybierz **Walutę pierwszego portfela**. Hasło wymaga co najmniej ośmiu znaków, wielkiej i małej litery oraz cyfry.
+
+Po wysłaniu formularza sprawdź skrzynkę, również folder spam, i kliknij link potwierdzający. Ekran oczekiwania pokazuje podany adres i pozwala ponownie wysłać wiadomość. Prawidłowy link potwierdza konto, loguje cię i otwiera Pulpit.
 
 Rejestracja jest dla osób pełnoletnich i wymaga akceptacji regulaminu oraz polityki prywatności. Spendist nie pobiera zdjęcia profilowego z zewnętrznych serwisów.
 
-![Ekran rejestracji Spendist](image:rejestracja 'Formularz rejestracji: e-mail, hasło, nazwa użytkownika i waluta')
+![Ekran rejestracji Spendist](image:rejestracja 'Formularz rejestracji: imię i nazwisko, e-mail, hasło z potwierdzeniem i waluta pierwszego portfela')
 
 ## Krok 2: jeden portfel
 
@@ -46,7 +48,7 @@ Miejsce zakupu możesz utworzyć bezpośrednio z formularza transakcji, bez prze
 
 ## Krok 4: pierwsze podsumowanie
 
-Przejdź na **Dashboard**. Zobaczysz przychody, wydatki i saldo z ostatnich miesięcy, sumy według kategorii i tagów dla wybranego miesiąca oraz zestawienie miejsc. Przy kilku wpisach wykres będzie skromny. To normalne; sens pojawia się po dwóch, trzech tygodniach.
+Przejdź na **Pulpit**. Zobaczysz przychody, wydatki i saldo z ostatnich miesięcy, sumy według kategorii i tagów dla wybranego miesiąca oraz zestawienie miejsc. Sprawdź, czy wybrany miesiąc obejmuje daty dodanych wydatków. Przy kilku wpisach podsumowanie będzie niewielkie; z kolejnymi wydatkami zobaczysz więcej informacji.
 
 Na stronie Transakcje możesz filtrować po kategorii, tagu, miejscu, kwocie i zakresie dat. Filtry zapisują się w adresie strony, więc widok możesz dodać do zakładek albo wysłać sobie na telefon.
 

@@ -10,6 +10,7 @@ import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { TranslocoPipe } from '@ngneat/transloco';
 import { AdminAccessService } from '../admin-access.service';
 import { AuthService } from '../auth.service';
+import { FeatureFlagsService } from '../feature-flags.service';
 import { LanguageService } from '../language.service';
 import { NotificationsMenuComponent } from '../notifications/notifications-menu.component';
 import { ProfileService } from '../profile.service';
@@ -32,6 +33,7 @@ import type { LanguageCode } from '../../i18n/languages';
 export class NavbarComponent {
   readonly auth = inject(AuthService);
   readonly adminAccess = inject(AdminAccessService);
+  readonly featureFlags = inject(FeatureFlagsService);
   private readonly profileService = inject(ProfileService);
   private readonly router = inject(Router);
   private readonly themeService = inject(ThemeService);

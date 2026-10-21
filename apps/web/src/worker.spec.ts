@@ -1,6 +1,52 @@
 import { describe, expect, it, vi } from 'vitest';
 import worker from '../worker';
 
+describe('HTML fallback at the production Worker', () => {
+  it.each(['GET', 'HEAD'])(
+    'serves a fallback body without an index.html redirect for %s',
+    async (method) => {
+      const requestedPaths: string[] = [];
+
+      const response = await worker.fetch(
+        new Request('https://spendist.app/unknown-page', {
+          method,
+          headers: { accept: 'text/html' },
+        }),
+        {
+          ASSETS: {
+            fetch: async (request: Request) => {
+              const pathname = new URL(request.url).pathname;
+
+              requestedPaths.push(pathname);
+              expect(request.method).toBe(method);
+
+              if (pathname === '/index.html') {
+                return new Response(null, {
+                  status: 307,
+                  headers: { location: '/' },
+                });
+              }
+
+              return pathname === '/'
+                ? new Response(
+                    method === 'HEAD' ? null : '<app-root></app-root>'
+                  )
+                : new Response(null, { status: 404 });
+            },
+          },
+        }
+      );
+
+      expect(requestedPaths).toEqual(['/unknown-page', '/']);
+      expect(response.status).toBe(200);
+      expect(response.headers.get('location')).toBeNull();
+      expect(await response.text()).toBe(
+        method === 'HEAD' ? '' : '<app-root></app-root>'
+      );
+    }
+  );
+});
+
 describe('administrator navigation at the production Worker', () => {
   it('serves public production runtime configuration ahead of a local asset', async () => {
     const fetchAsset = vi.fn(

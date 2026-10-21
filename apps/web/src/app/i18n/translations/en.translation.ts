@@ -1,4 +1,9 @@
 const en = {
+  featureFlags: {
+    hidePreview: 'Hide preview modules',
+    hidePreviewHelp:
+      'Hides Allowance and Mortgages so you see the app like a regular user. Regular users never see these modules. The setting applies only to this browser.',
+  },
   emailAdmin: {
     title: 'Administration',
     refresh: 'Refresh',
@@ -743,6 +748,7 @@ const en = {
             wallet_currency:
               'Required when the wallet does not exist; ISO currency code.',
             tags: 'Optional; semicolon-separated tag names.',
+            place: 'Optional; place name associated with the transaction.',
             is_automatic: 'Optional; true/false, defaults to false.',
             recurring_scheduled_for:
               'Optional; used only when is_automatic=true.',
@@ -1196,6 +1202,9 @@ const en = {
       pasteDescription:
         'The content is detected and validated automatically after you paste it.',
       pasteLabel: 'Paste CSV content',
+      pasteClear: 'Clear',
+      pasteHint:
+        'The first row must contain the column headers shown in the empty field. See “CSV schema” for every column.',
       ai: {
         action: 'Prepare an AI prompt',
         badge: 'AI assistance',

@@ -8,8 +8,10 @@ import {
 import { TranslocoPipe } from '@ngneat/transloco';
 import { AdminAccessService } from '../../core/admin-access.service';
 import { AuthService } from '../../core/auth.service';
+import { FeatureFlagsService } from '../../core/feature-flags.service';
 import {
   ADMIN_EMAIL_NOTIFICATION_TYPES,
+  PREVIEW_EMAIL_NOTIFICATION_TYPES,
   EMAIL_NOTIFICATION_TYPES,
   type EmailNotificationType,
 } from '../../core/notifications/email-notification-types';
@@ -66,6 +68,7 @@ export class EmailPreferences {
   private readonly auth = inject(AuthService);
   private readonly supabase = inject(SUPABASE_CLIENT);
   private readonly adminAccess = inject(AdminAccessService);
+  private readonly featureFlags = inject(FeatureFlagsService);
   readonly enabled = signal(false);
   readonly muted = signal<readonly string[]>([]);
   readonly busy = signal(true);
@@ -73,8 +76,10 @@ export class EmailPreferences {
   readonly types = computed(() =>
     EMAIL_NOTIFICATION_TYPES.filter(
       (type) =>
-        this.adminAccess.allowed() ||
-        !ADMIN_EMAIL_NOTIFICATION_TYPES.includes(type)
+        (this.adminAccess.allowed() ||
+          !ADMIN_EMAIL_NOTIFICATION_TYPES.includes(type)) &&
+        (this.featureFlags.previewVisible() ||
+          !PREVIEW_EMAIL_NOTIFICATION_TYPES.includes(type))
     )
   );
 

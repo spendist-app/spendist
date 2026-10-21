@@ -7,6 +7,7 @@ import {
 import { DatePipe } from '@angular/common';
 import { TranslocoPipe } from '@ngneat/transloco';
 import { z } from 'zod';
+import { FeatureFlagsService } from '../../core/feature-flags.service';
 import { SUPABASE_CLIENT } from '../../core/supabase';
 
 const statusSchema = z.object({
@@ -58,6 +59,7 @@ const statusSchema = z.object({
 })
 export class AdminPage {
   private readonly supabase = inject(SUPABASE_CLIENT);
+  readonly featureFlags = inject(FeatureFlagsService);
   readonly status = signal<z.infer<typeof statusSchema> | null>(null);
   readonly loading = signal(false);
   readonly error = signal(false);
