@@ -6,7 +6,7 @@ Spendist serves hosted-service privacy information at `/polityka-prywatnosci` an
 
 The version 1.1 documents describe a free hobby project operated by an individual, adult accounts (18+) without a country restriction, the Supabase Free primary database in London, Cloudflare hosting/mail forwarding, and personal Gmail correspondence. They describe consent-based public GA4 and distinguish planned SES from configured services. The controller currently makes no independent database backups. Retention uses actual account deletion and purpose/provider-based criteria rather than unverified universal 30/90-day promises.
 
-The policies also describe Allowance sharing, client-authorized OAuth/MCP access and revocation limits, and the external client's responsibility for copies it already received. No claim is made that a hobby status removes mandatory user rights or that publication proves compliance with every local law. The operator authorized preparation without a paid legal review; operational supplier-account checks and future activation steps remain explicit in `docs/legal/README.md`.
+The policies also describe Allowance sharing, client-authorized OAuth/MCP access and revocation limits, and the external client's responsibility for copies it already received. No claim is made that a hobby status removes mandatory user rights or that publication proves compliance with every local law. The operator authorized preparation without a paid legal review. Supplier-account checks are kept outside this repository.
 
 ## Source and acceptance
 

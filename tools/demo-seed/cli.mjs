@@ -1,5 +1,9 @@
 #!/usr/bin/env node
-import { DATASET_VERSION, FIXTURES } from './fixtures.mjs';
+import {
+  configureDemoEmails,
+  DATASET_VERSION,
+  FIXTURES,
+} from './fixtures.mjs';
 import {
   generateDemoDataset,
   summarizeDataset,
@@ -8,6 +12,7 @@ import {
 import {
   assertExecutionAllowed,
   parseArgs,
+  resolveDemoEmails,
   resolveDemoSeedEnvironment,
   resolveProjectTarget,
   resolveTargetLocales,
@@ -30,7 +35,7 @@ Remote sync additionally requires:
   --allow-remote --confirm-project-ref=<project-ref>
 
 Shared remote Supabase configuration is loaded from .env by demo:seed:apply.
-Only DEMO_SEED_INITIAL_PASSWORD needs to be stored in .env.demo.local.
+Store DEMO_SEED_INITIAL_PASSWORD, DEMO_SEED_EMAIL_PL and DEMO_SEED_EMAIL_EN in .env.demo.local.
 
 Replace additionally requires:
   --mode=replace --confirm-replace=<exact comma-separated demo emails>
@@ -86,6 +91,7 @@ async function main() {
     throw new Error(
       'SUPABASE_SERVICE_ROLE_KEY, SUPABASE_SECRET_KEY, SB_SECRET_KEY, or DEMO_SEED_SERVICE_ROLE_KEY is required with --apply.'
     );
+  configureDemoEmails(resolveDemoEmails(locales, environment.emails));
   const target = resolveProjectTarget(url);
   assertExecutionAllowed(options, target, environment.projectRef);
   console.log(

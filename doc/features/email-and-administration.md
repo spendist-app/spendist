@@ -1,6 +1,6 @@
 # Email and private administration
 
-Status: production sending and the signed Auth hook activated on 2026-10-20 after owner approval. The shared application limit remains 100 recipients per rolling 24 hours. AWS granted production access at 50,000/24h and 14/s; the owner temporarily accepted that exposure while requesting a decrease to 200/24h and 1/s. The expected AWS values are 200 and 1, so the mismatch alert remains active until AWS applies the decrease. Actual AWS quotas, rather than application controls, bound direct use of stolen credentials.
+Status: production sending and the signed Auth hook are active. The shared application limit is 100 recipients per rolling 24 hours. The monitor compares the actual AWS quota and rate with configured expected values and raises a mismatch alert when they differ.
 
 ## User behavior
 
@@ -40,4 +40,4 @@ Monitoring is delayed, can fail with its runtime/database/network, and cannot al
 
 ## Deployment ownership
 
-Migration: `supabase/migrations/202610071330_secure_email.sql`. Functions: `auth-email`, `process-email`, `monitor-email`, and the revised `send-allowance-invitation`. Approval checklist, IAM templates, costs and quota request: [email deployment](../../docs/email/DEPLOYMENT.md).
+Migration: `supabase/migrations/202610071330_secure_email.sql`. Functions: `auth-email`, `process-email`, `monitor-email`, and the revised `send-allowance-invitation`. IAM policy templates: `supabase/email/*.template.json`; scheduling: `supabase/email/schedule.sql`. Provider-account configuration and deployment records are kept outside this repository.

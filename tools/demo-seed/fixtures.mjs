@@ -15,10 +15,11 @@ const sharedColors = {
   income: '#22c55e',
 };
 
+// Real demo account addresses stay out of the repository; --apply reads them from the environment.
 export const FIXTURES = {
   pl: {
     locale: 'pl',
-    email: 'demo-pl@spendist.app',
+    email: 'demo-pl@example.invalid',
     username: 'marta_nowak_demo',
     fullName: 'Marta Nowak',
     avatarFile: 'avatar-marta-nowak.png',
@@ -174,7 +175,7 @@ export const FIXTURES = {
   },
   en: {
     locale: 'en',
-    email: 'demo-en@spendist.app',
+    email: 'demo-en@example.invalid',
     username: 'emily_carter_demo',
     fullName: 'Emily Carter',
     avatarFile: 'avatar-emily-carter.png',
@@ -317,3 +318,9 @@ export const FIXTURES = {
     },
   },
 };
+
+export function configureDemoEmails(emails) {
+  for (const [locale, email] of Object.entries(emails)) {
+    FIXTURES[locale].email = email;
+  }
+}

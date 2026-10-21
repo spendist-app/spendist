@@ -20,13 +20,6 @@ This directory is the English, LLM-oriented source of truth for current user-vis
 - [Responsive web images](features/responsive-web-images.md)
 - [Model Context Protocol integration](features/model-context-protocol.md)
 
-## Operations
-
-- [Demo data seeding](operations/demo-data-seeding.md)
-- [Encrypted database backups](operations/encrypted-database-backups.md)
-- [Scheduler observability retention](operations/scheduler-observability.md)
-- [Explicit Data API table grants](operations/data-api-grants.md)
-
 ## Maintenance
 
 When a user-visible feature changes, update its page in this directory in the same change. Describe shipped behavior, important inputs/outputs, data boundaries, and limits. Mark future work as **Planned**.
