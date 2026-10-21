@@ -1210,6 +1210,9 @@ const pl = {
       pasteDescription:
         'Po wklejeniu zawartość zostanie automatycznie rozpoznana i sprawdzona.',
       pasteLabel: 'Wklej zawartość CSV',
+      pasteClear: 'Wyczyść',
+      pasteHint:
+        'Pierwszy wiersz musi zawierać nagłówki kolumn, jak w podpowiedzi w pustym polu. Pełny opis kolumn znajdziesz w „Schemacie CSV”.',
       ai: {
         action: 'Przygotuj prompt dla AI',
         badge: 'Pomoc AI',

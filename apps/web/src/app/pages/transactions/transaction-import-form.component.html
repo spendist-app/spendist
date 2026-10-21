@@ -111,8 +111,10 @@
       </section>
       } @else {
       <section class="space-y-3">
-        <div class="flex items-start justify-between gap-3">
-          <div>
+        <div
+          class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
+        >
+          <div class="min-w-0">
             <h3 class="font-semibold">
               {{ 'transactions.import.pasteHeading' | transloco }}
             </h3>
@@ -120,7 +122,7 @@
               {{ 'transactions.import.pasteDescription' | transloco }}
             </p>
           </div>
-          <div class="flex shrink-0 flex-wrap justify-end gap-1">
+          <div class="flex shrink-0 flex-wrap gap-2 sm:justify-end">
             <button
               type="button"
               class="btn btn-primary btn-sm"
@@ -143,17 +145,42 @@
             </button>
           </div>
         </div>
-        <label class="form-control">
-          <span class="label-text mb-1">{{
-            'transactions.import.pasteLabel' | transloco
-          }}</span>
+        <div
+          class="overflow-hidden rounded-2xl border border-base-300 bg-base-200/30 transition focus-within:border-primary"
+        >
+          <div
+            class="flex items-center justify-between gap-3 border-b border-base-300 px-4 py-2"
+          >
+            <label
+              for="transaction-import-paste"
+              class="text-sm font-semibold"
+              >{{ 'transactions.import.pasteLabel' | transloco }}</label
+            >
+            @if (pastedCsv()) {
+            <button
+              type="button"
+              class="btn btn-ghost btn-xs"
+              (click)="onPastedCsvChange('')"
+            >
+              {{ 'transactions.import.pasteClear' | transloco }}
+            </button>
+            }
+          </div>
           <textarea
-            class="textarea textarea-bordered min-h-44 font-mono text-xs"
+            id="transaction-import-paste"
+            class="block min-h-56 w-full resize-y bg-transparent px-4 py-3 font-mono text-xs leading-relaxed outline-none placeholder:text-base-content/40"
             data-testid="transaction-import-paste"
+            spellcheck="false"
+            autocomplete="off"
+            wrap="off"
+            [attr.placeholder]="csvHeaders.join(',')"
             [ngModel]="pastedCsv()"
             (ngModelChange)="onPastedCsvChange($event)"
           ></textarea>
-        </label>
+        </div>
+        <p class="text-xs text-base-content/60">
+          {{ 'transactions.import.pasteHint' | transloco }}
+        </p>
       </section>
       } @if (hasSource()) {
       <section

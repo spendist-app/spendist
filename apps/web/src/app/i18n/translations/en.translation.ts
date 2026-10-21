@@ -1202,6 +1202,9 @@ const en = {
       pasteDescription:
         'The content is detected and validated automatically after you paste it.',
       pasteLabel: 'Paste CSV content',
+      pasteClear: 'Clear',
+      pasteHint:
+        'The first row must contain the column headers shown in the empty field. See “CSV schema” for every column.',
       ai: {
         action: 'Prepare an AI prompt',
         badge: 'AI assistance',
