@@ -382,7 +382,6 @@ const pl = {
   },
   home: {
     title: 'Twój pulpit wkrótce się tu pojawi.',
-    subtitle: 'Pracujemy nad doświadczeniem — zostań z nami.',
   },
   auth: {
     login: {
@@ -469,10 +468,7 @@ const pl = {
   },
   settings: {
     hero: {
-      badge: 'Ustawienia',
       title: 'Dopasuj Spendist do swojego stylu',
-      description:
-        'Dostosuj dane osobowe, porządkuj kategorie wydatków i utrzymuj porządek w grupach. Wszystko rozwija się razem z Twoimi nawykami.',
     },
     workspace: {
       label: 'Obszar roboczy',
@@ -483,7 +479,6 @@ const pl = {
         label: 'Profil',
         description: 'Tożsamość, preferencje, bezpieczeństwo',
         header: 'Przegląd profilu',
-        text: 'Aktualizuj swoje dane, aby analizy, powiadomienia i preferencje były zawsze na bieżąco.',
         note: 'Zaawansowane ustawienia profilu (powiadomienia, integracje) pojawią się tutaj wkrótce.',
         fallbackName: 'Twój profil',
         notSet: 'Nie ustawiono',
@@ -518,8 +513,6 @@ const pl = {
         },
         security: {
           title: 'Hasło',
-          description:
-            'Potwierdź obecne hasło i ustaw nowe hasło do kolejnych logowań.',
           currentPasswordLabel: 'Obecne hasło',
           newPasswordLabel: 'Nowe hasło',
           confirmPasswordLabel: 'Potwierdź nowe hasło',
@@ -563,7 +556,6 @@ const pl = {
         label: 'Portfele',
         description: 'Konta, waluty, domyślne ustawienia',
         header: 'Portfele i rachunki',
-        text: 'Twórz portfele dla swoich kont, przypisuj im waluty i zdecyduj, który ma być domyślny w Spendist.',
         addWallet: 'Dodaj portfel',
         status: {
           errorTitle: 'Nie udało się wykonać operacji na portfelu.',
@@ -579,8 +571,6 @@ const pl = {
         form: {
           createTitle: 'Dodaj portfel',
           editTitle: 'Edytuj portfel',
-          description:
-            'Nazwij portfel, wybierz walutę i zdecyduj, czy ma być domyślnym wyborem.',
           nameLabel: 'Nazwa portfela',
           namePlaceholder: 'np. Wydatki codzienne',
           currencyLabel: 'Waluta',
@@ -603,7 +593,6 @@ const pl = {
         label: 'Kategorie',
         description: 'Dodawanie i edycja kategorii',
         header: 'Kategorie i grupy',
-        text: 'Wyszukuj, filtruj i edytuj kategorie używane w transakcjach.',
         discardChanges: 'Odrzucić niezapisane zmiany?',
         addCategory: 'Dodaj kategorię',
         addGroup: 'Nowa grupa kategorii',
@@ -702,7 +691,7 @@ const pl = {
         label: 'Eksport/import Spendist',
         description: 'CSV, filtry, przenoszenie danych',
         header: 'Eksport/import danych Spendist',
-        text: 'Eksportuj transakcje do CSV albo zaimportuj plik wygenerowany przez Spendist. Ten import jest niezależny od Kontomierza.',
+        text: 'Ten import jest niezależny od Kontomierza.',
         export: {
           title: 'Eksport transakcji',
           description:
@@ -957,16 +946,12 @@ const pl = {
     },
   },
   dashboard: {
-    badge: 'Pulpit',
     title: 'Twoje centrum dowodzenia',
-    description:
-      'Śledź bilanse, przepływy i nadchodzące aktywności. Widok rozbuduje się wraz ze Spendist.',
     placeholder: {
       title: 'Widżety pulpitu są w przygotowaniu',
       body: 'Wkrótce pojawią się tu wglądy, podsumowania i skróty dopasowane do Twoich nawyków.',
     },
     structure: {
-      badge: 'Struktura',
       title: 'Wydatki vs. przychody',
       subtitle:
         'Surowe sumy z maksymalnie ostatnich 12 miesięcy kalendarzowych.',
@@ -981,10 +966,7 @@ const pl = {
       net: 'Bilans',
     },
     categoryWidget: {
-      badge: 'Kategorie',
       title: 'Struktura miesięczna',
-      subtitle:
-        'Łączne kwoty dla wybranego miesiąca. Wkrótce dodamy wizualizacje.',
       selectLabel: 'Wybierz miesiąc',
       noMonths: 'Brak dostępnych miesięcy',
       errorTitle: 'Nie udało się załadować danych kategorii',
@@ -1010,10 +992,7 @@ const pl = {
       noWalletSelected: 'Wybierz portfel, aby załadować dane.',
     },
     recurringWidget: {
-      badge: 'Cykliczne',
       title: 'Transakcje z płatności cyklicznych',
-      subtitle:
-        'Liczba i kwoty transakcji utworzonych przez płatności cykliczne w wybranym miesiącu.',
       selectLabel: 'Wybierz miesiąc',
       noMonths: 'Brak miesięcy z transakcjami cyklicznymi',
       noWalletSelected: 'Wybierz portfel, aby załadować dane.',
@@ -1026,7 +1005,6 @@ const pl = {
       net: 'Bilans',
     },
     placesWidget: {
-      badge: 'Miejsca',
       title: 'Wydatki według miejsc',
       subtitle:
         'Suma wydatków dla miejsc w wybranym roku i aktualnym portfelu.',
@@ -1041,12 +1019,9 @@ const pl = {
     },
   },
   transactions: {
-    badge: 'Transakcje',
     title: 'Transakcje',
     filters: {
       title: 'Filtry transakcji',
-      description:
-        'Zawęź listę po opisie, kategorii, miejscu, kwocie lub okresie.',
       categoriesTab: 'Kategorie',
       tagsTab: 'Tagi',
       clearCategories: 'Wyczyść',
@@ -1147,7 +1122,6 @@ const pl = {
         'Zaimportowano {{ created }} transakcji; pominięto duplikaty: {{ duplicatesSkipped }}.',
     },
     bulk: {
-      badge: 'Import',
       title: 'Dodaj transakcje hurtowo',
       columns: {
         date: 'Data',
@@ -1194,7 +1168,6 @@ const pl = {
       },
     },
     import: {
-      badge: 'Import',
       title: 'Importuj transakcje',
       description:
         'Pliki i wklejone dane są przetwarzane lokalnie w przeglądarce i nie są wysyłane.',
@@ -1207,12 +1180,7 @@ const pl = {
       dropzoneAction: 'Upuść plik tutaj lub wybierz plik',
       dropzoneHint: 'CSV lub JSON',
       pasteHeading: 'Wklej CSV Spendist',
-      pasteDescription:
-        'Po wklejeniu zawartość zostanie automatycznie rozpoznana i sprawdzona.',
-      pasteLabel: 'Wklej zawartość CSV',
       pasteClear: 'Wyczyść',
-      pasteHint:
-        'Pierwszy wiersz musi zawierać nagłówki kolumn, jak w podpowiedzi w pustym polu. Pełny opis kolumn znajdziesz w „Schemacie CSV”.',
       ai: {
         action: 'Przygotuj prompt dla AI',
         badge: 'Pomoc AI',
@@ -1251,7 +1219,6 @@ const pl = {
       walletNotMatched:
         'Nie znaleziono portfela „{{ name }}”. Wybierz istniejący portfel.',
       review: 'Sprawdź transakcje',
-      reviewBadge: 'Weryfikacja importu',
       reviewTitle: 'Sprawdź importowane transakcje',
       sourceCategory: 'Nie dopasowano kategorii z CSV: {{ name }}',
       sourceTags:
@@ -1295,17 +1262,9 @@ const pl = {
       },
     },
     form: {
-      badge: {
-        create: 'Nowa',
-        edit: 'Edycja',
-      },
       title: {
         create: 'Dodaj transakcję',
         edit: 'Edytuj transakcję',
-      },
-      subtitle: {
-        create: 'Zapisz kluczowe informacje — resztę rozbudujesz później.',
-        edit: 'Zaktualizuj dane poniżej, aby historia była dokładna.',
       },
       audit: {
         createdAt: 'Dodano',
@@ -1389,7 +1348,6 @@ const pl = {
     },
   },
   mortgages: {
-    badge: 'Moduły',
     title: 'Kredyty hipoteczne',
     description:
       'Przygotuj zrozumiałą prognozę spłaty, sprawdź nadpłaty i wakacje kredytowe, a potem zsynchronizuj chronione planowane raty z portfelem.',
@@ -1467,10 +1425,7 @@ const pl = {
     },
   },
   places: {
-    badge: 'Moduły',
     title: 'Miejsca',
-    description:
-      'Zapisuj miejsca, w których robisz wydatki, i przypisuj je do transakcji.',
     empty: 'Dodaj pierwsze miejsce, aby później przypisywać je do transakcji.',
     noAddress: 'Brak adresu',
     search: {
@@ -1487,7 +1442,6 @@ const pl = {
         'Usunąć miejsce „{{ name }}”? Transakcje zostaną zachowane, ale stracą przypisane miejsce.',
     },
     form: {
-      badge: 'Miejsce',
       title: {
         create: 'Dodaj miejsce',
         edit: 'Edytuj miejsce',
@@ -1751,9 +1705,7 @@ const pl = {
         complete: 'Zaksięguj',
       },
       list: {
-        badge: 'Przegląd',
         title: 'Aktywne płatności cykliczne',
-        subtitle: 'Terminy kolejnych obciążeń, przypisane kategorie i tagi.',
         empty: {
           title: 'Brak płatności cyklicznych',
           body: 'Dodaj pierwszą płatność, aby śledzić automatyczne obciążenia.',

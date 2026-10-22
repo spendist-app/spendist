@@ -17,10 +17,7 @@
       class="flex items-start justify-between border-b border-base-200 px-5 py-4"
     >
       <div>
-        <p class="badge badge-primary badge-outline text-xs uppercase">
-          {{ 'transactions.import.badge' | transloco }}
-        </p>
-        <h2 id="transaction-import-title" class="mt-1 text-2xl font-semibold">
+        <h2 id="transaction-import-title" class="text-2xl font-semibold">
           {{ 'transactions.import.title' | transloco }}
         </h2>
         <p class="mt-1 text-sm text-base-content/60">
@@ -114,14 +111,9 @@
         <div
           class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
         >
-          <div class="min-w-0">
-            <h3 class="font-semibold">
-              {{ 'transactions.import.pasteHeading' | transloco }}
-            </h3>
-            <p class="text-sm text-base-content/60">
-              {{ 'transactions.import.pasteDescription' | transloco }}
-            </p>
-          </div>
+          <h3 id="transaction-import-paste-heading" class="font-semibold">
+            {{ 'transactions.import.pasteHeading' | transloco }}
+          </h3>
           <div class="flex shrink-0 flex-wrap gap-2 sm:justify-end">
             <button
               type="button"
@@ -145,31 +137,11 @@
             </button>
           </div>
         </div>
-        <div
-          class="overflow-hidden rounded-2xl border border-base-300 bg-base-200/30 transition focus-within:border-primary"
-        >
-          <div
-            class="flex items-center justify-between gap-3 border-b border-base-300 px-4 py-2"
-          >
-            <label
-              for="transaction-import-paste"
-              class="text-sm font-semibold"
-              >{{ 'transactions.import.pasteLabel' | transloco }}</label
-            >
-            @if (pastedCsv()) {
-            <button
-              type="button"
-              class="btn btn-ghost btn-xs"
-              (click)="onPastedCsvChange('')"
-            >
-              {{ 'transactions.import.pasteClear' | transloco }}
-            </button>
-            }
-          </div>
+        <div class="relative">
           <textarea
-            id="transaction-import-paste"
-            class="block min-h-56 w-full resize-y bg-transparent px-4 py-3 font-mono text-xs leading-relaxed outline-none placeholder:text-base-content/40"
+            class="textarea textarea-bordered block min-h-56 w-full resize-y rounded-2xl font-mono text-xs leading-relaxed placeholder:text-base-content/40"
             data-testid="transaction-import-paste"
+            aria-labelledby="transaction-import-paste-heading"
             spellcheck="false"
             autocomplete="off"
             wrap="off"
@@ -177,10 +149,16 @@
             [ngModel]="pastedCsv()"
             (ngModelChange)="onPastedCsvChange($event)"
           ></textarea>
+          @if (pastedCsv()) {
+          <button
+            type="button"
+            class="btn btn-ghost btn-xs absolute right-2 top-2"
+            (click)="onPastedCsvChange('')"
+          >
+            {{ 'transactions.import.pasteClear' | transloco }}
+          </button>
+          }
         </div>
-        <p class="text-xs text-base-content/60">
-          {{ 'transactions.import.pasteHint' | transloco }}
-        </p>
       </section>
       } @if (hasSource()) {
       <section

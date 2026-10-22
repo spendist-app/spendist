@@ -66,6 +66,7 @@ All content in `doc/`, `llm.txt`, and `llm-full.txt` is English. Document curren
 
 - Use Tailwind 4 and DaisyUI 5. Build mobile-first and keep repeated patterns in shared components or `apps/web/src/styles.css`.
 - Keep the Spendist light/dark palette aligned with Tailwind/DaisyUI theme tokens.
+- Avoid unnecessary secondary labels and descriptions. Let the layout explain itself.
 - English and Polish use Transloco. Add matching keys to both translation files; do not hard-code user-facing copy in a component.
 - `LanguageService` persists language and updates `document.lang`; `ThemeService` persists the light/dark choice.
 - Use `@ng-icons/core` and Heroicons. Persist canonical `hero...` names through `HeroIconPickerComponent` and normalize them with `canonicalHeroIconName` in `settings.store.ts`.
