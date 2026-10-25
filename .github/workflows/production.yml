@@ -144,49 +144,56 @@ jobs:
             --secret-env SUPABASE_PROJECT_REF \
             -- npm exec -- supabase functions deploy process-recurring-payments \
             --project-ref '{ENV:SUPABASE_PROJECT_REF}' \
-            --no-verify-jwt
+            --no-verify-jwt \
+            --use-api
 
           node tools/scripts/run-with-secret-redaction.mjs \
             --secret-env SUPABASE_ACCESS_TOKEN \
             --secret-env SUPABASE_PROJECT_REF \
             -- npm exec -- supabase functions deploy sync-exchange-rates \
             --project-ref '{ENV:SUPABASE_PROJECT_REF}' \
-            --no-verify-jwt
+            --no-verify-jwt \
+            --use-api
 
           node tools/scripts/run-with-secret-redaction.mjs \
             --secret-env SUPABASE_ACCESS_TOKEN \
             --secret-env SUPABASE_PROJECT_REF \
             -- npm exec -- supabase functions deploy send-allowance-invitation \
             --project-ref '{ENV:SUPABASE_PROJECT_REF}' \
-            --no-verify-jwt
+            --no-verify-jwt \
+            --use-api
 
           node tools/scripts/run-with-secret-redaction.mjs \
             --secret-env SUPABASE_ACCESS_TOKEN \
             --secret-env SUPABASE_PROJECT_REF \
             -- npm exec -- supabase functions deploy delete-account \
             --project-ref '{ENV:SUPABASE_PROJECT_REF}' \
-            --no-verify-jwt
+            --no-verify-jwt \
+            --use-api
 
           node tools/scripts/run-with-secret-redaction.mjs \
             --secret-env SUPABASE_ACCESS_TOKEN \
             --secret-env SUPABASE_PROJECT_REF \
             -- npm exec -- supabase functions deploy auth-email \
             --project-ref '{ENV:SUPABASE_PROJECT_REF}' \
-            --no-verify-jwt
+            --no-verify-jwt \
+            --use-api
 
           node tools/scripts/run-with-secret-redaction.mjs \
             --secret-env SUPABASE_ACCESS_TOKEN \
             --secret-env SUPABASE_PROJECT_REF \
             -- npm exec -- supabase functions deploy process-email \
             --project-ref '{ENV:SUPABASE_PROJECT_REF}' \
-            --no-verify-jwt
+            --no-verify-jwt \
+            --use-api
 
           node tools/scripts/run-with-secret-redaction.mjs \
             --secret-env SUPABASE_ACCESS_TOKEN \
             --secret-env SUPABASE_PROJECT_REF \
             -- npm exec -- supabase functions deploy monitor-email \
             --project-ref '{ENV:SUPABASE_PROJECT_REF}' \
-            --no-verify-jwt
+            --no-verify-jwt \
+            --use-api
 
       - name: Sync Supabase Edge Function Secrets
         env:
