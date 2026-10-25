@@ -1,15 +1,9 @@
     <section class="rounded-3xl border border-base-200 bg-base-100/80 p-6 shadow-sm">
       <header class="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p class="text-xs uppercase tracking-wide text-primary">
-            {{ 'modules.recurringPayments.list.badge' | transloco }}
-          </p>
           <h2 class="text-xl font-semibold">
             {{ 'modules.recurringPayments.list.title' | transloco }}
           </h2>
-          <p class="text-sm text-base-content/70">
-            {{ 'modules.recurringPayments.list.subtitle' | transloco }}
-          </p>
         </div>
         <div class="join">
           @for (filter of filterOptions; track filter) {

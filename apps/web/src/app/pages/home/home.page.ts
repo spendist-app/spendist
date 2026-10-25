@@ -17,7 +17,6 @@ import { AuthService } from '../../core/auth.service';
       } @else {
         <ng-container>
           <h1 class="text-3xl font-semibold md:text-4xl">{{ 'home.title' | transloco }}</h1>
-          <p class="text-base-content/70 md:text-lg">{{ 'home.subtitle' | transloco }}</p>
         </ng-container>
       }
     </section>

@@ -18,10 +18,7 @@
       class="sticky top-0 z-20 flex shrink-0 flex-col gap-3 border-b border-base-200 bg-base-100/95 px-4 py-4 backdrop-blur sm:flex-row sm:items-start sm:justify-between sm:px-6"
     >
       <div>
-        <p class="badge badge-primary badge-outline text-xs uppercase tracking-wide">
-          {{ (importMode() ? 'transactions.import.reviewBadge' : 'transactions.bulk.badge') | transloco }}
-        </p>
-        <h2 id="transaction-bulk-form-title" class="mt-1 text-2xl font-semibold">
+        <h2 id="transaction-bulk-form-title" class="text-2xl font-semibold">
           {{ (importMode() ? 'transactions.import.reviewTitle' : 'transactions.bulk.title') | transloco }}
         </h2>
       </div>

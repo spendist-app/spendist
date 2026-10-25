@@ -11,6 +11,7 @@ import {
   assertExecutionAllowed,
   isMarkedDemoUser,
   parseArgs,
+  resolveDemoEmails,
   resolveDemoSeedEnvironment,
   resolveProjectTarget,
 } from './safety.mjs';
@@ -73,6 +74,7 @@ test('demo seed reuses standard Supabase environment variables', () => {
       serviceRoleKey: 'standard-service-role',
       projectRef: 'abc123',
       password: 'demo-password',
+      emails: { pl: undefined, en: undefined },
     }
   );
 });
@@ -93,6 +95,7 @@ test('demo-specific variables can explicitly override shared configuration', () 
       serviceRoleKey: 'local-service-role',
       projectRef: 'local',
       password: 'demo-password',
+      emails: { pl: undefined, en: undefined },
     }
   );
 });
@@ -131,6 +134,20 @@ test('remote writes require all project confirmations', () => {
       target,
       'abc123'
     )
+  );
+});
+
+test('apply requires configured demo emails for the selected locales', () => {
+  const environment = resolveDemoSeedEnvironment({
+    DEMO_SEED_EMAIL_PL: ' pl-demo@example.com ',
+  });
+
+  assert.deepEqual(resolveDemoEmails(['pl'], environment.emails), {
+    pl: 'pl-demo@example.com',
+  });
+  assert.throws(
+    () => resolveDemoEmails(['pl', 'en'], environment.emails),
+    /DEMO_SEED_EMAIL_EN/
   );
 });
 

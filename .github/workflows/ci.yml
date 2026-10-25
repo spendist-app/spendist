@@ -10,6 +10,11 @@ permissions:
   actions: read
   contents: read
 
+env:
+  # public.ecr.aws throttles anonymous pulls from shared GitHub runner IPs
+  # ("toomanyrequests: Data limit exceeded"); Supabase mirrors the same images on GHCR.
+  SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+
 jobs:
   main:
     runs-on: ubuntu-latest
@@ -154,7 +159,8 @@ jobs:
       - run: npm ci
 
       - name: Start Supabase local stack
-        run: npm exec -- supabase start
+        # Skip services E2E does not use to cut image downloads.
+        run: npm exec -- supabase start --exclude studio,imgproxy,vector,analytics
 
       - name: Export local Supabase credentials
         run: |

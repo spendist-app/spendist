@@ -26,6 +26,10 @@ export function resolveDemoSeedEnvironment(environment = process.env) {
       'SUPABASE_PROJECT_REF',
     ]),
     password: firstNonEmpty(environment, ['DEMO_SEED_INITIAL_PASSWORD']),
+    emails: {
+      pl: firstNonEmpty(environment, ['DEMO_SEED_EMAIL_PL']),
+      en: firstNonEmpty(environment, ['DEMO_SEED_EMAIL_EN']),
+    },
   };
 }
 
@@ -155,6 +159,22 @@ export function assertExecutionAllowed(options, target, configuredProjectRef) {
       throw new Error(`Replace requires --confirm-replace=${expected}.`);
     }
   }
+}
+
+export function resolveDemoEmails(locales, emails) {
+  return Object.fromEntries(
+    locales.map((locale) => {
+      const email = z.string().trim().email().safeParse(emails[locale]);
+
+      if (!email.success) {
+        throw new Error(
+          `DEMO_SEED_EMAIL_${locale.toUpperCase()} must be a valid email address with --apply.`
+        );
+      }
+
+      return [locale, email.data];
+    })
+  );
 }
 
 export function isMarkedDemoUser(user, locale, seedId) {
