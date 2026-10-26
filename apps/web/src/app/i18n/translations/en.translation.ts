@@ -54,7 +54,7 @@ const en = {
   emailPreferences: {
     title: 'Email notifications',
     description:
-      'Optional emails name the notification type and link to Spendist, without amounts, names or descriptions. Authentication and invitation emails remain necessary. All emails share a limit of 100 recipients per rolling 24 hours.',
+      'Optional emails include the notification details, such as the name, amount, date, wallet and category of a recurring payment, and a link to Spendist. Authentication and invitation emails remain necessary. All emails share a limit of 100 recipients per rolling 24 hours.',
     label: 'Send me email notifications',
     typesLabel: 'Email me about:',
     types: {
@@ -163,7 +163,18 @@ const en = {
     back: 'Settings',
     title: 'Connected applications',
     subtitle:
-      'Review and revoke applications that can access Spendist through OAuth.',
+      'Connect an AI assistant (for example Claude, ChatGPT or Cursor) to Spendist through MCP (Model Context Protocol). The assistant sees your data only after you approve it, and you can revoke access at any time.',
+    serverUrl: 'MCP server URL',
+    copy: 'Copy',
+    copied: 'Copied',
+    howTo: 'How to connect an assistant',
+    steps: {
+      add: 'In your AI assistant settings, add a custom connector or MCP server and paste the URL above.',
+      approve:
+        'Sign in to Spendist and approve access. By default the assistant can only read your data; tick “Also allow changes to my data” if it should also make changes.',
+      manage:
+        'Review and disconnect connected applications under “Manage access”.',
+    },
     loading: 'Loading connected applications',
     empty: 'No external applications currently have access.',
     scopes: 'Scopes',

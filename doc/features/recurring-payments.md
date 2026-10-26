@@ -10,7 +10,7 @@ Variable-amount occurrences ask for an actual amount only while their recurring 
 
 ## Automatic transaction creation
 
-Supabase-native scheduled work evaluates due occurrences and creates ordinary Spendist transaction records. Those records are marked automatic and appear in transactions and the dashboard's recurring widget. Related activity can appear as notifications.
+Supabase-native scheduled work evaluates due occurrences and creates ordinary Spendist transaction records. Those records are marked automatic and appear in transactions and the dashboard's recurring widget. Related activity can appear as notifications; with email notifications enabled, the email lists the payment name, amount, date, wallet, category and frequency (see [Email and administration](email-and-administration.md)).
 
 Creating a recurring payment whose start and end dates are both in the past backfills every scheduled occurrence within that historical range. Spendist finalizes the recurring record only after those due transactions have been processed. Repeated processing is idempotent and does not create another transaction for an already recorded occurrence.
 

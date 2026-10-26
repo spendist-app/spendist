@@ -12,6 +12,11 @@ const mark = await readFile(
   'utf8'
 );
 
+const logo = await readFile(
+  resolve(publicRoot, 'brand/spendist-logo.svg'),
+  'utf8'
+);
+
 const markDataUrl = `data:image/svg+xml;base64,${Buffer.from(mark).toString(
   'base64'
 )}`;
@@ -100,6 +105,13 @@ const outputs = [
     markScale: 0.48,
     wordmark: true,
   },
+  {
+    // Email clients do not render SVG; templates show it at 139x32.
+    path: 'brand/email/spendist-logo-email.png',
+    width: 556,
+    height: 128,
+    lockup: true,
+  },
 ];
 
 const browser = await chromium.launch({ headless: true });
@@ -110,6 +122,21 @@ for (const output of outputs) {
   const target = resolve(publicRoot, output.path);
   await mkdir(dirname(target), { recursive: true });
   await page.setViewportSize({ width: output.width, height: output.height });
+
+  if (output.lockup) {
+    // Inline SVG (not <img>) so the wordmark uses the loaded Inter web font.
+    await page.setContent(`
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=block">
+      <style>
+        html, body { margin: 0; background: #FFFFFF; }
+        svg { display: block; width: ${output.width}px; height: ${output.height}px; }
+      </style>
+      ${logo}
+    `);
+    await page.evaluate(() => document.fonts.ready);
+    await page.screenshot({ path: target });
+    continue;
+  }
 
   const background = output.transparent
     ? 'transparent'
