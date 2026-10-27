@@ -485,4 +485,70 @@ begin
 end;
 $$;
 
+-- Allowance spending joins the starter lifestyle group instead of a separate group.
+reset role;
+
+insert into auth.users (
+  id, aud, role, email, encrypted_password, email_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data, created_at, updated_at
+)
+values
+  (
+    '10000000-0000-0000-0000-000000000003',
+    'authenticated', 'authenticated', 'allowance-pl@example.test', '',
+    timezone('utc', now()), '{"provider":"email","providers":["email"]}',
+    '{"full_name":"Allowance PL","language":"pl","wallet_currency_id":1}',
+    timezone('utc', now()), timezone('utc', now())
+  ),
+  (
+    '10000000-0000-0000-0000-000000000004',
+    'authenticated', 'authenticated', 'allowance-bare@example.test', '',
+    timezone('utc', now()), '{"provider":"email","providers":["email"]}',
+    '{"full_name":"Allowance Bare","language":"pl","wallet_currency_id":1}',
+    timezone('utc', now()), timezone('utc', now())
+  );
+
+do $$
+declare
+  v_with_lifestyle constant uuid := '10000000-0000-0000-0000-000000000003';
+  v_without_groups constant uuid := '10000000-0000-0000-0000-000000000004';
+  v_lifestyle_id uuid;
+  v_category_id uuid;
+begin
+  update public.profiles set language = 'pl'
+  where id in (v_with_lifestyle, v_without_groups);
+
+  insert into public.categories_group (owner_id, name, color, icon)
+  values (v_with_lifestyle, 'Styl życia', '#F59E0B', 'heroSparkles')
+  returning id into v_lifestyle_id;
+
+  v_category_id := public.ensure_allowance_expense_category(v_with_lifestyle);
+
+  if not exists (
+    select 1 from public.categories
+    where id = v_category_id and group_id = v_lifestyle_id
+      and name = 'Wydatki z kieszonkowego'
+  ) then
+    raise exception 'Allowance spending did not join the lifestyle group';
+  end if;
+
+  if exists (
+    select 1 from public.categories_group
+    where owner_id = v_with_lifestyle and name = 'Wydatki'
+  ) then
+    raise exception 'Allowance spending created a separate expense group';
+  end if;
+
+  v_category_id := public.ensure_allowance_expense_category(v_without_groups);
+
+  if not exists (
+    select 1 from public.categories c
+    join public.categories_group g on g.id = c.group_id
+    where c.id = v_category_id and g.name = 'Wydatki'
+  ) then
+    raise exception 'Allowance spending fallback group was not created';
+  end if;
+end;
+$$;
+
 rollback;

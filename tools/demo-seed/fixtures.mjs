@@ -77,7 +77,7 @@ export const FIXTURES = {
       },
       {
         key: 'income',
-        name: 'Dochody',
+        name: 'Przychody',
         icon: 'heroBanknotes',
         color: sharedColors.income,
       },
