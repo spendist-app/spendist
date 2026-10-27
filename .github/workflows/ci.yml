@@ -11,9 +11,11 @@ permissions:
   contents: read
 
 env:
-  # public.ecr.aws throttles anonymous pulls from shared GitHub runner IPs
-  # ("toomanyrequests: Data limit exceeded"); Supabase mirrors the same images on GHCR.
-  SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+  # Registries mirroring the Supabase images, tried in order when starting the local stack.
+  # Docker Hub does not rate-limit public pulls from GitHub-hosted runners; GHCR
+  # ("toomanyrequests: ... allowed: 44000/minute", even when signed in) and public.ecr.aws
+  # ("toomanyrequests: Data limit exceeded") throttle shared runner IPs.
+  SUPABASE_IMAGE_REGISTRIES: docker.io ghcr.io public.ecr.aws
 
 jobs:
   main:
@@ -98,6 +100,9 @@ jobs:
 
   data-api-grants:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -110,6 +115,11 @@ jobs:
 
       - run: npm ci
 
+      - name: Sign in to GHCR for the fallback registry
+        env:
+          GHCR_TOKEN: ${{ github.token }}
+        run: echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+
       - name: Rebuild without implicit Data API grants
         shell: bash
         run: |
@@ -118,7 +128,19 @@ jobs:
           test ! -e "$bootstrap"
           trap 'rm -f "$bootstrap"' EXIT
           cp supabase/tests/disable-implicit-data-api-grants.sql "$bootstrap"
-          npm exec -- supabase db start
+          started=false
+          for registry in $SUPABASE_IMAGE_REGISTRIES; do
+            # Later CLI commands (db reset, stop) recreate containers from the same registry.
+            export SUPABASE_INTERNAL_IMAGE_REGISTRY="$registry"
+            if npm exec -- supabase db start; then
+              echo "SUPABASE_INTERNAL_IMAGE_REGISTRY=$registry" >> "$GITHUB_ENV"
+              started=true
+              break
+            fi
+            echo "::warning::Supabase images from $registry failed; trying the next registry"
+            npm exec -- supabase stop --no-backup || true
+          done
+          "$started"
           npm exec -- supabase db reset --local --no-seed
 
       - name: Verify explicit table grants in an isolated schema-only database
@@ -142,6 +164,10 @@ jobs:
   e2e:
     if: github.event_name == 'push' && (github.ref_name == 'master' || github.ref_name == 'develop')
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      packages: read
     env:
       E2E_ENV_FILE: .local_env.e2e
       E2E_DB_RESET_ATTEMPTS: '5'
@@ -161,9 +187,29 @@ jobs:
 
       - run: npm ci
 
+      - name: Sign in to GHCR for the fallback registry
+        env:
+          GHCR_TOKEN: ${{ github.token }}
+        run: echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+
       - name: Start Supabase local stack
+        shell: bash
         # Skip services E2E does not use to cut image downloads.
-        run: npm exec -- supabase start --exclude studio,imgproxy,vector,analytics
+        run: |
+          set -euo pipefail
+          started=false
+          for registry in $SUPABASE_IMAGE_REGISTRIES; do
+            # Later CLI commands (db reset, stop) recreate containers from the same registry.
+            export SUPABASE_INTERNAL_IMAGE_REGISTRY="$registry"
+            if npm exec -- supabase start --exclude studio,imgproxy,vector,analytics; then
+              echo "SUPABASE_INTERNAL_IMAGE_REGISTRY=$registry" >> "$GITHUB_ENV"
+              started=true
+              break
+            fi
+            echo "::warning::Supabase images from $registry failed; trying the next registry"
+            npm exec -- supabase stop --no-backup || true
+          done
+          "$started"
 
       - name: Export local Supabase credentials
         run: |
