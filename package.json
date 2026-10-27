@@ -11,6 +11,8 @@
     "deploy:worker": "wrangler deploy --config wrangler.toml",
     "test": "nx test web",
     "test:recurring-edge": "node supabase/functions/process-recurring-payments/schedule.test.mts",
+    "test:email": "node --test supabase/functions/_shared/email-policy.test.mts supabase/functions/_shared/email-templates.test.mts",
+    "email:preview": "node tools/scripts/preview-emails.mjs",
     "test:ci-security": "node --test tools/scripts/run-with-secret-redaction.test.mjs",
     "test:public-seo": "node tools/scripts/check-public-seo.mjs",
     "lint": "nx lint web",

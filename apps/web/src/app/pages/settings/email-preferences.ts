@@ -22,11 +22,17 @@ import { SUPABASE_CLIENT } from '../../core/supabase';
   selector: 'app-email-preferences',
   imports: [TranslocoPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `<section class="mb-6 rounded-box border border-base-300 p-5">
-    <h2 class="text-lg font-semibold">
+  template: `<section
+    id="email-notifications"
+    class="scroll-mt-24 rounded-2xl border border-base-300 bg-base-100/80 p-4 shadow-sm sm:p-6"
+    aria-labelledby="email-notifications-heading"
+  >
+    <h3 id="email-notifications-heading" class="text-xl font-semibold">
       {{ 'emailPreferences.title' | transloco }}
-    </h2>
-    <p class="my-2 text-sm">{{ 'emailPreferences.description' | transloco }}</p>
+    </h3>
+    <p class="mt-1 mb-4 text-sm text-base-content/70">
+      {{ 'emailPreferences.description' | transloco }}
+    </p>
     <label class="flex items-center gap-3">
       <input
         type="checkbox"

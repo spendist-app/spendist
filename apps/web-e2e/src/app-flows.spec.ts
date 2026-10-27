@@ -581,7 +581,7 @@ test('confirms a new account, signs in once, and rejects a reused link', async (
   await openSettingsPanel(page, 'Categories');
   await expect(page.getByText('Food').first()).toBeVisible();
   await expect(page.getByText('Groceries').first()).toBeVisible();
-  await expect(page.getByText('Biedronka').first()).toBeVisible();
+  await expect(page.getByText('Biedronka', { exact: true })).toHaveCount(0);
 
   await expectDefaultCategoryGroups(page);
 

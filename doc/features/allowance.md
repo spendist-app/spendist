@@ -48,7 +48,10 @@ signed in. This creates only an expense owned by the recipient, so it never
 appears in the payer's transaction list, balances, or analysis. Spendist uses
 the recipient's current default wallet and a localized system expense category
 named `Allowance spending` (`Wydatki z kieszonkowego` in Polish), then notifies
-the recipient.
+the recipient. The category joins the recipient's starter `Lifestyle` (`Styl
+życia`) group; a separate `Expenses` (`Wydatki`) group is created only when that
+group does not exist. Allowance income uses the starter `Income` (`Przychody`)
+group.
 
 While the connection remains active, the payer can review, edit, and delete
 expenses they created this way from the Allowance module. The recipient can

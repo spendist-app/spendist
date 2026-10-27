@@ -10,7 +10,7 @@ Sign-up records profile information such as username, full name, timezone, langu
 
 The confirmation callback accepts Supabase PKCE codes, implicit access/refresh tokens, and supported signup token hashes. It immediately removes credentials from the visible browser URL, rejects missing, failed, expired, reused, and unsupported callbacks, then establishes the session and signs the user in for that confirmation visit. A successful callback navigates to the original safe local `returnUrl`, or `/dashboard`, and displays a dismissible global success notice. External and protocol-relative return URLs are never followed.
 
-The application seeds default categories after an initial or newly signed-in session. Confirmation navigation waits for that seed attempt to finish, and concurrent authentication events reuse the same in-flight operation instead of creating the hierarchy twice.
+The application seeds default categories after an initial or newly signed-in session: Essentials (Food with Groceries, Shopping, Transport, Utilities), Lifestyle (Dining Out, Entertainment) and Income (Salary, Side Hustle); the Polish income group is `Przychody`, matching the Allowance module. Confirmation navigation waits for that seed attempt to finish, and concurrent authentication events reuse the same in-flight operation instead of creating the hierarchy twice.
 
 ## Routes and limits
 

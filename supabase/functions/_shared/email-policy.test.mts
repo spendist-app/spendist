@@ -17,9 +17,9 @@ test('network failures and unknown errors never retry automatically', () => {
 });
 
 test('system sender is separated from invitation and notification sender', () => {
-  assert.equal(senderFor('auth'), 'noreply@spendist.app');
-  assert.equal(senderFor('invitation'), 'hello@spendist.app');
-  assert.equal(senderFor('notification'), 'hello@spendist.app');
+  assert.equal(senderFor('auth'), 'Spendist Team <noreply@spendist.app>');
+  assert.equal(senderFor('invitation'), 'Spendist Team <hello@spendist.app>');
+  assert.equal(senderFor('notification'), 'Spendist Team <hello@spendist.app>');
 });
 
 test('secure email change maps old and new token hashes correctly', () => {
@@ -101,5 +101,38 @@ test('unsupported actions fail closed and reauthentication uses a validated code
     'en'
   );
 
-  assert.equal(message.body, 'Spendist code: 123456');
+  assert.equal(message.subject, 'Your Spendist verification code');
+  assert.match(message.body, /\n123456\n/);
+  assert.equal(message.template, 'auth.reauthentication');
+  assert.deepEqual(message.template_data, { language: 'en', code: '123456' });
+});
+
+test('each auth action gets its own template, subject and fallback text', () => {
+  const subjects = new Map([
+    ['signup', 'Potwierdź rejestrację w Spendist'],
+    ['recovery', 'Zresetuj hasło do Spendist'],
+    ['magiclink', 'Twój link logowania do Spendist'],
+    ['invite', 'Zaproszenie do Spendist'],
+  ]);
+
+  for (const [action, subject] of subjects) {
+    const [message] = authMessages(
+      action,
+      'user@example.test',
+      undefined,
+      'hash',
+      undefined,
+      undefined,
+      'https://spendist.app',
+      'https://example.supabase.co',
+      'pl'
+    );
+
+    assert.equal(message.subject, subject);
+    assert.equal(message.template, 'auth.' + action);
+    assert.equal(message.template_data.language, 'pl');
+    assert.match(message.template_data.link ?? '', /token=hash/);
+    assert.match(message.body, /Zespół Spendist/);
+    assert.ok(message.body.length <= 10000);
+  }
 });

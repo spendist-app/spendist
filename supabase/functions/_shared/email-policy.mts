@@ -1,3 +1,9 @@
+import {
+  renderEmail,
+  type EmailTemplate,
+  type EmailTemplateData,
+} from './email-templates.mts';
+
 export function deliveryResult(
   name: string
 ): 'throttled' | 'rejected' | 'unknown' {
@@ -22,8 +28,12 @@ export function deliveryResult(
   return 'unknown';
 }
 
+// The display name replaces the bare mailbox name ("hello") in inbox lists.
+// IAM ses:FromAddress conditions match the address part only.
 export function senderFor(kind: string): string {
-  return kind === 'auth' ? 'noreply@spendist.app' : 'hello@spendist.app';
+  return kind === 'auth'
+    ? 'Spendist Team <noreply@spendist.app>'
+    : 'Spendist Team <hello@spendist.app>';
 }
 
 export function authMessages(
@@ -37,17 +47,7 @@ export function authMessages(
   supabaseUrl: string,
   language: string
 ) {
-  const allowed = [
-    'signup',
-    'recovery',
-    'magiclink',
-    'invite',
-    'email_change',
-    'reauthentication',
-  ];
-
-  if (!allowed.includes(action))
-    throw new Error('Unsupported authentication email');
+  const template = authTemplate(action);
 
   const app = new URL(appUrl);
 
@@ -66,35 +66,34 @@ export function authMessages(
     return url.toString();
   };
 
-  const subject =
-    language === 'pl'
-      ? 'Spendist: potwierdź operację na koncie'
-      : 'Spendist: confirm your account request';
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
 
-  const message = (recipient: string, tokenHash: string) => ({
-    recipient,
-    kind: 'auth',
-    subject,
-    body:
-      language === 'pl'
-        ? 'Potwierdź operację w Spendist: ' + link(tokenHash)
-        : 'Confirm your Spendist request: ' + link(tokenHash),
-    expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-  });
+  const queued = (recipient: string, data: EmailTemplateData) => {
+    const rendered = renderEmail(template, data);
+
+    return {
+      recipient,
+      kind: 'auth',
+      subject: rendered.subject,
+      body: rendered.text,
+      template,
+      template_data: data,
+      expires_at: expiresAt,
+    };
+  };
+
+  const message = (recipient: string, tokenHash: string) =>
+    queued(recipient, {
+      language,
+      link: link(tokenHash),
+      new_email: action === 'email_change' ? newEmail : undefined,
+    });
 
   if (action === 'reauthentication') {
     if (!code || !/^\d{6,10}$/.test(code))
       throw new Error('Invalid authentication code');
 
-    return [
-      {
-        ...message(email, hash),
-        body:
-          language === 'pl'
-            ? 'Kod Spendist: ' + code
-            : 'Spendist code: ' + code,
-      },
-    ];
+    return [queued(email, { language, code })];
   }
 
   if (!hash) throw new Error('Missing authentication token');
@@ -109,4 +108,23 @@ export function authMessages(
   }
 
   return [message(email, hash)];
+}
+
+function authTemplate(action: string): EmailTemplate {
+  switch (action) {
+    case 'signup':
+      return 'auth.signup';
+    case 'recovery':
+      return 'auth.recovery';
+    case 'magiclink':
+      return 'auth.magiclink';
+    case 'invite':
+      return 'auth.invite';
+    case 'email_change':
+      return 'auth.email_change';
+    case 'reauthentication':
+      return 'auth.reauthentication';
+    default:
+      throw new Error('Unsupported authentication email');
+  }
 }

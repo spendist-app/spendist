@@ -54,7 +54,7 @@ const pl = {
   emailPreferences: {
     title: 'Powiadomienia mailowe',
     description:
-      'Opcjonalny mail podaje rodzaj powiadomienia i link do Spendist, bez kwot, nazw ani opisów. Wiadomości logowania i zaproszenia pozostają niezbędne. Wszystkie maile współdzielą limit 100 odbiorców w ruchomych 24 godzinach.',
+      'Opcjonalny mail zawiera szczegóły powiadomienia, np. nazwę, kwotę, datę, portfel i kategorię płatności cyklicznej, oraz link do Spendist. Wiadomości logowania i zaproszenia pozostają niezbędne. Wszystkie maile współdzielą limit 100 odbiorców w ruchomych 24 godzinach.',
     label: 'Wysyłaj mi powiadomienia mailowe',
     typesLabel: 'Wysyłaj maile o:',
     types: {
@@ -165,7 +165,18 @@ const pl = {
     back: 'Ustawienia',
     title: 'Połączone aplikacje',
     subtitle:
-      'Sprawdź i odwołaj dostęp aplikacji korzystających ze Spendist przez OAuth.',
+      'Połącz asystenta AI (np. Claude, ChatGPT lub Cursor) ze Spendist przez MCP (Model Context Protocol). Asystent widzi Twoje dane dopiero po Twojej zgodzie, a dostęp możesz odwołać w każdej chwili.',
+    serverUrl: 'Adres serwera MCP',
+    copy: 'Kopiuj',
+    copied: 'Skopiowano',
+    howTo: 'Jak połączyć asystenta',
+    steps: {
+      add: 'W ustawieniach asystenta AI dodaj własny konektor lub serwer MCP i wklej powyższy adres.',
+      approve:
+        'Zaloguj się do Spendist i zatwierdź dostęp. Domyślnie asystent może tylko czytać dane; zaznacz „Zezwól także na zmiany w moich danych”, jeśli ma też je zmieniać.',
+      manage:
+        'Połączone aplikacje sprawdzisz i odłączysz w „Zarządzaj dostępem”.',
+    },
     loading: 'Wczytywanie połączonych aplikacji',
     empty: 'Żadna aplikacja zewnętrzna nie ma obecnie dostępu.',
     scopes: 'Zakresy',

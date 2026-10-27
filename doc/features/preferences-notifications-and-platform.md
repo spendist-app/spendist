@@ -26,7 +26,7 @@ The notification menu is scoped to the authenticated user and refreshes through 
 
 Current notification types include automatic recurring transaction creation, a recurring payment ending, exchange-rate synchronisation failure (administrators only), Allowance invitations received, accepted or declined, received allowance, and Allowance expenses added to a recipient's account.
 
-Each notification can also be sent by email. Settings has a global opt-in switch, disabled by default, and per-type checkboxes stored in `profiles.email_notification_muted_types`. Emails name only the notification type and link to the dashboard; see [Email and administration](email-and-administration.md).
+Each notification can also be sent by email. The Settings profile panel has a global opt-in switch, disabled by default, and per-type checkboxes stored in `profiles.email_notification_muted_types`. Emails contain the notification details (for example the recurring payment name, amount, date, wallet and category) and a footer link to the email preferences at `/settings#email-notifications`; see [Email and administration](email-and-administration.md).
 
 ## Platform behavior
 

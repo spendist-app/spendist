@@ -75,7 +75,7 @@ begin
   if (select status from spendist_email.jobs where id=(job->>'id')::uuid)<>'unknown' then raise exception 'Uncertain delivery requeued'; end if;
 end;
 $$;
--- Notification emails honour the global opt-in and the per-type opt-out, and never include payload values.
+-- Notification emails honour the global opt-in and the per-type opt-out, and carry whitelisted payload details only.
 insert into auth.users(id,aud,role,email,email_confirmed_at,raw_user_meta_data,created_at,updated_at)
 values ('71000000-0000-0000-0000-000000000002','authenticated','authenticated','notify@example.test',now(),
   '{"full_name":"Notify Test","language":"pl"}',now(),now());
@@ -102,7 +102,14 @@ begin
   if job.subject<>'Spendist: Otrzymano kieszonkowe' or job.body not like 'Otrzymano kieszonkowe.%' then
     raise exception 'Notification email does not name its type';
   end if;
-  if job.body like '%Secret%' or job.body like '%123.45%' then raise exception 'Notification email leaked payload'; end if;
+  if job.template<>'notification' or job.template_data->>'type'<>'allowance_received'
+     or job.template_data->>'language'<>'pl' or job.template_data->>'description'<>'Secret gift'
+     or job.template_data->>'amount'<>'123.45' or job.template_data->>'currency'<>'PLN' then
+    raise exception 'Notification email template data missing';
+  end if;
+  if job.template_data ?| array['transaction_id','connection_id','recurring_transaction_id'] then
+    raise exception 'Notification email copied identifiers';
+  end if;
   update spendist_email.jobs set created_at=now()-interval '2 days' where owner_id=owner;
 
   insert into public.notifications(owner_id,type) values(owner,'recurring_transaction_created');
@@ -125,7 +132,55 @@ begin
   update spendist_email.control set next_send_at=now()-interval '1 second';
   if public.email_claim() is not null then raise exception 'Claimed notification muted after enqueue'; end if;
   if (select status from spendist_email.jobs where id=job.id)<>'expired' then raise exception 'Muted notification not expired'; end if;
+  if (select template_data from spendist_email.jobs where id=job.id) is not null then
+    raise exception 'Expired notification kept template data';
+  end if;
   delete from spendist_email.jobs where owner_id=owner;
+end;
+$$;
+-- Recurring notification emails add the schedule, wallet and category of the owner's recurring payment.
+insert into auth.users(id,aud,role,email,email_confirmed_at,raw_user_meta_data,created_at,updated_at)
+values ('71000000-0000-0000-0000-000000000003','authenticated','authenticated','recurring@example.test',now(),
+  '{"full_name":"Recurring Test","language":"pl"}',now(),now());
+do $$
+declare owner uuid:='71000000-0000-0000-0000-000000000003'; data jsonb;
+begin
+  update public.profiles set email_notifications=true where id=owner;
+  insert into public.categories_group(id,owner_id,name) values('75000000-0000-0000-0000-000000000003',owner,'Group');
+  insert into public.wallets(id,name,owner_id) values('72000000-0000-0000-0000-000000000003','Main wallet',owner);
+  insert into public.categories(id,group_id,name,owner_id)
+    values('73000000-0000-0000-0000-000000000003','75000000-0000-0000-0000-000000000003','Entertainment',owner);
+  insert into public.recurring_transactions(id,amount,category_id,currency,name,owner_id,schedule,start_date,wallet_id)
+    values('74000000-0000-0000-0000-000000000003',43,'73000000-0000-0000-0000-000000000003','PLN','Netflix',owner,
+      '0 11 26 * *',current_date,'72000000-0000-0000-0000-000000000003');
+  insert into public.notifications(owner_id,type,payload) values(owner,'recurring_transaction_created',jsonb_build_object(
+    'transaction_id',gen_random_uuid(),'recurring_transaction_id','74000000-0000-0000-0000-000000000003',
+    'description','Netflix','amount',43,'currency','PLN','direction','expense','occurred_at',now()));
+  select template_data into data from spendist_email.jobs where owner_id=owner;
+  if data->>'wallet'<>'Main wallet' or data->>'category'<>'Entertainment' or data->>'schedule'<>'0 11 26 * *'
+     or data->>'description'<>'Netflix' or data->>'direction'<>'expense' then
+    raise exception 'Recurring notification details missing';
+  end if;
+  if data ? 'transaction_id' or data ? 'recurring_transaction_id' then raise exception 'Recurring notification copied identifiers'; end if;
+  delete from spendist_email.jobs where owner_id=owner;
+end;
+$$;
+-- Templates must be known, match their kind and carry a data object.
+do $$
+declare owner uuid:='71000000-0000-0000-0000-000000000001'; rejected integer:=0; message jsonb;
+begin
+  foreach message in array array[
+    jsonb_build_object('kind','auth','template','auth.unknown','template_data','{}'::jsonb),
+    jsonb_build_object('kind','notification','template','auth.signup','template_data','{}'::jsonb),
+    jsonb_build_object('kind','auth','template','notification','template_data','{}'::jsonb),
+    jsonb_build_object('kind','auth','template','auth.signup','template_data','"text"'::jsonb)
+  ] loop
+    begin
+      perform public.email_enqueue(owner,'template-'||rejected,jsonb_build_array(message||jsonb_build_object(
+        'recipient','template@example.test','subject','Test','body','Test only','expires_at',now()+interval '15 minutes')));
+    exception when invalid_parameter_value or check_violation then rejected:=rejected+1; end;
+  end loop;
+  if rejected<>4 then raise exception 'Invalid email template accepted'; end if;
 end;
 $$;
 -- Notification and invitation volume cannot consume the auth email reserve.

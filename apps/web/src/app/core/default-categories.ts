@@ -47,19 +47,6 @@ const CATEGORY_TEMPLATES: readonly CategoryGroupTemplate[] = [
               en: 'Groceries',
               pl: 'Spożywcze',
             },
-            children: [
-              {
-                key: 'biedronka',
-                icon:
-                  canonicalHeroIconName('heroBuildingStorefront') ??
-                  'heroBuildingStorefront',
-                color: '#0EA5A5',
-                name: {
-                  en: 'Biedronka',
-                  pl: 'Biedronka',
-                },
-              },
-            ],
           },
         ],
       },
@@ -127,7 +114,7 @@ const CATEGORY_TEMPLATES: readonly CategoryGroupTemplate[] = [
     color: '#2DD4BF',
     name: {
       en: 'Income',
-      pl: 'Dochody',
+      pl: 'Przychody',
     },
     categories: [
       {

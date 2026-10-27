@@ -40,6 +40,7 @@ import { KontomierzImportStore } from './kontomierz-import.store';
 import { SpendistCsvTransferStore } from './spendist-csv-transfer.store';
 import { SPENDIST_CSV_HEADERS } from './spendist-csv-transfer.parser';
 import { EmailPreferences } from './email-preferences';
+import { ConnectedAppsCard } from './connected-apps-card';
 import { AuthService } from '../../core/auth.service';
 
 type SettingsPanelId =
@@ -124,6 +125,7 @@ interface ParentCategoryOption {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     EmailPreferences,
+    ConnectedAppsCard,
     ReactiveFormsModule,
     NgIcon,
     HeroIconPickerComponent,
