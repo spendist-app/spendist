@@ -78,6 +78,10 @@ describe('administrator navigation at the production Worker', () => {
     expect(policy).toMatch(
       /frame-src 'self' https:\/\/challenges\.cloudflare\.com;/
     );
+    // The Angular service worker fetches the Turnstile script via connect-src.
+    expect(policy).toMatch(
+      /connect-src [^;]*https:\/\/challenges\.cloudflare\.com;/
+    );
     expect(response.headers.get('Content-Security-Policy')).not.toMatch(
       /localhost|127\.0\.0\.1/
     );

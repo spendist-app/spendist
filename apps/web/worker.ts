@@ -151,11 +151,15 @@ const withSecurityHeaders = (
 
   if (url.hostname !== 'localhost' && url.hostname !== '127.0.0.1') {
     // Production pages talk only to Supabase; do not allow exfiltration to arbitrary HTTPS hosts.
+    // The Angular service worker fetches the Turnstile script itself, which
+    // connect-src governs.
     headers.set(
       'Content-Security-Policy',
       CONTENT_SECURITY_POLICY.replace(
         "connect-src 'self' https: http://127.0.0.1:55321 http://localhost:55321 ws://127.0.0.1:55321 ws://localhost:55321",
-        `connect-src 'self' ${supabaseConnectSources(env)}`
+        `connect-src 'self' ${supabaseConnectSources(
+          env
+        )} https://challenges.cloudflare.com`
       )
     );
   }
