@@ -104,6 +104,8 @@ export async function backupStorageObjects({
     version: 1,
     buckets: [],
     objects: [],
+    // Objects that could not be archived; the backup continues and reports them.
+    skippedObjects: [],
     totalBytes: 0,
   };
 
@@ -127,17 +129,39 @@ export async function backupStorageObjects({
       const archivePath = `objects/${archiveId}.bin`;
       const targetPath = path.join(outputRoot, archivePath);
 
-      const blob = await withRetry(async () => {
-        const { data, error } = await client.storage
-          .from(bucket.id)
-          .download(object.name);
+      // Dot segments are normalised away by URL handling and could resolve to a
+      // different object, so such names are never downloaded.
+      if (/(^|\/)\.\.?(\/|$)/.test(object.name)) {
+        manifest.skippedObjects.push({
+          bucketId: bucket.id,
+          name: object.name,
+          reason: 'unsafe_name',
+        });
+        continue;
+      }
 
-        failOnError(error, `Could not download ${bucket.id}/${object.name}`);
+      let blob;
 
-        if (!data) throw new Error('Storage download returned no data.');
+      try {
+        blob = await withRetry(async () => {
+          const { data, error } = await client.storage
+            .from(bucket.id)
+            .download(object.name);
 
-        return data;
-      }, `Could not download ${bucket.id}/${object.name}`);
+          failOnError(error, `Could not download ${bucket.id}/${object.name}`);
+
+          if (!data) throw new Error('Storage download returned no data.');
+
+          return data;
+        }, `Could not download ${bucket.id}/${object.name}`);
+      } catch {
+        manifest.skippedObjects.push({
+          bucketId: bucket.id,
+          name: object.name,
+          reason: 'download_failed',
+        });
+        continue;
+      }
 
       const content = Buffer.from(await blob.arrayBuffer());
       await writeFile(targetPath, content, { flag: 'wx', mode: 0o600 });
@@ -162,6 +186,12 @@ export async function backupStorageObjects({
     }
 
     log(`Storage ${bucket.id}: ${objects.length} object(s).`);
+  }
+
+  if (manifest.skippedObjects.length > 0) {
+    log(
+      `Storage: ${manifest.skippedObjects.length} object(s) skipped; see manifest.json.`
+    );
   }
 
   await writeFile(

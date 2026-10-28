@@ -25,7 +25,7 @@ The application seeds default categories after an initial or newly signed-in ses
 - Email confirmation requires the callback URL to be allowed in the hosted Supabase project's Auth URL configuration. Local development enables confirmations and routes messages to Mailpit.
 - Passwords need at least eight characters with lowercase, uppercase and a digit. The browser checks this in production builds and Supabase Auth enforces it (`supabase/config.toml`; the hosted project's Auth settings must match). Password change requires a recent sign-in: Settings re-verifies the current password first, and recovery uses the fresh recovery session.
 
-Financial records and notifications remain user-scoped through backend access controls.
+Financial records and notifications remain user-scoped through backend access controls. Browser roles hold no TRIGGER, TRUNCATE or REFERENCES privileges on application tables. Avatar uploads must stay inside the user's own folder, with names of at most 255 characters and no `.` or `..` path segments. The operator storage backup skips objects with such names or failed downloads and lists them in its manifest instead of aborting.
 
 ## Account deletion
 
