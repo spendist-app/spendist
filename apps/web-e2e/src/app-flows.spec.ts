@@ -633,6 +633,7 @@ test('confirms a new account, signs in once, and rejects a reused link', async (
 
 test('asks before an email link replaces the signed-in account', async ({
   page,
+  browser,
 }, testInfo) => {
   const suffix = uniqueSuffix(testInfo);
   const email = `switch-${suffix}@gmail.com`;
@@ -654,12 +655,6 @@ test('asks before an email link replaces the signed-in account', async ({
 
   const confirmationUrl = await waitForConfirmationEmail(page, email);
 
-  await page.goto('/forgot-password');
-  await fillStableInput(page.locator('#email'), email);
-  await page.getByRole('button', { name: 'Send reset link' }).click();
-
-  const recoveryUrl = await waitForConfirmationEmail(page, email, 2);
-
   await ensureAuthenticated(page);
 
   await page.goto(confirmationUrl);
@@ -672,6 +667,22 @@ test('asks before an email link replaces the signed-in account', async ({
   await expect(
     page.getByRole('heading', { name: DASHBOARD_HEADING })
   ).toBeVisible();
+
+  // Confirming invalidates earlier recovery links, so request one now from a
+  // signed-out browser context (/forgot-password redirects signed-in users).
+  const signedOut = await browser.newPage();
+
+  await signedOut.goto(new URL('/forgot-password', page.url()).toString());
+  await fillStableInput(signedOut.locator('#email'), email);
+  await signedOut.getByRole('button', { name: 'Send reset link' }).click();
+  await expect(
+    signedOut.getByText(
+      'If an account exists for this email, a reset link has been sent.'
+    )
+  ).toBeVisible({ timeout: 15000 });
+  await signedOut.close();
+
+  const recoveryUrl = await waitForConfirmationEmail(page, email, 2);
 
   await page.goto(recoveryUrl);
   await expect(
