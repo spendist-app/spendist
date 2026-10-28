@@ -732,16 +732,14 @@ export class SpendistDataAccess {
   }
 
   async allowance() {
-    const ownerId = await this.authenticate();
+    await this.authenticate();
 
     const [connections, invitations] = await Promise.all([
       this.client.rpc('get_allowance_connections'),
       this.client
         .from('allowance_invitations')
-        .select(
-          'id, inviter_id, invitee_id, invitee_email, status, expires_at, created_at'
-        )
-        .or(`inviter_id.eq.${ownerId},invitee_id.eq.${ownerId}`)
+        // Row-level security limits rows to invitations the user sent or received.
+        .select('id, inviter_id, invitee_email, status, expires_at, created_at')
         .order('created_at', { ascending: false }),
     ]);
 

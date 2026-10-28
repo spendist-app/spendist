@@ -1627,6 +1627,10 @@ export type Database = {
         Args: { p_transaction_id: string }
         Returns: undefined
       }
+      detach_allowance_for_account_deletion: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
       detach_mortgage_transactions: {
         Args: { p_mortgage_id: string }
         Returns: number

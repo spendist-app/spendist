@@ -551,4 +551,206 @@ begin
 end;
 $$;
 
+-- Hardening: NaN amounts, profile name length, connected-app tokens, hidden
+-- invitee ids and account deletion with Allowance records on both sides.
+insert into auth.users (
+  id, aud, role, email, encrypted_password, email_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data, created_at, updated_at
+)
+select id, 'authenticated', 'authenticated', email, '', timezone('utc', now()),
+  '{"provider":"email","providers":["email"]}',
+  jsonb_build_object('full_name', name, 'language', 'en', 'wallet_currency_id', 1),
+  timezone('utc', now()), timezone('utc', now())
+from (values
+  ('10000000-0000-0000-0000-000000000005'::uuid, 'harden-payer@example.test', 'Harden Payer'),
+  ('10000000-0000-0000-0000-000000000006'::uuid, 'harden-child@example.test', 'Harden Child'),
+  ('10000000-0000-0000-0000-000000000007'::uuid, 'harden-teen@example.test', 'Harden Teen')
+) as u(id, email, name);
+
+set local role authenticated;
+
+do $$
+declare
+  v_payer constant uuid := '10000000-0000-0000-0000-000000000005';
+  v_child constant uuid := '10000000-0000-0000-0000-000000000006';
+  v_teen constant uuid := '10000000-0000-0000-0000-000000000007';
+  v_group_id uuid;
+  v_category_id uuid;
+  v_wallet_id uuid;
+  v_child_invite uuid;
+  v_teen_invite uuid;
+  v_child_connection uuid;
+  v_teen_connection uuid;
+  v_blocked boolean := false;
+begin
+  -- Earlier blocks set request.jwt.claim.sub, which auth.uid() prefers.
+  perform set_config('request.jwt.claim.sub', '', true);
+  perform set_config('request.jwt.claims', jsonb_build_object('sub', v_payer, 'client_id', 'connected-app')::text, true);
+  begin
+    perform public.email_allowance_invite('harden-child@example.test');
+  exception when insufficient_privilege then
+    v_blocked := true;
+  end;
+  if not v_blocked then
+    raise exception 'Connected-app token sent an Allowance invitation';
+  end if;
+  v_blocked := false;
+
+  perform set_config('request.jwt.claims', jsonb_build_object('sub', v_payer)::text, true);
+
+  begin
+    update public.profiles set full_name = repeat('x', 121) where id = v_payer;
+  exception when check_violation then
+    v_blocked := true;
+  end;
+  if not v_blocked then
+    raise exception 'Profile name longer than 120 characters was accepted';
+  end if;
+  v_blocked := false;
+
+  insert into public.categories_group (owner_id, name, color, icon)
+  values (v_payer, 'Harden allowance', '#DC2626', 'heroGift')
+  returning id into v_group_id;
+  insert into public.categories (owner_id, group_id, name, color, icon)
+  values (v_payer, v_group_id, 'Harden allowance', '#DC2626', 'heroGift')
+  returning id into v_category_id;
+  select id into v_wallet_id from public.wallets where owner_id = v_payer and is_default;
+
+  v_child_invite := (public.email_allowance_invite('harden-child@example.test') ->> 'invitationId')::uuid;
+  v_teen_invite := (public.email_allowance_invite('harden-teen@example.test') ->> 'invitationId')::uuid;
+
+  begin
+    perform invitee_id from public.allowance_invitations where id = v_child_invite;
+  exception when insufficient_privilege then
+    v_blocked := true;
+  end;
+  if not v_blocked then
+    raise exception 'Inviter can read whether the invited address has an account';
+  end if;
+  v_blocked := false;
+
+  perform set_config('request.jwt.claims', jsonb_build_object('sub', v_child, 'client_id', 'connected-app')::text, true);
+  begin
+    perform public.respond_allowance_invitation(v_child_invite, true);
+  exception when insufficient_privilege then
+    v_blocked := true;
+  end;
+  if not v_blocked then
+    raise exception 'Connected-app token accepted an Allowance invitation';
+  end if;
+  v_blocked := false;
+
+  perform set_config('request.jwt.claims', jsonb_build_object('sub', v_child)::text, true);
+  v_child_connection := public.respond_allowance_invitation(v_child_invite, true);
+
+  perform set_config('request.jwt.claims', jsonb_build_object('sub', v_teen)::text, true);
+  v_teen_connection := public.respond_allowance_invitation(v_teen_invite, true);
+
+  perform set_config('request.jwt.claims', jsonb_build_object('sub', v_payer)::text, true);
+
+  begin
+    perform public.create_allowance_transaction(
+      v_child_connection, v_category_id, v_wallet_id, '2026-06-01 08:00:00+00',
+      'NaN allowance', 'NaN'::numeric, 'PLN', null, '{}'::uuid[]
+    );
+  exception when check_violation then
+    v_blocked := true;
+  end;
+  if not v_blocked then
+    raise exception 'NaN allowance amount was accepted';
+  end if;
+  v_blocked := false;
+
+  perform public.create_allowance_transaction(
+    v_child_connection, v_category_id, v_wallet_id, '2026-06-01 08:00:00+00',
+    'Harden child allowance', 20, 'PLN', null, '{}'::uuid[]
+  );
+  perform public.create_allowance_transaction(
+    v_teen_connection, v_category_id, v_wallet_id, '2026-06-01 08:00:00+00',
+    'Harden teen allowance', 30, 'PLN', null, '{}'::uuid[]
+  );
+  perform public.create_allowance_recipient_expense(
+    v_child_connection, '2026-06-02 10:00:00+00', 'Harden snack', 4, 'PLN'
+  );
+
+  insert into public.recurring_transactions (
+    owner_id, category_id, wallet_id, name, start_date, schedule,
+    amount, amount_mode, currency, direction, source_module, allowance_connection_id
+  )
+  values (
+    v_payer, v_category_id, v_wallet_id, 'Harden weekly allowance',
+    '2026-06-01', '0 8 * * 4', 5, 'fixed', 'PLN', 'expense', 'allowance', v_child_connection
+  );
+end;
+$$;
+
+reset role;
+
+do $$
+declare
+  v_payer constant uuid := '10000000-0000-0000-0000-000000000005';
+  v_child constant uuid := '10000000-0000-0000-0000-000000000006';
+  v_teen constant uuid := '10000000-0000-0000-0000-000000000007';
+  v_blocked boolean := false;
+begin
+  begin
+    insert into public.transactions (
+      owner_id, wallet_id, category_id, amount, currency, direction, occurred_at, description
+    )
+    select v_payer, w.id, c.id, 'NaN'::numeric, 'PLN', 'expense', now(), 'NaN direct'
+    from public.wallets w
+    join public.categories c on c.owner_id = v_payer and c.name = 'Harden allowance'
+    where w.owner_id = v_payer and w.is_default;
+  exception when check_violation then
+    v_blocked := true;
+  end;
+  if not v_blocked then
+    raise exception 'NaN transaction amount was accepted';
+  end if;
+  v_blocked := false;
+
+  -- Without detaching, Allowance records block the Auth user delete.
+  begin
+    delete from auth.users where id = v_child;
+  exception when others then
+    v_blocked := true;
+  end;
+  if not v_blocked then
+    raise exception 'Expected Allowance records to block a plain account delete';
+  end if;
+
+  perform public.detach_allowance_for_account_deletion(v_child);
+  delete from auth.users where id = v_child;
+
+  if exists (select 1 from public.profiles where id = v_child) then
+    raise exception 'Recipient account was not deleted';
+  end if;
+  if not exists (
+    select 1 from public.transactions
+    where owner_id = v_payer and description = 'Harden child allowance'
+      and source_module = 'standard' and allowance_connection_id is null
+  ) then
+    raise exception 'Payer lost the allowance history of a deleted recipient';
+  end if;
+  if not exists (
+    select 1 from public.recurring_transactions
+    where owner_id = v_payer and name = 'Harden weekly allowance'
+      and source_module = 'standard' and is_paused
+  ) then
+    raise exception 'Allowance schedule of a deleted recipient was not detached and paused';
+  end if;
+
+  perform public.detach_allowance_for_account_deletion(v_payer);
+  delete from auth.users where id = v_payer;
+
+  if not exists (
+    select 1 from public.transactions
+    where owner_id = v_teen and description = 'Harden teen allowance'
+      and source_module = 'standard' and allowance_connection_id is null
+  ) then
+    raise exception 'Recipient lost the allowance history of a deleted payer';
+  end if;
+end;
+$$;
+
 rollback;

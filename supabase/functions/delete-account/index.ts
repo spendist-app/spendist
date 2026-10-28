@@ -95,6 +95,17 @@ async function handleRequest(request: Request): Promise<Response> {
     return json({ code: 'invalid_password' }, 403);
   }
 
+  // Allowance records shared with another account would otherwise block the
+  // cascade; the counterpart keeps them as ordinary history.
+  const { error: detachError } = await admin.rpc(
+    'detach_allowance_for_account_deletion',
+    { p_user_id: user.id }
+  );
+
+  if (detachError) {
+    return json({ code: 'account_deletion_failed' }, 500);
+  }
+
   const avatarError = await deleteAvatarObjects(admin, user.id);
 
   if (avatarError) {

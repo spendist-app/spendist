@@ -15,7 +15,15 @@ address is shown only while the connection is active.
 
 Invitations are created only through the email invitation path, which requires
 a confirmed email address on the inviter's account and applies the shared email
-rate limits.
+rate limits. The inviter sees the invited address and status but not whether
+the address belongs to an existing account. Sending, accepting and responding to
+invitations require a first-party Spendist session; tokens issued to connected
+apps (MCP OAuth clients) are rejected. Allowance and other amounts reject `NaN`
+in the database.
+
+When either participant deletes their Spendist account, the other participant
+keeps the shared history as ordinary transactions and any Allowance schedules
+become ordinary paused schedules.
 
 ## Preview visibility
 

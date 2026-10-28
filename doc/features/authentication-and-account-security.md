@@ -41,8 +41,11 @@ and requires all of the following:
 
 The browser calls the `delete-account` Supabase Edge Function. The function
 validates the bearer token, reauthenticates the same user with the supplied
-password, deletes avatar objects under that user's Storage folder, and then
-permanently deletes the Supabase Auth user. Database foreign keys cascade from
+password, detaches Allowance records shared with other accounts, deletes avatar
+objects under that user's Storage folder, and then permanently deletes the
+Supabase Auth user. Detaching removes the user's own Allowance entries and
+delegated-expense links; each counterpart keeps their side as ordinary
+transactions, and their Allowance schedules become ordinary paused schedules. Database foreign keys cascade from
 the Auth user through the profile to financial records; notifications also
 cascade from the Auth user. The local session is cleared and the user returns to
 the public landing page after success.
