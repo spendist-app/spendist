@@ -7,6 +7,11 @@ workers_dev = false
 pattern = "spendist.app/*"
 zone_name = "spendist.app"
 
+# Public Cloudflare Turnstile site key served in /env.js; the secret key is
+# configured only in Supabase Auth (Attack Protection).
+[vars]
+NG_APP_TURNSTILE_SITE_KEY = "0x4AAAAAAFqG63T_7USadtr7"
+
 [assets]
 directory = "dist/apps/web/browser"
 binding = "ASSETS"

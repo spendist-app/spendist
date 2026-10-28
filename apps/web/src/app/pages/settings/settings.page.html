@@ -363,11 +363,15 @@
               </label>
             </div>
 
+            @if (passwordCaptcha.required) {
+            <app-turnstile-widget (token)="passwordCaptcha.token.set($event)" />
+            }
+
             <div class="flex justify-stretch sm:justify-end">
               <button
                 type="submit"
                 class="btn btn-primary w-full sm:w-auto"
-                [disabled]="passwordChangePending()"
+                [disabled]="passwordChangePending() || !passwordCaptcha.ready()"
               >
                 @if (passwordChangePending()) {
                 <span class="loading loading-spinner loading-sm"></span>

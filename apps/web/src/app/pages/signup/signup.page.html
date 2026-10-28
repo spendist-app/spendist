@@ -34,10 +34,14 @@
     </p>
     }
 
+    @if (captcha.required) {
+    <app-turnstile-widget (token)="captcha.token.set($event)" />
+    }
+
     <button
       class="btn btn-primary w-full"
       type="button"
-      [disabled]="resending()"
+      [disabled]="resending() || !captcha.ready()"
       (click)="resendConfirmation()"
     >
       @if (resending()) {
@@ -231,10 +235,14 @@
         }
       </div>
 
+      @if (captcha.required) {
+      <app-turnstile-widget (token)="captcha.token.set($event)" />
+      }
+
       <button
         class="btn btn-primary w-full"
         type="submit"
-        [disabled]="submitting()"
+        [disabled]="submitting() || !captcha.ready()"
       >
         @if (submitting()) {
         <span class="loading loading-spinner loading-sm"></span>

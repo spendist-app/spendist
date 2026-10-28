@@ -17,6 +17,7 @@ fi
 
 functions_url="${NG_APP_SUPABASE_FUNCTIONS_URL:-${supabase_url%/}/functions/v1}"
 build_commit="${NG_APP_BUILD_COMMIT:-}"
+turnstile_site_key="${NG_APP_TURNSTILE_SITE_KEY:-}"
 env_file="/usr/share/nginx/html/env.js"
 env_temp="${env_file}.tmp"
 
@@ -25,6 +26,7 @@ jq -cn \
   --arg publishableKey "$publishable_key" \
   --arg functionsUrl "$functions_url" \
   --arg buildCommit "$build_commit" \
+  --arg turnstileSiteKey "$turnstile_site_key" \
   '{
     SUPABASE_URL: $supabaseUrl,
     SUPABASE_ANON_KEY: $publishableKey,
@@ -33,7 +35,8 @@ jq -cn \
     NG_APP_SUPABASE_PUBLISHABLE_KEY: $publishableKey,
     NG_APP_SUPABASE_ANON_KEY: $publishableKey,
     NG_APP_SUPABASE_FUNCTIONS_URL: $functionsUrl,
-    NG_APP_BUILD_COMMIT: $buildCommit
+    NG_APP_BUILD_COMMIT: $buildCommit,
+    NG_APP_TURNSTILE_SITE_KEY: $turnstileSiteKey
   }' |
   {
     printf 'globalThis.__env = '

@@ -54,12 +54,7 @@ async function handleRequest(request: Request): Promise<Response> {
     Deno.env.get('SUPABASE_SECRET_KEY') ??
     Deno.env.get('SB_SECRET_KEY');
 
-  const publicKey =
-    Deno.env.get('SUPABASE_ANON_KEY') ??
-    Deno.env.get('SUPABASE_PUBLISHABLE_KEY') ??
-    Deno.env.get('SB_PUBLISHABLE_KEY');
-
-  if (!serviceKey || !publicKey) {
+  if (!serviceKey) {
     return json({ code: 'server_configuration_error' }, 500);
   }
 
@@ -78,7 +73,9 @@ async function handleRequest(request: Request): Promise<Response> {
     return json({ code: 'unauthorized' }, 401);
   }
 
-  const passwordClient = createClient(supabaseUrl, publicKey, {
+  // Supabase Auth skips the sign-up/sign-in captcha for service-role requests,
+  // so this server-side password check keeps working when captcha is enabled.
+  const passwordClient = createClient(supabaseUrl, serviceKey, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,

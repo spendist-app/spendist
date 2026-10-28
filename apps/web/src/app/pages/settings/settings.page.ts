@@ -6,6 +6,7 @@ import {
   effect,
   inject,
   signal,
+  viewChild,
 } from '@angular/core';
 import {
   NonNullableFormBuilder,
@@ -42,6 +43,10 @@ import { SPENDIST_CSV_HEADERS } from './spendist-csv-transfer.parser';
 import { EmailPreferences } from './email-preferences';
 import { ConnectedAppsCard } from './connected-apps-card';
 import { AuthService } from '../../core/auth.service';
+import {
+  CaptchaState,
+  TurnstileWidget,
+} from '../../shared/captcha/turnstile-widget';
 
 type SettingsPanelId =
   | 'profile'
@@ -131,6 +136,7 @@ interface ParentCategoryOption {
     HeroIconPickerComponent,
     TranslocoPipe,
     RouterLink,
+    TurnstileWidget,
   ],
   providers: [SettingsStore, KontomierzImportStore, SpendistCsvTransferStore],
   templateUrl: './settings.page.html',
@@ -208,6 +214,9 @@ export class SettingsPageComponent {
   protected readonly profileAutosaveStatus =
     signal<ProfileAutosaveStatus>('idle');
   protected readonly passwordChangePending = signal(false);
+  // Re-verifying the current password is a password sign-in, which needs a captcha.
+  protected readonly passwordCaptcha = new CaptchaState();
+  private readonly passwordCaptchaWidget = viewChild(TurnstileWidget);
   protected readonly passwordChangeError = signal<string | null>(null);
   protected readonly passwordChangeSuccess = signal(false);
   protected readonly passwordMismatchSubmitted = signal(false);
@@ -1353,7 +1362,7 @@ export class SettingsPageComponent {
 
     this.passwordMismatchSubmitted.set(false);
 
-    if (this.passwordForm.invalid) {
+    if (this.passwordForm.invalid || !this.passwordCaptcha.ready()) {
       this.passwordForm.markAllAsTouched();
 
       return;
@@ -1376,8 +1385,11 @@ export class SettingsPageComponent {
     try {
       const result = await this.auth.changePassword(
         currentPassword,
-        newPassword
+        newPassword,
+        this.passwordCaptcha.token()
       );
+
+      this.passwordCaptchaWidget()?.reset();
 
       if (result.error) {
         this.passwordChangeError.set(result.error);

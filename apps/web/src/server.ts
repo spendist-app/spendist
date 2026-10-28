@@ -22,7 +22,8 @@ const contentSecurityPolicyDirectives = {
   baseUri: ["'self'"],
   objectSrc: ["'none'"],
   frameAncestors: ["'none'"],
-  scriptSrc: ["'self'"],
+  // Cloudflare Turnstile protects sign-up, sign-in and password recovery.
+  scriptSrc: ["'self'", 'https://challenges.cloudflare.com'],
   scriptSrcAttr: ["'none'"],
   styleSrc: ["'self'", "'unsafe-inline'"],
   imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
@@ -35,7 +36,7 @@ const contentSecurityPolicyDirectives = {
     'ws://127.0.0.1:55321',
     'ws://localhost:55321',
   ],
-  frameSrc: ["'self'"],
+  frameSrc: ["'self'", 'https://challenges.cloudflare.com'],
   formAction: ["'self'"],
   upgradeInsecureRequests: [],
 };

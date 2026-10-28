@@ -12,6 +12,7 @@ interface Env {
   NG_APP_SUPABASE_ANON_KEY?: string;
   NG_APP_SUPABASE_FUNCTIONS_URL?: string;
   NG_APP_BUILD_COMMIT?: string;
+  NG_APP_TURNSTILE_SITE_KEY?: string;
   CF_PAGES_COMMIT_SHA?: string;
   GITHUB_SHA?: string;
 }
@@ -21,14 +22,15 @@ const CONTENT_SECURITY_POLICY = [
   "base-uri 'self'",
   "object-src 'none'",
   "frame-ancestors 'none'",
-  "script-src 'self'",
+  // Cloudflare Turnstile protects sign-up, sign-in and password recovery.
+  "script-src 'self' https://challenges.cloudflare.com",
   // Critical CSS inlining is disabled, so the build emits no inline handlers.
   "script-src-attr 'none'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data: https:",
   "connect-src 'self' https: http://127.0.0.1:55321 http://localhost:55321 ws://127.0.0.1:55321 ws://localhost:55321",
-  "frame-src 'self'",
+  "frame-src 'self' https://challenges.cloudflare.com",
   "form-action 'self'",
   'upgrade-insecure-requests',
 ].join('; ');
@@ -103,6 +105,7 @@ const buildEnvPayload = (env: Env) => {
       env.NG_APP_SUPABASE_FUNCTIONS_URL ??
       (supabaseUrl ? `${supabaseUrl.replace(/\/$/, '')}/functions/v1` : ''),
     NG_APP_BUILD_COMMIT: buildCommit,
+    NG_APP_TURNSTILE_SITE_KEY: env.NG_APP_TURNSTILE_SITE_KEY ?? '',
   };
 };
 

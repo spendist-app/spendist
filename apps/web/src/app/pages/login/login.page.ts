@@ -3,6 +3,7 @@ import {
   Component,
   inject,
   signal,
+  viewChild,
 } from '@angular/core';
 import {
   NonNullableFormBuilder,
@@ -13,11 +14,15 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@ngneat/transloco';
 import { safeAuthReturnUrl } from '../../core/auth-return-url';
 import { AuthService } from '../../core/auth.service';
+import {
+  CaptchaState,
+  TurnstileWidget,
+} from '../../shared/captcha/turnstile-widget';
 
 @Component({
   standalone: true,
   selector: 'app-login-page',
-  imports: [ReactiveFormsModule, RouterLink, TranslocoPipe],
+  imports: [ReactiveFormsModule, RouterLink, TranslocoPipe, TurnstileWidget],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './login.page.html',
 })
@@ -38,6 +43,8 @@ export class LoginPageComponent {
 
   readonly controls = this.form.controls;
   readonly submitting = signal(false);
+  readonly captcha = new CaptchaState();
+  private readonly captchaWidget = viewChild(TurnstileWidget);
   readonly errorMessage = signal<string | null>(null);
   readonly passwordResetSuccess = signal(
     this.route.snapshot.queryParamMap.get('passwordReset') === 'success'
@@ -51,7 +58,7 @@ export class LoginPageComponent {
       return;
     }
 
-    if (this.form.invalid) {
+    if (this.form.invalid || !this.captcha.ready()) {
       this.form.markAllAsTouched();
 
       return;
@@ -63,7 +70,14 @@ export class LoginPageComponent {
 
     try {
       const { email, password } = this.form.getRawValue();
-      const result = await this.auth.signInWithPassword({ email, password });
+
+      const result = await this.auth.signInWithPassword({
+        email,
+        password,
+        captchaToken: this.captcha.token(),
+      });
+
+      this.captchaWidget()?.reset();
 
       if (result.error) {
         this.errorMessage.set(result.error);

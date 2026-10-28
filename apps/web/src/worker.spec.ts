@@ -59,14 +59,25 @@ describe('administrator navigation at the production Worker', () => {
         ASSETS: { fetch: fetchAsset },
         SUPABASE_URL: 'https://production.example',
         SUPABASE_PUBLISHABLE_KEY: 'fake-public-test-key',
+        NG_APP_TURNSTILE_SITE_KEY: 'fake-turnstile-site-key',
       }
     );
 
     const body = await response.text();
+    const policy = response.headers.get('Content-Security-Policy') ?? '';
 
     expect(fetchAsset).not.toHaveBeenCalled();
     expect(body).toContain('https://production.example');
     expect(body).not.toContain('127.0.0.1');
+    expect(body).toContain(
+      '"NG_APP_TURNSTILE_SITE_KEY":"fake-turnstile-site-key"'
+    );
+    expect(policy).toMatch(
+      /script-src 'self' https:\/\/challenges\.cloudflare\.com;/
+    );
+    expect(policy).toMatch(
+      /frame-src 'self' https:\/\/challenges\.cloudflare\.com;/
+    );
     expect(response.headers.get('Content-Security-Policy')).not.toMatch(
       /localhost|127\.0\.0\.1/
     );

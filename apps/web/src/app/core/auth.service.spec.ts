@@ -70,13 +70,17 @@ describe('AuthService password flows', () => {
   it('requests password reset with reset-password redirect', async () => {
     const service = TestBed.inject(AuthService);
 
-    const result = await service.requestPasswordReset('test@example.com');
+    const result = await service.requestPasswordReset(
+      'test@example.com',
+      'captcha-token'
+    );
 
     expect(result.error).toBeUndefined();
     expect(supabase.auth.resetPasswordForEmail).toHaveBeenCalledWith(
       'test@example.com',
       expect.objectContaining({
         redirectTo: expect.stringContaining('/reset-password'),
+        captchaToken: 'captcha-token',
       })
     );
   });
@@ -101,12 +105,17 @@ describe('AuthService password flows', () => {
     const service = TestBed.inject(AuthService);
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    const result = await service.changePassword('Current123', 'Next1234');
+    const result = await service.changePassword(
+      'Current123',
+      'Next1234',
+      'captcha-token'
+    );
 
     expect(result.error).toBeUndefined();
     expect(supabase.auth.signInWithPassword).toHaveBeenCalledWith({
       email: 'test@example.com',
       password: 'Current123',
+      options: { captchaToken: 'captcha-token' },
     });
     expect(supabase.auth.updateUser).toHaveBeenCalledWith({
       password: 'Next1234',
@@ -215,7 +224,8 @@ describe('AuthService password flows', () => {
 
     const result = await service.resendSignupConfirmation(
       'new@example.com',
-      '/dashboard'
+      '/dashboard',
+      'captcha-token'
     );
 
     expect(result.error).toBeUndefined();
@@ -226,6 +236,7 @@ describe('AuthService password flows', () => {
         emailRedirectTo: expect.stringMatching(
           /\/auth\/confirm\?returnUrl=%2Fdashboard$/
         ),
+        captchaToken: 'captcha-token',
       },
     });
   });

@@ -25,6 +25,7 @@ interface AuthState {
 export interface SignInPayload {
   email: string;
   password: string;
+  captchaToken?: string | null;
 }
 
 export interface SignUpPayload {
@@ -38,6 +39,7 @@ export interface SignUpPayload {
   avatarUrl?: string | null;
   adultConfirmed: boolean;
   termsAccepted: boolean;
+  captchaToken?: string | null;
 }
 
 export interface AuthResult {
@@ -111,6 +113,7 @@ export class AuthService implements OnDestroy {
       const { error, data } = await this.supabase.auth.signInWithPassword({
         email: payload.email,
         password: payload.password,
+        options: { captchaToken: payload.captchaToken ?? undefined },
       });
 
       if (error) {
@@ -123,12 +126,16 @@ export class AuthService implements OnDestroy {
     }
   }
 
-  async requestPasswordReset(email: string): Promise<PasswordRecoveryResult> {
+  async requestPasswordReset(
+    email: string,
+    captchaToken?: string | null
+  ): Promise<PasswordRecoveryResult> {
     try {
       const redirectTo = this.resolveAuthRedirectUrl('/reset-password');
 
       const { error } = await this.supabase.auth.resetPasswordForEmail(email, {
         redirectTo,
+        captchaToken: captchaToken ?? undefined,
       });
 
       if (error) {
@@ -238,7 +245,8 @@ export class AuthService implements OnDestroy {
 
   async changePassword(
     currentPassword: string,
-    newPassword: string
+    newPassword: string,
+    captchaToken?: string | null
   ): Promise<PasswordRecoveryResult> {
     const email = this.session()?.user.email;
 
@@ -251,6 +259,7 @@ export class AuthService implements OnDestroy {
     const reauthResult = await this.signInWithPassword({
       email,
       password: currentPassword,
+      captchaToken,
     });
 
     if (reauthResult.error) {
@@ -303,6 +312,7 @@ export class AuthService implements OnDestroy {
         password: payload.password,
         options: {
           emailRedirectTo,
+          captchaToken: payload.captchaToken ?? undefined,
           data: {
             username: payload.username,
             full_name: payload.fullName,
@@ -389,7 +399,8 @@ export class AuthService implements OnDestroy {
 
   async resendSignupConfirmation(
     email: string,
-    returnUrl?: string | null
+    returnUrl?: string | null,
+    captchaToken?: string | null
   ): Promise<AuthResult> {
     try {
       const { error } = await this.supabase.auth.resend({
@@ -397,6 +408,7 @@ export class AuthService implements OnDestroy {
         email,
         options: {
           emailRedirectTo: this.resolveEmailConfirmationUrl(returnUrl),
+          captchaToken: captchaToken ?? undefined,
         },
       });
 
