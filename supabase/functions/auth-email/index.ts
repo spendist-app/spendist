@@ -1,6 +1,6 @@
 import { Webhook } from 'npm:standardwebhooks@1.0.0';
 import { createHash } from 'node:crypto';
-import { z } from 'npm:zod@4.4.3';
+import { z } from 'npm:zod@4.6.7';
 import {
   emailDatabase,
   EmailBodyTooLarge,

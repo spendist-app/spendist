@@ -1,4 +1,4 @@
-import { z } from 'npm:zod@4.4.3';
+import { z } from 'npm:zod@4.6.7';
 import { bearerSecretMatches } from '../_shared/internal-auth.ts';
 import {
   createClient,

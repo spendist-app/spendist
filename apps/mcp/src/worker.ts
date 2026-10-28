@@ -89,7 +89,8 @@ function handlerFor(env: McpEnvironment): McpHttpHandler {
         { allowWrite: allowsWrite(authInfo.scopes) }
       );
     },
-    { legacy: 'stateless' }
+    // Tool inputs are small JSON documents; the SDK default is 4 MiB.
+    { legacy: 'stateless', maxRequestBodySize: 512 * 1024 }
   );
 
   handlers.set(env, handler);

@@ -1,5 +1,5 @@
 import { readEmailBody } from '../_shared/email-runtime.ts';
-import { z } from 'npm:zod@4.4.3';
+import { z } from 'npm:zod@4.6.7';
 import { createClient } from '@supabase/supabase-js';
 
 const cors = {
