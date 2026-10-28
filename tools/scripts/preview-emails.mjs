@@ -21,6 +21,7 @@ const verifyLink =
 
 const samples = [
   ['auth-signup', 'auth.signup', { link: verifyLink }],
+  ['auth-signup-existing', 'auth.signup_existing', {}],
   ['auth-recovery', 'auth.recovery', { link: verifyLink }],
   ['auth-magiclink', 'auth.magiclink', { link: verifyLink }],
   ['auth-invite', 'auth.invite', { link: verifyLink }],

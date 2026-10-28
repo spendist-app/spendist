@@ -25,7 +25,10 @@ Deno.serve(async (request) => {
   if (!/^Bearer\s+\S+$/i.test(authorization)) return json('unauthorized', 401);
 
   try {
-    const body = bodySchema.parse(JSON.parse(await readEmailBody(request)));
+    const body = bodySchema.parse(
+      JSON.parse(await readEmailBody(request, 32_768))
+    );
+
     const url = Deno.env.get('SUPABASE_URL');
 
     const key =

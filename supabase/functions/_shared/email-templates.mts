@@ -3,6 +3,7 @@
 
 export const EMAIL_TEMPLATES = [
   'auth.signup',
+  'auth.signup_existing',
   'auth.recovery',
   'auth.magiclink',
   'auth.invite',
@@ -131,7 +132,7 @@ export function renderEmail(
   data: EmailTemplateData
 ): RenderedEmail {
   const language: Language = data.language === 'pl' ? 'pl' : 'en';
-  const content = buildContent(template, data, language);
+  const content = buildContent(template, sanitizeData(data), language);
 
   return {
     subject: singleLine(content.subject, 200),
@@ -152,6 +153,8 @@ function buildContent(
     case 'auth.invite':
     case 'auth.email_change':
       return authLinkContent(template, data, language);
+    case 'auth.signup_existing':
+      return signupExistingContent(language);
     case 'auth.reauthentication':
       return reauthenticationContent(data, language);
     case 'invitation':
@@ -301,6 +304,43 @@ function authLinkContent(
   };
 }
 
+// A repeated sign-up for an address that is still unconfirmed gets no confirmation
+// link: password recovery lets the mailbox owner set the password instead.
+function signupExistingContent(language: Language): EmailContent {
+  const pl = language === 'pl';
+
+  return {
+    subject: pl
+      ? 'Dokończ zakładanie konta w Spendist'
+      : 'Finish setting up your Spendist account',
+    preheader: pl
+      ? 'Ustaw hasło, aby dokończyć zakładanie konta.'
+      : 'Set a password to finish setting up your account.',
+    lead: pl ? 'Dokończ zakładanie konta' : 'Finish setting up your account',
+    paragraphs: [
+      pl
+        ? 'Ten adres e-mail był już wcześniej użyty do rejestracji w Spendist, ale konto nie zostało jeszcze potwierdzone.'
+        : 'This email address was already used to sign up for Spendist, but the account has not been confirmed yet.',
+      pl
+        ? 'Ze względów bezpieczeństwa nie wysyłamy ponownie linku aktywacyjnego. Kliknij przycisk poniżej i użyj opcji „Nie pamiętam hasła”, aby ustawić własne hasło — to jednocześnie potwierdzi adres e-mail.'
+        : 'For your security, we do not send the activation link again. Use the button below to reset your password and choose your own — this also confirms your email address.',
+    ],
+    details: [],
+    code: null,
+    action: {
+      label: pl ? 'Ustaw hasło' : 'Set your password',
+      url: `${APP_ORIGIN}/forgot-password`,
+    },
+    notes: [
+      pl
+        ? 'Jeśli to nie Ty zakładasz konto, zignoruj tę wiadomość.'
+        : "If you didn't create an account, you can ignore this email.",
+    ],
+    optOutTopic: null,
+    automated: true,
+  };
+}
+
 function reauthenticationContent(
   data: EmailTemplateData,
   language: Language
@@ -349,13 +389,10 @@ function invitationContent(
   const pl = language === 'pl';
 
   return {
+    // The inviter chooses their own name, so it stays out of the subject line.
     subject: pl
-      ? inviter
-        ? `${inviter} zaprasza Cię do Kieszonkowego w Spendist`
-        : 'Zaproszenie do Kieszonkowego w Spendist'
-      : inviter
-      ? `${inviter} invited you to Spendist Allowance`
-      : 'Spendist Allowance invitation',
+      ? 'Zaproszenie do Kieszonkowego w Spendist'
+      : "You're invited to Spendist Allowance",
     preheader: pl
       ? 'Połącz konta w module Kieszonkowe i planujcie kieszonkowe razem.'
       : 'Connect accounts in Allowance and plan pocket money together.',
@@ -781,6 +818,22 @@ function appLink(link: string | undefined): string {
   if (new URL(url).origin !== APP_ORIGIN) throw new Error('Unsafe email link');
 
   return url;
+}
+
+// Control characters would break lines and bidirectional overrides can disguise
+// text, so neither survives into user-provided values.
+function sanitizeData(data: EmailTemplateData): EmailTemplateData {
+  const clean = (value: string | undefined) =>
+    value
+      ?.replace(/\p{Cc}/gu, ' ')
+      .replace(/[\u061C\u200E\u200F\u202A-\u202E\u2066-\u2069]/g, '');
+
+  return Object.fromEntries(
+    Object.entries(data).map(([key, value]: [string, string | undefined]) => [
+      key,
+      clean(value),
+    ])
+  );
 }
 
 function singleLine(value: string, max: number): string {
