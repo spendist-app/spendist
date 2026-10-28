@@ -664,8 +664,9 @@ function tokenSubject(token: string): string | null {
   try {
     const payload = token.split('.')[1] ?? '';
     const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+    const claims = z.object({ sub: z.string() }).safeParse(JSON.parse(json));
 
-    return /"sub":"([^"]+)"/.exec(json)?.[1] ?? null;
+    return claims.success ? claims.data.sub : null;
   } catch {
     return null;
   }

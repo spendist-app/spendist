@@ -12,6 +12,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { TranslocoPipe } from '@ngneat/transloco';
 import { readEnv } from '../../config/read-env';
 
 const TURNSTILE_SCRIPT =
@@ -52,15 +53,21 @@ function loadTurnstile(document: Document): Promise<TurnstileApi> {
     script.src = TURNSTILE_SCRIPT;
     script.async = true;
 
-    script.onload = () =>
-      document.defaultView?.turnstile
-        ? resolve(document.defaultView.turnstile)
-        : reject(new Error('Turnstile unavailable'));
-
-    script.onerror = () => {
+    // A failed load is forgotten, so a retry inserts the script again.
+    const fail = () => {
       scriptLoad = null;
+      script.remove();
       reject(new Error('Turnstile unavailable'));
     };
+
+    script.onload = () => {
+      const api = document.defaultView?.turnstile;
+
+      if (api) resolve(api);
+      else fail();
+    };
+
+    script.onerror = fail;
 
     document.head.appendChild(script);
   });
@@ -73,11 +80,22 @@ function loadTurnstile(document: Document): Promise<TurnstileApi> {
 @Component({
   standalone: true,
   selector: 'app-turnstile-widget',
+  imports: [TranslocoPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `<div #container class="flex min-h-[65px] justify-center"></div>`,
+  template: `<div #container class="flex min-h-[65px] justify-center"></div>
+    @if (unavailable()) {
+    <div class="alert alert-warning text-sm" role="alert">
+      <span>{{ 'auth.captcha.unavailable' | transloco }}</span>
+      <button type="button" class="btn btn-sm" (click)="retry()">
+        {{ 'auth.captcha.retry' | transloco }}
+      </button>
+    </div>
+    }`,
 })
 export class TurnstileWidget implements OnDestroy {
   readonly token = output<string | null>();
+  // Without the check, sign-in and recovery stay disabled; say why.
+  protected readonly unavailable = signal(false);
 
   private readonly container =
     viewChild.required<ElementRef<HTMLElement>>('container');
@@ -99,6 +117,11 @@ export class TurnstileWidget implements OnDestroy {
     }
   }
 
+  protected retry(): void {
+    this.unavailable.set(false);
+    void this.render();
+  }
+
   ngOnDestroy(): void {
     if (this.api && this.widgetId) {
       this.api.remove(this.widgetId);
@@ -115,6 +138,8 @@ export class TurnstileWidget implements OnDestroy {
     try {
       this.api = await loadTurnstile(this.document);
     } catch {
+      this.unavailable.set(true);
+
       return;
     }
 

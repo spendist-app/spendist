@@ -459,7 +459,7 @@ const en = {
       resendIdle: 'Send the confirmation email again',
       resendBusy: 'Sending...',
       resendSuccess:
-        'If the account still needs confirmation, a new email has been sent.',
+        'If the account still needs confirmation, a new email has been sent. When more than two minutes have passed since signing up, it asks you to set your password through "Forgot password" instead of containing a confirmation link — this protects the address from being claimed by someone else.',
       resendError:
         'We could not send another confirmation email. Wait a moment and try again.',
       backToLogin: 'Back to login',
@@ -474,6 +474,11 @@ const en = {
         'It may have expired or already been used. Register again to request a new link, or log in if the account is already active.',
       signupAgain: 'Register again',
       backToLogin: 'Back to login',
+    },
+    captcha: {
+      unavailable:
+        'The security check could not load. Allow challenges.cloudflare.com (for example in your ad blocker) and try again.',
+      retry: 'Try again',
     },
     switchAccount: {
       title: 'You are already signed in',

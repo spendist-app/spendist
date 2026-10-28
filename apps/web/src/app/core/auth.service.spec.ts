@@ -435,6 +435,10 @@ describe('AuthService password flows', () => {
         'https://spendist.app/auth/confirm?token_hash=abc&type=signup',
         'https://spendist.app/auth/confirm?code=abc',
         'https://spendist.app/auth/confirm#access_token=garbage&refresh_token=r',
+        // A nested "sub" must not be mistaken for the token's own subject.
+        `https://spendist.app/auth/confirm#access_token=header.${btoa(
+          JSON.stringify({ user_metadata: { sub: 'user-1' }, sub: 'other' })
+        ).replace(/=+$/, '')}.sig&refresh_token=r`,
       ]) {
         await expect(service.accountSwitchFromUrl(link)).resolves.toBe(
           'me@example.com'

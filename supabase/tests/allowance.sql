@@ -719,8 +719,7 @@ begin
     raise exception 'Expected Allowance records to block a plain account delete';
   end if;
 
-  perform public.detach_allowance_for_account_deletion(v_child);
-  delete from auth.users where id = v_child;
+  perform public.delete_user_account(v_child);
 
   if exists (select 1 from public.profiles where id = v_child) then
     raise exception 'Recipient account was not deleted';
@@ -740,8 +739,7 @@ begin
     raise exception 'Allowance schedule of a deleted recipient was not detached and paused';
   end if;
 
-  perform public.detach_allowance_for_account_deletion(v_payer);
-  delete from auth.users where id = v_payer;
+  perform public.delete_user_account(v_payer);
 
   if not exists (
     select 1 from public.transactions

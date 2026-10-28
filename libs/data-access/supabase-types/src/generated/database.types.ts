@@ -1627,7 +1627,7 @@ export type Database = {
         Args: { p_transaction_id: string }
         Returns: undefined
       }
-      detach_allowance_for_account_deletion: {
+      delete_user_account: {
         Args: { p_user_id: string }
         Returns: undefined
       }

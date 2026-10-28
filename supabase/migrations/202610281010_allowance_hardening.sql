@@ -6,9 +6,10 @@
 -- 3. Connected-app (OAuth client) tokens cannot invite, accept or respond to
 --    Allowance invitations.
 -- 4. Inviters no longer read invitee_id (whether the address has an account).
--- 5. Account deletion detaches Allowance records first: the deleted user's own
---    Allowance rows are removed and the counterpart keeps their history as
---    ordinary transactions and paused ordinary schedules.
+-- 5. Account deletion detaches Allowance records and deletes the Auth user in one
+--    transaction: the deleted user's own Allowance rows are removed and the
+--    counterpart keeps their history as ordinary transactions and paused
+--    ordinary schedules. If the delete fails, nothing is detached.
 
 do $$
 declare
@@ -211,5 +212,25 @@ begin
 end;
 $$;
 
-revoke all on function public.detach_allowance_for_account_deletion(uuid) from public, anon, authenticated;
-grant execute on function public.detach_allowance_for_account_deletion(uuid) to service_role;
+revoke all on function public.detach_allowance_for_account_deletion(uuid) from public, anon, authenticated, service_role;
+
+create or replace function public.delete_user_account(p_user_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+begin
+  perform public.detach_allowance_for_account_deletion(p_user_id);
+
+  -- Cascades through the profile to every user-owned row.
+  delete from auth.users where id = p_user_id;
+
+  if not found then
+    raise exception 'User not found' using errcode = 'P0002';
+  end if;
+end;
+$$;
+
+revoke all on function public.delete_user_account(uuid) from public, anon, authenticated;
+grant execute on function public.delete_user_account(uuid) to service_role;

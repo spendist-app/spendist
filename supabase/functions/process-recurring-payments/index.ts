@@ -295,6 +295,10 @@ async function handleRequest(request: Request): Promise<Response> {
         runAt: now.toISOString(),
         transactionId: z.string().nullable().parse(transactionId),
       });
+      runsByOwner.set(
+        recurring.owner_id,
+        (runsByOwner.get(recurring.owner_id) ?? 0) + 1
+      );
     }
   }
 

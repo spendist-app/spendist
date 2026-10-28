@@ -631,6 +631,57 @@ test('confirms a new account, signs in once, and rejects a reused link', async (
   await expect(page.getByRole('alert')).toBeVisible();
 });
 
+test('asks before an email link replaces the signed-in account', async ({
+  page,
+}, testInfo) => {
+  const suffix = uniqueSuffix(testInfo);
+  const email = `switch-${suffix}@gmail.com`;
+  const signedInEmail = envValueOrDefault('E2E_AUTH_EMAIL', DEFAULT_EMAIL);
+
+  // Another account whose confirmation and recovery links arrive by email.
+  await page.goto('/signup');
+  await fillStableInput(page.locator('#name'), `Switch User ${suffix}`);
+  await fillStableInput(page.locator('#email'), email);
+  await fillStableInput(page.locator('#password'), DEFAULT_PASSWORD);
+  await fillStableInput(page.locator('#confirmPassword'), DEFAULT_PASSWORD);
+  await page.getByLabel('First wallet currency').selectOption({ label: 'PLN' });
+  await page.locator('#adultConfirmed').check();
+  await page.locator('#termsAccepted').check();
+  await page.getByRole('button', { name: 'Sign up' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Check your email' })
+  ).toBeVisible();
+
+  const confirmationUrl = await waitForConfirmationEmail(page, email);
+
+  await page.goto('/forgot-password');
+  await fillStableInput(page.locator('#email'), email);
+  await page.getByRole('button', { name: 'Send reset link' }).click();
+
+  const recoveryUrl = await waitForConfirmationEmail(page, email, 2);
+
+  await ensureAuthenticated(page);
+
+  await page.goto(confirmationUrl);
+  await expect(
+    page.getByRole('heading', { name: 'You are already signed in' })
+  ).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText(signedInEmail)).toBeVisible();
+  await page.getByRole('button', { name: 'Stay signed in' }).click();
+  await expect(page).toHaveURL(/\/dashboard$/, { timeout: 15000 });
+  await expect(
+    page.getByRole('heading', { name: DASHBOARD_HEADING })
+  ).toBeVisible();
+
+  await page.goto(recoveryUrl);
+  await expect(
+    page.getByRole('heading', { name: 'You are already signed in' })
+  ).toBeVisible({ timeout: 15000 });
+  await page.getByRole('button', { name: 'Sign out and continue' }).click();
+  await expect(page.locator('#password')).toBeEditable({ timeout: 15000 });
+  await expect(page).toHaveURL(/\/reset-password$/);
+});
+
 test('uses the profile language and autosaves profile details', async ({
   page,
 }, testInfo) => {
