@@ -224,6 +224,10 @@ npm run db:push:local
 npm run db:types:local
 ```
 
+## Security
+
+Please report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
+
 ## License
 
 Spendist is released under the [GNU General Public License v3.0](LICENSE).
