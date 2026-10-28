@@ -92,6 +92,18 @@ const REQUIRED_IMPORT_HEADERS: readonly SpendistCsvHeader[] = [
   'wallet',
 ];
 
+// User-named values can start a spreadsheet formula. Numbers, ids and dates are
+// written by Spendist and stay unescaped so they remain numeric when imported.
+const TEXT_HEADERS: ReadonlySet<SpendistCsvHeader> = new Set([
+  'description',
+  'category_group',
+  'category_path',
+  'category',
+  'wallet',
+  'tags',
+  'place',
+]);
+
 export function generateSpendistCsv(
   rows: readonly SpendistCsvExportRow[]
 ): string {
@@ -99,7 +111,11 @@ export function generateSpendistCsv(
     SPENDIST_CSV_HEADERS.join(','),
     ...rows.map((row) =>
       SPENDIST_CSV_HEADERS.map((header) =>
-        escapeCsvCell(formatExportValue(row, header))
+        escapeCsvCell(
+          TEXT_HEADERS.has(header)
+            ? escapeFormulaValue(formatExportValue(row, header))
+            : formatExportValue(row, header)
+        )
       ).join(',')
     ),
   ];
@@ -252,7 +268,9 @@ function parseImportRecord(
     };
   }
 
-  const categoryGroup = normalizeNullableText(read(record, 'category_group'));
+  const categoryGroup = normalizeNullableText(
+    unescapeFormulaValue(read(record, 'category_group'))
+  );
 
   if (!categoryGroup) {
     return {
@@ -263,7 +281,9 @@ function parseImportRecord(
     };
   }
 
-  const categoryPath = parseCategoryPath(read(record, 'category_path'));
+  const categoryPath = parseCategoryPath(
+    unescapeFormulaValue(read(record, 'category_path'))
+  );
 
   if (categoryPath.length === 0) {
     return {
@@ -283,7 +303,9 @@ function parseImportRecord(
     };
   }
 
-  const wallet = normalizeNullableText(read(record, 'wallet'));
+  const wallet = normalizeNullableText(
+    unescapeFormulaValue(read(record, 'wallet'))
+  );
 
   if (!wallet) {
     return {
@@ -301,7 +323,7 @@ function parseImportRecord(
   );
 
   const sourceId = normalizeNullableText(read(record, 'id'));
-  const tags = parseTags(read(record, 'tags'));
+  const tags = parseTags(unescapeFormulaValue(read(record, 'tags')));
 
   const place = normalizeNullableText(
     unescapeFormulaValue(read(record, 'place'))
@@ -438,21 +460,28 @@ function formatExportValue(
 }
 
 function escapeCsvCell(value: string): string {
-  const safeValue = escapeFormulaValue(value);
-
-  if (/[",\r\n]/.test(safeValue)) {
-    return `"${safeValue.replace(/"/g, '""')}"`;
+  if (/[",\r\n]/.test(value)) {
+    return `"${value.replace(/"/g, '""')}"`;
   }
 
-  return safeValue;
+  return value;
 }
 
+// An apostrophe disarms a formula at the start of a cell and after `;` or a tab,
+// which spreadsheets with a semicolon or tab list separator treat as cell
+// boundaries; whitespace and apostrophes before the formula character count too.
+// The import removes exactly the apostrophe added here, so every value
+// round-trips unchanged.
 function escapeFormulaValue(value: string): string {
-  return /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+  return value
+    .replace(/^(?=[\s']*[=+\-@\t\r])/, "'")
+    .replace(/([;\t]\s*)(?=[\s']*[=+\-@])/g, "$1'");
 }
 
 function unescapeFormulaValue(value: string): string {
-  return /^'[=+\-@\t\r]/.test(value) ? value.slice(1) : value;
+  return value
+    .replace(/([;\t]\s*)'(?=[\s']*[=+\-@])/g, '$1')
+    .replace(/^'(?=[\s']*[=+\-@\t\r])/, '');
 }
 
 function parseCategoryPath(value: string): readonly string[] {

@@ -62,7 +62,8 @@ describe('Spendist CSV transfer parser', () => {
       },
     ]);
 
-    expect(csv).toContain('"\'\t=HYPERLINK(""https://example.test"")"');
+    // The tab can split cells, so the formula after it is disarmed as well.
+    expect(csv).toContain('"\'\t\'=HYPERLINK(""https://example.test"")"');
     expect(csv).toContain('"\'\r=1+1"');
   });
 
@@ -109,6 +110,51 @@ describe('Spendist CSV transfer parser', () => {
       tags: ['lunch', 'work'],
       place: 'Biedronka',
       isAutomatic: false,
+    });
+  });
+
+  it('disarms formulas after semicolons and round-trips user-named values', () => {
+    const csv = generateSpendistCsv([
+      {
+        id: 'tx-2',
+        occurred_at: '2026-02-03T00:00:00.000Z',
+        description: "Zakupy;=1+1;'=kept",
+        direction: 'expense',
+        amount: 25,
+        currency: 'PLN',
+        amount_in_default: 25,
+        category_group: '-Inne',
+        category_path: '-Inne/@home',
+        category: '@home',
+        wallet: "'=Main",
+        wallet_currency: 'PLN',
+        tags: ['a', '=b'],
+        place: ' +48 shop',
+        is_automatic: false,
+        recurring_scheduled_for: '',
+        import_source: '',
+        imported_at: '',
+      },
+    ]);
+
+    const [, row] = csv.replace('\uFEFF', '').split('\r\n');
+
+    expect(row).toContain("Zakupy;'=1+1;''=kept");
+    expect(row).toContain("'-Inne,'-Inne/@home,'@home,''=Main");
+    expect(row).toContain("a; '=b");
+    expect(row).toContain(',25,PLN,25,');
+    expect(row).toContain(",' +48 shop,");
+
+    const result = parseSpendistCsv(csv);
+
+    expect(result.issues).toEqual([]);
+    expect(result.rows[0]).toMatchObject({
+      description: "Zakupy;=1+1;'=kept",
+      categoryGroup: '-Inne',
+      categoryPath: ['-Inne', '@home'],
+      wallet: "'=Main",
+      tags: ['=b', 'a'],
+      place: '+48 shop',
     });
   });
 

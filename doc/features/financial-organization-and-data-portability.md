@@ -29,7 +29,7 @@ The Kontomierz flow imports a user-selected XLSX export into a chosen wallet. Th
 
 Spendist CSV is a separate portable format. Users can export all or filtered transactions; a parent-category filter includes subcategories.
 
-Before importing a Spendist CSV, the app reports valid transactions, duplicate candidates, missing groups/categories/wallets/tags, and file issues. Valid missing reference data, including optional places, can be created during import; duplicate transaction rows are skipped. The readable format includes date, description, direction, amount, currency, category path, wallet, tags, place, and automatic/recurring metadata.
+Before importing a Spendist CSV, the app reports valid transactions, duplicate candidates, missing groups/categories/wallets/tags, and file issues. Valid missing reference data, including optional places, can be created during import; duplicate transaction rows are skipped. The readable format includes date, description, direction, amount, currency, category path, wallet, tags, place, and automatic/recurring metadata. User-named text (description, place, category names, wallet and tags) is exported with an apostrophe before anything a spreadsheet could run as a formula, at the start of the cell and after a `;` or tab, which some spreadsheet locales treat as cell separators. Importing a Spendist CSV removes exactly those apostrophes, so names round-trip unchanged; amounts, dates and ids are never altered.
 
 Spendist CSV and Kontomierz import metadata stay separate.
 
