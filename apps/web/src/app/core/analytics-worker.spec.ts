@@ -35,7 +35,7 @@ describe('analytics Worker headers', () => {
       );
 
       expect(response.headers.get('Content-Security-Policy')).toContain(
-        "script-src 'self' https://challenges.cloudflare.com;"
+        "script-src 'self' https://challenges.cloudflare.com https://static.cloudflareinsights.com;"
       );
       expect(response.headers.get('Content-Security-Policy')).not.toContain(
         'googletagmanager'
@@ -61,7 +61,7 @@ describe('analytics local development', () => {
       'upgrade-insecure-requests'
     );
     expect(local.headers.get('Content-Security-Policy')).toContain(
-      "script-src 'self' https://challenges.cloudflare.com;"
+      "script-src 'self' https://challenges.cloudflare.com https://static.cloudflareinsights.com;"
     );
     expect(production.headers.get('Content-Security-Policy')).toContain(
       'upgrade-insecure-requests'
