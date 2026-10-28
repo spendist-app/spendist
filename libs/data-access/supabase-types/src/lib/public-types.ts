@@ -46,8 +46,11 @@ export type NotificationRow = PublicTables['notifications']['Row'];
 
 export type NotificationUpdate = PublicTables['notifications']['Update'];
 
-export type AllowanceInvitationRow =
-  PublicTables['allowance_invitations']['Row'];
+// Browser roles cannot read invitee_id or token_hash (column grants).
+export type AllowanceInvitationRow = Omit<
+  PublicTables['allowance_invitations']['Row'],
+  'invitee_id' | 'token_hash'
+>;
 
 export type AllowanceConnectionRow =
   PublicTables['allowance_connections']['Row'];
