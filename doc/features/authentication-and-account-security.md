@@ -10,7 +10,7 @@ Sign-up records profile information such as username, full name, timezone, langu
 
 A sign-up or confirmation resend for an address whose account already exists but is still unconfirmed does not issue another confirmation link. The stored password is cleared (no password can sign in) and the email instead asks the mailbox owner to finish setup through "Forgot password"; completing recovery confirms the address and sets the owner's password. A sign-up counts as new only when its account was created within the last two minutes. Auth user metadata is limited to 16 KiB, and the send-email hook ignores metadata values it does not recognise instead of failing.
 
-Sign-up, sign-in, password-reset requests, confirmation resends and the current-password check before a password change show a Cloudflare Turnstile check when the public `NG_APP_TURNSTILE_SITE_KEY` is configured (production sets it in `wrangler.toml`); its token is sent to Supabase Auth, which verifies it when captcha is enabled in the hosted project. Each token is used once and the check resets after every request. Without the key (local development and E2E) no check is shown. Account deletion re-verifies the password server-side with the service role, which Supabase Auth exempts from captcha.
+Sign-up, sign-in, password-reset requests, confirmation resends and the current-password check before a password change show a Cloudflare Turnstile check when the public `NG_APP_TURNSTILE_SITE_KEY` is configured (production sets it in `wrangler.toml`); its token is sent to Supabase Auth, which verifies it when captcha is enabled in the hosted project. Each token is used once and the check resets after every request. Without the key (local development and E2E) no check is shown. If the Turnstile script cannot load (for example because of a content blocker), the form explains this and offers a retry. Account deletion re-verifies the password server-side with the service role, which Supabase Auth exempts from captcha.
 
 The confirmation callback accepts Supabase PKCE codes, implicit access/refresh tokens, and supported signup token hashes. It immediately removes credentials from the visible browser URL, rejects missing, failed, expired, reused, and unsupported callbacks, then establishes the session and signs the user in for that confirmation visit. A successful callback navigates to the original safe local `returnUrl`, or `/dashboard`, and displays a dismissible global success notice. External and protocol-relative return URLs are never followed. When someone is already signed in and a confirmation or password-reset link carries credentials for a different (or unidentifiable) account, nothing is applied until they choose "Sign out and continue"; "Stay signed in" returns to the dashboard. A link for the signed-in account itself proceeds without asking.
 
@@ -43,11 +43,13 @@ and requires all of the following:
 
 The browser calls the `delete-account` Supabase Edge Function. The function
 validates the bearer token, reauthenticates the same user with the supplied
-password, detaches Allowance records shared with other accounts, deletes avatar
-objects under that user's Storage folder, and then permanently deletes the
-Supabase Auth user. Detaching removes the user's own Allowance entries and
-delegated-expense links; each counterpart keeps their side as ordinary
-transactions, and their Allowance schedules become ordinary paused schedules. Database foreign keys cascade from
+password, deletes avatar objects under that user's Storage folder, and then
+calls `delete_user_account`, which in one database transaction detaches
+Allowance records shared with other accounts and permanently deletes the
+Supabase Auth user; if the delete fails, nothing is detached. Detaching removes
+the user's own Allowance entries and delegated-expense links; each counterpart
+keeps their side as ordinary transactions, and their Allowance schedules become
+ordinary paused schedules. Database foreign keys cascade from
 the Auth user through the profile to financial records; notifications also
 cascade from the Auth user. The local session is cleared and the user returns to
 the public landing page after success.
