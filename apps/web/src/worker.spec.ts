@@ -73,14 +73,21 @@ describe('administrator navigation at the production Worker', () => {
       '"NG_APP_TURNSTILE_SITE_KEY":"fake-turnstile-site-key"'
     );
     expect(policy).toMatch(
-      /script-src 'self' https:\/\/challenges\.cloudflare\.com;/
+      /script-src 'self' https:\/\/challenges\.cloudflare\.com /
     );
     expect(policy).toMatch(
       /frame-src 'self' https:\/\/challenges\.cloudflare\.com;/
     );
     // The Angular service worker fetches the Turnstile script via connect-src.
     expect(policy).toMatch(
-      /connect-src [^;]*https:\/\/challenges\.cloudflare\.com;/
+      /connect-src [^;]*https:\/\/challenges\.cloudflare\.com /
+    );
+    // Cloudflare Web Analytics: the injected beacon script and its reports.
+    expect(policy).toMatch(
+      /script-src [^;]*https:\/\/static\.cloudflareinsights\.com;/
+    );
+    expect(policy).toMatch(
+      /connect-src [^;]*https:\/\/static\.cloudflareinsights\.com https:\/\/cloudflareinsights\.com;/
     );
     expect(response.headers.get('Content-Security-Policy')).not.toMatch(
       /localhost|127\.0\.0\.1/

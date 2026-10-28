@@ -22,8 +22,9 @@ const CONTENT_SECURITY_POLICY = [
   "base-uri 'self'",
   "object-src 'none'",
   "frame-ancestors 'none'",
-  // Cloudflare Turnstile protects sign-up, sign-in and password recovery.
-  "script-src 'self' https://challenges.cloudflare.com",
+  // Cloudflare Turnstile protects sign-up, sign-in and password recovery;
+  // Cloudflare Web Analytics injects its cookieless beacon on spendist.app.
+  "script-src 'self' https://challenges.cloudflare.com https://static.cloudflareinsights.com",
   // Critical CSS inlining is disabled, so the build emits no inline handlers.
   "script-src-attr 'none'",
   "style-src 'self' 'unsafe-inline'",
@@ -151,15 +152,16 @@ const withSecurityHeaders = (
 
   if (url.hostname !== 'localhost' && url.hostname !== '127.0.0.1') {
     // Production pages talk only to Supabase; do not allow exfiltration to arbitrary HTTPS hosts.
-    // The Angular service worker fetches the Turnstile script itself, which
-    // connect-src governs.
+    // The Angular service worker fetches the Turnstile and Web Analytics
+    // scripts itself, which connect-src governs; the beacon reports to
+    // cloudflareinsights.com.
     headers.set(
       'Content-Security-Policy',
       CONTENT_SECURITY_POLICY.replace(
         "connect-src 'self' https: http://127.0.0.1:55321 http://localhost:55321 ws://127.0.0.1:55321 ws://localhost:55321",
         `connect-src 'self' ${supabaseConnectSources(
           env
-        )} https://challenges.cloudflare.com`
+        )} https://challenges.cloudflare.com https://static.cloudflareinsights.com https://cloudflareinsights.com`
       )
     );
   }
