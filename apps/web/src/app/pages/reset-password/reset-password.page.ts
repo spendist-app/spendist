@@ -17,6 +17,7 @@ import {
 import { Router, RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@ngneat/transloco';
 import { AuthService } from '../../core/auth.service';
+import { AccountSwitchPrompt } from '../../shared/account-switch/account-switch-prompt';
 
 const passwordsMatchValidator = (
   passwordKey: string,
@@ -45,7 +46,12 @@ function buildPasswordValidators(): ValidatorFn[] {
 @Component({
   standalone: true,
   selector: 'app-reset-password-page',
-  imports: [ReactiveFormsModule, RouterLink, TranslocoPipe],
+  imports: [
+    AccountSwitchPrompt,
+    ReactiveFormsModule,
+    RouterLink,
+    TranslocoPipe,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './reset-password.page.html',
 })
@@ -72,6 +78,9 @@ export class ResetPasswordPageComponent implements OnInit {
   readonly recoveryReady = signal(false);
   readonly submitting = signal(false);
   readonly errorMessage = signal<string | null>(null);
+  readonly switchFrom = signal<string | null>(null);
+
+  private recoveryUrl = '';
   readonly passwordsDoNotMatch = computed(
     () =>
       this.form.hasError('passwordsMismatch') &&
@@ -86,8 +95,36 @@ export class ResetPasswordPageComponent implements OnInit {
       return;
     }
 
+    this.recoveryUrl = window.location.href;
+
+    const signedInAs = await this.auth.accountSwitchFromUrl(this.recoveryUrl);
+
+    if (signedInAs !== null) {
+      // Keep the link credentials out of the address bar while the user decides.
+      window.history.replaceState({}, document.title, '/reset-password');
+      this.switchFrom.set(signedInAs);
+      this.checkingSession.set(false);
+
+      return;
+    }
+
+    await this.establishRecovery();
+  }
+
+  async continueSwitch(): Promise<void> {
+    this.switchFrom.set(null);
+    this.checkingSession.set(true);
+    await this.auth.signOutLocally();
+    await this.establishRecovery();
+  }
+
+  async cancelSwitch(): Promise<void> {
+    await this.router.navigateByUrl('/dashboard');
+  }
+
+  private async establishRecovery(): Promise<void> {
     const result = await this.auth.establishPasswordRecoverySession(
-      window.location.href
+      this.recoveryUrl
     );
 
     if (result.error) {

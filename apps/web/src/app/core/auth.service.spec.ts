@@ -390,6 +390,69 @@ describe('AuthService password flows', () => {
 
     expect(result.error).toBe('invalid_or_expired');
   });
+  describe('email links while signed in', () => {
+    const token = (sub: string) =>
+      'header.' + btoa(JSON.stringify({ sub })).replace(/=+$/, '') + '.sig';
+
+    it('lets a link for the signed-in account through', async () => {
+      supabase.sessionState.current = {
+        user: { id: 'user-1', email: 'me@example.com' },
+      };
+
+      const service = TestBed.inject(AuthService);
+
+      await expect(
+        service.accountSwitchFromUrl(
+          `https://spendist.app/reset-password#access_token=${token(
+            'user-1'
+          )}&refresh_token=r&type=recovery`
+        )
+      ).resolves.toBeNull();
+    });
+
+    it('asks before a link replaces the session with another account', async () => {
+      supabase.sessionState.current = {
+        user: { id: 'user-1', email: 'me@example.com' },
+      };
+
+      const service = TestBed.inject(AuthService);
+
+      for (const link of [
+        `https://spendist.app/auth/confirm#access_token=${token(
+          'someone-else'
+        )}&refresh_token=r&type=signup`,
+        'https://spendist.app/auth/confirm?token_hash=abc&type=signup',
+        'https://spendist.app/auth/confirm?code=abc',
+        'https://spendist.app/auth/confirm#access_token=garbage&refresh_token=r',
+      ]) {
+        await expect(service.accountSwitchFromUrl(link)).resolves.toBe(
+          'me@example.com'
+        );
+      }
+
+      expect(supabase.auth.setSession).not.toHaveBeenCalled();
+      expect(supabase.auth.verifyOtp).not.toHaveBeenCalled();
+      expect(supabase.auth.exchangeCodeForSession).not.toHaveBeenCalled();
+    });
+
+    it('does not ask without a session or without link credentials', async () => {
+      const service = TestBed.inject(AuthService);
+
+      await expect(
+        service.accountSwitchFromUrl(
+          'https://spendist.app/auth/confirm?code=abc'
+        )
+      ).resolves.toBeNull();
+
+      supabase.sessionState.current = {
+        user: { id: 'user-1', email: 'me@example.com' },
+      };
+
+      await expect(
+        service.accountSwitchFromUrl('https://spendist.app/reset-password')
+      ).resolves.toBeNull();
+    });
+  });
 });
 
 interface TestSessionState {

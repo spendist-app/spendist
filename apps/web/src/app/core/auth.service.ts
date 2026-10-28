@@ -141,22 +141,42 @@ export class AuthService implements OnDestroy {
     }
   }
 
+  // Returns the signed-in email when applying the credentials in this email link
+  // would replace the current session with a different (or unknown) account.
+  async accountSwitchFromUrl(url: string): Promise<string | null> {
+    const { data } = await this.supabase.auth.getSession();
+    const current = data.session?.user;
+
+    if (!current) {
+      return null;
+    }
+
+    const params = authUrlParams(url);
+    const accessToken = params.get('access_token');
+
+    if (accessToken) {
+      return tokenSubject(accessToken) === current.id
+        ? null
+        : current.email ?? '';
+    }
+
+    return params.has('code') || params.has('token_hash')
+      ? current.email ?? ''
+      : null;
+  }
+
+  async signOutLocally(): Promise<void> {
+    await this.supabase.auth.signOut({ scope: 'local' });
+    this.runInContext(() => {
+      this.state.set({ session: null, loading: false });
+    });
+  }
+
   async establishPasswordRecoverySession(
     url: string
   ): Promise<PasswordRecoveryResult> {
     try {
-      const parsedUrl = new URL(url);
-      const params = new URLSearchParams(parsedUrl.search);
-
-      if (parsedUrl.hash.length > 1) {
-        const hashParams = new URLSearchParams(parsedUrl.hash.slice(1));
-        hashParams.forEach((value, key) => {
-          if (!params.has(key)) {
-            params.set(key, value);
-          }
-        });
-      }
-
+      const params = authUrlParams(url);
       const code = params.get('code');
 
       if (code) {
@@ -388,17 +408,7 @@ export class AuthService implements OnDestroy {
 
   async confirmEmailFromUrl(url: string): Promise<EmailConfirmationResult> {
     try {
-      const parsedUrl = new URL(url);
-      const params = new URLSearchParams(parsedUrl.search);
-
-      if (parsedUrl.hash.length > 1) {
-        const hashParams = new URLSearchParams(parsedUrl.hash.slice(1));
-        hashParams.forEach((value, key) => {
-          if (!params.has(key)) {
-            params.set(key, value);
-          }
-        });
-      }
+      const params = authUrlParams(url);
 
       if (
         params.has('error') ||
@@ -617,5 +627,34 @@ export class AuthService implements OnDestroy {
     redirectUrl.searchParams.set('returnUrl', safeAuthReturnUrl(returnUrl));
 
     return redirectUrl.toString();
+  }
+}
+
+// Query parameters take precedence over fragment values with the same name.
+function authUrlParams(url: string): URLSearchParams {
+  const parsedUrl = new URL(url);
+  const params = new URLSearchParams(parsedUrl.search);
+
+  if (parsedUrl.hash.length > 1) {
+    new URLSearchParams(parsedUrl.hash.slice(1)).forEach((value, key) => {
+      if (!params.has(key)) {
+        params.set(key, value);
+      }
+    });
+  }
+
+  return params;
+}
+
+// Reads the user id from an access token without verifying it; used only to
+// compare accounts, never to authorize anything.
+function tokenSubject(token: string): string | null {
+  try {
+    const payload = token.split('.')[1] ?? '';
+    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+
+    return /"sub":"([^"]+)"/.exec(json)?.[1] ?? null;
+  } catch {
+    return null;
   }
 }

@@ -476,6 +476,13 @@ const pl = {
       signupAgain: 'Zarejestruj się ponownie',
       backToLogin: 'Wróć do logowania',
     },
+    switchAccount: {
+      title: 'Jesteś już zalogowany',
+      description:
+        'Jesteś zalogowany jako {{email}}. Ten link należy do innego konta albo nie da się go dopasować do Twojego. Kontynuacja najpierw wyloguje Cię z bieżącego konta.',
+      continue: 'Wyloguj i kontynuuj',
+      cancel: 'Zostań zalogowany',
+    },
   },
   settings: {
     hero: {

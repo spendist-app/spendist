@@ -11,11 +11,12 @@ import { TranslocoPipe } from '@ngneat/transloco';
 import { AuthService } from '../../core/auth.service';
 import { safeAuthReturnUrl } from '../../core/auth-return-url';
 import { GlobalNoticeService } from '../../core/global-notice.service';
+import { AccountSwitchPrompt } from '../../shared/account-switch/account-switch-prompt';
 
 @Component({
   standalone: true,
   selector: 'app-auth-confirm-page',
-  imports: [RouterLink, TranslocoPipe],
+  imports: [AccountSwitchPrompt, RouterLink, TranslocoPipe],
   templateUrl: './auth-confirm.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -27,6 +28,10 @@ export class AuthConfirmPageComponent {
   private readonly notices = inject(GlobalNoticeService);
 
   readonly failed = signal(false);
+  readonly switchFrom = signal<string | null>(null);
+
+  private callbackUrl = '';
+  private destination = '/dashboard';
 
   constructor() {
     if (isPlatformBrowser(this.platformId)) {
@@ -41,16 +46,37 @@ export class AuthConfirmPageComponent {
       return;
     }
 
-    const callbackUrl = window.location.href;
-    const parsedUrl = new URL(callbackUrl);
+    this.callbackUrl = window.location.href;
 
-    const destination = safeAuthReturnUrl(
-      parsedUrl.searchParams.get('returnUrl')
+    this.destination = safeAuthReturnUrl(
+      new URL(this.callbackUrl).searchParams.get('returnUrl')
     );
 
     window.history.replaceState(null, '', '/auth/confirm');
 
-    const result = await this.auth.confirmEmailFromUrl(callbackUrl);
+    const signedInAs = await this.auth.accountSwitchFromUrl(this.callbackUrl);
+
+    if (signedInAs !== null) {
+      this.switchFrom.set(signedInAs);
+
+      return;
+    }
+
+    await this.apply();
+  }
+
+  async continueSwitch(): Promise<void> {
+    this.switchFrom.set(null);
+    await this.auth.signOutLocally();
+    await this.apply();
+  }
+
+  async cancelSwitch(): Promise<void> {
+    await this.router.navigateByUrl('/dashboard');
+  }
+
+  private async apply(): Promise<void> {
+    const result = await this.auth.confirmEmailFromUrl(this.callbackUrl);
 
     if (result.error) {
       this.failed.set(true);
@@ -59,6 +85,6 @@ export class AuthConfirmPageComponent {
     }
 
     this.notices.showSuccess('auth.confirm.success');
-    await this.router.navigateByUrl(destination);
+    await this.router.navigateByUrl(this.destination);
   }
 }

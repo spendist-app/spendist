@@ -475,6 +475,13 @@ const en = {
       signupAgain: 'Register again',
       backToLogin: 'Back to login',
     },
+    switchAccount: {
+      title: 'You are already signed in',
+      description:
+        'You are signed in as {{email}}. This link belongs to another account or cannot be matched to yours. Continuing signs you out of the current account first.',
+      continue: 'Sign out and continue',
+      cancel: 'Stay signed in',
+    },
   },
   settings: {
     hero: {
