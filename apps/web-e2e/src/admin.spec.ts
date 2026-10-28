@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { fillStableInput } from './stable-input';
 
 test('signed-out visitor cannot open administration', async ({ page }) => {
   await page.goto('/admin');
@@ -10,12 +11,14 @@ test('signed-out visitor cannot open administration', async ({ page }) => {
 
 test('ordinary account cannot open administration', async ({ page }) => {
   await page.goto('/login');
-  await page
-    .locator('#email')
-    .fill(process.env['E2E_AUTH_EMAIL'] ?? 'e2e-shared-user@gmail.com');
-  await page
-    .locator('#password')
-    .fill(process.env['E2E_AUTH_PASSWORD'] ?? 'Test1234!');
+  await fillStableInput(
+    page.locator('#email'),
+    process.env['E2E_AUTH_EMAIL'] ?? 'e2e-shared-user@gmail.com'
+  );
+  await fillStableInput(
+    page.locator('#password'),
+    process.env['E2E_AUTH_PASSWORD'] ?? 'Test1234!'
+  );
   await page.getByRole('button', { name: 'Log in', exact: true }).click();
   await expect(page).toHaveURL(/\/dashboard$/, { timeout: 15000 });
   await page.goto('/admin');
@@ -27,12 +30,14 @@ test('ordinary account cannot open administration', async ({ page }) => {
 
 test('administrator can hide preview modules', async ({ page }) => {
   await page.goto('/login');
-  await page
-    .locator('#email')
-    .fill(process.env['E2E_ADMIN_EMAIL'] ?? 'e2e-admin-user@gmail.com');
-  await page
-    .locator('#password')
-    .fill(process.env['E2E_AUTH_PASSWORD'] ?? 'Test1234!');
+  await fillStableInput(
+    page.locator('#email'),
+    process.env['E2E_ADMIN_EMAIL'] ?? 'e2e-admin-user@gmail.com'
+  );
+  await fillStableInput(
+    page.locator('#password'),
+    process.env['E2E_AUTH_PASSWORD'] ?? 'Test1234!'
+  );
   await page.getByRole('button', { name: 'Log in', exact: true }).click();
   await expect(page).toHaveURL(/\/dashboard$/, { timeout: 15000 });
 

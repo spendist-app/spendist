@@ -6,6 +6,7 @@ import {
   test,
   type TestInfo,
 } from '@playwright/test';
+import { fillStableInput } from './stable-input';
 
 const DEFAULT_EMAIL = 'e2e-shared-user@gmail.com';
 
@@ -175,21 +176,6 @@ async function ensureAuthenticated(
       }. ${error instanceof Error ? error.message : String(error)}`
     );
   }
-}
-
-async function fillStableInput(input: Locator, value: string): Promise<void> {
-  await expect(input).toBeEditable({ timeout: 15000 });
-
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    await input.fill(value);
-    await input.page().waitForTimeout(150);
-
-    if ((await input.inputValue()) === value) {
-      return;
-    }
-  }
-
-  await expect(input).toHaveValue(value);
 }
 
 function envValueOrDefault(key: string, fallback: string): string {

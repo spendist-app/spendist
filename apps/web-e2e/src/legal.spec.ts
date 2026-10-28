@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { fillStableInput } from './stable-input';
 
 // These checks use mocked Auth responses and never write to a database.
 test.use({ serviceWorkers: 'block' });
@@ -80,10 +81,10 @@ test('requires adult and legal confirmation and sends versions without an extern
     });
   });
   await page.goto('/signup');
-  await page.locator('#name').fill('Legal Test');
-  await page.locator('#email').fill('legal@example.test');
-  await page.locator('#password').fill('Password123!');
-  await page.locator('#confirmPassword').fill('Password123!');
+  await fillStableInput(page.locator('#name'), 'Legal Test');
+  await fillStableInput(page.locator('#email'), 'legal@example.test');
+  await fillStableInput(page.locator('#password'), 'Password123!');
+  await fillStableInput(page.locator('#confirmPassword'), 'Password123!');
   await page.getByRole('button', { name: 'Sign up', exact: true }).click();
   expect(calls).toBe(0);
 
