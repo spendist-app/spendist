@@ -14,6 +14,8 @@ Supabase-native scheduled work evaluates due occurrences and creates ordinary Sp
 
 Creating a recurring payment whose start and end dates are both in the past backfills every scheduled occurrence within that historical range. Spendist finalizes the recurring record only after those due transactions have been processed. Repeated processing is idempotent and does not create another transaction for an already recorded occurrence.
 
+Each scheduled pass reads every active schedule in pages, least recently run first, and books at most 100 occurrences in total and at most 20 per account (`RECURRING_PAYMENTS_MAX_RUNS`, `RECURRING_PAYMENTS_MAX_RUNS_PER_OWNER`); schedules left over are first in the next pass. Due occurrences are found day by day, so the cost does not grow with how often a schedule fires or how far back its start date is.
+
 ## Boundary
 
 This feature tracks a planned or completed record inside Spendist. It does not pay an invoice, access a bank account, or move money in the real world.

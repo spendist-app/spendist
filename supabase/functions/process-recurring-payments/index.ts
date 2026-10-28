@@ -11,6 +11,7 @@ import { withAllowedOrigin } from '../_shared/cors.ts';
 
 const recurringTransactionSchema = z.object({
   id: z.string(),
+  owner_id: z.string(),
   schedule: z.string(),
   start_date: z.string(),
   end_date: z.string().nullable(),
@@ -26,6 +27,14 @@ type RequestBody = {
 const DEFAULT_LOOKBACK_DAYS = 31;
 
 const DEFAULT_MAX_RUNS = 100;
+
+// One account cannot use the whole run budget of a scheduled pass.
+const DEFAULT_MAX_RUNS_PER_OWNER = 20;
+
+// PostgREST returns at most 1000 rows per request.
+const PAGE_SIZE = 1000;
+
+const MAX_PAGES = 50;
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Headers':
@@ -93,6 +102,14 @@ async function handleRequest(request: Request): Promise<Response> {
     DEFAULT_MAX_RUNS
   );
 
+  // A single-schedule backfill belongs to one owner and keeps the full budget.
+  const maxRunsPerOwner = body.recurringId
+    ? maxRuns
+    : positiveIntegerEnv(
+        'RECURRING_PAYMENTS_MAX_RUNS_PER_OWNER',
+        DEFAULT_MAX_RUNS_PER_OWNER
+      );
+
   const earliest = new Date(now.getTime() - lookbackDays * 24 * 60 * 60 * 1000);
 
   const supabase = createClient(supabaseUrl, serviceKey, {
@@ -127,30 +144,46 @@ async function handleRequest(request: Request): Promise<Response> {
     ownerId = userData.user.id;
   }
 
-  let query = supabase
-    .from('recurring_transactions')
-    .select('id,schedule,start_date,end_date,last_run_at,is_paused')
-    .eq('is_paused', false);
+  // All pages are loaded before processing, so bookings that move a schedule's
+  // last_run_at cannot shift rows between pages. Least recently run first keeps
+  // schedules skipped by the budget at the front of the next pass.
+  const data: unknown[] = [];
 
-  if (body.recurringId) {
-    query = query.eq('id', body.recurringId);
-  } else {
-    query = query.lte('start_date', isoDate(now));
+  for (let page = 0; page < MAX_PAGES; page += 1) {
+    let query = supabase
+      .from('recurring_transactions')
+      .select('id,owner_id,schedule,start_date,end_date,last_run_at,is_paused')
+      .eq('is_paused', false);
+
+    if (body.recurringId) {
+      query = query.eq('id', body.recurringId);
+    } else {
+      query = query.lte('start_date', isoDate(now));
+    }
+
+    if (ownerId) {
+      query = query.eq('owner_id', ownerId);
+    }
+
+    const { data: rows, error } = await query
+      .order('last_run_at', { ascending: true, nullsFirst: true })
+      .order('id', { ascending: true })
+      .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+
+    if (error) {
+      console.error('Failed to load recurring transactions', error.code);
+
+      return json({ error: 'Failed to load recurring transactions' }, 500);
+    }
+
+    data.push(...(rows ?? []));
+
+    if ((rows ?? []).length < PAGE_SIZE) {
+      break;
+    }
   }
 
-  if (ownerId) {
-    query = query.eq('owner_id', ownerId);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    console.error('Failed to load recurring transactions', error.code);
-
-    return json({ error: 'Failed to load recurring transactions' }, 500);
-  }
-
-  if (body.recurringId && (data ?? []).length === 0) {
+  if (body.recurringId && data.length === 0) {
     return json({ error: 'Recurring transaction not found' }, 404);
   }
 
@@ -161,12 +194,21 @@ async function handleRequest(request: Request): Promise<Response> {
   }> = [];
 
   const skipped: Array<{ recurringId: string; reason: string }> = [];
+  const runsByOwner = new Map<string, number>();
 
-  for (const recurring of z
-    .array(recurringTransactionSchema)
-    .parse(data ?? [])) {
+  for (const recurring of z.array(recurringTransactionSchema).parse(data)) {
     if (processed.length >= maxRuns) {
       skipped.push({ recurringId: recurring.id, reason: 'max_runs_reached' });
+      continue;
+    }
+
+    const ownerRuns = runsByOwner.get(recurring.owner_id) ?? 0;
+
+    if (ownerRuns >= maxRunsPerOwner) {
+      skipped.push({
+        recurringId: recurring.id,
+        reason: 'owner_max_runs_reached',
+      });
       continue;
     }
 
@@ -177,7 +219,10 @@ async function handleRequest(request: Request): Promise<Response> {
       continue;
     }
 
-    const remainingRuns = maxRuns - processed.length;
+    const remainingRuns = Math.min(
+      maxRuns - processed.length,
+      maxRunsPerOwner - ownerRuns
+    );
 
     const dueRunCandidates = dueOccurrences(
       recurring,
@@ -214,6 +259,10 @@ async function handleRequest(request: Request): Promise<Response> {
         runAt: runAt.toISOString(),
         transactionId: z.string().nullable().parse(transactionId),
       });
+      runsByOwner.set(
+        recurring.owner_id,
+        (runsByOwner.get(recurring.owner_id) ?? 0) + 1
+      );
     }
 
     if (hasMoreDueRuns) {
@@ -224,7 +273,8 @@ async function handleRequest(request: Request): Promise<Response> {
     if (
       allDueRunsSucceeded &&
       shouldFinalizeRecurring(recurring, now) &&
-      processed.length < maxRuns
+      processed.length < maxRuns &&
+      (runsByOwner.get(recurring.owner_id) ?? 0) < maxRunsPerOwner
     ) {
       const { data: transactionId, error: rpcError } = await supabase.rpc(
         'enqueue_recurring_transaction',
