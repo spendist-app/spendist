@@ -1,4 +1,4 @@
-import { z } from 'npm:zod@4.4.3';
+import { z } from 'npm:zod@4.6.7';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { withAllowedOrigin } from '../_shared/cors.ts';
 
@@ -54,12 +54,7 @@ async function handleRequest(request: Request): Promise<Response> {
     Deno.env.get('SUPABASE_SECRET_KEY') ??
     Deno.env.get('SB_SECRET_KEY');
 
-  const publicKey =
-    Deno.env.get('SUPABASE_ANON_KEY') ??
-    Deno.env.get('SUPABASE_PUBLISHABLE_KEY') ??
-    Deno.env.get('SB_PUBLISHABLE_KEY');
-
-  if (!serviceKey || !publicKey) {
+  if (!serviceKey) {
     return json({ code: 'server_configuration_error' }, 500);
   }
 
@@ -78,7 +73,9 @@ async function handleRequest(request: Request): Promise<Response> {
     return json({ code: 'unauthorized' }, 401);
   }
 
-  const passwordClient = createClient(supabaseUrl, publicKey, {
+  // Supabase Auth skips the sign-up/sign-in captcha for service-role requests,
+  // so this server-side password check keeps working when captcha is enabled.
+  const passwordClient = createClient(supabaseUrl, serviceKey, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
@@ -101,10 +98,11 @@ async function handleRequest(request: Request): Promise<Response> {
     return json({ code: 'avatar_cleanup_failed' }, 500);
   }
 
-  const { error: deleteError } = await admin.auth.admin.deleteUser(
-    user.id,
-    false
-  );
+  // Detaching Allowance records shared with another account and deleting the
+  // Auth user happen in one transaction, so a failed delete changes nothing.
+  const { error: deleteError } = await admin.rpc('delete_user_account', {
+    p_user_id: user.id,
+  });
 
   if (deleteError) {
     return json({ code: 'account_deletion_failed' }, 500);

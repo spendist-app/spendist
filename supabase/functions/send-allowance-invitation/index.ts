@@ -1,5 +1,5 @@
 import { readEmailBody } from '../_shared/email-runtime.ts';
-import { z } from 'npm:zod@4.4.3';
+import { z } from 'npm:zod@4.6.7';
 import { createClient } from '@supabase/supabase-js';
 
 const cors = {
@@ -25,7 +25,10 @@ Deno.serve(async (request) => {
   if (!/^Bearer\s+\S+$/i.test(authorization)) return json('unauthorized', 401);
 
   try {
-    const body = bodySchema.parse(JSON.parse(await readEmailBody(request)));
+    const body = bodySchema.parse(
+      JSON.parse(await readEmailBody(request, 32_768))
+    );
+
     const url = Deno.env.get('SUPABASE_URL');
 
     const key =

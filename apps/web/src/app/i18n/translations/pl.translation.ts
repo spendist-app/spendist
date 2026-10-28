@@ -460,7 +460,7 @@ const pl = {
       resendIdle: 'Wyślij wiadomość ponownie',
       resendBusy: 'Wysyłanie...',
       resendSuccess:
-        'Jeśli konto nadal wymaga potwierdzenia, wysłaliśmy nową wiadomość.',
+        'Jeśli konto nadal wymaga potwierdzenia, wysłaliśmy nową wiadomość. Gdy od rejestracji minęły ponad dwie minuty, zamiast linku potwierdzającego poprosimy w niej o ustawienie hasła przez „Nie pamiętam hasła” — to chroni adres przed przejęciem przez kogoś innego.',
       resendError:
         'Nie udało się wysłać kolejnej wiadomości. Poczekaj chwilę i spróbuj ponownie.',
       backToLogin: 'Wróć do logowania',
@@ -475,6 +475,18 @@ const pl = {
         'Link mógł wygasnąć lub został już użyty. Zarejestruj się ponownie, aby otrzymać nowy link, albo zaloguj się, jeśli konto jest już aktywne.',
       signupAgain: 'Zarejestruj się ponownie',
       backToLogin: 'Wróć do logowania',
+    },
+    captcha: {
+      unavailable:
+        'Nie udało się wczytać zabezpieczenia. Zezwól na challenges.cloudflare.com (np. w blokerze reklam) i spróbuj ponownie.',
+      retry: 'Spróbuj ponownie',
+    },
+    switchAccount: {
+      title: 'Jesteś już zalogowany',
+      description:
+        'Jesteś zalogowany jako {{email}}. Ten link należy do innego konta albo nie da się go dopasować do Twojego. Kontynuacja najpierw wyloguje Cię z bieżącego konta.',
+      continue: 'Wyloguj i kontynuuj',
+      cancel: 'Zostań zalogowany',
     },
   },
   settings: {

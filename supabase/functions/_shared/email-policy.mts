@@ -36,6 +36,23 @@ export function senderFor(kind: string): string {
     : 'Spendist Team <hello@spendist.app>';
 }
 
+// Metadata is writable by the user, so only a known language is trusted.
+export function emailLanguage(value: string | undefined): 'pl' | 'en' {
+  return value === 'pl' ? 'pl' : 'en';
+}
+
+// Supabase Auth keeps the first password when an unconfirmed address signs up
+// again and only resends the confirmation. A fresh sign-up arrives seconds after
+// the user row is created; anything older (or without a timestamp) is a repeat.
+export function isRepeatSignup(
+  createdAt: string | undefined,
+  now: Date
+): boolean {
+  const created = createdAt ? Date.parse(createdAt) : Number.NaN;
+
+  return !Number.isFinite(created) || now.getTime() - created > 120_000;
+}
+
 export function authMessages(
   action: string,
   email: string,
@@ -45,9 +62,13 @@ export function authMessages(
   code: string | undefined,
   appUrl: string,
   supabaseUrl: string,
-  language: string
+  language: string,
+  repeatSignup: boolean
 ) {
-  const template = authTemplate(action);
+  const template =
+    action === 'signup' && repeatSignup
+      ? 'auth.signup_existing'
+      : authTemplate(action);
 
   const app = new URL(appUrl);
 
@@ -88,6 +109,8 @@ export function authMessages(
       link: link(tokenHash),
       new_email: action === 'email_change' ? newEmail : undefined,
     });
+
+  if (template === 'auth.signup_existing') return [queued(email, { language })];
 
   if (action === 'reauthentication') {
     if (!code || !/^\d{6,10}$/.test(code))

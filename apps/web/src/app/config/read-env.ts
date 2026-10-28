@@ -10,6 +10,7 @@ declare global {
     NG_APP_SUPABASE_ANON_KEY?: string;
     NG_APP_SUPABASE_PUBLISHABLE_KEY?: string;
     NG_APP_BUILD_COMMIT?: string;
+    NG_APP_TURNSTILE_SITE_KEY?: string;
   }
 }
 
@@ -22,6 +23,7 @@ const PUBLIC_ENV_KEYS = new Set([
   'NG_APP_SUPABASE_PUBLISHABLE_KEY',
   'NG_APP_SUPABASE_FUNCTIONS_URL',
   'NG_APP_BUILD_COMMIT',
+  'NG_APP_TURNSTILE_SITE_KEY',
 ]);
 
 function buildEnv() {
@@ -36,6 +38,7 @@ function buildEnv() {
       NG_APP_SUPABASE_PUBLISHABLE_KEY: import.meta.env
         ?.NG_APP_SUPABASE_PUBLISHABLE_KEY,
       NG_APP_BUILD_COMMIT: import.meta.env?.NG_APP_BUILD_COMMIT,
+      NG_APP_TURNSTILE_SITE_KEY: import.meta.env?.NG_APP_TURNSTILE_SITE_KEY,
     };
   } catch {
     // Node and Worker runtimes may expose no import.meta.env source.

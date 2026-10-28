@@ -208,6 +208,27 @@ begin
   delete from spendist_email.jobs where owner_id=owner;
 end;
 $$;
+-- Sign-up mail has its own share, so throwaway sign-ups leave room for recovery.
+insert into spendist_email.jobs(owner_id,dedupe_key,recipient,kind,subject,body,expires_at,template)
+select gen_random_uuid(),'signup-'||i,'signup-'||i||'@example.test','auth','Signup','Test',
+  now()+interval '1 hour','auth.signup'
+from generate_series(1,50) i;
+do $$
+declare owner uuid:='71000000-0000-0000-0000-000000000002';
+begin
+  if public.email_enqueue(owner,'signup-over-share',jsonb_build_array(jsonb_build_object('recipient','late-signup@example.test',
+    'kind','auth','subject','Test','body','Test only','expires_at',now()+interval '15 minutes',
+    'template','auth.signup','template_data',jsonb_build_object('language','en')))) is not null then
+    raise exception 'Sign-up email exceeded its share of the daily budget';
+  end if;
+  if public.email_enqueue(owner,'recovery-after-signups',jsonb_build_array(jsonb_build_object('recipient','recover@example.test',
+    'kind','auth','subject','Test','body','Test only','expires_at',now()+interval '15 minutes',
+    'template','auth.recovery','template_data',jsonb_build_object('language','en')))) is null then
+    raise exception 'Recovery email blocked by sign-up volume';
+  end if;
+  delete from spendist_email.jobs where dedupe_key like 'signup-%' or dedupe_key like 'recovery-after-signups%';
+end;
+$$;
 -- Every retry consumes another reservation; definitive throttles stop after three attempts.
 insert into spendist_email.jobs(owner_id,dedupe_key,recipient,kind,subject,body,expires_at)
 values('71000000-0000-0000-0000-000000000001','retry-test','retry@example.test','auth','Retry','Test',now()+interval '1 hour');

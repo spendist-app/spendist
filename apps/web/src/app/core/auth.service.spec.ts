@@ -70,13 +70,17 @@ describe('AuthService password flows', () => {
   it('requests password reset with reset-password redirect', async () => {
     const service = TestBed.inject(AuthService);
 
-    const result = await service.requestPasswordReset('test@example.com');
+    const result = await service.requestPasswordReset(
+      'test@example.com',
+      'captcha-token'
+    );
 
     expect(result.error).toBeUndefined();
     expect(supabase.auth.resetPasswordForEmail).toHaveBeenCalledWith(
       'test@example.com',
       expect.objectContaining({
         redirectTo: expect.stringContaining('/reset-password'),
+        captchaToken: 'captcha-token',
       })
     );
   });
@@ -101,12 +105,17 @@ describe('AuthService password flows', () => {
     const service = TestBed.inject(AuthService);
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    const result = await service.changePassword('Current123', 'Next1234');
+    const result = await service.changePassword(
+      'Current123',
+      'Next1234',
+      'captcha-token'
+    );
 
     expect(result.error).toBeUndefined();
     expect(supabase.auth.signInWithPassword).toHaveBeenCalledWith({
       email: 'test@example.com',
       password: 'Current123',
+      options: { captchaToken: 'captcha-token' },
     });
     expect(supabase.auth.updateUser).toHaveBeenCalledWith({
       password: 'Next1234',
@@ -215,7 +224,8 @@ describe('AuthService password flows', () => {
 
     const result = await service.resendSignupConfirmation(
       'new@example.com',
-      '/dashboard'
+      '/dashboard',
+      'captcha-token'
     );
 
     expect(result.error).toBeUndefined();
@@ -226,6 +236,7 @@ describe('AuthService password flows', () => {
         emailRedirectTo: expect.stringMatching(
           /\/auth\/confirm\?returnUrl=%2Fdashboard$/
         ),
+        captchaToken: 'captcha-token',
       },
     });
   });
@@ -389,6 +400,73 @@ describe('AuthService password flows', () => {
     );
 
     expect(result.error).toBe('invalid_or_expired');
+  });
+  describe('email links while signed in', () => {
+    const token = (sub: string) =>
+      'header.' + btoa(JSON.stringify({ sub })).replace(/=+$/, '') + '.sig';
+
+    it('lets a link for the signed-in account through', async () => {
+      supabase.sessionState.current = {
+        user: { id: 'user-1', email: 'me@example.com' },
+      };
+
+      const service = TestBed.inject(AuthService);
+
+      await expect(
+        service.accountSwitchFromUrl(
+          `https://spendist.app/reset-password#access_token=${token(
+            'user-1'
+          )}&refresh_token=r&type=recovery`
+        )
+      ).resolves.toBeNull();
+    });
+
+    it('asks before a link replaces the session with another account', async () => {
+      supabase.sessionState.current = {
+        user: { id: 'user-1', email: 'me@example.com' },
+      };
+
+      const service = TestBed.inject(AuthService);
+
+      for (const link of [
+        `https://spendist.app/auth/confirm#access_token=${token(
+          'someone-else'
+        )}&refresh_token=r&type=signup`,
+        'https://spendist.app/auth/confirm?token_hash=abc&type=signup',
+        'https://spendist.app/auth/confirm?code=abc',
+        'https://spendist.app/auth/confirm#access_token=garbage&refresh_token=r',
+        // A nested "sub" must not be mistaken for the token's own subject.
+        `https://spendist.app/auth/confirm#access_token=header.${btoa(
+          JSON.stringify({ user_metadata: { sub: 'user-1' }, sub: 'other' })
+        ).replace(/=+$/, '')}.sig&refresh_token=r`,
+      ]) {
+        await expect(service.accountSwitchFromUrl(link)).resolves.toBe(
+          'me@example.com'
+        );
+      }
+
+      expect(supabase.auth.setSession).not.toHaveBeenCalled();
+      expect(supabase.auth.verifyOtp).not.toHaveBeenCalled();
+      expect(supabase.auth.exchangeCodeForSession).not.toHaveBeenCalled();
+    });
+
+    it('does not ask without a session or without link credentials', async () => {
+      const service = TestBed.inject(AuthService);
+
+      await expect(
+        service.accountSwitchFromUrl(
+          'https://spendist.app/auth/confirm?code=abc'
+        )
+      ).resolves.toBeNull();
+
+      supabase.sessionState.current = {
+        user: { id: 'user-1', email: 'me@example.com' },
+      };
+
+      await expect(
+        service.accountSwitchFromUrl('https://spendist.app/reset-password')
+      ).resolves.toBeNull();
+    });
   });
 });
 

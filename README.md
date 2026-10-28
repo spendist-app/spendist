@@ -126,8 +126,11 @@ name used by Compose. The guarded npm script supplies the Compose-only
 `SPENDIST_DOCKER_SUPABASE_*` variables so an unrelated repository `.env` cannot
 silently select a remote backend. The runtime image itself accepts
 `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`;
-`NG_APP_SUPABASE_FUNCTIONS_URL` and `NG_APP_BUILD_COMMIT` are optional. Never
-pass a service-role or secret key to the browser image.
+`NG_APP_SUPABASE_FUNCTIONS_URL` and `NG_APP_BUILD_COMMIT` are optional.
+`NG_APP_TURNSTILE_SITE_KEY` (optional) shows a Cloudflare Turnstile check on
+sign-up, sign-in and password recovery; set it only when captcha is enabled in
+your Supabase Auth with the matching secret key. Never pass a service-role or
+secret key to the browser image.
 
 GitHub Actions validates the image for pull requests and publishes
 `linux/amd64` and `linux/arm64` variants to
@@ -223,6 +226,10 @@ For database or generated-type changes, also run:
 npm run db:push:local
 npm run db:types:local
 ```
+
+## Security
+
+Please report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
 
 ## License
 

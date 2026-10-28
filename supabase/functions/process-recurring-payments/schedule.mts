@@ -40,15 +40,58 @@ export function dueOccurrences(
 
   const endDate = recurring.end_date ? parseDateEnd(recurring.end_date) : now;
   const end = new Date(Math.min(now.getTime(), endDate.getTime()));
+
+  return matchingMinutes(schedule, start, end, maxRuns);
+}
+
+const MINUTE_MS = 60_000;
+
+const DAY_MS = 24 * 60 * MINUTE_MS;
+
+// Walks whole days and expands only matching days into minutes, so the cost
+// depends on the number of days in the range, not on minutes or on how often
+// the schedule fires.
+function matchingMinutes(
+  [minutes, hours, daysOfMonth, months, daysOfWeek]: ParsedCron,
+  start: Date,
+  end: Date,
+  maxRuns: number
+): Date[] {
+  const sortedHours = [...hours].sort((left, right) => left - right);
+  const sortedMinutes = [...minutes].sort((left, right) => left - right);
   const runs: Date[] = [];
 
-  for (
-    let cursor = start;
-    cursor <= end && runs.length < maxRuns;
-    cursor = new Date(cursor.getTime() + 60_000)
-  ) {
-    if (matchesCron(cursor, schedule)) {
-      runs.push(new Date(cursor));
+  const firstDay = Date.UTC(
+    start.getUTCFullYear(),
+    start.getUTCMonth(),
+    start.getUTCDate()
+  );
+
+  for (let day = firstDay; day <= end.getTime(); day += DAY_MS) {
+    const date = new Date(day);
+
+    if (
+      !daysOfMonth.has(date.getUTCDate()) ||
+      !months.has(date.getUTCMonth() + 1) ||
+      !daysOfWeek.has(date.getUTCDay())
+    ) {
+      continue;
+    }
+
+    for (const hour of sortedHours) {
+      for (const minute of sortedMinutes) {
+        const run = day + hour * 60 * MINUTE_MS + minute * MINUTE_MS;
+
+        if (run < start.getTime()) {
+          continue;
+        }
+
+        if (run > end.getTime() || runs.length >= maxRuns) {
+          return runs;
+        }
+
+        runs.push(new Date(run));
+      }
     }
   }
 
@@ -142,19 +185,6 @@ function parseCronField(field: string, min: number, max: number): CronField {
   }
 
   return values;
-}
-
-function matchesCron(
-  value: Date,
-  [minutes, hours, daysOfMonth, months, daysOfWeek]: ParsedCron
-): boolean {
-  return (
-    minutes.has(value.getUTCMinutes()) &&
-    hours.has(value.getUTCHours()) &&
-    daysOfMonth.has(value.getUTCDate()) &&
-    months.has(value.getUTCMonth() + 1) &&
-    daysOfWeek.has(value.getUTCDay())
-  );
 }
 
 function floorToMinute(value: Date): Date {

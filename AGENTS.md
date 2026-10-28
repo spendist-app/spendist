@@ -80,6 +80,24 @@ All content in `doc/`, `llm.txt`, and `llm-full.txt` is English. Document curren
 - New public tables need explicit per-role GRANT statements in the creating migration; RLS alone does not grant Data API access. Do not grant anonymous access to financial data. Update `supabase/tests/data-api-grants.sql` when classifying a new table; CI rebuilds without implicit table/sequence grants.
 - For CSP/security work, inspect generated output and the Cloudflare Worker runtime path. Local Supabase Realtime requires supported localhost WebSocket origins in `connect-src`.
 
+## Security invariants
+
+These rules come from a security review; keep them when changing the related code, and add a regression test when touching one. Report and handle vulnerabilities as described in `SECURITY.md`, never in public issues or commit messages.
+
+- **Auth input:** user metadata is user-writable. The send-email hook never fails because of a metadata value: normalise it to an allow-list or ignore it. Metadata size is capped in the database.
+- **Repeat sign-up:** never re-issue a confirmation link for an existing unconfirmed account; Supabase Auth keeps the first password. Recovery is the only way to claim such an account.
+- **Shared quotas:** global limits (email budget, run budgets) reserve capacity for recovery and give unauthenticated or per-new-account traffic its own sub-cap. Per-owner limits do not stop actions that create a new owner each time.
+- **Numbers:** money, rate and quantity inputs reject `NaN` and infinities. `<= 0` and `>= 0` checks do not reject `NaN` in PostgreSQL; new numeric columns get a `<> 'NaN'` CHECK.
+- **User text:** every user-controlled text column has a database length limit. Strip control and bidirectional-override characters before user text reaches email or another user's notifications, and never put it in an email subject.
+- **Connected apps:** `SECURITY DEFINER` RPCs that create, accept or change relationships between accounts reject OAuth-client tokens (`auth.jwt()->>'client_id'`), unless the MCP write grant is checked explicitly.
+- **Account deletion:** foreign keys, guards and triggers must not block deleting a user. Every cross-account relationship needs a detach path and a test that deletes each side.
+- **Cross-tenant jobs:** scheduled work over all users orders and pages its rows, has a per-owner budget, and has a cost that does not grow with date ranges or user-chosen frequencies.
+- **Session changes:** a link carrying tokens never silently replaces the session of a different signed-in account.
+- **Privacy:** Data API responses never reveal another user's id or whether an email address has an account; use column grants or RPCs instead of `select *` on shared tables.
+- **Privileges:** `anon` and `authenticated` hold no TRIGGER, TRUNCATE or REFERENCES on application tables (`supabase/tests/data-api-grants.sql` enforces it). Storage object names reject `.` and `..` segments.
+- **Dependencies:** a dependency with a published advisory affecting how Spendist uses it is upgraded before the next release, including pinned `npm:` imports in Edge Functions.
+- **Exports:** CSV/spreadsheet exports disarm formulas in every user-named text column (at the start of a cell and after `;` or a tab) and the importer reverses exactly that escaping.
+
 ## Development and verification
 
 - First verify the current date; do not infer it from memory.

@@ -3,7 +3,7 @@ import {
   GetAccountCommand,
 } from 'npm:@aws-sdk/client-sesv2@3.1097.0';
 import { SNSClient, PublishCommand } from 'npm:@aws-sdk/client-sns@3.1097.0';
-import { z } from 'npm:zod@4.4.3';
+import { z } from 'npm:zod@4.6.7';
 import {
   awsCredentials,
   emailDatabase,

@@ -35,7 +35,6 @@ begin
       ('recurring_transactions', 'service_role', 'SELECT'),
       ('recurring_transactions_overview', 'authenticated', 'SELECT'),
       ('recurring_transactions_overview', 'service_role', 'SELECT'),
-      ('allowance_invitations', 'authenticated', 'SELECT'),
       ('allowance_connections', 'authenticated', 'SELECT'),
       ('allowance_invitations', 'service_role', 'SELECT,INSERT,UPDATE,DELETE'),
       ('allowance_connections', 'service_role', 'SELECT,INSERT,UPDATE,DELETE'),
@@ -101,6 +100,25 @@ begin
      or has_column_privilege('authenticated','public.notifications','payload','UPDATE')
      or has_column_privilege('authenticated','public.notifications','owner_id','UPDATE') then
     raise exception 'Notification updates must remain restricted to read_at';
+  end if;
+
+  -- TRUNCATE ignores row-level security; TRIGGER would let a role attach
+  -- functions to application tables.
+  if exists (
+    select 1 from information_schema.role_table_grants
+    where table_schema = 'public'
+      and grantee in ('anon', 'authenticated')
+      and privilege_type in ('TRIGGER', 'TRUNCATE', 'REFERENCES')
+  ) then
+    raise exception 'Browser roles must not hold TRIGGER, TRUNCATE or REFERENCES';
+  end if;
+
+  -- Inviters see the invitation but not whether the address has an account.
+  if not has_column_privilege('authenticated','public.allowance_invitations','invitee_email','SELECT')
+     or not has_column_privilege('authenticated','public.allowance_invitations','status','SELECT')
+     or has_column_privilege('authenticated','public.allowance_invitations','invitee_id','SELECT')
+     or has_column_privilege('authenticated','public.allowance_invitations','token_hash','SELECT') then
+    raise exception 'Allowance invitation reads must exclude invitee_id and token_hash';
   end if;
 
   foreach v_role in array array['anon','authenticated'] loop

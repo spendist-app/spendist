@@ -4,7 +4,13 @@
   <div
     class="w-full max-w-md space-y-6 rounded-2xl bg-base-100/70 p-8 text-center shadow-xl backdrop-blur"
   >
-    @if (!failed()) {
+    @if (switchFrom(); as email) {
+    <app-account-switch-prompt
+      [email]="email"
+      (confirmed)="continueSwitch()"
+      (cancelled)="cancelSwitch()"
+    />
+    } @else if (!failed()) {
     <span
       class="loading loading-spinner loading-lg text-primary"
       aria-hidden="true"

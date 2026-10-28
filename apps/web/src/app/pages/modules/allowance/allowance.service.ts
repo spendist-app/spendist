@@ -118,7 +118,9 @@ export class AllowanceService {
         this.client.rpc('get_allowance_connections'),
         this.client
           .from('allowance_invitations')
-          .select('*')
+          .select(
+            'id, inviter_id, invitee_email, status, email_delivery_status, expires_at, responded_at, created_at, updated_at'
+          )
           .order('created_at', { ascending: false }),
         this.client
           .from('recurring_transactions')

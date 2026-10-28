@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { authMessages, deliveryResult, senderFor } from './email-policy.mts';
+import {
+  authMessages,
+  deliveryResult,
+  emailLanguage,
+  isRepeatSignup,
+  senderFor,
+} from './email-policy.mts';
 
 test('network failures and unknown errors never retry automatically', () => {
   for (const error of [
@@ -32,7 +38,8 @@ test('secure email change maps old and new token hashes correctly', () => {
     '',
     'https://spendist.app',
     'https://example.supabase.co',
-    'en'
+    'en',
+    false
   );
 
   assert.equal(messages.length, 2);
@@ -52,7 +59,8 @@ test('recovery links use the configured app origin and dedicated reset route', (
     undefined,
     'https://spendist.app',
     'https://example.supabase.co',
-    'pl'
+    'pl',
+    false
   );
 
   assert.match(
@@ -69,7 +77,8 @@ test('recovery links use the configured app origin and dedicated reset route', (
       undefined,
       'https://attacker.test',
       'https://example.supabase.co',
-      'en'
+      'en',
+      false
     )
   );
 });
@@ -85,7 +94,8 @@ test('unsupported actions fail closed and reauthentication uses a validated code
       undefined,
       'https://spendist.app',
       'https://example.supabase.co',
-      'en'
+      'en',
+      false
     )
   );
 
@@ -98,7 +108,8 @@ test('unsupported actions fail closed and reauthentication uses a validated code
     '123456',
     'https://spendist.app',
     'https://example.supabase.co',
-    'en'
+    'en',
+    false
   );
 
   assert.equal(message.subject, 'Your Spendist verification code');
@@ -125,7 +136,8 @@ test('each auth action gets its own template, subject and fallback text', () => 
       undefined,
       'https://spendist.app',
       'https://example.supabase.co',
-      'pl'
+      'pl',
+      false
     );
 
     assert.equal(message.subject, subject);
@@ -134,5 +146,43 @@ test('each auth action gets its own template, subject and fallback text', () => 
     assert.match(message.template_data.link ?? '', /token=hash/);
     assert.match(message.body, /Zespół Spendist/);
     assert.ok(message.body.length <= 10000);
+  }
+});
+
+test('a repeated sign-up gets no confirmation link', () => {
+  const [message] = authMessages(
+    'signup',
+    'user@example.test',
+    undefined,
+    'hash',
+    undefined,
+    undefined,
+    'https://spendist.app',
+    'https://example.supabase.co',
+    'pl',
+    true
+  );
+
+  assert.equal(message.template, 'auth.signup_existing');
+  assert.deepEqual(message.template_data, { language: 'pl' });
+  assert.doesNotMatch(message.body, /token=|verify/);
+  assert.match(message.body, /https:\/\/spendist\.app\/forgot-password/);
+});
+
+test('only a sign-up created moments ago counts as fresh', () => {
+  const now = new Date('2026-10-28T12:00:00Z');
+
+  assert.equal(isRepeatSignup('2026-10-28T11:59:55Z', now), false);
+  assert.equal(isRepeatSignup('2026-10-28T11:57:00Z', now), true);
+  assert.equal(isRepeatSignup(undefined, now), true);
+  assert.equal(isRepeatSignup('not a date', now), true);
+});
+
+test('user metadata language falls back to English for any other value', () => {
+  assert.equal(emailLanguage('pl'), 'pl');
+  assert.equal(emailLanguage('en'), 'en');
+
+  for (const value of [undefined, '', 'PL', 'de', 'x'.repeat(4000)]) {
+    assert.equal(emailLanguage(value), 'en');
   }
 });

@@ -88,6 +88,8 @@ test('storage backup downloads nested objects without trusting object paths', as
                   metadata: { mimetype: 'image/png' },
                 },
                 { id: null, name: 'users', metadata: null },
+                { id: 'dot-id', name: '../escape.png', metadata: null },
+                { id: 'broken-id', name: 'broken.png', metadata: null },
               ],
               error: null,
             };
@@ -104,10 +106,10 @@ test('storage backup downloads nested objects without trusting object paths', as
             error: null,
           };
         },
-        download: async (name) => ({
-          data: new Blob([files.get(name)]),
-          error: null,
-        }),
+        download: async (name) =>
+          name === 'broken.png'
+            ? { data: null, error: new Error('unavailable') }
+            : { data: new Blob([files.get(name)]), error: null },
       }),
     },
   };
@@ -121,6 +123,13 @@ test('storage backup downloads nested objects without trusting object paths', as
 
     assert.equal(manifest.buckets.length, 1);
     assert.equal(manifest.objects.length, 2);
+    assert.deepEqual(
+      manifest.skippedObjects.map((object) => [object.name, object.reason]),
+      [
+        ['../escape.png', 'unsafe_name'],
+        ['broken.png', 'download_failed'],
+      ]
+    );
     assert.deepEqual(manifest.objects.map((object) => object.name).sort(), [
       'root.png',
       'users/avatar.png',

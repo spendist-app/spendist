@@ -6,6 +6,7 @@ import {
   test,
   type TestInfo,
 } from '@playwright/test';
+import { fillStableInput } from './stable-input';
 
 const DEFAULT_EMAIL = 'e2e-shared-user@gmail.com';
 
@@ -175,21 +176,6 @@ async function ensureAuthenticated(
       }. ${error instanceof Error ? error.message : String(error)}`
     );
   }
-}
-
-async function fillStableInput(input: Locator, value: string): Promise<void> {
-  await expect(input).toBeEditable({ timeout: 15000 });
-
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    await input.fill(value);
-    await input.page().waitForTimeout(150);
-
-    if ((await input.inputValue()) === value) {
-      return;
-    }
-  }
-
-  await expect(input).toHaveValue(value);
 }
 
 function envValueOrDefault(key: string, fallback: string): string {
@@ -629,6 +615,68 @@ test('confirms a new account, signs in once, and rejects a reused link', async (
 
   await expect(page).toHaveURL(/\/login$/);
   await expect(page.getByRole('alert')).toBeVisible();
+});
+
+test('asks before an email link replaces the signed-in account', async ({
+  page,
+  browser,
+}, testInfo) => {
+  const suffix = uniqueSuffix(testInfo);
+  const email = `switch-${suffix}@gmail.com`;
+  const signedInEmail = envValueOrDefault('E2E_AUTH_EMAIL', DEFAULT_EMAIL);
+
+  // Another account whose confirmation and recovery links arrive by email.
+  await page.goto('/signup');
+  await fillStableInput(page.locator('#name'), `Switch User ${suffix}`);
+  await fillStableInput(page.locator('#email'), email);
+  await fillStableInput(page.locator('#password'), DEFAULT_PASSWORD);
+  await fillStableInput(page.locator('#confirmPassword'), DEFAULT_PASSWORD);
+  await page.getByLabel('First wallet currency').selectOption({ label: 'PLN' });
+  await page.locator('#adultConfirmed').check();
+  await page.locator('#termsAccepted').check();
+  await page.getByRole('button', { name: 'Sign up' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Check your email' })
+  ).toBeVisible();
+
+  const confirmationUrl = await waitForConfirmationEmail(page, email);
+
+  await ensureAuthenticated(page);
+
+  await page.goto(confirmationUrl);
+  await expect(
+    page.getByRole('heading', { name: 'You are already signed in' })
+  ).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText(signedInEmail)).toBeVisible();
+  await page.getByRole('button', { name: 'Stay signed in' }).click();
+  await expect(page).toHaveURL(/\/dashboard$/, { timeout: 15000 });
+  await expect(
+    page.getByRole('heading', { name: DASHBOARD_HEADING })
+  ).toBeVisible();
+
+  // Confirming invalidates earlier recovery links, so request one now from a
+  // signed-out browser context (/forgot-password redirects signed-in users).
+  const signedOut = await browser.newPage();
+
+  await signedOut.goto(new URL('/forgot-password', page.url()).toString());
+  await fillStableInput(signedOut.locator('#email'), email);
+  await signedOut.getByRole('button', { name: 'Send reset link' }).click();
+  await expect(
+    signedOut.getByText(
+      'If an account exists for this email, a reset link has been sent.'
+    )
+  ).toBeVisible({ timeout: 15000 });
+  await signedOut.close();
+
+  const recoveryUrl = await waitForConfirmationEmail(page, email, 2);
+
+  await page.goto(recoveryUrl);
+  await expect(
+    page.getByRole('heading', { name: 'You are already signed in' })
+  ).toBeVisible({ timeout: 15000 });
+  await page.getByRole('button', { name: 'Sign out and continue' }).click();
+  await expect(page.locator('#password')).toBeEditable({ timeout: 15000 });
+  await expect(page).toHaveURL(/\/reset-password$/);
 });
 
 test('uses the profile language and autosaves profile details', async ({

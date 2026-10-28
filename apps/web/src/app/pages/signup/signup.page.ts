@@ -4,6 +4,7 @@ import {
   computed,
   inject,
   signal,
+  viewChild,
 } from '@angular/core';
 import {
   NonNullableFormBuilder,
@@ -14,6 +15,10 @@ import {
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@ngneat/transloco';
 import { AuthService } from '../../core/auth.service';
+import {
+  CaptchaState,
+  TurnstileWidget,
+} from '../../shared/captcha/turnstile-widget';
 import { safeAuthReturnUrl } from '../../core/auth-return-url';
 import { LanguageService } from '../../core/language.service';
 import { DEFAULT_LANGUAGE as FALLBACK_LANGUAGE } from '../../i18n/languages';
@@ -91,7 +96,7 @@ function createUsernameFromName(name: string): string {
 @Component({
   standalone: true,
   selector: 'app-signup-page',
-  imports: [ReactiveFormsModule, RouterLink, TranslocoPipe],
+  imports: [ReactiveFormsModule, RouterLink, TranslocoPipe, TurnstileWidget],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './signup.page.html',
 })
@@ -142,6 +147,8 @@ export class SignupPageComponent {
   readonly legalLanguage = this.languageService.currentLanguage;
   readonly controls = this.form.controls;
   readonly submitting = signal(false);
+  readonly captcha = new CaptchaState();
+  private readonly captchaWidget = viewChild(TurnstileWidget);
   readonly pendingEmail = signal<string | null>(null);
   readonly resending = signal(false);
   readonly resendStatus = signal<'success' | 'error' | null>(null);
@@ -158,7 +165,7 @@ export class SignupPageComponent {
       return;
     }
 
-    if (this.form.invalid) {
+    if (this.form.invalid || !this.captcha.ready()) {
       this.form.markAllAsTouched();
       this.controls.confirmPassword.markAsDirty();
 
@@ -201,9 +208,13 @@ export class SignupPageComponent {
             : this.initialCurrencyId,
           adultConfirmed,
           termsAccepted,
+          captchaToken: this.captcha.token(),
         },
         this.returnUrl
       );
+
+      // The check-email view renders a fresh widget for the resend request.
+      this.captchaWidget()?.reset();
 
       if (result.error) {
         this.errorMessage.set(result.error);
@@ -226,7 +237,7 @@ export class SignupPageComponent {
   async resendConfirmation(): Promise<void> {
     const email = this.pendingEmail();
 
-    if (!email || this.resending()) {
+    if (!email || this.resending() || !this.captcha.ready()) {
       return;
     }
 
@@ -236,8 +247,11 @@ export class SignupPageComponent {
     try {
       const result = await this.auth.resendSignupConfirmation(
         email,
-        this.returnUrl
+        this.returnUrl,
+        this.captcha.token()
       );
+
+      this.captchaWidget()?.reset();
 
       this.resendStatus.set(result.error ? 'error' : 'success');
     } finally {

@@ -423,6 +423,12 @@ jobs:
             exit 1
           fi
 
+          # Supabase Auth requires a captcha token once captcha is enabled there.
+          if ! echo "$runtime_env" | grep -Eq '"NG_APP_TURNSTILE_SITE_KEY"[[:space:]]*:[[:space:]]*"[^"]+"'; then
+            echo "::error::Cloudflare runtime env is missing NG_APP_TURNSTILE_SITE_KEY (wrangler.toml [vars])."
+            exit 1
+          fi
+
       - name: Deploy MCP Cloudflare Worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

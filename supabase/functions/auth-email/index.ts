@@ -1,20 +1,29 @@
 import { Webhook } from 'npm:standardwebhooks@1.0.0';
 import { createHash } from 'node:crypto';
-import { z } from 'npm:zod@4.4.3';
+import { z } from 'npm:zod@4.6.7';
 import {
   emailDatabase,
+  EmailBodyTooLarge,
   emailResponse,
   requiredEnv,
   readEmailBody,
 } from '../_shared/email-runtime.ts';
-import { authMessages } from '../_shared/email-policy.mts';
+import {
+  authMessages,
+  emailLanguage,
+  isRepeatSignup,
+} from '../_shared/email-policy.mts';
 
 const payloadSchema = z.object({
   user: z.object({
     id: z.string().uuid(),
     email: z.email(),
     new_email: z.email().optional(),
-    user_metadata: z.object({ language: z.string().optional() }).optional(),
+    created_at: z.string().max(64).optional(),
+    // User-writable: any shape falls back to defaults instead of failing the hook.
+    user_metadata: z
+      .object({ language: z.string().max(16).optional().catch(undefined) })
+      .catch({}),
   }),
   email_data: z.object({
     email_action_type: z.string(),
@@ -30,8 +39,6 @@ Deno.serve(async (request) => {
 
   try {
     const raw = await readEmailBody(request);
-
-    if (raw.length > 32_768) return emailResponse(413, 'payload_too_large');
 
     const secret = requiredEnv('SEND_EMAIL_HOOK_SECRET').replace(
       /^v1,whsec_/,
@@ -55,7 +62,8 @@ Deno.serve(async (request) => {
       email.token,
       requiredEnv('APP_URL'),
       requiredEnv('SUPABASE_URL'),
-      payload.user.user_metadata?.language ?? 'en'
+      emailLanguage(payload.user.user_metadata.language),
+      isRepeatSignup(payload.user.created_at, new Date())
     );
     // Tokens are hashed for deduplication, never logged or returned.
 
@@ -92,7 +100,13 @@ Deno.serve(async (request) => {
     }
 
     return Response.json({}, { headers: { 'Cache-Control': 'no-store' } });
-  } catch {
+  } catch (error) {
+    if (error instanceof EmailBodyTooLarge)
+      return emailResponse(413, 'payload_too_large');
+
+    // The error type only: messages may echo payload values.
+    console.error('auth-email rejected', error?.constructor?.name ?? 'unknown');
+
     return emailResponse(401, 'invalid_email_hook');
   }
 });

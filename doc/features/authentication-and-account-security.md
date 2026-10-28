@@ -8,7 +8,11 @@ Signup is for users aged 18 or over and requires explicit adulthood and terms/pr
 
 Sign-up records profile information such as username, full name, timezone, language, default currency, and optional avatar URL. When email confirmation is required, the form becomes a clear check-email state that shows the submitted address, reminds the user to check spam, and can resend the confirmation email. The response does not reveal whether another account already owns the address.
 
-The confirmation callback accepts Supabase PKCE codes, implicit access/refresh tokens, and supported signup token hashes. It immediately removes credentials from the visible browser URL, rejects missing, failed, expired, reused, and unsupported callbacks, then establishes the session and signs the user in for that confirmation visit. A successful callback navigates to the original safe local `returnUrl`, or `/dashboard`, and displays a dismissible global success notice. External and protocol-relative return URLs are never followed.
+A sign-up or confirmation resend for an address whose account already exists but is still unconfirmed does not issue another confirmation link. The stored password is cleared (no password can sign in) and the email instead asks the mailbox owner to finish setup through "Forgot password"; completing recovery confirms the address and sets the owner's password. A sign-up counts as new only when its account was created within the last two minutes. Auth user metadata is limited to 16 KiB, and the send-email hook ignores metadata values it does not recognise instead of failing.
+
+Sign-up, sign-in, password-reset requests, confirmation resends and the current-password check before a password change show a Cloudflare Turnstile check when the public `NG_APP_TURNSTILE_SITE_KEY` is configured (production sets it in `wrangler.toml`); its token is sent to Supabase Auth, which verifies it when captcha is enabled in the hosted project. Each token is used once and the check resets after every request. Without the key (local development and E2E) no check is shown. If the Turnstile script cannot load (for example because of a content blocker), the form explains this and offers a retry. Account deletion re-verifies the password server-side with the service role, which Supabase Auth exempts from captcha.
+
+The confirmation callback accepts Supabase PKCE codes, implicit access/refresh tokens, and supported signup token hashes. It immediately removes credentials from the visible browser URL, rejects missing, failed, expired, reused, and unsupported callbacks, then establishes the session and signs the user in for that confirmation visit. A successful callback navigates to the original safe local `returnUrl`, or `/dashboard`, and displays a dismissible global success notice. External and protocol-relative return URLs are never followed. When someone is already signed in and a confirmation or password-reset link carries credentials for a different (or unidentifiable) account, nothing is applied until they choose "Sign out and continue"; "Stay signed in" returns to the dashboard. A link for the signed-in account itself proceeds without asking.
 
 The application seeds default categories after an initial or newly signed-in session: Essentials (Food with Groceries, Shopping, Transport, Utilities), Lifestyle (Dining Out, Entertainment) and Income (Salary, Side Hustle); the Polish income group is `Przychody`, matching the Allowance module. Confirmation navigation waits for that seed attempt to finish, and concurrent authentication events reuse the same in-flight operation instead of creating the hierarchy twice.
 
@@ -23,7 +27,7 @@ The application seeds default categories after an initial or newly signed-in ses
 - Email confirmation requires the callback URL to be allowed in the hosted Supabase project's Auth URL configuration. Local development enables confirmations and routes messages to Mailpit.
 - Passwords need at least eight characters with lowercase, uppercase and a digit. The browser checks this in production builds and Supabase Auth enforces it (`supabase/config.toml`; the hosted project's Auth settings must match). Password change requires a recent sign-in: Settings re-verifies the current password first, and recovery uses the fresh recovery session.
 
-Financial records and notifications remain user-scoped through backend access controls.
+Financial records and notifications remain user-scoped through backend access controls. Browser roles hold no TRIGGER, TRUNCATE or REFERENCES privileges on application tables. Avatar uploads must stay inside the user's own folder, with names of at most 255 characters and no `.` or `..` path segments. The operator storage backup skips objects with such names or failed downloads and lists them in its manifest instead of aborting.
 
 ## Account deletion
 
@@ -40,7 +44,12 @@ and requires all of the following:
 The browser calls the `delete-account` Supabase Edge Function. The function
 validates the bearer token, reauthenticates the same user with the supplied
 password, deletes avatar objects under that user's Storage folder, and then
-permanently deletes the Supabase Auth user. Database foreign keys cascade from
+calls `delete_user_account`, which in one database transaction detaches
+Allowance records shared with other accounts and permanently deletes the
+Supabase Auth user; if the delete fails, nothing is detached. Detaching removes
+the user's own Allowance entries and delegated-expense links; each counterpart
+keeps their side as ordinary transactions, and their Allowance schedules become
+ordinary paused schedules. Database foreign keys cascade from
 the Auth user through the profile to financial records; notifications also
 cascade from the Auth user. The local session is cleared and the user returns to
 the public landing page after success.

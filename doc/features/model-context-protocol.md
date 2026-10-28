@@ -48,7 +48,7 @@ Every mutation first creates an owner-scoped `mcp_audit_events` row. Audit rows 
 ## Deliberate limits
 
 - MCP does not change passwords, account identity, avatars, or account deletion.
-- Allowance is read-only because it affects another person's ledger.
+- Allowance is read-only because it affects another person's ledger. The database also rejects OAuth-client tokens for sending, accepting and responding to Allowance invitations, even when they are used outside the MCP server.
 - File imports remain in the browser review workflows.
 - Export returns at most 1,000 rows per supported table in one call; larger histories require the existing application export or paginated reads.
 - Spendist records and explains personal-finance data. The integration does not initiate payments and does not provide accounting, tax, or investment advice.

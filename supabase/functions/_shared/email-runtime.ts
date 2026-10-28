@@ -50,7 +50,16 @@ export function emailResponse(status: number, code: string): Response {
   );
 }
 
-export async function readEmailBody(request: Request): Promise<string> {
+// Auth hook payloads carry user and identity metadata, capped at 16 KiB each by
+// the database, so the limit leaves room for both plus the envelope.
+const MAX_EMAIL_BODY_BYTES = 256 * 1024;
+
+export class EmailBodyTooLarge extends Error {}
+
+export async function readEmailBody(
+  request: Request,
+  maxBytes = MAX_EMAIL_BODY_BYTES
+): Promise<string> {
   const reader = request.body?.getReader();
 
   if (!reader) throw new Error('Missing body');
@@ -65,9 +74,9 @@ export async function readEmailBody(request: Request): Promise<string> {
 
     size += chunk.value.byteLength;
 
-    if (size > 32768) {
+    if (size > maxBytes) {
       await reader.cancel();
-      throw new Error('Body too large');
+      throw new EmailBodyTooLarge('Body too large');
     }
 
     chunks.push(chunk.value);

@@ -80,7 +80,8 @@ test('invitation links stay on the application origin', () => {
     inviter_name: 'Ania',
   });
 
-  assert.equal(email.subject, 'Ania zaprasza Cię do Kieszonkowego w Spendist');
+  assert.equal(email.subject, 'Zaproszenie do Kieszonkowego w Spendist');
+  assert.match(email.html, /Ania zaprasza Cię do połączenia kont/);
   assert.match(email.html, /Zobacz zaproszenie<\/a>/);
   assert.throws(() =>
     renderEmail('invitation', {
@@ -179,4 +180,30 @@ test('frequency labels cover recurring form schedules only', () => {
   assert.equal(frequencyLabel('0 12 1 * *', 'pl'), 'Co miesiąc');
   assert.equal(frequencyLabel('0 12 1 6 *', 'pl'), null);
   assert.equal(frequencyLabel(undefined, 'pl'), null);
+});
+
+test('control and bidirectional characters are removed from user values', () => {
+  const email = renderEmail('invitation', {
+    language: 'en',
+    link: 'https://spendist.app/allowance/invite#token=abc',
+    inviter_name: 'Ann\u202Egnp.exe\nBcc: x\u0007',
+  });
+
+  assert.equal(email.subject, "You're invited to Spendist Allowance");
+
+  for (const character of ['\u202E', '\u0007', '\n']) {
+    assert.ok(!email.subject.includes(character));
+    assert.ok(!(email.html + email.text).includes(character + 'Bcc'));
+  }
+
+  assert.ok(!(email.html + email.text).includes('\u202E'));
+  assert.match(email.text, /Anngnp\.exe Bcc: x/);
+});
+
+test('repeated sign-up email points to password recovery without a token', () => {
+  const email = renderEmail('auth.signup_existing', { language: 'en' });
+
+  assert.equal(email.subject, 'Finish setting up your Spendist account');
+  assert.ok(email.html.includes('href="https://spendist.app/forgot-password"'));
+  assert.doesNotMatch(email.html, /token/);
 });
