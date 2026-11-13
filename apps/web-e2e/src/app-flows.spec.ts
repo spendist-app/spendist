@@ -997,10 +997,16 @@ test('opens the transaction form as a native modal dialog', async ({
     dialog.locator('input[formcontrolname="description"]')
   ).toBeFocused();
 
-  // Opened with showModal(): the page behind it is inert.
+  // Opened with showModal(): the page behind it is inert and does not scroll
+  // (DaisyUI locks the root while a modal is open).
   expect(await dialog.evaluate((element) => element.matches(':modal'))).toBe(
     true
   );
+  await expect
+    .poll(() =>
+      page.evaluate(() => getComputedStyle(document.documentElement).overflow)
+    )
+    .toBe('hidden');
 
   // Esc in an open dropdown closes only the dropdown.
   await dialog.getByRole('button', { name: 'Category', exact: true }).click();
@@ -1027,6 +1033,11 @@ test('opens the transaction form as a native modal dialog', async ({
   await expect(dialog).toHaveCount(0);
   await expect(page.getByTestId('transaction-add-menu-trigger')).toBeFocused();
   await expect(page.getByText(description)).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(() => getComputedStyle(document.documentElement).overflow)
+    )
+    .not.toBe('hidden');
 });
 
 test('exposes bulk entry and applies year, month, and amount sorting', async ({

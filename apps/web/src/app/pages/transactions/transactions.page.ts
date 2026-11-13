@@ -10,7 +10,6 @@ import {
   PLATFORM_ID,
   afterNextRender,
   computed,
-  effect,
   inject,
   signal,
   viewChild,
@@ -230,23 +229,6 @@ export class TransactionsPageComponent implements OnDestroy {
     { length: 4 },
     (_, index) => index
   );
-  private readonly scrollLockEffect = effect(() => {
-    if (!isPlatformBrowser(this.platformId)) {
-      return;
-    }
-
-    const body = this.document?.body;
-
-    if (!body) {
-      return;
-    }
-
-    body.classList.toggle(
-      'overflow-hidden',
-      this.createFormOpen() || this.bulkFormOpen() || this.importFormOpen()
-    );
-  });
-
   constructor() {
     this.route?.queryParams.subscribe((params) => this.applyRouteQuery(params));
 
@@ -744,10 +726,6 @@ export class TransactionsPageComponent implements OnDestroy {
   }
 
   ngOnDestroy(): void {
-    if (isPlatformBrowser(this.platformId)) {
-      this.document?.body?.classList.remove('overflow-hidden');
-    }
-
     for (const timer of this.toastTimers.values()) {
       clearTimeout(timer);
     }
