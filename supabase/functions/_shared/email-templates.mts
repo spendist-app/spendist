@@ -35,6 +35,7 @@ export interface EmailTemplateData {
   readonly schedule?: string;
   readonly wallet?: string;
   readonly category?: string;
+  readonly accounts_total?: string;
 }
 
 export interface RenderedEmail {
@@ -621,6 +622,27 @@ function notificationCopy(type: string, language: Language): NotificationCopy {
           url: `${APP_ORIGIN}/admin`,
         },
         details: () => [],
+      };
+    case 'new_account_confirmed':
+      return {
+        lead: pl ? 'Nowe konto w Spendist' : 'New Spendist account',
+        paragraph: pl
+          ? 'Ktoś potwierdził adres e-mail i założył konto. Statystyki użycia zobaczysz w panelu administratora.'
+          : 'Someone confirmed their email address and created an account. Usage statistics are in the admin panel.',
+        subject: () => (pl ? 'Nowe konto w Spendist' : 'New Spendist account'),
+        topic: pl ? 'o nowych kontach' : 'about new accounts',
+        action: {
+          label: pl ? 'Otwórz panel' : 'Open admin panel',
+          url: `${APP_ORIGIN}/admin`,
+        },
+        details: (data) => [
+          detail(
+            pl ? 'Potwierdzone konta' : 'Confirmed accounts',
+            /^\d{1,9}$/.test(data.accounts_total ?? '')
+              ? data.accounts_total
+              : null
+          ),
+        ],
       };
     default:
       return {

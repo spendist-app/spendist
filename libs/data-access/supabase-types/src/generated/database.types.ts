@@ -498,6 +498,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "mcp_client_write_grants_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_transactions_overview"
+            referencedColumns: ["owner_id"]
+          },
         ]
       }
       mcp_delete_confirmations: {
@@ -1545,6 +1552,7 @@ export type Database = {
         Args: { p_as_of?: string }
         Returns: number
       }
+      admin_usage_status: { Args: never; Returns: Json }
       available_transaction_months: {
         Args: { p_wallet_id?: string }
         Returns: {
@@ -1627,7 +1635,8 @@ export type Database = {
         Args: { p_transaction_id: string }
         Returns: undefined
       }
-      delete_user_account: {
+      delete_user_account: { Args: { p_user_id: string }; Returns: undefined }
+      detach_allowance_for_account_deletion: {
         Args: { p_user_id: string }
         Returns: undefined
       }
@@ -1728,6 +1737,10 @@ export type Database = {
       invoke_scheduled_edge_function: {
         Args: { p_body?: Json; p_function_name: string; p_secret_name: string }
         Returns: number
+      }
+      is_operator_account: {
+        Args: { p_app_metadata: Json; p_email: string; p_id: string }
+        Returns: boolean
       }
       monthly_cashflow_summary: {
         Args: { p_months?: number; p_wallet_id?: string }

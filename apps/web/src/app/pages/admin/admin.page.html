@@ -1,17 +1,461 @@
-<section class="mx-auto max-w-5xl space-y-6 px-4 py-10">
+<section class="mx-auto w-full max-w-5xl space-y-6 px-4 py-10 sm:py-14">
   <header class="flex flex-wrap items-center justify-between gap-4">
-    <h1 class="text-3xl font-semibold">{{ 'emailAdmin.title' | transloco }}</h1>
+    <h1 class="text-3xl font-semibold sm:text-4xl">
+      {{ 'emailAdmin.title' | transloco }}
+    </h1>
     <button
-      class="btn btn-outline"
+      class="btn btn-outline btn-sm gap-2"
       type="button"
       (click)="refresh()"
       [disabled]="loading()"
     >
+      <ng-icon
+        [svg]="refreshIcon"
+        size="16"
+        aria-hidden="true"
+        [class.animate-spin]="loading()"
+      ></ng-icon>
       {{ 'emailAdmin.refresh' | transloco }}
     </button>
   </header>
-  <section class="rounded-box border border-base-300 p-5">
-    <label class="flex cursor-pointer items-start justify-between gap-4">
+
+  <section
+    class="rounded-3xl border border-base-300 bg-base-100/80 p-5 shadow-sm sm:p-8"
+    aria-labelledby="admin-usage-title"
+    data-testid="admin-usage"
+  >
+    <div class="flex flex-wrap items-baseline justify-between gap-2">
+      <h2 id="admin-usage-title" class="text-2xl font-semibold">
+        {{ 'adminUsage.title' | transloco }}
+      </h2>
+      @if (usage(); as stats) {
+      <p class="text-xs text-base-content/60">
+        {{ 'adminUsage.asOf' | transloco }} {{ formatMoment(stats.generated_at)
+        }}
+      </p>
+      }
+    </div>
+
+    @if (usageError()) {
+    <div role="alert" class="alert alert-error mt-5">
+      {{ 'adminUsage.error' | transloco }}
+    </div>
+    } @else if (usage(); as stats) {
+    <dl class="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div class="rounded-2xl border border-base-300 bg-base-100 p-4">
+        <dt
+          class="text-xs font-semibold uppercase tracking-wide text-base-content/60"
+        >
+          {{ 'adminUsage.accounts' | transloco }}
+        </dt>
+        <dd
+          class="mt-1 text-3xl font-semibold tabular-nums"
+          data-testid="usage-accounts"
+        >
+          {{ stats.totals.accounts }}
+        </dd>
+        <dd class="mt-1 text-xs text-base-content/70">
+          {{ 'adminUsage.accountsHint' | transloco: { week:
+          stats.recent.accounts_7d, month: stats.recent.accounts_28d } }}
+        </dd>
+      </div>
+      <div class="rounded-2xl border border-base-300 bg-base-100 p-4">
+        <dt
+          class="text-xs font-semibold uppercase tracking-wide text-base-content/60"
+        >
+          {{ 'adminUsage.firstUse' | transloco }}
+        </dt>
+        <dd class="mt-1 text-3xl font-semibold tabular-nums">
+          {{ stats.totals.first_use }}
+        </dd>
+        <dd class="mt-1 text-xs text-base-content/70">
+          {{ 'adminUsage.firstUseHint' | transloco: { week:
+          stats.recent.first_use_7d } }}
+        </dd>
+      </div>
+      <div class="rounded-2xl border border-base-300 bg-base-100 p-4">
+        <dt
+          class="text-xs font-semibold uppercase tracking-wide text-base-content/60"
+        >
+          {{ 'adminUsage.regular' | transloco }}
+        </dt>
+        <dd class="mt-1 text-3xl font-semibold tabular-nums">
+          {{ stats.totals.regular_28d }}
+        </dd>
+        <dd class="mt-1 text-xs text-base-content/70">
+          {{ 'adminUsage.regularHint' | transloco }}
+        </dd>
+      </div>
+      <div class="rounded-2xl border border-base-300 bg-base-100 p-4">
+        <dt
+          class="text-xs font-semibold uppercase tracking-wide text-base-content/60"
+        >
+          {{ 'adminUsage.active' | transloco }}
+        </dt>
+        <dd class="mt-1 text-3xl font-semibold tabular-nums">
+          {{ stats.totals.active_7d }}
+        </dd>
+        <dd class="mt-1 text-xs text-base-content/70">
+          {{ 'adminUsage.activeHint' | transloco: { count:
+          stats.totals.signed_in_14d } }}
+        </dd>
+      </div>
+    </dl>
+
+    <div class="mt-6 grid gap-6 lg:grid-cols-2">
+      <div class="min-w-0">
+        <h3 class="text-sm font-semibold">
+          {{ 'adminUsage.funnel' | transloco }}
+        </h3>
+        <ol class="mt-3 space-y-3" data-testid="usage-funnel">
+          @for (step of funnel(); track step.key) {
+          <li>
+            <div class="flex items-baseline justify-between gap-3 text-sm">
+              <span>
+                {{ ('adminUsage.funnelSteps.' + step.key) | transloco }}
+              </span>
+              <span class="tabular-nums text-base-content/70">
+                <span class="font-semibold text-base-content"
+                  >{{ step.value }}</span
+                >
+                · {{ step.percent }}%
+              </span>
+            </div>
+            <progress
+              class="progress progress-primary mt-1 h-2 w-full"
+              max="100"
+              [value]="step.percent"
+              [attr.aria-label]="('adminUsage.funnelSteps.' + step.key) | transloco"
+            ></progress>
+          </li>
+          }
+        </ol>
+        <p
+          class="mt-4 flex flex-wrap items-baseline justify-between gap-2 border-t border-base-300 pt-3 text-sm"
+        >
+          <span class="text-base-content/70">
+            {{ 'adminUsage.returns' | transloco }}
+          </span>
+          <span class="font-semibold tabular-nums" data-testid="usage-returns">
+            @if (stats.returns.windows > 0) { {{ 'adminUsage.returnsValue' |
+            transloco: { returned: stats.returns.returned, windows:
+            stats.returns.windows } }} } @else { {{ 'adminUsage.returnsEmpty' |
+            transloco }} }
+          </span>
+        </p>
+      </div>
+
+      <div class="min-w-0">
+        <h3 class="text-sm font-semibold">
+          {{ 'adminUsage.weeks' | transloco }}
+        </h3>
+        <div class="mt-2 overflow-x-auto">
+          <table class="table table-sm [&_td]:px-2 [&_th]:px-2">
+            <thead>
+              <tr>
+                <th scope="col" class="whitespace-normal">
+                  {{ 'adminUsage.weekStart' | transloco }}
+                </th>
+                <th scope="col" class="whitespace-normal text-right">
+                  {{ 'adminUsage.newAccounts' | transloco }}
+                </th>
+                <th scope="col" class="whitespace-normal text-right">
+                  {{ 'adminUsage.firstUses' | transloco }}
+                </th>
+                <th scope="col" class="whitespace-normal text-right">
+                  {{ 'adminUsage.activeAccounts' | transloco }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (week of weeks(); track week.week_start) {
+              <tr>
+                <th scope="row" class="whitespace-nowrap font-normal">
+                  {{ formatDay(week.week_start) }}
+                </th>
+                <td class="text-right tabular-nums">{{ week.new_accounts }}</td>
+                <td class="text-right tabular-nums">{{ week.first_uses }}</td>
+                <td class="text-right tabular-nums">
+                  {{ week.active_accounts }}
+                </td>
+              </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <p class="mt-6 text-xs text-base-content/60">
+      {{ 'adminUsage.note' | transloco }}
+    </p>
+    } @else {
+    <div class="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4" aria-hidden="true">
+      <div class="skeleton h-24 rounded-2xl"></div>
+      <div class="skeleton h-24 rounded-2xl"></div>
+      <div class="skeleton h-24 rounded-2xl"></div>
+      <div class="skeleton h-24 rounded-2xl"></div>
+    </div>
+    }
+  </section>
+
+  <section
+    class="rounded-3xl border border-base-300 bg-base-100/80 p-5 shadow-sm sm:p-8"
+    aria-labelledby="admin-email-title"
+  >
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <h2 id="admin-email-title" class="text-2xl font-semibold">
+        {{ 'emailAdmin.section' | transloco }}
+      </h2>
+      @switch (emailHealth()) { @case ('ok') {
+      <span class="badge badge-success badge-outline gap-1">
+        <span aria-hidden="true">●</span>
+        {{ 'emailAdmin.healthOk' | transloco }}
+      </span>
+      } @case ('stale') {
+      <span class="badge badge-warning badge-outline gap-1">
+        <span aria-hidden="true">▲</span>
+        {{ 'emailAdmin.healthStale' | transloco }}
+      </span>
+      } @case ('disabled') {
+      <span class="badge badge-error badge-outline gap-1">
+        <span aria-hidden="true">■</span>
+        {{ 'emailAdmin.healthDisabled' | transloco }}
+      </span>
+      } }
+    </div>
+
+    @if (error()) {
+    <div role="alert" class="alert alert-error mt-5">
+      {{ 'emailAdmin.error' | transloco }}
+    </div>
+    } @else if (status(); as state) { @if (emailHealth() === 'stale') {
+    <div role="alert" class="alert alert-warning mt-5">
+      {{ 'emailAdmin.stale' | transloco }}
+    </div>
+    }
+
+    <dl class="mt-5 grid gap-3 sm:grid-cols-3">
+      @for (meter of emailMeters(); track meter.label) {
+      <div class="rounded-2xl border border-base-300 bg-base-100 p-4">
+        <dt
+          class="text-xs font-semibold uppercase tracking-wide text-base-content/60"
+        >
+          {{ meter.label | transloco }}
+        </dt>
+        <dd class="mt-1 text-2xl font-semibold tabular-nums">
+          {{ meter.value ?? '—' }}
+          <span class="text-base font-normal text-base-content/60">
+            / {{ meter.limit ?? '—' }}
+          </span>
+        </dd>
+        <dd class="mt-2 flex items-center gap-2">
+          <progress
+            class="progress h-2 w-full"
+            [class.progress-primary]="meter.tone === 'primary'"
+            [class.progress-warning]="meter.tone === 'warning'"
+            [class.progress-error]="meter.tone === 'error'"
+            max="100"
+            [value]="meter.percent"
+            [attr.aria-label]="meter.label | transloco"
+          ></progress>
+          <span class="text-xs tabular-nums text-base-content/70">
+            {{ meter.percent }}%
+          </span>
+        </dd>
+      </div>
+      }
+      <div class="rounded-2xl border border-base-300 bg-base-100 p-4">
+        <dt
+          class="text-xs font-semibold uppercase tracking-wide text-base-content/60"
+        >
+          {{ 'emailAdmin.accepted' | transloco }}
+        </dt>
+        <dd class="mt-1 text-2xl font-semibold tabular-nums">
+          {{ state.sent_24h }}
+        </dd>
+      </div>
+    </dl>
+
+    <h3 class="mt-6 text-sm font-semibold">
+      {{ 'emailAdmin.queue' | transloco }}
+    </h3>
+    <dl class="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
+      <div class="rounded-xl border border-base-300 px-3 py-2">
+        <dt class="text-xs text-base-content/70">
+          {{ 'emailAdmin.queued' | transloco }}
+        </dt>
+        <dd class="font-semibold tabular-nums">{{ state.queue.queued }}</dd>
+      </div>
+      <div class="rounded-xl border border-base-300 px-3 py-2">
+        <dt class="text-xs text-base-content/70">
+          {{ 'emailAdmin.sending' | transloco }}
+        </dt>
+        <dd class="font-semibold tabular-nums">{{ state.queue.sending }}</dd>
+      </div>
+      <div class="rounded-xl border border-base-300 px-3 py-2">
+        <dt class="text-xs text-base-content/70">
+          {{ 'emailAdmin.failed' | transloco }}
+        </dt>
+        <dd
+          class="font-semibold tabular-nums"
+          [class.text-error]="state.queue.failed > 0"
+        >
+          {{ state.queue.failed }}
+        </dd>
+      </div>
+      <div class="rounded-xl border border-base-300 px-3 py-2">
+        <dt class="text-xs text-base-content/70">
+          {{ 'emailAdmin.unknown' | transloco }}
+        </dt>
+        <dd
+          class="font-semibold tabular-nums"
+          [class.text-warning]="state.queue.unknown > 0"
+        >
+          {{ state.queue.unknown }}
+        </dd>
+      </div>
+      <div class="rounded-xl border border-base-300 px-3 py-2">
+        <dt class="text-xs text-base-content/70">
+          {{ 'emailAdmin.expired' | transloco }}
+        </dt>
+        <dd class="font-semibold tabular-nums">{{ state.queue.expired }}</dd>
+      </div>
+    </dl>
+
+    <h3 class="mt-6 text-sm font-semibold">
+      {{ 'emailAdmin.alerts' | transloco }}
+    </h3>
+    <div class="mt-2 overflow-x-auto">
+      <table class="table table-sm">
+        <thead>
+          <tr>
+            <th scope="col">{{ 'emailAdmin.event' | transloco }}</th>
+            <th scope="col">{{ 'emailAdmin.state' | transloco }}</th>
+            <th scope="col">{{ 'emailAdmin.observed' | transloco }}</th>
+            <th scope="col">{{ 'emailAdmin.published' | transloco }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (alert of state.alerts; track alert.created_at + alert.code) {
+          <tr>
+            <td>{{ ('emailAdmin.events.' + alert.code) | transloco }}</td>
+            <td>
+              <span
+                class="badge badge-sm"
+                [class.badge-warning]="alert.active"
+                [class.badge-ghost]="!alert.active"
+              >
+                {{ (alert.active ? 'emailAdmin.active' : 'emailAdmin.resolved')
+                | transloco }}
+              </span>
+            </td>
+            <td class="whitespace-nowrap">
+              {{ formatMoment(alert.created_at) }}
+            </td>
+            <td class="whitespace-nowrap">
+              {{ formatMoment(alert.published_at) }} ({{ alert.publish_attempts
+              }}/3)
+            </td>
+          </tr>
+          } @empty {
+          <tr>
+            <td colspan="4" class="text-base-content/60">
+              {{ 'emailAdmin.noAlerts' | transloco }}
+            </td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <details class="mt-6 rounded-2xl border border-base-300 bg-base-100">
+      <summary class="cursor-pointer px-4 py-3 text-sm font-semibold">
+        {{ 'emailAdmin.details' | transloco }}
+      </summary>
+      <div class="space-y-4 border-t border-base-300 px-4 py-4">
+        <dl class="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+          <div>
+            <dt class="text-xs text-base-content/60">
+              {{ 'emailAdmin.state' | transloco }}
+            </dt>
+            <dd>
+              {{ (state.enabled ? 'emailAdmin.enabled' : 'emailAdmin.disabled')
+              | transloco }}
+            </dd>
+          </div>
+          <div>
+            <dt class="text-xs text-base-content/60">
+              {{ 'emailAdmin.awsState' | transloco }}
+            </dt>
+            <dd>
+              {{ state.snapshot?.enforcement_status ?? '—' }} / {{
+              (state.snapshot?.sending_enabled ? 'emailAdmin.enabled' :
+              'emailAdmin.disabled') | transloco }}
+            </dd>
+          </div>
+          <div>
+            <dt class="text-xs text-base-content/60">
+              {{ 'emailAdmin.region' | transloco }}
+            </dt>
+            <dd>{{ state.region ?? '—' }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs text-base-content/60">
+              {{ 'emailAdmin.expected' | transloco }}
+            </dt>
+            <dd>
+              {{ state.expected_aws_limit }} / 24h · {{ state.expected_rate }} /
+              s
+            </dd>
+          </div>
+          <div>
+            <dt class="text-xs text-base-content/60">
+              {{ 'emailAdmin.rate' | transloco }}
+            </dt>
+            <dd>{{ state.snapshot?.max_rate ?? '—' }} / s</dd>
+          </div>
+          <div>
+            <dt class="text-xs text-base-content/60">
+              {{ 'emailAdmin.thresholds' | transloco }}
+            </dt>
+            <dd>80% / 95%</dd>
+          </div>
+          <div>
+            <dt class="text-xs text-base-content/60">
+              {{ 'emailAdmin.lastAttempt' | transloco }}
+            </dt>
+            <dd>{{ formatMoment(state.last_attempt_at) }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs text-base-content/60">
+              {{ 'emailAdmin.lastSuccess' | transloco }}
+            </dt>
+            <dd>{{ formatMoment(state.last_success_at) }}</dd>
+          </div>
+        </dl>
+        <p class="text-xs text-base-content/60">
+          {{ 'emailAdmin.delay' | transloco }}
+        </p>
+      </div>
+    </details>
+    } @else {
+    <div class="mt-5 grid gap-3 sm:grid-cols-3" aria-hidden="true">
+      <div class="skeleton h-24 rounded-2xl"></div>
+      <div class="skeleton h-24 rounded-2xl"></div>
+      <div class="skeleton h-24 rounded-2xl"></div>
+    </div>
+    }
+  </section>
+
+  <section
+    class="rounded-3xl border border-base-300 bg-base-100/80 p-5 shadow-sm sm:p-8"
+    aria-labelledby="admin-view-title"
+  >
+    <h2 id="admin-view-title" class="text-2xl font-semibold">
+      {{ 'emailAdmin.view' | transloco }}
+    </h2>
+    <label class="mt-4 flex cursor-pointer items-start justify-between gap-4">
       <span>
         <span class="block font-semibold">
           {{ 'featureFlags.hidePreview' | transloco }}
@@ -29,119 +473,4 @@
       />
     </label>
   </section>
-  <p>{{ 'emailAdmin.delay' | transloco }}</p>
-  @if (error()) {
-  <div role="alert" class="alert alert-error">
-    {{ 'emailAdmin.error' | transloco }}
-  </div>
-  } @if (status(); as state) { @if (state.read_error ||
-  stale(state.last_success_at)) {
-  <div role="alert" class="alert alert-warning">
-    {{ 'emailAdmin.stale' | transloco }}
-  </div>
-  }
-  <div class="grid gap-4 sm:grid-cols-3">
-    <div class="stat rounded-box bg-base-200">
-      <div class="stat-title">{{ 'emailAdmin.accepted' | transloco }}</div>
-      <div class="stat-value">{{ state.sent_24h }}</div>
-    </div>
-    <div class="stat rounded-box bg-base-200">
-      <div class="stat-title">{{ 'emailAdmin.attempts' | transloco }}</div>
-      <div class="stat-value">
-        {{ state.attempts_24h }} / {{ state.app_limit }}
-      </div>
-    </div>
-    <div class="stat rounded-box bg-base-200">
-      <div class="stat-title">{{ 'emailAdmin.awsUsage' | transloco }}</div>
-      <div class="stat-value text-2xl">
-        {{ state.snapshot?.sent_24h ?? '—' }} / {{ state.snapshot?.aws_limit ??
-        '—' }}
-      </div>
-    </div>
-  </div>
-  <dl class="grid gap-3 rounded-box border border-base-300 p-5 sm:grid-cols-2">
-    <div>
-      <dt class="font-semibold">{{ 'emailAdmin.state' | transloco }}</dt>
-      <dd>
-        {{ (state.enabled ? 'emailAdmin.enabled' : 'emailAdmin.disabled') |
-        transloco }}
-      </dd>
-    </div>
-    <div>
-      <dt class="font-semibold">{{ 'emailAdmin.awsState' | transloco }}</dt>
-      <dd>
-        {{ state.snapshot?.enforcement_status ?? '—' }} / {{
-        (state.snapshot?.sending_enabled ? 'emailAdmin.enabled' :
-        'emailAdmin.disabled') | transloco }}
-      </dd>
-    </div>
-    <div>
-      <dt class="font-semibold">{{ 'emailAdmin.region' | transloco }}</dt>
-      <dd>{{ state.region ?? '—' }}</dd>
-    </div>
-    <div>
-      <dt class="font-semibold">{{ 'emailAdmin.expected' | transloco }}</dt>
-      <dd>
-        {{ state.expected_aws_limit }} / 24h · {{ state.expected_rate }} / s
-      </dd>
-    </div>
-    <div>
-      <dt class="font-semibold">{{ 'emailAdmin.rate' | transloco }}</dt>
-      <dd>{{ state.snapshot?.max_rate ?? '—' }} / s</dd>
-    </div>
-    <div>
-      <dt class="font-semibold">{{ 'emailAdmin.thresholds' | transloco }}</dt>
-      <dd>80% / 95%</dd>
-    </div>
-    <div>
-      <dt class="font-semibold">{{ 'emailAdmin.lastAttempt' | transloco }}</dt>
-      <dd>{{ (state.last_attempt_at | date:'medium') ?? '—' }}</dd>
-    </div>
-    <div>
-      <dt class="font-semibold">{{ 'emailAdmin.lastSuccess' | transloco }}</dt>
-      <dd>{{ (state.last_success_at | date:'medium') ?? '—' }}</dd>
-    </div>
-  </dl>
-  <h2 class="text-xl font-semibold">{{ 'emailAdmin.queue' | transloco }}</h2>
-  <dl class="grid gap-3 sm:grid-cols-3">
-    <div>{{ 'emailAdmin.queued' | transloco }}: {{ state.queue.queued }}</div>
-    <div>{{ 'emailAdmin.sending' | transloco }}: {{ state.queue.sending }}</div>
-    <div>{{ 'emailAdmin.failed' | transloco }}: {{ state.queue.failed }}</div>
-    <div>{{ 'emailAdmin.unknown' | transloco }}: {{ state.queue.unknown }}</div>
-    <div>{{ 'emailAdmin.expired' | transloco }}: {{ state.queue.expired }}</div>
-  </dl>
-  <h2 class="text-xl font-semibold">{{ 'emailAdmin.alerts' | transloco }}</h2>
-  <div class="overflow-x-auto">
-    <table class="table">
-      <thead>
-        <tr>
-          <th>{{ 'emailAdmin.event' | transloco }}</th>
-          <th>{{ 'emailAdmin.state' | transloco }}</th>
-          <th>{{ 'emailAdmin.observed' | transloco }}</th>
-          <th>{{ 'emailAdmin.published' | transloco }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (alert of state.alerts; track alert.created_at + alert.code) {
-        <tr>
-          <td>{{ ('emailAdmin.events.' + alert.code) | transloco }}</td>
-          <td>
-            {{ (alert.active ? 'emailAdmin.active' : 'emailAdmin.resolved') |
-            transloco }}
-          </td>
-          <td>{{ alert.created_at | date:'medium' }}</td>
-          <td>
-            {{ (alert.published_at | date:'medium') ?? '—' }} ({{
-            alert.publish_attempts }}/3)
-          </td>
-        </tr>
-        } @empty {
-        <tr>
-          <td colspan="4">{{ 'emailAdmin.noAlerts' | transloco }}</td>
-        </tr>
-        }
-      </tbody>
-    </table>
-  </div>
-  }
 </section>

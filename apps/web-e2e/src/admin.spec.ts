@@ -51,3 +51,31 @@ test('administrator can hide preview modules', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'Mortgages' })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Allowance' })).toHaveCount(0);
 });
+
+test('administrator sees aggregate usage statistics', async ({ page }) => {
+  await page.goto('/login');
+  await fillStableInput(
+    page.locator('#email'),
+    process.env['E2E_ADMIN_EMAIL'] ?? 'e2e-admin-user@gmail.com'
+  );
+  await fillStableInput(
+    page.locator('#password'),
+    process.env['E2E_AUTH_PASSWORD'] ?? 'Test1234!'
+  );
+  await page.getByRole('button', { name: 'Log in', exact: true }).click();
+  await expect(page).toHaveURL(/\/dashboard$/, { timeout: 15000 });
+
+  await page.goto('/admin');
+
+  const usage = page.getByTestId('admin-usage');
+
+  await expect(
+    usage.getByRole('heading', { name: 'Usage', exact: true })
+  ).toBeVisible();
+  await expect(page.getByTestId('usage-accounts')).toHaveText(/^\s*\d+\s*$/);
+  await expect(
+    page.getByTestId('usage-funnel').getByRole('listitem')
+  ).toHaveCount(5);
+  // Counts only: no address may appear in the statistics.
+  await expect(usage).not.toContainText('@');
+});

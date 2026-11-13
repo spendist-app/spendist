@@ -21,6 +21,7 @@ const notificationPayload = z.object({
   inviter_name: z.unknown(),
   payer_name: z.unknown(),
   recipient_name: z.unknown(),
+  accounts_total: z.unknown(),
 }).partial();
 
 @Component({
@@ -69,6 +70,7 @@ export class NotificationsMenuComponent {
       inviterName: this.stringify(payload?.inviter_name, ''),
       payerName: this.stringify(payload?.payer_name, ''),
       recipientName: this.stringify(payload?.recipient_name, ''),
+      accountsTotal: this.stringify(payload?.accounts_total, ''),
     };
   }
 

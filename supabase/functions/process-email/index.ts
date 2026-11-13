@@ -38,6 +38,7 @@ const templateDataSchema = z.object({
   schedule: text,
   wallet: text,
   category: text,
+  accounts_total: text,
 });
 
 const jobSchema = z.object({

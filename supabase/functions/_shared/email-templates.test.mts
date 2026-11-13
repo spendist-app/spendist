@@ -164,6 +164,29 @@ test('notification without details falls back to the type copy', () => {
   assert.match(email.html, /from the Allowance module/);
 });
 
+test('new account notification shows only the confirmed account total', () => {
+  const email = renderEmail('notification', {
+    language: 'pl',
+    type: 'new_account_confirmed',
+    accounts_total: '26',
+  });
+
+  assert.equal(email.subject, 'Nowe konto w Spendist');
+  assert.match(email.html, /Potwierdzone konta/);
+  assert.match(email.html, />26</);
+  assert.ok(email.html.includes('https://spendist.app/admin'));
+  assert.match(email.text, /o nowych kontach/);
+
+  const invalid = renderEmail('notification', {
+    language: 'en',
+    type: 'new_account_confirmed',
+    accounts_total: '26 <b>accounts</b>',
+  });
+
+  assert.equal(invalid.subject, 'New Spendist account');
+  assert.doesNotMatch(invalid.html, /Confirmed accounts/);
+});
+
 test('amounts are signed by direction and tolerate unknown currencies', () => {
   assert.match(formatAmount('25', 'EUR', 'income', 'en') ?? '', /^\+€25\.00$/);
   assert.match(
