@@ -4,6 +4,28 @@
 /* You can add global styles to this file, and also import other style files */
 
 /*
+ * Page changes cross-fade (withViewTransitions). The navbar is the same on
+ * every page: give it its own snapshot so it stays put instead of fading.
+ */
+app-navbar {
+  display: block;
+  view-transition-name: app-navbar;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 180ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
+/*
  * Popover dropdowns (PopoverMenuDirective). DaisyUI places `.dropdown[popover]`
  * with anchor positioning; keep a gap to the trigger and flip the menu when it
  * would overflow the viewport. Margins flip together with the menu.

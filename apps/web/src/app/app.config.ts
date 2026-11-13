@@ -4,13 +4,21 @@ import {
   provideBrowserGlobalErrorListeners,
   provideZonelessChangeDetection,
 } from '@angular/core';
-import { provideRouter, withInMemoryScrolling } from '@angular/router';
+import {
+  provideRouter,
+  withInMemoryScrolling,
+  withViewTransitions,
+} from '@angular/router';
 import { appRoutes } from './app.routes';
-import { provideClientHydration, withNoIncrementalHydration } from '@angular/platform-browser';
+import {
+  provideClientHydration,
+  withNoIncrementalHydration,
+} from '@angular/platform-browser';
 import { provideSupabase } from './core/supabase';
 import { supabaseConfig } from './config/supabase.config';
 import { provideAppTransloco } from './i18n/transloco.providers';
 import { provideServiceWorker } from '@angular/service-worker';
+import { onViewTransitionCreated } from './core/view-transitions';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -22,6 +30,10 @@ export const appConfig: ApplicationConfig = {
       withInMemoryScrolling({
         anchorScrolling: 'enabled',
         scrollPositionRestoration: 'enabled',
+      }),
+      withViewTransitions({
+        skipInitialTransition: true,
+        onViewTransitionCreated,
       })
     ),
     provideSupabase(supabaseConfig),
