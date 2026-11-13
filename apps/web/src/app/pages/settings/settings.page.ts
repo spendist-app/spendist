@@ -2,6 +2,8 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  ElementRef,
+  afterRenderEffect,
   computed,
   effect,
   inject,
@@ -200,7 +202,8 @@ export class SettingsPageComponent {
   );
   protected readonly groupEditorMode = signal<GroupEditorMode | null>(null);
   protected readonly iconPickerOpen = signal(false);
-  private editorReturnFocus: HTMLElement | null = null;
+  private readonly editorDialog =
+    viewChild<ElementRef<HTMLDialogElement>>('editorDialog');
   protected readonly editingGroupId = signal<string | null>(null);
   protected readonly selectedCategoryId = signal<string | null>(null);
   protected readonly selectedGroupFilter = signal<string | null>(null);
@@ -449,6 +452,14 @@ export class SettingsPageComponent {
     this.accountDeletionForm.controls;
 
   constructor() {
+    // Runs only in the browser. The native modal makes the page inert,
+    // contains focus, handles Esc and returns focus to the invoker on close.
+    afterRenderEffect(() => {
+      if (this.editorDialog()) {
+        this.showEditorDialog();
+      }
+    });
+
     this.profileFormControls.fullName.valueChanges
       .pipe(
         debounceTime(600),
@@ -762,9 +773,7 @@ export class SettingsPageComponent {
     await this.kontomierzImport.importPrepared();
   }
 
-  private rememberEditorTrigger(): void {
-    const active = document.activeElement;
-    this.editorReturnFocus = active instanceof HTMLElement ? active : null;
+  private prepareEditor(): void {
     this.iconPickerOpen.set(false);
     requestAnimationFrame(() => {
       document
@@ -773,21 +782,23 @@ export class SettingsPageComponent {
     });
   }
 
-  private restoreEditorFocus(): void {
-    const target = this.editorReturnFocus;
-    this.editorReturnFocus = null;
-    requestAnimationFrame(() => {
-      if (target?.isConnected) {
-        target.focus();
-      } else {
-        document
-          .querySelector<HTMLElement>('[data-settings-groups-add]')
-          ?.focus();
-      }
-    });
+  private showEditorDialog(): void {
+    const dialog = this.editorDialog()?.nativeElement;
+
+    if (dialog && 'showModal' in HTMLDialogElement.prototype && !dialog.open) {
+      dialog.showModal();
+    }
   }
 
-  protected closeEditor(): boolean {
+  private closeEditorDialog(): void {
+    const dialog = this.editorDialog()?.nativeElement;
+
+    if (dialog?.open) {
+      dialog.close();
+    }
+  }
+
+  private canDiscardEditor(): boolean {
     if (
       this.store.categoryMutationPending() ||
       this.store.groupMutationPending()
@@ -801,58 +812,67 @@ export class SettingsPageComponent {
       ? this.categoryGroupForm
       : null;
 
-    if (!form) {
+    if (!form?.dirty) {
       return true;
     }
 
-    if (
-      form.dirty &&
-      !window.confirm(
-        this.transloco.translate('settings.panels.categories.discardChanges')
-      )
-    ) {
+    return window.confirm(
+      this.transloco.translate('settings.panels.categories.discardChanges')
+    );
+  }
+
+  // Drops the open editor's draft but keeps the dialog open, so the next
+  // editor reuses it.
+  private discardEditor(): boolean {
+    if (!this.canDiscardEditor()) {
+      return false;
+    }
+
+    if (this.categoryEditorMode()) {
+      this.resetCategoryEditor();
+    } else if (this.groupEditorMode()) {
+      this.resetGroupEditor();
+    }
+
+    return true;
+  }
+
+  protected closeEditor(): boolean {
+    if (!this.canDiscardEditor()) {
       return false;
     }
 
     if (this.categoryEditorMode()) {
       this.cancelCategoryEdit();
-    } else {
+    } else if (this.groupEditorMode()) {
       this.cancelGroupEdit();
     }
 
     return true;
   }
 
-  protected onEditorKeydown(event: KeyboardEvent): void {
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      this.closeEditor();
-    }
+  protected onEditorCancel(event: Event): void {
+    // Esc follows the close button path, so unsaved changes are confirmed.
+    event.preventDefault();
 
-    if (event.key !== 'Tab') {
+    if (this.iconPickerOpen()) {
+      this.iconPickerOpen.set(false);
+
       return;
     }
 
-    const panel =
-      event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
+    this.closeEditor();
+  }
 
-    if (!panel) return;
+  protected onEditorDialogClosed(): void {
+    if (!this.categoryEditorMode() && !this.groupEditorMode()) {
+      return;
+    }
 
-    const focusable = Array.from(
-      panel.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex="0"]'
-      )
-    );
-
-    const first = focusable[0];
-    const last = focusable.at(-1);
-
-    if (event.shiftKey && document.activeElement === first && last) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last && first) {
-      event.preventDefault();
-      first.focus();
+    // The browser closed the modal without a cancelable cancel event, for
+    // example after repeated Esc presses. Reopen it if the user keeps the draft.
+    if (!this.closeEditor()) {
+      this.showEditorDialog();
     }
   }
 
@@ -907,8 +927,8 @@ export class SettingsPageComponent {
       return;
     }
 
-    if (!this.closeEditor()) return;
-    this.rememberEditorTrigger();
+    if (!this.discardEditor()) return;
+    this.prepareEditor();
     this.store.clearError();
     this.categoryEditorMode.set('create');
 
@@ -937,8 +957,8 @@ export class SettingsPageComponent {
       return;
     }
 
-    if (!this.closeEditor()) return;
-    this.rememberEditorTrigger();
+    if (!this.discardEditor()) return;
+    this.prepareEditor();
     this.store.clearError();
     this.categoryEditorMode.set('edit');
     this.selectedCategoryId.set(categoryId);
@@ -954,6 +974,11 @@ export class SettingsPageComponent {
   }
 
   protected cancelCategoryEdit(): void {
+    this.closeEditorDialog();
+    this.resetCategoryEditor();
+  }
+
+  private resetCategoryEditor(): void {
     this.categoryEditorMode.set(null);
     this.categoryForm.reset({
       name: '',
@@ -968,7 +993,6 @@ export class SettingsPageComponent {
     }
 
     this.store.clearError();
-    this.restoreEditorFocus();
   }
 
   protected async submitCategoryForm(mode: CategoryEditorMode): Promise<void> {
@@ -1028,8 +1052,8 @@ export class SettingsPageComponent {
   }
 
   protected openGroupCreator(): void {
-    if (!this.closeEditor()) return;
-    this.rememberEditorTrigger();
+    if (!this.discardEditor()) return;
+    this.prepareEditor();
     this.store.clearError();
     this.activePanel.set('categoryGroups');
     this.groupEditorMode.set('create');
@@ -1050,8 +1074,8 @@ export class SettingsPageComponent {
       return;
     }
 
-    if (!this.closeEditor()) return;
-    this.rememberEditorTrigger();
+    if (!this.discardEditor()) return;
+    this.prepareEditor();
     this.store.clearError();
     this.groupEditorMode.set('edit');
     this.editingGroupId.set(groupId);
@@ -1065,10 +1089,14 @@ export class SettingsPageComponent {
   }
 
   protected cancelGroupEdit(): void {
+    this.closeEditorDialog();
+    this.resetGroupEditor();
+  }
+
+  private resetGroupEditor(): void {
     this.groupEditorMode.set(null);
     this.editingGroupId.set(null);
     this.store.clearError();
-    this.restoreEditorFocus();
   }
 
   protected async submitGroupForm(mode: GroupEditorMode): Promise<void> {

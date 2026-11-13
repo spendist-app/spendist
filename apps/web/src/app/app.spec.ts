@@ -1,5 +1,5 @@
 import type { Json } from '@spendist/data-access/supabase-types';
-import { fixtureElement } from '../testing/dom';
+import { fixtureElement, requiredValue } from '../testing/dom';
 import { TestBed } from '@angular/core/testing';
 import { signal, computed } from '@angular/core';
 import { By } from '@angular/platform-browser';
@@ -258,9 +258,97 @@ describe('App', () => {
     fixture.detectChanges();
 
     const compiled = fixtureElement(fixture);
-    const dialog = compiled.querySelector('[role="dialog"]');
+
+    const dialog = compiled.querySelector(
+      'dialog[aria-labelledby="about-dialog-title"]'
+    );
+
     expect(dialog).toBeTruthy();
     expect(dialog?.textContent).toContain(navbar.buildCommitShort);
+  });
+
+  describe('about native dialog', () => {
+    const showModal = vi.fn(function (this: HTMLDialogElement) {
+      this.setAttribute('open', '');
+    });
+
+    const close = vi.fn(function (this: HTMLDialogElement) {
+      this.removeAttribute('open');
+      this.dispatchEvent(new Event('close'));
+    });
+
+    beforeEach(() => {
+      showModal.mockClear();
+      close.mockClear();
+
+      // jsdom does not implement the modal dialog API.
+      Object.defineProperty(HTMLDialogElement.prototype, 'showModal', {
+        configurable: true,
+        value: showModal,
+      });
+
+      Object.defineProperty(HTMLDialogElement.prototype, 'close', {
+        configurable: true,
+        value: close,
+      });
+    });
+
+    afterEach(() => {
+      Reflect.deleteProperty(HTMLDialogElement.prototype, 'showModal');
+      Reflect.deleteProperty(HTMLDialogElement.prototype, 'close');
+    });
+
+    function openAbout() {
+      const fixture = TestBed.createComponent(App);
+      authStub.setAuthenticated(true);
+      fixture.detectChanges();
+
+      const navbar: NavbarComponent = fixture.debugElement.query(
+        By.directive(NavbarComponent)
+      ).componentInstance;
+
+      navbar.openAboutModal();
+      fixture.detectChanges();
+
+      const dialog = requiredValue(
+        fixtureElement(fixture).querySelector<HTMLDialogElement>(
+          'dialog[aria-labelledby="about-dialog-title"]'
+        )
+      );
+
+      return { fixture, navbar, dialog };
+    }
+
+    it('opens as a native modal without manual dialog attributes', () => {
+      const { dialog } = openAbout();
+
+      expect(showModal).toHaveBeenCalledTimes(1);
+      expect(dialog.open).toBe(true);
+      expect(dialog.querySelector('[role="dialog"]')).toBeNull();
+      expect(dialog.querySelector('[aria-modal]')).toBeNull();
+    });
+
+    it('closes through the dialog close event', () => {
+      const { fixture, navbar, dialog } = openAbout();
+
+      navbar.closeAboutModal();
+      fixture.detectChanges();
+
+      expect(close).toHaveBeenCalledTimes(1);
+      expect(navbar.aboutModalOpen()).toBe(false);
+      expect(dialog.isConnected).toBe(false);
+    });
+
+    it('syncs state when the browser closes the dialog after Esc', () => {
+      const { fixture, navbar, dialog } = openAbout();
+
+      dialog.removeAttribute('open');
+      dialog.dispatchEvent(new Event('close'));
+      fixture.detectChanges();
+
+      expect(navbar.aboutModalOpen()).toBe(false);
+      expect(dialog.isConnected).toBe(false);
+    });
   });
 
   it('should mark all notifications as read from the popup', () => {

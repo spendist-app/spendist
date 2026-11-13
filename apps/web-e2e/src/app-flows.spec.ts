@@ -804,6 +804,54 @@ test('adds transaction and keeps it after reload', async ({
   await expect(page.getByText(description)).toBeVisible();
 });
 
+test('opens the transaction form as a native modal dialog', async ({
+  page,
+}, testInfo) => {
+  const description = `E2E dialog ${uniqueSuffix(testInfo)}`;
+
+  await ensureAuthenticated(page);
+  await openTransactions(page);
+  await openTransactionCreateForm(page);
+
+  const dialog = page.getByRole('dialog', { name: 'Add transaction' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toHaveJSProperty('open', true);
+  await expect(
+    dialog.locator('input[formcontrolname="description"]')
+  ).toBeFocused();
+
+  // Opened with showModal(): the page behind it is inert.
+  expect(await dialog.evaluate((element) => element.matches(':modal'))).toBe(
+    true
+  );
+
+  // Esc in an open dropdown closes only the dropdown.
+  await dialog.getByRole('button', { name: 'Category', exact: true }).click();
+  const categorySearch = dialog.getByPlaceholder('Search categories...');
+  await expect(categorySearch).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(categorySearch).toHaveCount(0);
+  await expect(dialog).toBeVisible();
+
+  // "Save and add another" keeps the dialog open and confirms inside it.
+  await dialog
+    .locator('input[formcontrolname="description"]')
+    .fill(description);
+  await selectFirstTransactionCategory(page);
+  await dialog.locator('input[formcontrolname="amount"]').fill('3.20');
+  await dialog.getByRole('button', { name: 'Save and add another' }).click();
+  await expect(dialog.getByRole('status')).toHaveText(
+    'Transaction saved in the database.'
+  );
+  await expect(dialog).toBeVisible();
+
+  // Esc closes the dialog and focus returns to the add button.
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByTestId('transaction-add-menu-trigger')).toBeFocused();
+  await expect(page.getByText(description)).toBeVisible();
+});
+
 test('exposes bulk entry and applies year, month, and amount sorting', async ({
   page,
 }, testInfo) => {

@@ -1,13 +1,16 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
   HostListener,
+  afterNextRender,
   computed,
   effect,
   inject,
   input,
   output,
   signal,
+  viewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TranslocoPipe } from '@ngneat/transloco';
@@ -158,6 +161,21 @@ export class TransactionBulkCreateFormComponent {
 
   readonly closed = output<void>();
   readonly saved = output<number>();
+
+  private readonly dialog =
+    viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
+
+  constructor() {
+    afterNextRender(() => {
+      const dialog = this.dialog().nativeElement;
+
+      // The native modal makes the page inert, contains focus, handles Esc
+      // and the back gesture, and returns focus to the invoker on close.
+      if ('showModal' in HTMLDialogElement.prototype && !dialog.open) {
+        dialog.showModal();
+      }
+    });
+  }
   readonly importCompleted = output<{
     created: number;
     duplicatesSkipped: number;
@@ -206,6 +224,19 @@ export class TransactionBulkCreateFormComponent {
   );
 
   protected onClose(): void {
+    const dialog = this.dialog().nativeElement;
+
+    if (dialog.open) {
+      // The dialog's close event finishes closing the form.
+      dialog.close();
+
+      return;
+    }
+
+    this.closed.emit();
+  }
+
+  protected onDialogClosed(): void {
     this.closed.emit();
   }
 
@@ -487,7 +518,7 @@ export class TransactionBulkCreateFormComponent {
           });
         }
 
-        this.closed.emit();
+        this.onClose();
       }
     } catch (error) {
       logError('TransactionBulkCreateForm', 'Failed to create batch', error);

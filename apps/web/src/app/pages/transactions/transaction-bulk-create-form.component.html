@@ -1,18 +1,11 @@
-<section
-  class="fixed inset-0 z-30 flex items-end justify-center px-2 py-2 sm:items-center sm:px-4 sm:py-6"
+<dialog
+  #dialog
+  class="modal modal-bottom px-2 py-2 sm:modal-middle sm:px-4 sm:py-6"
+  aria-labelledby="transaction-bulk-form-title"
+  (close)="onDialogClosed()"
 >
-  <button
-    type="button"
-    class="absolute inset-0 bg-base-200/70 backdrop-blur-sm"
-    [attr.aria-label]="'common.actions.close' | transloco"
-    (click)="onClose()"
-  ></button>
-
   <div
     class="relative z-10 flex max-h-[calc(100dvh-1rem)] w-full max-w-7xl flex-col overflow-hidden rounded-t-3xl border border-base-300 bg-base-100/95 shadow-2xl backdrop-blur sm:max-h-[calc(100dvh-3rem)] sm:rounded-3xl"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="transaction-bulk-form-title"
   >
     <header
       class="sticky top-0 z-20 flex shrink-0 flex-col gap-3 border-b border-base-200 bg-base-100/95 px-4 py-4 backdrop-blur sm:flex-row sm:items-start sm:justify-between sm:px-6"
@@ -370,4 +363,12 @@
       </div>
     </footer>
   </div>
-</section>
+
+  <button
+    type="button"
+    class="absolute inset-0 bg-base-200/70 backdrop-blur-sm"
+    tabindex="-1"
+    aria-hidden="true"
+    (click)="onClose()"
+  ></button>
+</dialog>

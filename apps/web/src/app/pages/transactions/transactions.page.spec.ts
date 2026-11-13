@@ -254,6 +254,41 @@ describe('TransactionsPageComponent', () => {
     vi.useRealTimers();
   });
 
+  it('returns focus to the add button when a closed dialog lost its invoker', () => {
+    const fixture = TestBed.createComponent(TransactionsPageComponent);
+    fixture.detectChanges();
+
+    const trigger = requiredValue(
+      fixtureElement(fixture).querySelector<HTMLButtonElement>(
+        '[data-testid="transaction-add-menu-trigger"]'
+      )
+    );
+
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+
+    fixture.componentInstance['restoreFocusAfterDialog']();
+    TestBed.tick();
+
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it('keeps focus where the closed dialog returned it', () => {
+    const fixture = TestBed.createComponent(TransactionsPageComponent);
+    fixture.detectChanges();
+
+    const invoker = document.createElement('button');
+    document.body.append(invoker);
+    invoker.focus();
+
+    fixture.componentInstance['restoreFocusAfterDialog']();
+    TestBed.tick();
+
+    expect(document.activeElement).toBe(invoker);
+    invoker.remove();
+  });
+
   it('uses the category and tag tabs as the only filter heading', () => {
     const fixture = TestBed.createComponent(TransactionsPageComponent);
     fixture.detectChanges();

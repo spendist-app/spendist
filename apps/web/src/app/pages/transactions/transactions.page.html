@@ -847,6 +847,7 @@
 
   <button
     type="button"
+    #addMenuTrigger
     data-testid="transaction-add-menu-trigger"
     class="btn btn-primary btn-circle shadow-lg transition-transform hover:scale-105"
     [attr.aria-label]="'transactions.actions.openMenu' | transloco"
@@ -870,19 +871,19 @@ activeTransaction(); @let duplicate = duplicateSource();
   [mode]="mode"
   [transaction]="editing"
   [prefill]="duplicate"
-  (closed)="handleFormClosed()"
+  (closed)="handleFormClosed(); restoreFocusAfterDialog()"
   (saved)="handleFormSaved($event)"
 ></app-transaction-create-form>
 } @if (bulkFormOpen()) {
 <app-transaction-bulk-create-form
   [prefill]="importPrefill()"
-  (closed)="handleBulkFormClosed()"
+  (closed)="handleBulkFormClosed(); restoreFocusAfterDialog()"
   (saved)="handleBulkFormSaved($event)"
   (importCompleted)="handleImportCompleted($event)"
 ></app-transaction-bulk-create-form>
 } @if (importFormOpen()) {
 <app-transaction-import-form
-  (closed)="handleImportClosed()"
+  (closed)="handleImportClosed(); restoreFocusAfterDialog()"
   (prepared)="handleImportPrepared($event)"
 ></app-transaction-import-form>
 }

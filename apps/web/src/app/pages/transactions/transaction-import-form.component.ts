@@ -3,7 +3,9 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
+  Injector,
   OnDestroy,
+  afterNextRender,
   computed,
   inject,
   output,
@@ -72,6 +74,13 @@ export class TransactionImportFormComponent implements OnDestroy {
   protected readonly dragActive = signal(false);
   private readonly fileInput =
     viewChild<ElementRef<HTMLInputElement>>('fileInput');
+  private readonly injector = inject(Injector);
+  private readonly importDialog =
+    viewChild.required<ElementRef<HTMLDialogElement>>('importDialog');
+  private readonly schemaDialog =
+    viewChild.required<ElementRef<HTMLDialogElement>>('schemaDialog');
+  private readonly aiPromptDialog =
+    viewChild.required<ElementRef<HTMLDialogElement>>('aiPromptDialog');
 
   readonly closed = output<void>();
   readonly prepared = output<TransactionBulkPrefill>();
@@ -135,9 +144,47 @@ export class TransactionImportFormComponent implements OnDestroy {
     })
   );
 
+  constructor() {
+    // The native modal makes the page inert, contains focus, handles Esc
+    // and the back gesture, and returns focus to the invoker on close.
+    afterNextRender(() => this.showModal(this.importDialog()));
+  }
+
   ngOnDestroy(): void {
     this.clearPasteValidationTimer();
     this.clearCopyStatusTimer();
+  }
+
+  protected onClose(): void {
+    const dialog = this.importDialog().nativeElement;
+
+    if (dialog.open) {
+      // The dialog's close event finishes closing the form.
+      dialog.close();
+
+      return;
+    }
+
+    this.closed.emit();
+  }
+
+  protected onDialogClosed(): void {
+    this.closed.emit();
+  }
+
+  protected openSchema(): void {
+    this.schemaOpen.set(true);
+    this.showModalAfterRender(this.schemaDialog);
+  }
+
+  protected closeSchema(): void {
+    if (!this.closeDialog(this.schemaDialog())) {
+      this.onSchemaClosed();
+    }
+  }
+
+  protected onSchemaClosed(): void {
+    this.schemaOpen.set(false);
   }
 
   protected openAiPrompt(): void {
@@ -145,11 +192,49 @@ export class TransactionImportFormComponent implements OnDestroy {
     this.aiPromptCopied.set(false);
     this.aiPromptCopyFailed.set(false);
     this.aiPromptOpen.set(true);
+    this.showModalAfterRender(this.aiPromptDialog);
   }
 
   protected closeAiPrompt(): void {
+    if (!this.closeDialog(this.aiPromptDialog())) {
+      this.onAiPromptClosed();
+    }
+  }
+
+  protected onAiPromptClosed(): void {
     this.aiPromptOpen.set(false);
     this.clearCopyStatusTimer();
+  }
+
+  private showModalAfterRender(
+    dialog: () => ElementRef<HTMLDialogElement>
+  ): void {
+    // Open after the dialog content renders so initial focus lands inside it.
+    // Nested dialogs stack in the top layer above the import dialog.
+    afterNextRender(() => this.showModal(dialog()), {
+      injector: this.injector,
+    });
+  }
+
+  private showModal(dialog: ElementRef<HTMLDialogElement>): void {
+    const element = dialog.nativeElement;
+
+    if ('showModal' in HTMLDialogElement.prototype && !element.open) {
+      element.showModal();
+    }
+  }
+
+  /** Returns true when the dialog's close event will finish closing it. */
+  private closeDialog(dialog: ElementRef<HTMLDialogElement>): boolean {
+    const element = dialog.nativeElement;
+
+    if (!element.open) {
+      return false;
+    }
+
+    element.close();
+
+    return true;
   }
 
   protected async copyAiPrompt(): Promise<void> {

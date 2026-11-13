@@ -1,17 +1,11 @@
-<section
-  class="fixed inset-0 z-40 flex items-end justify-center p-2 sm:items-center sm:p-6"
+<dialog
+  #importDialog
+  class="modal modal-bottom p-2 sm:modal-middle sm:p-6"
+  aria-labelledby="transaction-import-title"
+  (close)="onDialogClosed()"
 >
-  <button
-    type="button"
-    class="absolute inset-0 bg-base-200/70 backdrop-blur-sm"
-    [attr.aria-label]="'common.actions.close' | transloco"
-    (click)="closed.emit()"
-  ></button>
   <div
     class="relative z-10 flex max-h-[calc(100dvh-1rem)] w-full max-w-3xl flex-col overflow-hidden rounded-t-3xl border border-base-300 bg-base-100 shadow-2xl sm:rounded-3xl"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="transaction-import-title"
   >
     <header
       class="flex items-start justify-between border-b border-base-200 px-5 py-4"
@@ -28,7 +22,7 @@
         type="button"
         class="btn btn-ghost btn-square btn-sm"
         [attr.aria-label]="'common.actions.close' | transloco"
-        (click)="closed.emit()"
+        (click)="onClose()"
       >
         <ng-icon [svg]="closeIcon" size="20" aria-hidden="true"></ng-icon>
       </button>
@@ -130,7 +124,7 @@
               type="button"
               class="btn btn-ghost btn-sm"
               data-testid="csv-schema-help"
-              (click)="schemaOpen.set(true)"
+              (click)="openSchema()"
             >
               <ng-icon [svg]="helpIcon" size="18" aria-hidden="true"></ng-icon
               >{{ 'transactions.import.schema.action' | transloco }}
@@ -300,21 +294,25 @@
       }
     </div>
   </div>
-</section>
 
-@if (schemaOpen()) {
-<section class="fixed inset-0 z-50 flex items-center justify-center p-4">
   <button
     type="button"
-    class="absolute inset-0 bg-neutral/60"
-    [attr.aria-label]="'common.actions.close' | transloco"
-    (click)="schemaOpen.set(false)"
+    class="absolute inset-0 bg-base-200/70 backdrop-blur-sm"
+    tabindex="-1"
+    aria-hidden="true"
+    (click)="onClose()"
   ></button>
+</dialog>
+
+<dialog
+  #schemaDialog
+  class="modal p-4"
+  aria-labelledby="csv-schema-title"
+  (close)="onSchemaClosed()"
+>
+  @if (schemaOpen()) {
   <div
     class="relative z-10 max-h-[80dvh] w-full max-w-lg overflow-auto rounded-2xl bg-base-100 p-5 shadow-2xl"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="csv-schema-title"
   >
     <div class="flex items-start justify-between">
       <div>
@@ -330,7 +328,7 @@
         class="btn btn-ghost btn-square btn-sm"
         data-testid="csv-schema-close"
         [attr.aria-label]="'common.actions.close' | transloco"
-        (click)="schemaOpen.set(false)"
+        (click)="closeSchema()"
       >
         <ng-icon [svg]="closeIcon" size="18" aria-hidden="true"></ng-icon>
       </button>
@@ -345,20 +343,26 @@
       wallet
     </p>
   </div>
-</section>
-} @if (aiPromptOpen()) {
-<section class="fixed inset-0 z-50 flex items-center justify-center p-4">
+
   <button
     type="button"
     class="absolute inset-0 bg-neutral/60"
-    [attr.aria-label]="'common.actions.close' | transloco"
-    (click)="closeAiPrompt()"
+    tabindex="-1"
+    aria-hidden="true"
+    (click)="closeSchema()"
   ></button>
+  }
+</dialog>
+
+<dialog
+  #aiPromptDialog
+  class="modal p-4"
+  aria-labelledby="ai-prompt-title"
+  (close)="onAiPromptClosed()"
+>
+  @if (aiPromptOpen()) {
   <div
     class="relative z-10 flex max-h-[90dvh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-base-100 shadow-2xl"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="ai-prompt-title"
   >
     <header
       class="flex shrink-0 items-start justify-between border-b border-base-200 px-5 py-4"
@@ -441,5 +445,13 @@
       </button>
     </footer>
   </div>
-</section>
-}
+
+  <button
+    type="button"
+    class="absolute inset-0 bg-neutral/60"
+    tabindex="-1"
+    aria-hidden="true"
+    (click)="closeAiPrompt()"
+  ></button>
+  }
+</dialog>

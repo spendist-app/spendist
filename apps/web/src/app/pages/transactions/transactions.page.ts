@@ -5,8 +5,10 @@ import {
   Component,
   DestroyRef,
   ElementRef,
+  Injector,
   OnDestroy,
   PLATFORM_ID,
+  afterNextRender,
   computed,
   effect,
   inject,
@@ -87,6 +89,9 @@ export class TransactionsPageComponent implements OnDestroy {
   );
   protected readonly addMenuOpen = signal(false);
   private readonly addMenu = viewChild<ElementRef<HTMLElement>>('addMenu');
+  private readonly addMenuTrigger =
+    viewChild<ElementRef<HTMLButtonElement>>('addMenuTrigger');
+  private readonly injector = inject(Injector);
   protected readonly formMode = signal<'create' | 'edit'>('create');
   protected readonly editingTransaction = signal<TransactionViewModel | null>(
     null
@@ -675,6 +680,28 @@ export class TransactionsPageComponent implements OnDestroy {
 
   protected closeAddMenu(): void {
     this.addMenuOpen.set(false);
+  }
+
+  /**
+   * A closing <dialog> returns focus to its invoker. Forms opened from the
+   * add menu lose that invoker when the menu closes, so focus stays in the
+   * closed dialog and falls to the document body once it is removed; send it
+   * back to the add button instead.
+   */
+  protected restoreFocusAfterDialog(): void {
+    afterNextRender(() => this.focusAddTriggerIfFocusLost(), {
+      injector: this.injector,
+    });
+  }
+
+  private focusAddTriggerIfFocusLost(): void {
+    const active = this.document.activeElement;
+
+    if (active && active !== this.document.body && active.isConnected) {
+      return;
+    }
+
+    this.addMenuTrigger()?.nativeElement.focus();
   }
 
   protected handleBulkFormClosed(): void {

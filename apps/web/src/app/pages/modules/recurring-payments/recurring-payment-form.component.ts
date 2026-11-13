@@ -1,12 +1,15 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
+  afterRenderEffect,
   computed,
   effect,
   inject,
   input,
   output,
   signal,
+  viewChild,
   WritableSignal,
 } from '@angular/core';
 import {
@@ -80,6 +83,8 @@ export class RecurringPaymentFormComponent {
   readonly submissionError: WritableSignal<string | null> = signal(null);
   readonly open = input(false);
   readonly dismiss = output<void>();
+
+  private readonly dialog = viewChild<ElementRef<HTMLDialogElement>>('dialog');
 
   readonly form: RecurringFormGroup = new FormGroup({
     name: new FormControl('', {
@@ -206,6 +211,20 @@ export class RecurringPaymentFormComponent {
   readonly schedulePreview = signal('');
 
   constructor() {
+    afterRenderEffect(() => {
+      const dialog = this.dialog()?.nativeElement;
+
+      // The native modal makes the page inert, contains focus, handles Esc
+      // and the back gesture, and returns focus to the invoker on close.
+      if (
+        dialog &&
+        'showModal' in HTMLDialogElement.prototype &&
+        !dialog.open
+      ) {
+        dialog.showModal();
+      }
+    });
+
     this.amountModeControl.valueChanges
       .pipe(takeUntilDestroyed())
       .subscribe((mode) => {
@@ -457,7 +476,7 @@ export class RecurringPaymentFormComponent {
       }
 
       this.resetForm();
-      this.dismiss.emit();
+      this.onDismiss();
     } catch (error) {
       logError('RecurringPaymentForm', 'submission failed', error);
       const storeError = this.store.mutationError();
@@ -492,6 +511,19 @@ export class RecurringPaymentFormComponent {
   }
 
   onDismiss(): void {
+    const dialog = this.dialog()?.nativeElement;
+
+    if (dialog?.open) {
+      // The dialog's close event finishes dismissing the form.
+      dialog.close();
+
+      return;
+    }
+
+    this.dismiss.emit();
+  }
+
+  protected onDialogClosed(): void {
     this.dismiss.emit();
   }
 

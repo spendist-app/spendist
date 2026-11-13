@@ -950,19 +950,16 @@
       </section>
 
       @if (categoryEditorMode() || groupEditorMode()) {
-      <div
-        class="fixed inset-0 z-50 flex justify-end bg-black/60"
-        (click)="closeEditor()"
-        role="presentation"
+      <dialog
+        #editorDialog
+        class="modal items-stretch justify-items-end"
+        [attr.aria-label]="(categoryEditorMode() ? 'settings.panels.categories.label' : 'settings.panels.categoryGroups.label') | transloco"
+        (cancel)="onEditorCancel($event)"
+        (close)="onEditorDialogClosed()"
       >
         <div
           data-settings-editor
-          role="dialog"
-          aria-modal="true"
-          [attr.aria-label]="(categoryEditorMode() ? 'settings.panels.categories.label' : 'settings.panels.categoryGroups.label') | transloco"
-          class="flex h-full w-full flex-col overflow-y-auto bg-base-100 shadow-2xl sm:max-w-lg"
-          (click)="$event.stopPropagation()"
-          (keydown)="onEditorKeydown($event)"
+          class="relative z-10 flex h-full w-full flex-col overflow-y-auto bg-base-100 shadow-2xl sm:max-w-lg"
         >
           <div
             class="sticky top-0 z-10 flex items-center justify-between border-b border-base-300 bg-base-100 px-5 py-4"
@@ -1237,7 +1234,15 @@
           </form>
           }
         </div>
-      </div>
+
+        <button
+          type="button"
+          class="absolute inset-0 bg-black/30"
+          tabindex="-1"
+          aria-hidden="true"
+          (click)="closeEditor()"
+        ></button>
+      </dialog>
       }
       } @else if (activePanel() === 'spendistCsv') {
       <section class="space-y-6">

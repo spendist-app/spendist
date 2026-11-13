@@ -454,6 +454,128 @@ describe('RecurringPaymentFormComponent', () => {
       'modules.recurringPayments.form.notifications.invalid'
     );
   });
+
+  describe('native dialog', () => {
+    const showModal = vi.fn(function (this: HTMLDialogElement) {
+      this.setAttribute('open', '');
+    });
+
+    const close = vi.fn(function (this: HTMLDialogElement) {
+      this.removeAttribute('open');
+      this.dispatchEvent(new Event('close'));
+    });
+
+    beforeEach(() => {
+      showModal.mockClear();
+      close.mockClear();
+
+      // jsdom does not implement the modal dialog API.
+      Object.defineProperty(HTMLDialogElement.prototype, 'showModal', {
+        configurable: true,
+        value: showModal,
+      });
+
+      Object.defineProperty(HTMLDialogElement.prototype, 'close', {
+        configurable: true,
+        value: close,
+      });
+    });
+
+    afterEach(() => {
+      Reflect.deleteProperty(HTMLDialogElement.prototype, 'showModal');
+      Reflect.deleteProperty(HTMLDialogElement.prototype, 'close');
+    });
+
+    async function renderOpenDialog() {
+      const fixture = TestBed.createComponent(RecurringPaymentFormComponent);
+      fixture.componentRef.setInput('open', true);
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const dialog = requiredValue(
+        fixtureElement(fixture).querySelector<HTMLDialogElement>('dialog')
+      );
+
+      let dismissCount = 0;
+      fixture.componentInstance.dismiss.subscribe(() => {
+        dismissCount += 1;
+      });
+
+      return { fixture, dialog, dismissCount: () => dismissCount };
+    }
+
+    it('renders nothing while closed', () => {
+      const fixture = TestBed.createComponent(RecurringPaymentFormComponent);
+      fixture.detectChanges();
+
+      expect(fixtureElement(fixture).querySelector('dialog')).toBeNull();
+      expect(showModal).not.toHaveBeenCalled();
+    });
+
+    it('opens as a native modal named by the form title', async () => {
+      const { dialog } = await renderOpenDialog();
+
+      expect(showModal).toHaveBeenCalledTimes(1);
+      expect(dialog.open).toBe(true);
+      expect(dialog.getAttribute('aria-labelledby')).toBe(
+        'recurring-payment-form-title'
+      );
+      expect(dialog.querySelector('[role="dialog"]')).toBeNull();
+      expect(dialog.querySelector('[aria-modal]')).toBeNull();
+      expect(
+        dialog.querySelector('#recurring-name')?.hasAttribute('autofocus')
+      ).toBe(true);
+    });
+
+    it('dismisses through the dialog close event exactly once', async () => {
+      const { fixture, dialog, dismissCount } = await renderOpenDialog();
+
+      requiredValue(
+        dialog.querySelector<HTMLButtonElement>(
+          '[data-testid="recurring-payment-form-close"]'
+        )
+      ).click();
+      fixture.detectChanges();
+
+      expect(close).toHaveBeenCalledTimes(1);
+      expect(dialog.open).toBe(false);
+      expect(dismissCount()).toBe(1);
+    });
+
+    it('emits dismiss when the browser closes the dialog after Esc', async () => {
+      const { dialog, dismissCount } = await renderOpenDialog();
+
+      const cancel = new Event('cancel', { cancelable: true });
+      dialog.dispatchEvent(cancel);
+      dialog.dispatchEvent(new Event('close'));
+
+      expect(cancel.defaultPrevented).toBe(false);
+      expect(dismissCount()).toBe(1);
+    });
+
+    it('closes the dialog once after a successful save', async () => {
+      const { fixture, dialog, dismissCount } = await renderOpenDialog();
+
+      fixture.componentInstance['form'].patchValue({
+        name: 'Rent',
+        categoryId: 'food',
+        amount: 1200,
+        currency: 'EUR',
+        amountMode: 'fixed',
+        walletId: 'wallet-1',
+        startDate: '2023-01-01',
+      });
+
+      await fixture.componentInstance['onSubmit']();
+
+      expect(
+        TestBed.inject(RecurringPaymentsStoreStub).lastCreatePayload
+      ).not.toBeNull();
+      expect(close).toHaveBeenCalledTimes(1);
+      expect(dialog.open).toBe(false);
+      expect(dismissCount()).toBe(1);
+    });
+  });
 });
 
 function dailyCronForLocalTime(time: string): string {

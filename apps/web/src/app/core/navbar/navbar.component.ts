@@ -1,9 +1,12 @@
 import { z } from 'zod';
 import {
   Component,
+  ElementRef,
+  afterRenderEffect,
   computed,
   inject,
   signal,
+  viewChild,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
@@ -42,6 +45,8 @@ export class NavbarComponent {
   readonly modulesMenuOpen = signal(false);
   readonly accountMenuOpen = signal(false);
   readonly aboutModalOpen = signal(false);
+  private readonly aboutDialog =
+    viewChild<ElementRef<HTMLDialogElement>>('aboutDialog');
   readonly languages = this.languageService.availableLanguages;
   readonly activeLanguage = computed(() =>
     this.languageService.currentLanguage()
@@ -73,6 +78,18 @@ export class NavbarComponent {
 
     return resolveInitials(nameCandidate);
   });
+
+  constructor() {
+    // Runs only in the browser. The native modal makes the page inert,
+    // handles Esc and the back gesture, and returns focus on close.
+    afterRenderEffect(() => {
+      const dialog = this.aboutDialog()?.nativeElement;
+
+      if (dialog && 'showModal' in HTMLDialogElement.prototype && !dialog.open) {
+        dialog.showModal();
+      }
+    });
+  }
 
   readonly isDark = computed(
     () => this.themeService.theme() === 'spendistDark'
@@ -119,6 +136,19 @@ export class NavbarComponent {
   }
 
   closeAboutModal(): void {
+    const dialog = this.aboutDialog()?.nativeElement;
+
+    if (dialog?.open) {
+      // The dialog's close event finishes closing the modal.
+      dialog.close();
+
+      return;
+    }
+
+    this.aboutModalOpen.set(false);
+  }
+
+  protected onAboutDialogClosed(): void {
     this.aboutModalOpen.set(false);
   }
 
