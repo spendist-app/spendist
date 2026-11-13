@@ -11,6 +11,10 @@ const DEFAULT_RESET_ATTEMPTS = 3;
 
 const RETRY_BASE_DELAY_MS = 5000;
 
+const AUTH_READY_TIMEOUT_MS = 90_000;
+
+const AUTH_READY_POLL_MS = 1000;
+
 const DEFAULT_EMAIL = 'e2e-shared-user@gmail.com';
 
 const DEFAULT_ADMIN_EMAIL = 'e2e-admin-user@gmail.com';
@@ -103,6 +107,8 @@ export async function ensureE2EAccount(): Promise<void> {
   const baseUrl = supabaseUrl.replace(/\/+$/, '');
   const serviceRoleKey = resolveServiceRoleKey(envFile);
 
+  await waitForAuthReady(baseUrl, publishableKey);
+
   await ensureAccount(
     baseUrl,
     publishableKey,
@@ -121,6 +127,40 @@ export async function ensureE2EAccount(): Promise<void> {
   );
 
   await grantAdministrator(baseUrl, serviceRoleKey, adminId);
+}
+
+// `supabase db reset` restarts the Auth container; the gateway answers 502
+// until it is back, so wait for its health endpoint before creating accounts.
+async function waitForAuthReady(
+  baseUrl: string,
+  publishableKey: string
+): Promise<void> {
+  const deadline = Date.now() + AUTH_READY_TIMEOUT_MS;
+  let lastStatus = 'no response';
+
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(`${baseUrl}/auth/v1/health`, {
+        headers: { apikey: publishableKey },
+      });
+
+      if (response.ok) {
+        return;
+      }
+
+      lastStatus = String(response.status);
+    } catch (error) {
+      lastStatus = error instanceof Error ? error.message : 'request failed';
+    }
+
+    await new Promise((resolveDelay) =>
+      setTimeout(resolveDelay, AUTH_READY_POLL_MS)
+    );
+  }
+
+  throw new Error(
+    `[e2e-db] Supabase Auth was not ready after ${AUTH_READY_TIMEOUT_MS} ms (last: ${lastStatus}).`
+  );
 }
 
 async function ensureAccount(

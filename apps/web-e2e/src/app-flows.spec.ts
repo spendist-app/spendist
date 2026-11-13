@@ -460,6 +460,37 @@ async function openSettings(page: Page): Promise<void> {
   await expect(page).toHaveURL(/\/settings$/, { timeout: 15000 });
 }
 
+/**
+ * Pastes through the real clipboard. Firefox drops the data of synthetic
+ * paste events, so copy from a temporary field and press the shortcut. The
+ * field lives inside `container` because a modal dialog makes the rest of
+ * the page inert.
+ */
+async function pasteWithKeyboard(
+  page: Page,
+  container: Locator,
+  target: Locator,
+  text: string
+): Promise<void> {
+  const source = await container.evaluateHandle((element) => {
+    const textarea = document.createElement('textarea');
+    textarea.dataset['e2eClipboardSource'] = '';
+    element.append(textarea);
+
+    return textarea;
+  });
+
+  const sourceField = container.locator('[data-e2e-clipboard-source]');
+  await sourceField.fill(text);
+  await sourceField.selectText();
+  await page.keyboard.press('ControlOrMeta+C');
+  await source.evaluate((element) => element.remove());
+  await source.dispose();
+
+  await target.focus();
+  await page.keyboard.press('ControlOrMeta+V');
+}
+
 function formWithHeading(page: Page, heading: string): Locator {
   return page
     .locator('form')
@@ -835,16 +866,12 @@ test('exposes bulk entry and applies year, month, and amount sorting', async ({
     )
     .toBe('absolute');
 
-  await page.evaluate(() => {
-    const clipboardData = new DataTransfer();
-    clipboardData.setData(
-      'text/plain',
-      '2026-07-10\tPasted with Ctrl+V\t25.50\tPLN\tGroceries\tclipboard\t\t1'
-    );
-    document.dispatchEvent(
-      new ClipboardEvent('paste', { bubbles: true, clipboardData })
-    );
-  });
+  await pasteWithKeyboard(
+    page,
+    bulkDialog,
+    bulkDialog.locator('input[placeholder="Description"]').first(),
+    '2026-07-10\tPasted with Ctrl+V\t25.50\tPLN\tGroceries\tclipboard\t\t1'
+  );
   await expect(
     bulkDialog.locator('input[placeholder="Description"]').first()
   ).toHaveValue('Pasted with Ctrl+V');
@@ -1490,12 +1517,16 @@ test('adds recurring payment with selected currency', async ({
     page.getByRole('heading', { name: 'Schedule a recurring payment' })
   ).toHaveCount(0);
   await expect(page.getByText(name)).toBeVisible();
-  await expect(page.getByText('USD')).toBeVisible();
+  await expect(
+    page.getByRole('listitem').filter({ hasText: name }).getByText('USD')
+  ).toBeVisible();
 
   await page.reload();
   await openModule(page, 'Recurring payments', 'Active recurring payments');
   await expect(page.getByText(name)).toBeVisible();
-  await expect(page.getByText('USD')).toBeVisible();
+  await expect(
+    page.getByRole('listitem').filter({ hasText: name }).getByText('USD')
+  ).toBeVisible();
 });
 
 test('backfills transactions for a recurring payment ended in the past', async ({
