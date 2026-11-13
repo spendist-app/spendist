@@ -1,18 +1,12 @@
-<section
-  class="fixed inset-0 z-30 flex items-end justify-center px-3 py-3 sm:items-center sm:px-4 sm:py-6"
+<dialog
+  #dialog
+  class="modal modal-bottom px-3 py-3 sm:modal-middle sm:px-4 sm:py-6"
+  aria-labelledby="transaction-form-title"
+  (cancel)="onCancel($event)"
+  (close)="onDialogClosed()"
 >
-  <button
-    type="button"
-    class="absolute inset-0 bg-base-200/70 backdrop-blur-sm"
-    aria-label="Close transaction form"
-    (click)="onClose()"
-  ></button>
-
   <div
     class="relative z-10 flex max-h-[calc(100dvh-1.5rem)] w-full max-w-3xl flex-col overflow-hidden rounded-t-3xl border border-base-300 bg-base-100/95 shadow-2xl backdrop-blur sm:max-h-[calc(100dvh-3rem)] sm:rounded-3xl"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="transaction-form-title"
   >
     <form
       class="flex min-h-0 flex-1 flex-col"
@@ -195,7 +189,7 @@
                   class="input input-bordered input-sm w-full"
                   [value]="placeSearch()"
                   (input)="onPlaceSearchInput($event)"
-                  (keydown.escape)="closePlaceDropdown()"
+                  (keydown.escape)="$event.preventDefault(); closePlaceDropdown()"
                   placeholder="{{
                     'transactions.form.placeholders.placeSearch' | transloco
                   }}"
@@ -550,6 +544,15 @@
       <footer
         class="sticky bottom-0 z-20 flex shrink-0 flex-col gap-3 border-t border-base-200 bg-base-100/95 px-5 py-4 backdrop-blur sm:flex-row sm:items-center sm:justify-end sm:px-6"
       >
+        <p
+          class="text-sm text-success sm:mr-auto"
+          role="status"
+          aria-live="polite"
+        >
+          @if (savedNoticeVisible()) {
+          {{ 'transactions.toasts.created' | transloco }}
+          }
+        </p>
         <button type="button" class="btn btn-ghost" (click)="onClose()">
           {{ 'common.actions.cancel' | transloco }}
         </button>
@@ -578,4 +581,12 @@
       </footer>
     </form>
   </div>
-</section>
+
+  <button
+    type="button"
+    class="absolute inset-0 bg-base-200/70 backdrop-blur-sm"
+    tabindex="-1"
+    aria-hidden="true"
+    (click)="onClose()"
+  ></button>
+</dialog>

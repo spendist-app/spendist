@@ -796,4 +796,164 @@ describe('TransactionCreateFormComponent', () => {
     expect(store.getExchangeRateCalls).toBeGreaterThan(0);
     expect(defaultAmountInput.value).toBe('40.00');
   });
+
+  describe('native dialog', () => {
+    const showModal = vi.fn(function (this: HTMLDialogElement) {
+      this.setAttribute('open', '');
+    });
+
+    const close = vi.fn(function (this: HTMLDialogElement) {
+      this.removeAttribute('open');
+      this.dispatchEvent(new Event('close'));
+    });
+
+    beforeEach(() => {
+      showModal.mockClear();
+      close.mockClear();
+
+      // jsdom does not implement the modal dialog API.
+      Object.defineProperty(HTMLDialogElement.prototype, 'showModal', {
+        configurable: true,
+        value: showModal,
+      });
+
+      Object.defineProperty(HTMLDialogElement.prototype, 'close', {
+        configurable: true,
+        value: close,
+      });
+    });
+
+    afterEach(() => {
+      Reflect.deleteProperty(HTMLDialogElement.prototype, 'showModal');
+      Reflect.deleteProperty(HTMLDialogElement.prototype, 'close');
+    });
+
+    function renderDialog() {
+      const fixture = TestBed.createComponent(TransactionCreateFormComponent);
+      fixture.detectChanges();
+
+      const dialog = requiredValue(
+        fixtureElement(fixture).querySelector<HTMLDialogElement>('dialog')
+      );
+
+      return { fixture, dialog };
+    }
+
+    it('opens as a native modal named by the form title', async () => {
+      const { fixture, dialog } = renderDialog();
+      await fixture.whenStable();
+
+      expect(showModal).toHaveBeenCalledTimes(1);
+      expect(dialog.open).toBe(true);
+      expect(dialog.getAttribute('aria-labelledby')).toBe(
+        'transaction-form-title'
+      );
+      expect(dialog.querySelector('[role="dialog"]')).toBeNull();
+      expect(dialog.querySelector('[aria-modal]')).toBeNull();
+    });
+
+    it('closes through the dialog close event and emits closed once', async () => {
+      const { fixture, dialog } = renderDialog();
+      await fixture.whenStable();
+
+      let closedCount = 0;
+      fixture.componentInstance['closed'].subscribe(() => {
+        closedCount += 1;
+      });
+
+      fixture.componentInstance['onClose']();
+
+      expect(close).toHaveBeenCalledTimes(1);
+      expect(dialog.open).toBe(false);
+      expect(closedCount).toBe(1);
+    });
+
+    it('emits closed when the browser closes the dialog after Esc', async () => {
+      const { fixture, dialog } = renderDialog();
+      await fixture.whenStable();
+
+      let closedCount = 0;
+      fixture.componentInstance['closed'].subscribe(() => {
+        closedCount += 1;
+      });
+
+      const cancel = new Event('cancel', { cancelable: true });
+      dialog.dispatchEvent(cancel);
+      dialog.dispatchEvent(new Event('close'));
+
+      expect(cancel.defaultPrevented).toBe(false);
+      expect(closedCount).toBe(1);
+    });
+
+    it('keeps the dialog open on Esc while a new place is being saved', async () => {
+      const { fixture, dialog } = renderDialog();
+      await fixture.whenStable();
+
+      fixture.componentInstance['newPlacePending'].set(true);
+
+      const cancel = new Event('cancel', { cancelable: true });
+      dialog.dispatchEvent(cancel);
+
+      expect(cancel.defaultPrevented).toBe(true);
+    });
+
+    it('lets Esc close only the open category dropdown, not the dialog', async () => {
+      const { fixture, dialog } = renderDialog();
+
+      requiredValue(
+        dialog.querySelector<HTMLButtonElement>(
+          'app-category-select button[aria-haspopup="listbox"]'
+        )
+      ).click();
+      fixture.detectChanges();
+
+      const searchInput = requiredValue(
+        dialog.querySelector<HTMLInputElement>(
+          'app-category-select input[type="search"]'
+        )
+      );
+
+      const escape = new KeyboardEvent('keydown', {
+        key: 'Escape',
+        bubbles: true,
+        cancelable: true,
+      });
+
+      searchInput.dispatchEvent(escape);
+      fixture.detectChanges();
+
+      expect(escape.defaultPrevented).toBe(true);
+      expect(
+        dialog.querySelector('app-category-select input[type="search"]')
+      ).toBeNull();
+    });
+
+    it('confirms "save and add another" inside the dialog', async () => {
+      const { fixture, dialog } = renderDialog();
+      const component = fixture.componentInstance;
+
+      component['form'].patchValue({
+        description: 'First transaction',
+        categoryId: 'category-2',
+        occurredOn: '2026-06-16',
+        amount: '42',
+        walletId: 'wallet-1',
+      });
+
+      await component['submitAndAddAnother']();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(component['savedNoticeVisible']()).toBe(true);
+
+      const status = requiredValue(
+        dialog.querySelector<HTMLElement>('footer [role="status"]')
+      );
+
+      expect(dialog.open).toBe(true);
+      expect(status.textContent?.trim()).not.toBe('');
+    });
+  });
 });

@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   ElementRef,
   afterNextRender,
   effect,
@@ -82,6 +83,8 @@ export class TransactionCreateFormComponent {
   protected readonly store = inject(TransactionsStore);
   private readonly featureFlags = inject(FeatureFlagsService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly dialog =
+    viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
   protected readonly descriptionInput =
     viewChild<ElementRef<HTMLInputElement>>('descriptionInput');
   protected readonly placeSearchInput =
@@ -345,8 +348,23 @@ export class TransactionCreateFormComponent {
   readonly closed: OutputEmitterRef<void> = output();
   readonly saved: OutputEmitterRef<TransactionFormSaveResult> = output();
 
+  // Page toasts sit below the modal's top layer, so "save and add another"
+  // confirms the save inside the dialog instead.
+  protected readonly savedNoticeVisible = signal(false);
+  private savedNoticeTimer: ReturnType<typeof setTimeout> | null = null;
+
   constructor() {
+    inject(DestroyRef).onDestroy(() => this.clearSavedNoticeTimer());
+
     afterNextRender(() => {
+      const dialog = this.dialog().nativeElement;
+
+      // The native modal makes the page inert, contains focus, handles Esc
+      // and the back gesture, and returns focus to the invoker on close.
+      if ('showModal' in HTMLDialogElement.prototype && !dialog.open) {
+        dialog.showModal();
+      }
+
       if (this.mode() === 'create') {
         this.descriptionInput()?.nativeElement.focus();
       }
@@ -718,8 +736,48 @@ export class TransactionCreateFormComponent {
       return;
     }
 
+    const dialog = this.dialog().nativeElement;
+
+    if (dialog.open) {
+      // The dialog's close event finishes closing the form.
+      dialog.close();
+
+      return;
+    }
+
+    this.finishClose();
+  }
+
+  protected onCancel(event: Event): void {
+    if (this.newPlacePending()) {
+      event.preventDefault();
+    }
+  }
+
+  protected onDialogClosed(): void {
+    this.finishClose();
+  }
+
+  private finishClose(): void {
     this.resetForm();
     this.closed.emit();
+  }
+
+  private showSavedNotice(): void {
+    this.clearSavedNoticeTimer();
+    this.savedNoticeVisible.set(true);
+
+    this.savedNoticeTimer = setTimeout(() => {
+      this.savedNoticeVisible.set(false);
+      this.savedNoticeTimer = null;
+    }, 3500);
+  }
+
+  private clearSavedNoticeTimer(): void {
+    if (this.savedNoticeTimer !== null) {
+      clearTimeout(this.savedNoticeTimer);
+      this.savedNoticeTimer = null;
+    }
   }
 
   protected async submit(
@@ -780,6 +838,7 @@ export class TransactionCreateFormComponent {
 
         if (afterCreate === 'continue') {
           this.resetForm();
+          this.showSavedNotice();
           this.focusDescriptionInput();
 
           return;
@@ -893,6 +952,7 @@ export class TransactionCreateFormComponent {
 
         if (afterCreate === 'continue') {
           this.resetForm();
+          this.showSavedNotice();
           this.focusDescriptionInput();
 
           return;

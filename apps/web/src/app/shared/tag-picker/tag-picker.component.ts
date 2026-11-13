@@ -128,6 +128,11 @@ export class TagPickerComponent implements OnDestroy {
     }
 
     if (event.key === 'Escape') {
+      if (this.suggestionPanelOpen()) {
+        // Keep the close request from also dismissing an enclosing <dialog>.
+        event.preventDefault();
+      }
+
       this.closeSuggestionList();
 
       return;

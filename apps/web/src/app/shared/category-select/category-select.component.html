@@ -31,7 +31,7 @@
       class="input input-bordered input-sm w-full"
       [value]="search()"
       (input)="onSearchInput($event)"
-      (keydown.escape)="closeDropdown()"
+      (keydown.escape)="$event.preventDefault(); closeDropdown()"
       [attr.placeholder]="searchPlaceholder()"
       autocomplete="off"
     />
