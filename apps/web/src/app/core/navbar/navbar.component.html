@@ -3,18 +3,19 @@
 >
   <div class="flex shrink-0 items-center gap-1 sm:gap-3">
     @if (!auth.loading() && auth.isAuthenticated()) {
-    <div class="dropdown dropdown-bottom md:hidden">
+    <div class="md:hidden">
       <button
+        #mobileMenuTrigger
         type="button"
-        tabindex="0"
         class="btn btn-ghost btn-square"
         [attr.aria-label]="'navbar.menuToggle' | transloco"
       >
-        <span class="text-2xl leading-none">☰</span>
+        <span class="text-2xl leading-none" aria-hidden="true">☰</span>
       </button>
       <ul
-        tabindex="0"
-        class="menu dropdown-content z-[1] mt-3 w-64 space-y-1 rounded-2xl border border-base-200 bg-base-100/95 p-3 shadow-xl"
+        class="dropdown menu w-64 space-y-1 rounded-2xl border border-base-200 bg-base-100/95 p-3 shadow-xl"
+        [appPopoverMenu]="mobileMenuTrigger"
+        [appPopoverMenuArrowKeys]="false"
       >
         <li>
           <a
@@ -32,13 +33,10 @@
             {{ 'navbar.transactions' | transloco }}
           </a>
         </li>
-        <li tabindex="0">
-          <a
-            class="flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium"
-          >
-            <span>{{ 'navbar.modules' | transloco }}</span>
-            <span aria-hidden="true">▾</span>
-          </a>
+        <li>
+          <span class="menu-title px-3 py-2 text-sm font-medium">
+            {{ 'navbar.modules' | transloco }}
+          </span>
           <ul
             class="menu menu-sm mt-1 rounded-xl border border-base-200 bg-base-100 p-2 shadow"
           >
@@ -122,30 +120,20 @@
           {{ 'navbar.transactions' | transloco }}
         </a>
       </li>
-      <li
-        class="dropdown"
-        [class.dropdown-open]="modulesMenuOpen()"
-        (mouseenter)="openModulesMenu()"
-        (mouseleave)="scheduleCloseModulesMenu()"
-        (focusin)="openModulesMenu()"
-        (focusout)="handleModulesFocusOut($event)"
-      >
+      <li>
         <button
+          #modulesMenuTrigger
           type="button"
           class="flex items-center gap-1 rounded-xl px-4 py-2 font-medium"
-          (click)="toggleModulesMenu()"
-          (keydown.escape)="closeModulesMenu()"
-          [attr.aria-haspopup]="'menu'"
-          [attr.aria-expanded]="modulesMenuOpen()"
         >
           <span>{{ 'navbar.modules' | transloco }}</span>
           <span aria-hidden="true">▾</span>
         </button>
         <ul
-          tabindex="0"
-          class="dropdown-content menu menu-sm z-[1] w-60 space-y-1 rounded-2xl border border-base-200 bg-base-100/95 p-3 shadow-xl"
-          (mouseenter)="openModulesMenu()"
-          (mouseleave)="scheduleCloseModulesMenu()"
+          class="dropdown menu menu-sm w-60 space-y-1 rounded-2xl border border-base-200 bg-base-100/95 p-3 shadow-xl"
+          [appPopoverMenu]="modulesMenuTrigger"
+          [appPopoverMenuArrowKeys]="false"
+          [appPopoverMenuOpenOnHover]="true"
         >
           @if (featureFlags.previewVisible()) {
           <li>
@@ -153,7 +141,6 @@
               class="rounded-lg px-3 py-2 text-sm"
               routerLink="/modules/mortgages"
               routerLinkActive="active"
-              (click)="closeModulesMenu()"
             >
               {{ 'navbar.modulesMortgages' | transloco }}
             </a>
@@ -164,7 +151,6 @@
               class="rounded-lg px-3 py-2 text-sm"
               routerLink="/modules/recurring-payments"
               routerLinkActive="active"
-              (click)="closeModulesMenu()"
             >
               {{ 'navbar.modulesRecurring' | transloco }}
             </a>
@@ -174,7 +160,6 @@
               class="rounded-lg px-3 py-2 text-sm"
               routerLink="/modules/places"
               routerLinkActive="active"
-              (click)="closeModulesMenu()"
             >
               {{ 'navbar.modulesPlaces' | transloco }}
             </a>
@@ -185,7 +170,6 @@
               class="rounded-lg px-3 py-2 text-sm"
               routerLink="/modules/allowance"
               routerLinkActive="active"
-              (click)="closeModulesMenu()"
             >
               {{ 'navbar.modulesAllowance' | transloco }}
             </a>
@@ -258,19 +242,13 @@
       } @else { @if (auth.isAuthenticated()) {
       <div class="flex items-center gap-1">
         <app-notifications-menu></app-notifications-menu>
-        <div
-          class="dropdown dropdown-end"
-          [class.dropdown-open]="accountMenuOpen()"
-          (focusout)="handleAccountFocusOut($event)"
-        >
+        <div>
           <button
-            tabindex="0"
+            #accountMenuTrigger
             type="button"
             aria-haspopup="menu"
-            [attr.aria-expanded]="accountMenuOpen()"
             class="btn btn-ghost btn-circle avatar placeholder"
             [attr.aria-label]="'navbar.settings' | transloco"
-            (click)="toggleAccountMenu()"
           >
             @if (avatarUrl(); as avatar) {
             <div class="w-10 rounded-full">
@@ -289,11 +267,12 @@
             }
           </button>
           <ul
-            tabindex="0"
             role="menu"
-            class="menu menu-sm dropdown-content z-[1] mt-3 w-56 rounded-2xl border border-base-200 bg-base-100/95 p-2 shadow-xl"
+            class="dropdown dropdown-end menu menu-sm w-56 rounded-2xl border border-base-200 bg-base-100/95 p-2 shadow-xl"
+            [appPopoverMenu]="accountMenuTrigger"
+            [attr.aria-label]="'navbar.settings' | transloco"
           >
-            <li>
+            <li role="none">
               <button type="button" (click)="toggleTheme()" role="menuitem">
                 <span class="flex items-center justify-between">
                   <span>{{ themeToggleLabel() | transloco }}</span>
@@ -303,31 +282,29 @@
                 </span>
               </button>
             </li>
-            <li>
+            <li role="none">
               <a
                 routerLink="/settings"
                 role="menuitem"
-                (click)="closeAccountMenu()"
               >
                 {{ 'navbar.settings' | transloco }}
               </a>
             </li>
             @if (adminAccess.allowed()) {
-            <li>
+            <li role="none">
               <a
                 routerLink="/admin"
                 role="menuitem"
-                (click)="closeAccountMenu()"
                 >{{ 'emailAdmin.title' | transloco }}</a
               >
             </li>
             }
-            <li>
+            <li role="none">
               <button type="button" (click)="openAboutModal()" role="menuitem">
                 {{ 'navbar.about.menuItem' | transloco }}
               </button>
             </li>
-            <li>
+            <li role="none">
               <button type="button" (click)="signOut()" role="menuitem">
                 {{ 'navbar.signOut' | transloco }}
               </button>

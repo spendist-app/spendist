@@ -38,6 +38,7 @@ import {
   TransactionsStore,
   WalletEntity,
 } from './transactions.store';
+import { PopoverMenuDirective } from '../../shared/popover-menu/popover-menu.directive';
 
 interface BulkTransactionDraftRow {
   readonly id: number;
@@ -85,7 +86,13 @@ type CopyDirection = 'up' | 'down';
   standalone: true,
   selector: 'app-transaction-bulk-create-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, TranslocoPipe, NgIcon, CategorySelectComponent],
+  imports: [
+    FormsModule,
+    TranslocoPipe,
+    NgIcon,
+    CategorySelectComponent,
+    PopoverMenuDirective,
+  ],
   templateUrl: './transaction-bulk-create-form.component.html',
 })
 export class TransactionBulkCreateFormComponent {
@@ -329,20 +336,6 @@ export class TransactionBulkCreateFormComponent {
         return shouldCopy ? { ...row, [field]: source[field] } : row;
       })
     );
-  }
-
-  protected copyFieldAndClose(
-    rowId: number,
-    field: CopyableBulkTransactionField,
-    direction: CopyDirection,
-    event: Event
-  ): void {
-    this.copyField(rowId, field, direction);
-
-    const trigger =
-      event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
-
-    trigger?.closest('details')?.removeAttribute('open');
   }
 
   protected clearRow(rowId: number): void {

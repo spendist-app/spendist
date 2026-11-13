@@ -52,6 +52,7 @@ import {
   serializeTransactionQuery,
   type TransactionSidebarPanel,
 } from './transactions-query.codec';
+import { PopoverMenuDirective } from '../../shared/popover-menu/popover-menu.directive';
 
 interface MonthOption {
   readonly value: string;
@@ -74,6 +75,7 @@ interface TransactionToast {
     TransactionCreateFormComponent,
     TransactionBulkCreateFormComponent,
     TransactionImportFormComponent,
+    PopoverMenuDirective,
   ],
   providers: [TransactionsStore],
   templateUrl: './transactions.page.html',
@@ -87,8 +89,6 @@ export class TransactionsPageComponent implements OnDestroy {
   protected readonly importPrefill = signal<TransactionBulkPrefill | null>(
     null
   );
-  protected readonly addMenuOpen = signal(false);
-  private readonly addMenu = viewChild<ElementRef<HTMLElement>>('addMenu');
   private readonly addMenuTrigger =
     viewChild<ElementRef<HTMLButtonElement>>('addMenuTrigger');
   private readonly injector = inject(Injector);
@@ -258,23 +258,9 @@ export class TransactionsPageComponent implements OnDestroy {
       this.handleKeyboardShortcut(event);
     };
 
-    const handleClick = (event: MouseEvent) => {
-      const menu = this.addMenu()?.nativeElement;
-
-      if (
-        this.addMenuOpen() &&
-        menu &&
-        !menu.contains(event.target instanceof Node ? event.target : null)
-      ) {
-        this.closeAddMenu();
-      }
-    };
-
     this.document.addEventListener('keydown', handleKeydown);
-    this.document.addEventListener('click', handleClick);
     this.destroyRef.onDestroy(() => {
       this.document.removeEventListener('keydown', handleKeydown);
-      this.document.removeEventListener('click', handleClick);
     });
   }
 
@@ -558,7 +544,6 @@ export class TransactionsPageComponent implements OnDestroy {
   }
 
   protected openCreateForm(): void {
-    this.closeAddMenu();
     this.store.dismissMutationError();
     this.bulkFormOpen.set(false);
     this.importFormOpen.set(false);
@@ -569,13 +554,6 @@ export class TransactionsPageComponent implements OnDestroy {
   }
 
   protected handleKeyboardShortcut(event: KeyboardEvent): void {
-    if (event.key === 'Escape' && this.addMenuOpen()) {
-      event.preventDefault();
-      this.closeAddMenu();
-
-      return;
-    }
-
     const isAddShortcut =
       event.key.toLowerCase() === 'n' &&
       !event.ctrlKey &&
@@ -626,7 +604,6 @@ export class TransactionsPageComponent implements OnDestroy {
   }
 
   protected openBulkCreateForm(): void {
-    this.closeAddMenu();
     this.handleFormClosed();
     this.store.dismissMutationError();
     this.importFormOpen.set(false);
@@ -635,7 +612,6 @@ export class TransactionsPageComponent implements OnDestroy {
   }
 
   protected openImportForm(): void {
-    this.closeAddMenu();
     this.handleFormClosed();
     this.bulkFormOpen.set(false);
     this.importPrefill.set(null);
@@ -651,35 +627,6 @@ export class TransactionsPageComponent implements OnDestroy {
     this.importPrefill.set(prefill);
     this.importFormOpen.set(false);
     this.bulkFormOpen.set(true);
-  }
-
-  protected openAddMenu(): void {
-    this.addMenuOpen.set(true);
-  }
-
-  protected handleAddMenuPointerLeave(): void {
-    const menu = this.addMenu()?.nativeElement;
-
-    if (menu?.contains(this.document.activeElement)) {
-      return;
-    }
-
-    this.closeAddMenu();
-  }
-
-  protected handleAddMenuFocusOut(event: FocusEvent): void {
-    const menu = this.addMenu()?.nativeElement;
-    const nextTarget = event.relatedTarget;
-
-    if (menu && nextTarget instanceof Node && menu.contains(nextTarget)) {
-      return;
-    }
-
-    this.closeAddMenu();
-  }
-
-  protected closeAddMenu(): void {
-    this.addMenuOpen.set(false);
   }
 
   /**

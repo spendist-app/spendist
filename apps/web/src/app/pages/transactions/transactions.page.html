@@ -797,21 +797,28 @@
 </div>
 }
 
-<div
-  #addMenu
-  tabindex="-1"
-  class="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-3 sm:bottom-8 sm:right-8"
-  (pointerenter)="openAddMenu()"
-  (pointerleave)="handleAddMenuPointerLeave()"
-  (focusin)="openAddMenu()"
-  (focusout)="handleAddMenuFocusOut($event)"
-  (keydown.escape)="closeAddMenu(); $event.stopPropagation()"
->
-  @if (addMenuOpen()) {
+<div class="fixed bottom-6 right-6 z-40 sm:bottom-8 sm:right-8">
+  <button
+    type="button"
+    #addMenuTrigger
+    data-testid="transaction-add-menu-trigger"
+    class="btn btn-primary btn-circle shadow-lg transition-transform hover:scale-105"
+    [attr.aria-label]="'transactions.actions.openMenu' | transloco"
+    [attr.title]="'transactions.actions.openMenuShortcutHint' | transloco"
+    aria-haspopup="menu"
+    aria-keyshortcuts="Alt+N N"
+  >
+    <ng-icon [svg]="addIcon" size="24" aria-hidden="true"></ng-icon>
+    <span class="sr-only"
+      >{{ 'transactions.actions.openMenu' | transloco }}</span
+    >
+  </button>
   <div
-    id="transaction-add-actions"
     role="menu"
-    class="flex w-max flex-col items-end gap-2"
+    class="dropdown dropdown-top dropdown-end w-max flex-col items-end gap-2 overflow-visible [&:popover-open]:flex"
+    [appPopoverMenu]="addMenuTrigger"
+    [appPopoverMenuOpenOnHover]="true"
+    [attr.aria-label]="'transactions.actions.openMenu' | transloco"
   >
     <button
       type="button"
@@ -843,26 +850,6 @@
       {{ 'transactions.actions.addFromFile' | transloco }}
     </button>
   </div>
-  }
-
-  <button
-    type="button"
-    #addMenuTrigger
-    data-testid="transaction-add-menu-trigger"
-    class="btn btn-primary btn-circle shadow-lg transition-transform hover:scale-105"
-    [attr.aria-label]="'transactions.actions.openMenu' | transloco"
-    [attr.title]="'transactions.actions.openMenuShortcutHint' | transloco"
-    [attr.aria-expanded]="addMenuOpen()"
-    aria-haspopup="menu"
-    aria-controls="transaction-add-actions"
-    aria-keyshortcuts="Alt+N N"
-    (click)="openAddMenu()"
-  >
-    <ng-icon [svg]="addIcon" size="24" aria-hidden="true"></ng-icon>
-    <span class="sr-only"
-      >{{ 'transactions.actions.openMenu' | transloco }}</span
-    >
-  </button>
 </div>
 
 @if (createFormOpen()) { @let mode = formMode(); @let editing =

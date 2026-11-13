@@ -198,15 +198,13 @@
                 (ngModelChange)="updateRow(row.id, 'occurredOn', $event)"
                 (focus)="setFocusedRow($index)"
               />
-              <details class="dropdown dropdown-end">
-                <summary class="btn btn-ghost btn-square btn-sm list-none [&::-webkit-details-marker]:hidden" [attr.aria-label]="'transactions.bulk.actions.copyField' | transloco">
-                  <ng-icon [svg]="copyMenuIcon" size="18" aria-hidden="true"></ng-icon>
-                </summary>
-                <ul class="menu dropdown-content z-30 w-56 rounded-box border border-base-200 bg-base-100 p-2 shadow-xl">
-                  <li><button type="button" (click)="copyFieldAndClose(row.id, 'occurredOn', 'up', $event)"><ng-icon [svg]="copyUpIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyAbove' | transloco }}</button></li>
-                  <li><button type="button" (click)="copyFieldAndClose(row.id, 'occurredOn', 'down', $event)"><ng-icon [svg]="copyDownIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyBelow' | transloco }}</button></li>
-                </ul>
-              </details>
+              <button #copyOccurredOnTrigger type="button" class="btn btn-ghost btn-square btn-sm" aria-haspopup="menu" [attr.aria-label]="'transactions.bulk.actions.copyField' | transloco">
+                <ng-icon [svg]="copyMenuIcon" size="18" aria-hidden="true"></ng-icon>
+              </button>
+              <ul role="menu" class="dropdown dropdown-end menu w-56 rounded-box border border-base-200 bg-base-100 p-2 shadow-xl" [appPopoverMenu]="copyOccurredOnTrigger" [attr.aria-label]="'transactions.bulk.actions.copyField' | transloco">
+                <li role="none"><button type="button" role="menuitem" (click)="copyField(row.id, 'occurredOn', 'up')"><ng-icon [svg]="copyUpIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyAbove' | transloco }}</button></li>
+                <li role="none"><button type="button" role="menuitem" (click)="copyField(row.id, 'occurredOn', 'down')"><ng-icon [svg]="copyDownIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyBelow' | transloco }}</button></li>
+              </ul>
             </div>
           </div>
 
@@ -243,13 +241,13 @@
                 <option [value]="option.symbol">{{ option.symbol }}</option>
                 }
               </select>
-              <details class="dropdown dropdown-end">
-                <summary class="btn btn-ghost btn-square btn-sm list-none [&::-webkit-details-marker]:hidden" [attr.aria-label]="'transactions.bulk.actions.copyField' | transloco"><ng-icon [svg]="copyMenuIcon" size="18" aria-hidden="true"></ng-icon></summary>
-                <ul class="menu dropdown-content z-30 w-56 rounded-box border border-base-200 bg-base-100 p-2 shadow-xl">
-                  <li><button type="button" (click)="copyFieldAndClose(row.id, 'currency', 'up', $event)"><ng-icon [svg]="copyUpIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyAbove' | transloco }}</button></li>
-                  <li><button type="button" (click)="copyFieldAndClose(row.id, 'currency', 'down', $event)"><ng-icon [svg]="copyDownIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyBelow' | transloco }}</button></li>
-                </ul>
-              </details>
+              <button #copyCurrencyTrigger type="button" class="btn btn-ghost btn-square btn-sm" aria-haspopup="menu" [attr.aria-label]="'transactions.bulk.actions.copyField' | transloco">
+                <ng-icon [svg]="copyMenuIcon" size="18" aria-hidden="true"></ng-icon>
+              </button>
+              <ul role="menu" class="dropdown dropdown-end menu w-56 rounded-box border border-base-200 bg-base-100 p-2 shadow-xl" [appPopoverMenu]="copyCurrencyTrigger" [attr.aria-label]="'transactions.bulk.actions.copyField' | transloco">
+                <li role="none"><button type="button" role="menuitem" (click)="copyField(row.id, 'currency', 'up')"><ng-icon [svg]="copyUpIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyAbove' | transloco }}</button></li>
+                <li role="none"><button type="button" role="menuitem" (click)="copyField(row.id, 'currency', 'down')"><ng-icon [svg]="copyDownIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyBelow' | transloco }}</button></li>
+              </ul>
             </div>
           </div>
 
@@ -262,13 +260,13 @@
                 <span class="mt-1 block text-xs text-warning">{{ 'transactions.import.sourceCategory' | transloco: { name: row.sourceCategory } }}</span>
                 }
               </div>
-              <details class="dropdown dropdown-end">
-                <summary class="btn btn-ghost btn-square btn-sm list-none [&::-webkit-details-marker]:hidden" [attr.aria-label]="'transactions.bulk.actions.copyField' | transloco"><ng-icon [svg]="copyMenuIcon" size="18" aria-hidden="true"></ng-icon></summary>
-                <ul class="menu dropdown-content z-30 w-56 rounded-box border border-base-200 bg-base-100 p-2 shadow-xl">
-                  <li><button type="button" (click)="copyFieldAndClose(row.id, 'categoryId', 'up', $event)"><ng-icon [svg]="copyUpIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyAbove' | transloco }}</button></li>
-                  <li><button type="button" (click)="copyFieldAndClose(row.id, 'categoryId', 'down', $event)"><ng-icon [svg]="copyDownIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyBelow' | transloco }}</button></li>
-                </ul>
-              </details>
+              <button #copyCategoryIdTrigger type="button" class="btn btn-ghost btn-square btn-sm" aria-haspopup="menu" [attr.aria-label]="'transactions.bulk.actions.copyField' | transloco">
+                <ng-icon [svg]="copyMenuIcon" size="18" aria-hidden="true"></ng-icon>
+              </button>
+              <ul role="menu" class="dropdown dropdown-end menu w-56 rounded-box border border-base-200 bg-base-100 p-2 shadow-xl" [appPopoverMenu]="copyCategoryIdTrigger" [attr.aria-label]="'transactions.bulk.actions.copyField' | transloco">
+                <li role="none"><button type="button" role="menuitem" (click)="copyField(row.id, 'categoryId', 'up')"><ng-icon [svg]="copyUpIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyAbove' | transloco }}</button></li>
+                <li role="none"><button type="button" role="menuitem" (click)="copyField(row.id, 'categoryId', 'down')"><ng-icon [svg]="copyDownIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyBelow' | transloco }}</button></li>
+              </ul>
             </div>
           </div>
 
@@ -276,13 +274,13 @@
             <span class="label-text mb-1 block text-xs font-semibold uppercase text-base-content/50 xl:hidden">{{ 'transactions.bulk.columns.tags' | transloco }}</span>
             <div class="flex gap-1">
               <input type="text" class="input input-bordered input-sm min-w-0 flex-1" [ngModel]="row.tags" (ngModelChange)="updateRow(row.id, 'tags', $event)" (focus)="setFocusedRow($index)" [placeholder]="'transactions.form.fields.tags' | transloco" />
-              <details class="dropdown dropdown-end">
-                <summary class="btn btn-ghost btn-square btn-sm list-none [&::-webkit-details-marker]:hidden" [attr.aria-label]="'transactions.bulk.actions.copyField' | transloco"><ng-icon [svg]="copyMenuIcon" size="18" aria-hidden="true"></ng-icon></summary>
-                <ul class="menu dropdown-content z-30 w-56 rounded-box border border-base-200 bg-base-100 p-2 shadow-xl">
-                  <li><button type="button" (click)="copyFieldAndClose(row.id, 'tags', 'up', $event)"><ng-icon [svg]="copyUpIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyAbove' | transloco }}</button></li>
-                  <li><button type="button" (click)="copyFieldAndClose(row.id, 'tags', 'down', $event)"><ng-icon [svg]="copyDownIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyBelow' | transloco }}</button></li>
-                </ul>
-              </details>
+              <button #copyTagsTrigger type="button" class="btn btn-ghost btn-square btn-sm" aria-haspopup="menu" [attr.aria-label]="'transactions.bulk.actions.copyField' | transloco">
+                <ng-icon [svg]="copyMenuIcon" size="18" aria-hidden="true"></ng-icon>
+              </button>
+              <ul role="menu" class="dropdown dropdown-end menu w-56 rounded-box border border-base-200 bg-base-100 p-2 shadow-xl" [appPopoverMenu]="copyTagsTrigger" [attr.aria-label]="'transactions.bulk.actions.copyField' | transloco">
+                <li role="none"><button type="button" role="menuitem" (click)="copyField(row.id, 'tags', 'up')"><ng-icon [svg]="copyUpIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyAbove' | transloco }}</button></li>
+                <li role="none"><button type="button" role="menuitem" (click)="copyField(row.id, 'tags', 'down')"><ng-icon [svg]="copyDownIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyBelow' | transloco }}</button></li>
+              </ul>
             </div>
             @if (importMode() && unknownTagNames(row.tags).length > 0) {
             <span class="mt-1 block text-xs text-warning">{{ 'transactions.import.sourceTags' | transloco: { names: unknownTagNames(row.tags).join(', ') } }}</span>
@@ -298,13 +296,13 @@
                 <option [value]="place.id">{{ place.name }}</option>
                 }
               </select>
-              <details class="dropdown dropdown-end">
-                <summary class="btn btn-ghost btn-square btn-sm list-none [&::-webkit-details-marker]:hidden" [attr.aria-label]="'transactions.bulk.actions.copyField' | transloco"><ng-icon [svg]="copyMenuIcon" size="18" aria-hidden="true"></ng-icon></summary>
-                <ul class="menu dropdown-content z-30 w-56 rounded-box border border-base-200 bg-base-100 p-2 shadow-xl">
-                  <li><button type="button" (click)="copyFieldAndClose(row.id, 'placeId', 'up', $event)"><ng-icon [svg]="copyUpIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyAbove' | transloco }}</button></li>
-                  <li><button type="button" (click)="copyFieldAndClose(row.id, 'placeId', 'down', $event)"><ng-icon [svg]="copyDownIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyBelow' | transloco }}</button></li>
-                </ul>
-              </details>
+              <button #copyPlaceIdTrigger type="button" class="btn btn-ghost btn-square btn-sm" aria-haspopup="menu" [attr.aria-label]="'transactions.bulk.actions.copyField' | transloco">
+                <ng-icon [svg]="copyMenuIcon" size="18" aria-hidden="true"></ng-icon>
+              </button>
+              <ul role="menu" class="dropdown dropdown-end menu w-56 rounded-box border border-base-200 bg-base-100 p-2 shadow-xl" [appPopoverMenu]="copyPlaceIdTrigger" [attr.aria-label]="'transactions.bulk.actions.copyField' | transloco">
+                <li role="none"><button type="button" role="menuitem" (click)="copyField(row.id, 'placeId', 'up')"><ng-icon [svg]="copyUpIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyAbove' | transloco }}</button></li>
+                <li role="none"><button type="button" role="menuitem" (click)="copyField(row.id, 'placeId', 'down')"><ng-icon [svg]="copyDownIcon" size="16" aria-hidden="true"></ng-icon>{{ 'transactions.bulk.actions.copyBelow' | transloco }}</button></li>
+              </ul>
             </div>
           </div>
 

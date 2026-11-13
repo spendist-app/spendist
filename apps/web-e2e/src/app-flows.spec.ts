@@ -522,6 +522,86 @@ test('signs out and blocks protected routes afterwards', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'Log in' })).toBeVisible();
 });
 
+test('operates the account menu popover with keyboard and pointer', async ({
+  page,
+}) => {
+  await ensureAuthenticated(page);
+
+  const trigger = page.getByRole('button', { name: 'Settings' });
+  const menu = page.getByRole('menu', { name: 'Settings' });
+  const items = menu.getByRole('menuitem');
+
+  await trigger.focus();
+  await page.keyboard.press('Enter');
+
+  await expect(menu).toBeVisible();
+  await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+  await expect(items.first()).toBeFocused();
+
+  await page.keyboard.press('ArrowDown');
+  await expect(items.nth(1)).toBeFocused();
+  await page.keyboard.press('End');
+  await expect(items.last()).toBeFocused();
+  await page.keyboard.press('ArrowDown');
+  await expect(items.first()).toBeFocused();
+
+  await page.keyboard.press('Escape');
+  await expect(menu).toBeHidden();
+  await expect(trigger).toBeFocused();
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+
+  // A pointer open stays on the trigger; a click elsewhere closes the menu.
+  await trigger.click();
+  await expect(menu).toBeVisible();
+  await page.getByRole('heading', { name: DASHBOARD_HEADING }).click();
+  await expect(menu).toBeHidden();
+
+  // The menu sits next to its trigger, not centered on the screen.
+  await trigger.click();
+
+  const triggerBox = await trigger.boundingBox();
+  const menuBox = await menu.boundingBox();
+
+  expect(menuBox?.y ?? 0).toBeGreaterThanOrEqual(
+    (triggerBox?.y ?? 0) + (triggerBox?.height ?? 0)
+  );
+  // Aligned to the trigger's end edge (allowing for the avatar's ring).
+  expect(
+    Math.abs(
+      (menuBox?.x ?? 0) +
+        (menuBox?.width ?? 0) -
+        ((triggerBox?.x ?? 0) + (triggerBox?.width ?? 0))
+    )
+  ).toBeLessThanOrEqual(16);
+});
+
+test('previews the add menu on mouse hover and keeps it open on click', async ({
+  page,
+  browserName,
+}) => {
+  test.skip(
+    browserName === 'firefox',
+    'Playwright Firefox reports an empty pointerType, which the menu does not treat as a hovering mouse.'
+  );
+
+  await ensureAuthenticated(page);
+  await openTransactions(page);
+
+  const trigger = page.getByTestId('transaction-add-menu-trigger');
+  const menu = page.getByRole('menu', { name: 'Open transaction actions' });
+
+  await trigger.hover();
+  await expect(menu).toBeVisible();
+
+  // A click right after the hover preview keeps the menu open.
+  await trigger.click();
+  await expect(menu).toBeVisible();
+
+  // Leaving both the trigger and the menu closes it.
+  await page.mouse.move(10, 10);
+  await expect(menu).toBeHidden();
+});
+
 test('shows password change validation in settings', async ({ page }) => {
   await ensureAuthenticated(page);
   await openSettings(page);
@@ -930,7 +1010,7 @@ test('exposes bulk entry and applies year, month, and amount sorting', async ({
   await openTransactions(page);
 
   const addTrigger = page.getByTestId('transaction-add-menu-trigger');
-  await addTrigger.hover();
+  await addTrigger.click();
   const bulkAction = page.getByRole('menuitem', { name: 'Add in bulk' });
   await expect(bulkAction).toBeVisible();
   await bulkAction.click();
@@ -945,11 +1025,26 @@ test('exposes bulk entry and applies year, month, and amount sorting', async ({
     (await firstDateInput.boundingBox())?.width ?? 0
   ).toBeGreaterThanOrEqual(128);
 
-  const firstCopyMenu = bulkDialog.locator('details').first();
-  await firstCopyMenu.locator('summary').click();
-  await expect(firstCopyMenu).toHaveAttribute('open', '');
-  await firstCopyMenu.getByRole('button', { name: 'Fill rows below' }).click();
-  await expect(firstCopyMenu).not.toHaveAttribute('open', '');
+  // Copy menus are popovers: in the top layer, above the dialog's scroll box.
+  const firstCopyTrigger = bulkDialog.locator('[aria-haspopup="menu"]').first();
+  const firstCopyMenu = bulkDialog.locator('[role="menu"]').first();
+  await expect(firstCopyMenu).toBeHidden();
+  await firstCopyTrigger.click();
+  await expect(firstCopyMenu).toBeVisible();
+  await expect(firstCopyTrigger).toHaveAttribute('aria-expanded', 'true');
+  await firstCopyMenu
+    .getByRole('menuitem', { name: 'Fill rows below' })
+    .click();
+  await expect(firstCopyMenu).toBeHidden();
+  await expect(firstCopyTrigger).toHaveAttribute('aria-expanded', 'false');
+  await expect(bulkDialog).toBeVisible();
+
+  // Esc closes only the menu, not the dialog around it.
+  await firstCopyTrigger.click();
+  await expect(firstCopyMenu).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(firstCopyMenu).toBeHidden();
+  await expect(bulkDialog).toBeVisible();
 
   await bulkDialog
     .getByRole('button', { name: 'Category', exact: true })
@@ -1080,7 +1175,7 @@ test('keeps repeated CSV rows on first import and skips a repeat', async ({
   await openTransactions(page);
 
   const importOnce = async () => {
-    await page.getByTestId('transaction-add-menu-trigger').hover();
+    await page.getByTestId('transaction-add-menu-trigger').click();
     await page.getByTestId('transaction-import-open').click();
 
     const importDialog = page.getByRole('dialog', {
@@ -1184,7 +1279,7 @@ test('imports and edits a Biedronka e-receipt before saving', async ({
 
   await ensureAuthenticated(page);
   await openTransactions(page);
-  await page.getByTestId('transaction-add-menu-trigger').hover();
+  await page.getByTestId('transaction-add-menu-trigger').click();
   await page.getByTestId('transaction-import-open').click();
 
   const importDialog = page.getByRole('dialog', {
@@ -1695,7 +1790,10 @@ test('stopped recurring payments keep reopened amounts out of the posting form',
 
   await ensureAuthenticated(page);
   await openModule(page, 'Recurring payments', 'Active recurring payments');
-  await page.getByRole('button', { name: /Add recurring/i }).last().click();
+  await page
+    .getByRole('button', { name: /Add recurring/i })
+    .last()
+    .click();
 
   await page.locator('#recurring-name').fill(name);
   await selectFirstCategoryOption(page);

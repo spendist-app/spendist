@@ -3,6 +3,37 @@
 
 /* You can add global styles to this file, and also import other style files */
 
+/*
+ * Popover dropdowns (PopoverMenuDirective). DaisyUI places `.dropdown[popover]`
+ * with anchor positioning; keep a gap to the trigger and flip the menu when it
+ * would overflow the viewport. Margins flip together with the menu.
+ */
+@supports (position-area: bottom) {
+  .dropdown[popover] {
+    /* Replace the UA popover centering (inset: 0; margin: auto). */
+    inset: auto;
+    margin: 0.5rem 0;
+    position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
+  }
+}
+
+/*
+ * Without anchor positioning the menu is placed from script; drop the
+ * centering and the dimmed backdrop DaisyUI uses there. The backdrop would
+ * also sit under the pointer and end a hover preview.
+ */
+.dropdown[popover][data-anchor-fallback] {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+}
+
+.dropdown[popover][data-anchor-fallback]::backdrop {
+  display: none;
+  background: transparent;
+  pointer-events: none;
+}
+
 @layer base {
   :root {
     color-scheme: light;

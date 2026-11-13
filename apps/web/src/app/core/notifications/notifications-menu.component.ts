@@ -10,24 +10,27 @@ import { heroBell, heroCheck } from '@ng-icons/heroicons/outline';
 import { TranslocoPipe } from '@ngneat/transloco';
 import type { NotificationRow } from '@spendist/data-access/supabase-types';
 import { NotificationsStore } from './notifications.store';
+import { PopoverMenuDirective } from '../../shared/popover-menu/popover-menu.directive';
 
-const notificationPayload = z.object({
-  description: z.unknown(),
-  amount: z.unknown(),
-  currency: z.unknown(),
-  end_date: z.unknown(),
-  error: z.unknown(),
-  invitation_id: z.unknown(),
-  inviter_name: z.unknown(),
-  payer_name: z.unknown(),
-  recipient_name: z.unknown(),
-  accounts_total: z.unknown(),
-}).partial();
+const notificationPayload = z
+  .object({
+    description: z.unknown(),
+    amount: z.unknown(),
+    currency: z.unknown(),
+    end_date: z.unknown(),
+    error: z.unknown(),
+    invitation_id: z.unknown(),
+    inviter_name: z.unknown(),
+    payer_name: z.unknown(),
+    recipient_name: z.unknown(),
+    accounts_total: z.unknown(),
+  })
+  .partial();
 
 @Component({
   standalone: true,
   selector: 'app-notifications-menu',
-  imports: [NgIcon, TranslocoPipe],
+  imports: [NgIcon, PopoverMenuDirective, TranslocoPipe],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './notifications-menu.component.html',
 })

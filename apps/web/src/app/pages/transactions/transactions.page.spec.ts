@@ -760,22 +760,28 @@ describe('TransactionsPageComponent', () => {
     expect(component['createFormOpen']()).toBe(false);
   });
 
-  it('opens the add action menu from the main add button', () => {
+  it('wires the add button to its popover actions menu', async () => {
     const fixture = TestBed.createComponent(TransactionsPageComponent);
-    fixture.detectChanges();
 
-    const component = fixture.componentInstance;
+    await fixture.whenStable();
+
+    const root = fixtureElement(fixture);
 
     const addButton = requiredValue(
-      fixtureElement(fixture).querySelector<HTMLElement>(
+      root.querySelector<HTMLElement>(
         '[data-testid="transaction-add-menu-trigger"]'
       )
     );
 
-    addButton.click();
+    const menu = requiredValue(
+      root.querySelector<HTMLElement>('[role="menu"]')
+    );
 
-    expect(component['addMenuOpen']()).toBe(true);
-    expect(component['createFormOpen']()).toBe(false);
+    expect(menu.getAttribute('popover')).toBe('auto');
+    expect(addButton.getAttribute('commandfor')).toBe(menu.id);
+    expect(addButton.getAttribute('command')).toBe('toggle-popover');
+    expect(addButton.getAttribute('aria-expanded')).toBe('false');
+    expect(fixture.componentInstance['createFormOpen']()).toBe(false);
   });
 
   it('opens single entry from the add action menu', () => {
@@ -795,7 +801,7 @@ describe('TransactionsPageComponent', () => {
 
     const singleButton = requiredValue(
       fixtureElement(fixture).querySelector<HTMLButtonElement>(
-        '#transaction-add-actions button:first-child'
+        '[role="menu"] button:first-child'
       )
     );
 
@@ -858,26 +864,6 @@ describe('TransactionsPageComponent', () => {
     expect(
       fixtureElement(fixture).querySelector('app-transaction-import-form')
     ).toBeTruthy();
-  });
-
-  it('closes the add speed dial with Escape', () => {
-    const fixture = TestBed.createComponent(TransactionsPageComponent);
-    fixture.detectChanges();
-
-    const component = fixture.componentInstance;
-
-    component['openAddMenu']();
-    fixture.detectChanges();
-
-    document.dispatchEvent(
-      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
-    );
-    fixture.detectChanges();
-
-    expect(component['addMenuOpen']()).toBe(false);
-    expect(
-      fixtureElement(fixture).querySelector('#transaction-add-actions')
-    ).toBeNull();
   });
 
   it('shows a transient toast after a transaction is saved', () => {

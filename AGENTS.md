@@ -73,6 +73,8 @@ All content in `doc/`, `llm.txt`, and `llm-full.txt` is English. Document curren
 - `LanguageService` persists language and updates `document.lang`; `ThemeService` persists the light/dark choice.
 - Use `@ng-icons/core` and Heroicons. Persist canonical `hero...` names through `HeroIconPickerComponent` and normalize them with `canonicalHeroIconName` in `settings.store.ts`.
 - Prefer native platform features over hand-built UI behaviour. Build modals with a native `<dialog>` opened by `showModal()` (DaisyUI `modal` classes), not a `role="dialog"` overlay with manual focus or `Esc` handling; use the Popover API for menus and tooltips where it fits.
+- Build dropdown menus and panels with `appPopoverMenu` (`shared/popover-menu`): a DaisyUI `dropdown` element placed right after its trigger button becomes an auto popover with anchor positioning, a script fallback, ARIA menu keyboard support and optional hover preview. Link a field's error message with `appFieldError="<error id>"` and add `appFocusFirstInvalid` to the reactive form (`shared/form-errors`), so screen readers get `aria-invalid`, the linked message and focus on the first invalid field.
+- Enter/Escape handlers on text inputs must ignore IME composition (`isImeComposing` in `shared/keyboard-events.ts`).
 - Before building or changing UI behaviour (dialogs, popovers, menus, forms, animations, layout, INP/performance, accessibility), look up the current guidance and browser support with `npx -y modern-web-guidance@latest search "<topic>"`, then `retrieve "<id>"`. Apply it within Angular and DaisyUI conventions. Its `legacy-scan` command reports almost nothing for this codebase; do not treat a clean scan as an audit.
 
 ## Database and security rules

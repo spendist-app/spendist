@@ -387,23 +387,38 @@ describe('TransactionBulkCreateFormComponent', () => {
     expect(component['activeRows']()).toHaveLength(1);
   });
 
-  it('closes the copy menu after applying an action', () => {
+  it('copies a field down from the row copy menu popover', async () => {
     const fixture = TestBed.createComponent(TransactionBulkCreateFormComponent);
-    fixture.detectChanges();
 
-    const firstMenu = requiredValue(
-      fixtureElement(fixture).querySelector<HTMLDetailsElement>('details')
+    await fixture.whenStable();
+
+    const component = fixture.componentInstance;
+    const root = fixtureElement(fixture);
+    const [first, second] = component['rows']();
+
+    component['updateRow'](requiredValue(first).id, 'tags', 'home');
+    await fixture.whenStable();
+
+    // Copy menus per row: date, currency, category, tags, place.
+    const tagsMenu = requiredValue(
+      root.querySelectorAll<HTMLElement>('[role="menu"]')[3]
     );
 
-    const copyBelow = requiredValue(
-      firstMenu.querySelector<HTMLButtonElement>('ul li:last-child button')
+    const trigger = requiredValue(
+      root.querySelector<HTMLButtonElement>(`[commandfor="${tagsMenu.id}"]`)
     );
 
-    firstMenu.open = true;
-    copyBelow.click();
-    fixture.detectChanges();
+    expect(tagsMenu.getAttribute('popover')).toBe('auto');
+    expect(trigger.getAttribute('aria-haspopup')).toBe('menu');
 
-    expect(firstMenu.open).toBe(false);
+    requiredValue(
+      tagsMenu.querySelector<HTMLButtonElement>('li:last-child button')
+    ).click();
+
+    expect(
+      component['rows']().find((row) => row.id === requiredValue(second).id)
+        ?.tags
+    ).toBe('home');
   });
 
   it('accepts the new pasted column order with quantity', async () => {

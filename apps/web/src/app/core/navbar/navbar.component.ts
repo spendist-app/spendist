@@ -17,6 +17,7 @@ import { FeatureFlagsService } from '../feature-flags.service';
 import { LanguageService } from '../language.service';
 import { NotificationsMenuComponent } from '../notifications/notifications-menu.component';
 import { ProfileService } from '../profile.service';
+import { PopoverMenuDirective } from '../../shared/popover-menu/popover-menu.directive';
 import { ThemeService } from '../theme.service';
 import { appInfoConfig } from '../../config/app-info.config';
 import type { LanguageCode } from '../../i18n/languages';
@@ -29,6 +30,7 @@ import type { LanguageCode } from '../../i18n/languages';
     RouterLinkActive,
     TranslocoPipe,
     NotificationsMenuComponent,
+    PopoverMenuDirective,
   ],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './navbar.component.html',
@@ -42,8 +44,6 @@ export class NavbarComponent {
   private readonly themeService = inject(ThemeService);
   private readonly languageService = inject(LanguageService);
 
-  readonly modulesMenuOpen = signal(false);
-  readonly accountMenuOpen = signal(false);
   readonly aboutModalOpen = signal(false);
   private readonly aboutDialog =
     viewChild<ElementRef<HTMLDialogElement>>('aboutDialog');
@@ -55,8 +55,6 @@ export class NavbarComponent {
   readonly buildCommit = appInfoConfig.buildCommit;
   readonly buildCommitShort = shortCommit(appInfoConfig.buildCommit);
   readonly avatarUrl = computed(() => this.profileService.avatarUrl());
-  private modulesCloseTimer: ReturnType<typeof setTimeout> | null = null;
-  private accountCloseTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly initials = computed(() => {
     const profile = this.profileService.profile();
@@ -85,7 +83,11 @@ export class NavbarComponent {
     afterRenderEffect(() => {
       const dialog = this.aboutDialog()?.nativeElement;
 
-      if (dialog && 'showModal' in HTMLDialogElement.prototype && !dialog.open) {
+      if (
+        dialog &&
+        'showModal' in HTMLDialogElement.prototype &&
+        !dialog.open
+      ) {
         dialog.showModal();
       }
     });
@@ -101,37 +103,7 @@ export class NavbarComponent {
     this.isDark() ? 'common.theme.useLight' : 'common.theme.useDark'
   );
 
-  openModulesMenu(): void {
-    this.cancelModulesClose();
-    this.modulesMenuOpen.set(true);
-  }
-
-  closeModulesMenu(): void {
-    this.cancelModulesClose();
-    this.modulesMenuOpen.set(false);
-  }
-
-  scheduleCloseModulesMenu(): void {
-    this.cancelModulesClose();
-    this.modulesCloseTimer = setTimeout(() => {
-      this.modulesMenuOpen.set(false);
-      this.modulesCloseTimer = null;
-    }, 180);
-  }
-
-  toggleModulesMenu(): void {
-    this.cancelModulesClose();
-    this.modulesMenuOpen.update((open) => !open);
-  }
-
-  closeAccountMenu(): void {
-    this.cancelAccountClose();
-    this.accountMenuOpen.set(false);
-  }
-
   openAboutModal(): void {
-    this.closeAccountMenu();
-    this.closeModulesMenu();
     this.aboutModalOpen.set(true);
   }
 
@@ -152,80 +124,11 @@ export class NavbarComponent {
     this.aboutModalOpen.set(false);
   }
 
-  scheduleCloseAccountMenu(): void {
-    this.cancelAccountClose();
-    this.accountCloseTimer = setTimeout(() => {
-      this.accountMenuOpen.set(false);
-      this.accountCloseTimer = null;
-    }, 180);
-  }
-
-  toggleAccountMenu(): void {
-    this.cancelAccountClose();
-    this.accountMenuOpen.update((open) => !open);
-  }
-
-  handleModulesFocusOut(event: FocusEvent): void {
-    const nextElement =
-      event.relatedTarget instanceof HTMLElement ? event.relatedTarget : null;
-
-    const currentTarget =
-      event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
-
-    if (!currentTarget) {
-      this.closeModulesMenu();
-
-      return;
-    }
-
-    if (!nextElement || !currentTarget.contains(nextElement)) {
-      this.scheduleCloseModulesMenu();
-    }
-  }
-
-  handleAccountFocusOut(event: FocusEvent): void {
-    const nextElement =
-      event.relatedTarget instanceof HTMLElement ? event.relatedTarget : null;
-
-    const currentTarget =
-      event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
-
-    if (!currentTarget) {
-      this.closeAccountMenu();
-
-      return;
-    }
-
-    if (!nextElement || !currentTarget.contains(nextElement)) {
-      this.scheduleCloseAccountMenu();
-    }
-  }
-
-  private cancelModulesClose(): void {
-    if (!this.modulesCloseTimer) {
-      return;
-    }
-
-    clearTimeout(this.modulesCloseTimer);
-    this.modulesCloseTimer = null;
-  }
-
-  private cancelAccountClose(): void {
-    if (!this.accountCloseTimer) {
-      return;
-    }
-
-    clearTimeout(this.accountCloseTimer);
-    this.accountCloseTimer = null;
-  }
-
   toggleTheme(): void {
     this.themeService.toggleTheme();
-    this.closeAccountMenu();
   }
 
   async signOut(): Promise<void> {
-    this.closeAccountMenu();
     await this.auth.signOut();
     await this.router.navigateByUrl('/');
   }
