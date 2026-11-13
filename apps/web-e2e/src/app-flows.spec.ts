@@ -633,6 +633,52 @@ test('shows password change validation in settings', async ({ page }) => {
   );
 });
 
+test.describe('theme before the app boots', () => {
+  test.use({ colorScheme: 'dark' });
+
+  test.beforeEach(async ({ page }) => {
+    // Without the app bundle, only theme-init.js can set the theme.
+    await page.route(/\/main(-\w+)?\.js(\?|$)/, (route) => route.abort());
+  });
+
+  test('applies the saved theme', async ({ page }) => {
+    await page.goto('/login');
+    await page.evaluate(() =>
+      localStorage.setItem('spendist-theme', 'spendistDark')
+    );
+    await page.reload();
+    await expect(page.locator('html')).toHaveAttribute(
+      'data-theme',
+      'spendistDark'
+    );
+
+    await page.evaluate(() =>
+      localStorage.setItem('spendist-theme', 'spendistLight')
+    );
+    await page.reload();
+    await expect(page.locator('html')).toHaveAttribute(
+      'data-theme',
+      'spendistLight'
+    );
+  });
+
+  test('follows the system theme when none is saved', async ({
+    page,
+    browserName,
+  }) => {
+    test.skip(
+      browserName === 'firefox',
+      'Playwright Firefox does not apply the emulated color scheme to this page.'
+    );
+
+    await page.goto('/login');
+    await expect(page.locator('html')).toHaveAttribute(
+      'data-theme',
+      'spendistDark'
+    );
+  });
+});
+
 test('exposes login field errors to assistive technology', async ({ page }) => {
   await page.goto('/login');
 
