@@ -394,7 +394,9 @@
 
           @if (!isEditMode() && !isRecipientExpenseTarget()) {
           <label class="form-control">
-            <span class="label-text text-sm font-semibold text-base-content">
+            <span
+              class="label-text block text-sm font-semibold text-base-content"
+            >
               {{ 'transactions.form.fields.quantity' | transloco }}
             </span>
             <input
@@ -404,7 +406,7 @@
               max="50"
               class="input input-bordered"
             />
-            <span class="label-text-alt text-xs text-base-content/60">
+            <span class="label-text-alt block text-xs text-base-content/60">
               {{ 'transactions.form.help.quantity' | transloco }}
             </span>
           </label>
