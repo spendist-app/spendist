@@ -72,6 +72,8 @@ All content in `doc/`, `llm.txt`, and `llm-full.txt` is English. Document curren
 - English and Polish use Transloco. Add matching keys to both translation files; do not hard-code user-facing copy in a component.
 - `LanguageService` persists language and updates `document.lang`; `ThemeService` persists the light/dark choice.
 - Use `@ng-icons/core` and Heroicons. Persist canonical `hero...` names through `HeroIconPickerComponent` and normalize them with `canonicalHeroIconName` in `settings.store.ts`.
+- Prefer native platform features over hand-built UI behaviour. Build modals with a native `<dialog>` opened by `showModal()` (DaisyUI `modal` classes), not a `role="dialog"` overlay with manual focus or `Esc` handling; use the Popover API for menus and tooltips where it fits.
+- Before building or changing UI behaviour (dialogs, popovers, menus, forms, animations, layout, INP/performance, accessibility), look up the current guidance and browser support with `npx -y modern-web-guidance@latest search "<topic>"`, then `retrieve "<id>"`. Apply it within Angular and DaisyUI conventions. Its `legacy-scan` command reports almost nothing for this codebase; do not treat a clean scan as an audit.
 
 ## Database and security rules
 
