@@ -16,7 +16,8 @@ const DEFAULT_PASSWORD = 'Test1234!';
 
 const DASHBOARD_HEADING = 'Your personalised command centre';
 
-const MAILPIT_URL = 'http://127.0.0.1:55324';
+// Loaded from the E2E env file by playwright.config.ts.
+const MAILPIT_URL = process.env['E2E_MAILPIT_URL'] ?? 'http://127.0.0.1:55324';
 
 const MAILPIT_API_URL = `${MAILPIT_URL}/api/v1`;
 

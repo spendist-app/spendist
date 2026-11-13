@@ -4,8 +4,12 @@ import { defineConfig, devices } from '@playwright/test';
 import { nxE2EPreset } from '@nx/playwright/preset';
 import { workspaceRoot } from '@nx/devkit';
 
+// E2E runs its own dev server (web:serve:e2e) on a separate port, so it never
+// reuses a development server connected to the development database.
 // For CI, you may want to set BASE_URL to the deployed application.
-const baseURL = process.env['BASE_URL'] || 'http://localhost:4200';
+const E2E_APP_URL = 'http://localhost:4300';
+
+const baseURL = process.env['BASE_URL'] || E2E_APP_URL;
 
 const e2eEnvFile =
   process.env['E2E_ENV_FILE'] ||
@@ -41,8 +45,8 @@ export default defineConfig({
   webServer: process.env['PLAYWRIGHT_SKIP_WEBSERVER']
     ? undefined
     : {
-        command: `npx dotenv -e ${e2eEnvFile} -- npx nx serve web`,
-        url: 'http://localhost:4200',
+        command: `npx dotenv -e ${e2eEnvFile} -- npx nx serve web --configuration=e2e`,
+        url: E2E_APP_URL,
         reuseExistingServer: true,
         timeout: 180_000,
         cwd: workspaceRoot,

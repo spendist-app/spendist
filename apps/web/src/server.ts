@@ -35,6 +35,11 @@ const contentSecurityPolicyDirectives = {
     'http://localhost:55321',
     'ws://127.0.0.1:55321',
     'ws://localhost:55321',
+    // Separate local Supabase stack used by E2E tests (npm run e2e:supabase:start).
+    'http://127.0.0.1:53321',
+    'http://localhost:53321',
+    'ws://127.0.0.1:53321',
+    'ws://localhost:53321',
   ],
   frameSrc: ["'self'", 'https://challenges.cloudflare.com'],
   formAction: ["'self'"],

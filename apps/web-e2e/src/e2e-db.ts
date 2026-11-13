@@ -15,6 +15,8 @@ const AUTH_READY_TIMEOUT_MS = 90_000;
 
 const AUTH_READY_POLL_MS = 1000;
 
+const DEVELOPMENT_ENV_FILE = '.local_env';
+
 const DEFAULT_EMAIL = 'e2e-shared-user@gmail.com';
 
 const DEFAULT_ADMIN_EMAIL = 'e2e-admin-user@gmail.com';
@@ -55,13 +57,22 @@ export async function resetDatabase(phase: ResetPhase): Promise<void> {
     );
   }
 
-  const localDbUrl =
-    (envFile ? readEnvValue(envFile, 'SUPABASE_DB_URL') : null) ??
-    process.env['SUPABASE_DB_URL'];
+  const developmentDbUrls = [
+    envFile ? readEnvValue(envFile, 'SUPABASE_DB_URL') : null,
+    process.env['SUPABASE_DB_URL'],
+    existsSync(resolve(workspaceRoot, DEVELOPMENT_ENV_FILE))
+      ? readEnvValue(DEVELOPMENT_ENV_FILE, 'SUPABASE_DB_URL')
+      : null,
+  ];
 
-  if (localDbUrl && areSameDatabaseUrl(dbUrl, localDbUrl)) {
+  if (
+    developmentDbUrls.some(
+      (developmentDbUrl) =>
+        developmentDbUrl && areSameDatabaseUrl(dbUrl, developmentDbUrl)
+    )
+  ) {
     throw new Error(
-      'Refusing to reset database: SUPABASE_E2E_DB_URL points to SUPABASE_DB_URL.'
+      'Refusing to reset database: SUPABASE_E2E_DB_URL points to the development database (SUPABASE_DB_URL). Run `npm run e2e:supabase:start` and point the E2E env file at the E2E stack; see AGENTS.md.'
     );
   }
 
@@ -75,7 +86,22 @@ export async function resetDatabase(phase: ResetPhase): Promise<void> {
     );
   }
 
-  await resetDatabaseWithRetry(dbUrl, phase);
+  const workdir = resolveE2EWorkdir(envFile);
+
+  if (workdir) {
+    await runCommand('node', ['tools/scripts/e2e-supabase.mjs', 'start']);
+  }
+
+  await resetDatabaseWithRetry(dbUrl, workdir, phase);
+}
+
+/** Project directory of the separate local E2E Supabase stack, if used. */
+function resolveE2EWorkdir(envFile: string | null): string | null {
+  return (
+    (envFile ? readEnvValue(envFile, 'SUPABASE_E2E_WORKDIR') : null) ??
+    process.env['SUPABASE_E2E_WORKDIR'] ??
+    null
+  );
 }
 
 export async function ensureE2EAccount(): Promise<void> {
@@ -610,10 +636,11 @@ function base64UrlEncode(value: string): string {
 
 async function resetDatabaseWithRetry(
   dbUrl: string,
+  workdir: string | null,
   phase: ResetPhase
 ): Promise<void> {
   const attempts = resolveResetAttempts();
-  const resetArgs = resolveResetArgs(dbUrl);
+  const resetArgs = resolveResetArgs(dbUrl, workdir);
   let lastError: Error | null = null;
 
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
@@ -651,9 +678,10 @@ function resolveResetAttempts(): number {
     : DEFAULT_RESET_ATTEMPTS;
 }
 
-function resolveResetArgs(dbUrl: string): string[] {
+function resolveResetArgs(dbUrl: string, workdir: string | null): string[] {
   if (isLocalDatabaseUrl(dbUrl)) {
-    return [];
+    // Without --workdir the CLI resets the project in the working directory.
+    return workdir ? ['--workdir', workdir] : [];
   }
 
   return ['--db-url', dbUrl];
@@ -681,7 +709,12 @@ function normalizeDatabaseUrl(raw: string): string {
 
   try {
     const parsed = new URL(trimmed);
-    const protocol = parsed.protocol.toLowerCase();
+
+    // postgres:// and postgresql:// name the same database.
+    const protocol = parsed.protocol
+      .toLowerCase()
+      .replace(/^postgres:$/, 'postgresql:');
+
     const hostname = parsed.hostname.toLowerCase();
     const port = parsed.port || defaultPort(protocol);
     const pathname = parsed.pathname || '/';

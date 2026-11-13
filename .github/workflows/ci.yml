@@ -57,6 +57,9 @@ jobs:
       - name: Email template and policy tests
         run: npm run test:email
 
+      - name: E2E Supabase project configuration tests
+        run: npm run e2e:supabase:test
+
       - name: Recurring scheduler configuration tests
         run: node --test tools/scripts/validate-supabase-functions-url.test.mjs tools/scripts/verify-recurring-scheduler.test.mjs tools/scripts/write-supabase-edge-secrets.test.mjs
 
@@ -173,6 +176,8 @@ jobs:
       E2E_DB_RESET_ATTEMPTS: '5'
       E2E_SKIP_DB_RESET_SETUP: 'true'
       E2E_SKIP_DB_RESET_TEARDOWN: 'true'
+      # Same separate E2E project as local runs (ports 533xx, see AGENTS.md).
+      SUPABASE_E2E_WORKDIR: .supabase-e2e
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -197,23 +202,24 @@ jobs:
         # Skip services E2E does not use to cut image downloads.
         run: |
           set -euo pipefail
+          node tools/scripts/e2e-supabase.mjs prepare
           started=false
           for registry in $SUPABASE_IMAGE_REGISTRIES; do
             # Later CLI commands (db reset, stop) recreate containers from the same registry.
             export SUPABASE_INTERNAL_IMAGE_REGISTRY="$registry"
-            if npm exec -- supabase start --exclude studio,imgproxy,vector,analytics; then
+            if npm exec -- supabase start --workdir "$SUPABASE_E2E_WORKDIR" --exclude studio,imgproxy,vector,analytics; then
               echo "SUPABASE_INTERNAL_IMAGE_REGISTRY=$registry" >> "$GITHUB_ENV"
               started=true
               break
             fi
             echo "::warning::Supabase images from $registry failed; trying the next registry"
-            npm exec -- supabase stop --no-backup || true
+            npm exec -- supabase stop --workdir "$SUPABASE_E2E_WORKDIR" --no-backup || true
           done
           "$started"
 
       - name: Export local Supabase credentials
         run: |
-          npm exec -- supabase status -o env > "$E2E_ENV_FILE"
+          npm exec -- supabase status --workdir "$SUPABASE_E2E_WORKDIR" -o env > "$E2E_ENV_FILE"
 
           get_env_value() {
             local key="$1"
@@ -235,6 +241,9 @@ jobs:
           if [ -z "$e2e_db_url" ]; then e2e_db_url="$(get_env_value DB_URL)"; fi
           if [ -z "$e2e_db_url" ]; then e2e_db_url="$(get_env_value SUPABASE_DB_URL)"; fi
 
+          mailpit_url="$(get_env_value MAILPIT_URL)"
+          if [ -z "$mailpit_url" ]; then mailpit_url="$(get_env_value INBUCKET_URL)"; fi
+
           {
             echo "SUPABASE_URL=$supabase_url"
             echo "SUPABASE_ANON_KEY=$supabase_key"
@@ -242,6 +251,8 @@ jobs:
             echo "NG_APP_SUPABASE_PUBLISHABLE_KEY=$supabase_key"
             echo "NG_APP_SUPABASE_ANON_KEY=$supabase_key"
             echo "SUPABASE_E2E_DB_URL=$e2e_db_url"
+            echo "SUPABASE_E2E_WORKDIR=$SUPABASE_E2E_WORKDIR"
+            echo "E2E_MAILPIT_URL=${mailpit_url//\"/}"
           } >> "$E2E_ENV_FILE"
 
           if [ -z "$supabase_url" ] || [ -z "$supabase_key" ] || [ -z "$e2e_db_url" ]; then
@@ -257,7 +268,7 @@ jobs:
           source "$E2E_ENV_FILE"
           set +a
 
-          edge_runtime_container="supabase_edge_runtime_spendist-app"
+          edge_runtime_container="supabase_edge_runtime_spendist-app-e2e"
           if docker inspect "$edge_runtime_container" >/dev/null 2>&1 && \
             [ "$(docker inspect --format '{{.State.Running}}' "$edge_runtime_container")" != "true" ]; then
             docker start "$edge_runtime_container"
@@ -296,4 +307,4 @@ jobs:
 
       - name: Stop Supabase local stack
         if: always()
-        run: npm exec -- supabase stop --no-backup
+        run: npm exec -- supabase stop --workdir "$SUPABASE_E2E_WORKDIR" --no-backup

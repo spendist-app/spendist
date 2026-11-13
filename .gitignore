@@ -15,6 +15,7 @@
 # Environment files
 /.env
 /.local_env.e2e
+/.supabase-e2e
 /.env.demo.local
 /.env.backup.local
 /backups/
