@@ -596,6 +596,7 @@
           transaction)) {
           <li
             class="border-l-4 rounded-2xl border border-base-300 bg-base-100/90 p-4 shadow-sm sm:p-5"
+            [class.defer-offscreen-render]="$index >= 6"
             [style.borderLeftColor]="transaction.category?.color ?? '#CBD5F5'"
           >
             <div
@@ -690,9 +691,8 @@
                 <div class="flex items-center gap-2">
                   <button
                     type="button"
-                    class="btn btn-ghost btn-square btn-xs tooltip"
+                    class="btn btn-ghost btn-square btn-xs tooltip tooltip-bottom"
                     [attr.aria-label]="'transactions.list.actions.edit' | transloco"
-                    [attr.title]="'transactions.list.actions.edit' | transloco"
                     [attr.data-tip]="'transactions.list.actions.edit' | transloco"
                     [disabled]="transaction.sourceModule === 'mortgage'"
                     (click)="openEditForm(transaction)"
@@ -705,9 +705,8 @@
                   </button>
                   <button
                     type="button"
-                    class="btn btn-ghost btn-square btn-xs tooltip"
+                    class="btn btn-ghost btn-square btn-xs tooltip tooltip-bottom"
                     [attr.aria-label]="'transactions.list.actions.duplicate' | transloco"
-                    [attr.title]="'transactions.list.actions.duplicate' | transloco"
                     [attr.data-tip]="'transactions.list.actions.duplicate' | transloco"
                     (click)="openDuplicate(transaction)"
                   >
@@ -719,9 +718,8 @@
                   </button>
                   <button
                     type="button"
-                    class="btn btn-ghost btn-square btn-xs tooltip text-error"
+                    class="btn btn-ghost btn-square btn-xs tooltip tooltip-bottom text-error"
                     [attr.aria-label]="'transactions.list.actions.delete' | transloco"
-                    [attr.title]="'transactions.list.actions.delete' | transloco"
                     [attr.data-tip]="'transactions.list.actions.delete' | transloco"
                     [disabled]="store.transactionMutationPending() || transaction.allowanceRole === 'recipient' || transaction.sourceModule === 'mortgage'"
                     (click)="confirmDelete(transaction)"

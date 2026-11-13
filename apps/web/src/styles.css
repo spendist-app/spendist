@@ -26,6 +26,17 @@ app-navbar {
 }
 
 /*
+ * Long lists: skip layout and paint of rows far off screen
+ * (content-visibility). Only for rows below the first screen; the size is a
+ * first estimate, then the browser remembers each row's real height.
+ * Paint containment clips to the row, so nothing may overflow it.
+ */
+.defer-offscreen-render {
+  content-visibility: auto;
+  contain-intrinsic-size: auto none auto 180px;
+}
+
+/*
  * Popover dropdowns (PopoverMenuDirective). DaisyUI places `.dropdown[popover]`
  * with anchor positioning; keep a gap to the trigger and flip the menu when it
  * would overflow the viewport. Margins flip together with the menu.

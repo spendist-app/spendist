@@ -385,6 +385,54 @@ describe('TransactionsPageComponent', () => {
     expect(badge.textContent).not.toContain('1324a167');
   });
 
+  it('defers rendering of rows below the first screen', () => {
+    const fixture = TestBed.createComponent(TransactionsPageComponent);
+
+    const store = fixture.debugElement.injector.get(TransactionsStoreStub);
+
+    const rows = Array.from({ length: 8 }, (_, index) => ({
+      id: `transaction-${index}`,
+      ownerId: 'user-1',
+      categoryId: 'category-active',
+      occurredAt: new Date('2026-07-25T08:00:00Z'),
+      description: `Row ${index}`,
+      amount: 10,
+      amountInDefault: 10,
+      currency: 'PLN',
+      direction: 'expense' as const,
+      isAutomatic: false,
+      recurringTransactionId: null,
+      recurringTransactionName: null,
+      recurringScheduledFor: null,
+      createdAt: new Date('2026-07-25T08:00:00Z'),
+      updatedAt: new Date('2026-07-25T08:00:00Z'),
+      exchangeRate: 1,
+      walletId: 'wallet-1',
+      placeId: null,
+      sourceModule: 'standard' as const,
+      allowancePairId: null,
+      allowanceRole: null,
+      allowanceConnectionId: null,
+      category: null,
+      group: null,
+      tagIds: [],
+      place: null,
+    }));
+
+    store.filteredTransactions.set(rows);
+    store.loadedTransactionCount.set(rows.length);
+    store.totalMatchingTransactions.set(rows.length);
+    fixture.detectChanges();
+
+    const deferred = Array.from(
+      fixtureElement(fixture).querySelectorAll('li.defer-offscreen-render')
+    ).map((row) => row.textContent ?? '');
+
+    expect(deferred).toHaveLength(2);
+    expect(deferred[0]).toContain('Row 6');
+    expect(deferred[1]).toContain('Row 7');
+  });
+
   it('formats category totals with the active locale and default currency', () => {
     const fixture = TestBed.createComponent(TransactionsPageComponent);
 
