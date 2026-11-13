@@ -575,6 +575,48 @@ test('operates the account menu popover with keyboard and pointer', async ({
   ).toBeLessThanOrEqual(16);
 });
 
+test('offers app installation only when the browser allows it', async ({
+  page,
+}) => {
+  await ensureAuthenticated(page);
+
+  const trigger = page.getByRole('button', { name: 'Settings' });
+  const installItem = page.getByRole('menuitem', { name: 'Install app' });
+
+  // Without Web Install or an install prompt there is no dead button.
+  const webInstall = await page.evaluate(
+    () => 'install' in Navigator.prototype
+  );
+
+  test.skip(webInstall, 'This browser offers navigator.install() directly.');
+
+  await trigger.click();
+  await expect(page.getByRole('menuitem', { name: 'About' })).toBeVisible();
+  await expect(installItem).toHaveCount(0);
+  await page.keyboard.press('Escape');
+
+  // Chromium fires beforeinstallprompt when the app is installable.
+  await page.evaluate(() => {
+    const event = new Event('beforeinstallprompt', { cancelable: true });
+
+    Object.assign(event, {
+      prompt: () => Promise.resolve(),
+      userChoice: Promise.resolve({ outcome: 'accepted' }),
+    });
+    window.dispatchEvent(event);
+  });
+
+  await trigger.click();
+  await installItem.click();
+
+  await expect(
+    page.getByText('Spendist is installed. You can open it from your apps.')
+  ).toBeVisible();
+
+  await trigger.click();
+  await expect(installItem).toHaveCount(0);
+});
+
 test('previews the add menu on mouse hover and keeps it open on click', async ({
   page,
   browserName,

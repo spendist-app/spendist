@@ -1,7 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 
 export interface GlobalNoticeMessage {
-  kind: 'success';
+  kind: 'success' | 'info';
   messageKey: string;
 }
 
@@ -11,6 +11,10 @@ export class GlobalNoticeService {
 
   showSuccess(messageKey: string): void {
     this.notice.set({ kind: 'success', messageKey });
+  }
+
+  showInfo(messageKey: string): void {
+    this.notice.set({ kind: 'info', messageKey });
   }
 
   dismiss(): void {

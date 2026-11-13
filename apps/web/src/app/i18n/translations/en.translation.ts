@@ -246,6 +246,11 @@ const en = {
     modulesAllowance: 'Allowance',
     modulesMortgages: 'Mortgages',
     menuToggle: 'Open navigation menu',
+    install: {
+      menuItem: 'Install app',
+      success: 'Spendist is installed. You can open it from your apps.',
+      failed: 'The app could not be installed. You can still install it from the browser menu.',
+    },
     about: {
       menuItem: 'About',
       title: 'About',

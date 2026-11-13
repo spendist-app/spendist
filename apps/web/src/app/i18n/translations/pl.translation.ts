@@ -248,6 +248,11 @@ const pl = {
     modulesAllowance: 'Kieszonkowe',
     modulesMortgages: 'Kredyty hipoteczne',
     menuToggle: 'Otwórz menu nawigacji',
+    install: {
+      menuItem: 'Zainstaluj aplikację',
+      success: 'Spendist jest zainstalowany. Otworzysz go z listy aplikacji.',
+      failed: 'Nie udało się zainstalować aplikacji. Możesz to zrobić z menu przeglądarki.',
+    },
     about: {
       menuItem: 'O aplikacji',
       title: 'O aplikacji',

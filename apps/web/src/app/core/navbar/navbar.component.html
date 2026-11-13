@@ -299,6 +299,18 @@
               >
             </li>
             }
+            @if (installApp.canInstall()) {
+            <li role="none">
+              <button
+                type="button"
+                role="menuitem"
+                data-testid="install-app"
+                (click)="installAppFromMenu()"
+              >
+                {{ 'navbar.install.menuItem' | transloco }}
+              </button>
+            </li>
+            }
             <li role="none">
               <button type="button" (click)="openAboutModal()" role="menuitem">
                 {{ 'navbar.about.menuItem' | transloco }}

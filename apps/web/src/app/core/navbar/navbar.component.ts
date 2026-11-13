@@ -14,6 +14,8 @@ import { TranslocoPipe } from '@ngneat/transloco';
 import { AdminAccessService } from '../admin-access.service';
 import { AuthService } from '../auth.service';
 import { FeatureFlagsService } from '../feature-flags.service';
+import { GlobalNoticeService } from '../global-notice.service';
+import { InstallAppService } from '../install-app.service';
 import { LanguageService } from '../language.service';
 import { NotificationsMenuComponent } from '../notifications/notifications-menu.component';
 import { ProfileService } from '../profile.service';
@@ -39,6 +41,8 @@ export class NavbarComponent {
   readonly auth = inject(AuthService);
   readonly adminAccess = inject(AdminAccessService);
   readonly featureFlags = inject(FeatureFlagsService);
+  readonly installApp = inject(InstallAppService);
+  private readonly notices = inject(GlobalNoticeService);
   private readonly profileService = inject(ProfileService);
   private readonly router = inject(Router);
   private readonly themeService = inject(ThemeService);
@@ -122,6 +126,16 @@ export class NavbarComponent {
 
   protected onAboutDialogClosed(): void {
     this.aboutModalOpen.set(false);
+  }
+
+  async installAppFromMenu(): Promise<void> {
+    const outcome = await this.installApp.install();
+
+    if (outcome === 'installed') {
+      this.notices.showSuccess('navbar.install.success');
+    } else if (outcome === 'failed') {
+      this.notices.showInfo('navbar.install.failed');
+    }
   }
 
   toggleTheme(): void {
