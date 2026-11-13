@@ -8,6 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { TranslocoPipe } from '@ngneat/transloco';
+import { isImeComposing } from '../keyboard-events';
 
 export interface TagPickerTag {
   readonly id: string;
@@ -113,6 +114,10 @@ export class TagPickerComponent implements OnDestroy {
   }
 
   protected onTagInputKeydown(event: KeyboardEvent): void {
+    if (isImeComposing(event)) {
+      return;
+    }
+
     if (event.key === 'ArrowDown') {
       event.preventDefault();
       this.moveSuggestionHighlight(1);

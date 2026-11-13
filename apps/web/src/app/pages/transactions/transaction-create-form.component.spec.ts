@@ -606,6 +606,43 @@ describe('TransactionCreateFormComponent', () => {
     expect(component['form'].controls.description.value).toBe('Draft expense');
   });
 
+  it('saves a new place on Enter but not while an IME is composing', async () => {
+    const fixture = TestBed.createComponent(TransactionCreateFormComponent);
+    const store = TestBed.inject(TransactionsStoreStub);
+
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance;
+    component['openNewPlaceForm']();
+    component['newPlaceForm'].controls.name.setValue('Kawiarnia');
+    fixture.detectChanges();
+
+    const name = requiredValue(
+      fixtureElement(fixture).querySelector<HTMLInputElement>(
+        '[data-testid="transaction-new-place-form"] input[formcontrolname="name"]'
+      )
+    );
+
+    const composingEnter = new KeyboardEvent('keydown', {
+      key: 'Enter',
+      isComposing: true,
+      cancelable: true,
+    });
+
+    name.dispatchEvent(composingEnter);
+    await fixture.whenStable();
+
+    expect(composingEnter.defaultPrevented).toBe(true);
+    expect(store.createPlacePayload).toBeNull();
+
+    name.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Enter', cancelable: true })
+    );
+    await fixture.whenStable();
+
+    expect(store.createPlacePayload).toMatchObject({ name: 'Kawiarnia' });
+  });
+
   it('shows seven recently used tags and adds one with a click', () => {
     const fixture = TestBed.createComponent(TransactionCreateFormComponent);
 

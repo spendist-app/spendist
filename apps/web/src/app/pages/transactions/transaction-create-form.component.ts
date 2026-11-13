@@ -31,6 +31,7 @@ import {
 import type { TransactionDirection } from '@spendist/data-access/supabase-types';
 import { parseAmountInput } from './transaction-amount.parser';
 import { heroIconSvg } from '../../shared/icons/heroicons';
+import { isImeComposing } from '../../shared/keyboard-events';
 import { logError } from '../../core/logger';
 import { LanguageService } from '../../core/language.service';
 import { FeatureFlagsService } from '../../core/feature-flags.service';
@@ -590,7 +591,13 @@ export class TransactionCreateFormComponent {
       return;
     }
 
+    // Enter must not submit the enclosing transaction form either way.
     event.preventDefault();
+
+    if (event instanceof KeyboardEvent && isImeComposing(event)) {
+      return;
+    }
+
     void this.saveNewPlace();
   }
 
