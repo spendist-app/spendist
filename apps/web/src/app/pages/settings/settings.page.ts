@@ -49,6 +49,7 @@ import {
   CaptchaState,
   TurnstileWidget,
 } from '../../shared/captcha/turnstile-widget';
+import { FORM_ERROR_DIRECTIVES } from '../../shared/form-errors';
 
 type SettingsPanelId =
   | 'profile'
@@ -131,6 +132,7 @@ interface ParentCategoryOption {
   selector: 'app-settings-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    ...FORM_ERROR_DIRECTIVES,
     EmailPreferences,
     ConnectedAppsCard,
     ReactiveFormsModule,

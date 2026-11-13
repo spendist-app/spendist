@@ -11,6 +11,7 @@
     <form
       class="flex min-h-0 flex-1 flex-col"
       [formGroup]="form"
+      appFocusFirstInvalid
       (ngSubmit)="submit()"
       autocomplete="off"
       novalidate
@@ -261,11 +262,12 @@
                   type="text"
                   class="input input-bordered w-full"
                   formControlName="name"
+                  appFieldError="transaction-new-place-name-error"
                   maxlength="120"
                   (keydown.enter)="onNewPlaceEnter($event)"
                 />
                 @if (newPlaceForm.controls.name.touched && newPlaceForm.controls.name.invalid) {
-                <span class="mt-1 text-xs text-error">
+                <span id="transaction-new-place-name-error" class="mt-1 text-xs text-error">
                   {{ 'places.form.validation.name' | transloco }}
                 </span>
                 }
@@ -327,6 +329,8 @@
             <div class="join w-full">
               <input
                 formControlName="amount"
+                aria-describedby="transaction-amount-help"
+                appFieldError="transaction-amount-error"
                 type="text"
                 inputmode="text"
                 class="input join-item input-bordered flex-1 min-w-0 font-mono"
@@ -346,11 +350,11 @@
                 }
               </select>
             </div>
-            <span class="mt-1 text-xs text-base-content/70">
+            <span id="transaction-amount-help" class="mt-1 text-xs text-base-content/70">
               {{ 'transactions.form.help.amountExpression' | transloco }}
             </span>
             @if (form.controls.amount.touched && form.controls.amount.invalid) {
-            <span class="mt-1 text-xs text-error">
+            <span id="transaction-amount-error" class="mt-1 text-xs text-error">
               {{ 'transactions.form.validation.amount' | transloco }}
             </span>
             }

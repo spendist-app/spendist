@@ -43,6 +43,7 @@ import {
   TagPickerComponent,
   TagPickerSelection,
 } from '../../shared/tag-picker/tag-picker.component';
+import { FORM_ERROR_DIRECTIVES } from '../../shared/form-errors';
 
 interface CurrencyOptionView {
   readonly id: number;
@@ -63,6 +64,7 @@ export type TransactionFormSaveResult = 'created' | 'updated';
   selector: 'app-transaction-create-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    ...FORM_ERROR_DIRECTIVES,
     ReactiveFormsModule,
     TranslocoPipe,
     NgIcon,
@@ -139,7 +141,7 @@ export class TransactionCreateFormComponent {
   );
   protected readonly allowanceConnections = computed(() =>
     this.featureFlags.previewVisible()
-      ? (this.store.allowanceConnections?.() ?? [])
+      ? this.store.allowanceConnections?.() ?? []
       : []
   );
   protected readonly showTransactionTarget = computed(

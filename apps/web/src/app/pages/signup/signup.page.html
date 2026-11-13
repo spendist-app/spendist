@@ -75,7 +75,7 @@
     </p>
     }
 
-    <form class="space-y-6" [formGroup]="form" (ngSubmit)="register()">
+    <form class="space-y-6" [formGroup]="form" appFocusFirstInvalid (ngSubmit)="register()">
       <fieldset class="grid gap-4">
         <div class="form-control">
           <label class="label" for="name">
@@ -87,12 +87,13 @@
             id="name"
             type="text"
             formControlName="name"
+            appFieldError="signup-name-error"
             class="input input-bordered w-full"
             autocomplete="name"
             required
           />
           @if (controls.name.touched && controls.name.invalid) {
-          <span class="label-text-alt text-error">
+          <span id="signup-name-error" class="label-text-alt text-error">
             {{ 'auth.signup.nameError' | transloco }}
           </span>
           }
@@ -108,12 +109,13 @@
             id="email"
             type="email"
             formControlName="email"
+            appFieldError="signup-email-error"
             class="input input-bordered w-full"
             autocomplete="email"
             required
           />
           @if (controls.email.touched && controls.email.invalid) {
-          <span class="label-text-alt text-error">
+          <span id="signup-email-error" class="label-text-alt text-error">
             {{ 'auth.signup.emailError' | transloco }}
           </span>
           }
@@ -132,6 +134,7 @@
             class="input input-bordered w-full"
             autocomplete="new-password"
             aria-describedby="signup-password-help"
+            [attr.aria-invalid]="controls.password.touched && controls.password.invalid"
             required
           />
           <span
@@ -153,12 +156,13 @@
             id="confirmPassword"
             type="password"
             formControlName="confirmPassword"
+            appFieldError="signup-password-confirm-error"
             class="input input-bordered w-full"
             autocomplete="new-password"
             required
           />
           @if (passwordsDoNotMatch()) {
-          <span class="label-text-alt text-error">
+          <span id="signup-password-confirm-error" class="label-text-alt text-error">
             {{ 'auth.signup.passwordConfirmError' | transloco }}
           </span>
           }
@@ -193,6 +197,7 @@
             class="checkbox checkbox-primary mt-0.5"
             type="checkbox"
             formControlName="adultConfirmed"
+            [attr.aria-invalid]="controls.adultConfirmed.touched && controls.adultConfirmed.invalid"
             required
           />
           <span>{{ 'legal.adultConfirmation' | transloco }}</span>
@@ -203,6 +208,7 @@
             class="checkbox checkbox-primary mt-0.5"
             type="checkbox"
             formControlName="termsAccepted"
+            [attr.aria-invalid]="controls.termsAccepted.touched && controls.termsAccepted.invalid"
             required
           />
           <span>

@@ -11,6 +11,7 @@
     <form
       class="flex max-h-[min(88vh,700px)] flex-col gap-6 overflow-y-auto p-6 sm:p-8"
       [formGroup]="form"
+      appFocusFirstInvalid
       (ngSubmit)="onSubmit()"
       autocomplete="off"
       novalidate
@@ -84,6 +85,7 @@
             class="input input-bordered w-full"
             type="text"
             formControlName="name"
+            appFieldError="recurring-name-error"
             [attr.placeholder]="
               'modules.recurringPayments.form.fields.name.placeholder'
                 | transloco
@@ -92,7 +94,7 @@
           />
           @if (nameControl.invalid && (nameControl.dirty ||
           nameControl.touched)) {
-          <p class="text-xs text-error">
+          <p id="recurring-name-error" class="text-xs text-error">
             {{ 'modules.recurringPayments.form.fields.name.error' | transloco }}
           </p>
           }
@@ -149,6 +151,7 @@
             id="recurring-wallet"
             class="select select-bordered w-full"
             formControlName="walletId"
+            appFieldError="recurring-wallet-error"
           >
             <option value="">
               {{
@@ -162,7 +165,7 @@
           </select>
           @if (walletControl.invalid && (walletControl.dirty ||
           walletControl.touched)) {
-          <p class="text-xs text-error">
+          <p id="recurring-wallet-error" class="text-xs text-error">
             {{
               'modules.recurringPayments.form.fields.wallet.error' | transloco
             }}
@@ -231,6 +234,7 @@
               min="0"
               step="0.01"
               formControlName="amount"
+              appFieldError="recurring-amount-error"
               autocomplete="off"
             />
             <select
@@ -248,7 +252,7 @@
           </div>
           @if (amountControl.invalid && (amountControl.dirty ||
           amountControl.touched)) {
-          <p class="text-xs text-error">
+          <p id="recurring-amount-error" class="text-xs text-error">
             {{
               'modules.recurringPayments.form.fields.amount.error' | transloco
             }}
@@ -441,10 +445,11 @@
               class="input input-bordered"
               type="date"
               formControlName="startDate"
+              appFieldError="recurring-start-date-error"
             />
             @if (startDateControl.invalid && (startDateControl.dirty ||
             startDateControl.touched)) {
-            <p class="text-xs text-error">
+            <p id="recurring-start-date-error" class="text-xs text-error">
               {{
                 'modules.recurringPayments.form.fields.startDate.error'
                   | transloco

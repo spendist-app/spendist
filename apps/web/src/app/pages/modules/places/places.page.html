@@ -114,7 +114,7 @@
 
     <aside class="rounded-3xl border border-base-300 bg-base-100/80 p-5 shadow-sm sm:p-6">
       @if (formOpen()) {
-        <form class="space-y-4" [formGroup]="form" (ngSubmit)="submit()">
+        <form class="space-y-4" [formGroup]="form" appFocusFirstInvalid (ngSubmit)="submit()">
           <div class="space-y-1">
             <h2 class="text-xl font-semibold">
               {{ formTitleKey() | transloco }}
@@ -125,9 +125,9 @@
             <span class="label-text font-semibold">
               {{ 'places.form.fields.name' | transloco }}
             </span>
-            <input class="input input-bordered" formControlName="name" maxlength="120" />
+            <input class="input input-bordered" formControlName="name" appFieldError="place-name-error" maxlength="120" />
             @if (form.controls.name.touched && form.controls.name.invalid) {
-              <span class="mt-1 text-xs text-error">
+              <span id="place-name-error" class="mt-1 text-xs text-error">
                 {{ 'places.form.validation.name' | transloco }}
               </span>
             }

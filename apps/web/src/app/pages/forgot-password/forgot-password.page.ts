@@ -17,11 +17,18 @@ import {
   CaptchaState,
   TurnstileWidget,
 } from '../../shared/captcha/turnstile-widget';
+import { FORM_ERROR_DIRECTIVES } from '../../shared/form-errors';
 
 @Component({
   standalone: true,
   selector: 'app-forgot-password-page',
-  imports: [ReactiveFormsModule, RouterLink, TranslocoPipe, TurnstileWidget],
+  imports: [
+    ReactiveFormsModule,
+    ...FORM_ERROR_DIRECTIVES,
+    RouterLink,
+    TranslocoPipe,
+    TurnstileWidget,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './forgot-password.page.html',
 })

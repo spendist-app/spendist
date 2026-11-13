@@ -10,12 +10,18 @@ import { TranslocoPipe, TranslocoService } from '@ngneat/transloco';
 import { NgIcon } from '@ng-icons/core';
 import { heroPencilSquare, heroTrash } from '@ng-icons/heroicons/outline';
 import { PlaceEntity, PlacesStore } from './places.store';
+import { FORM_ERROR_DIRECTIVES } from '../../../shared/form-errors';
 
 @Component({
   standalone: true,
   selector: 'app-places-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, TranslocoPipe, NgIcon],
+  imports: [
+    ...FORM_ERROR_DIRECTIVES,
+    ReactiveFormsModule,
+    TranslocoPipe,
+    NgIcon,
+  ],
   providers: [PlacesStore],
   templateUrl: './places.page.html',
 })

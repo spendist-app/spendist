@@ -40,6 +40,7 @@ import {
   CurrencyOption,
   WalletEntity,
 } from './recurring-payments.store';
+import { FORM_ERROR_DIRECTIVES } from '../../../shared/form-errors';
 
 type ScheduleFrequency = 'daily' | 'weekly' | 'monthly';
 
@@ -65,6 +66,7 @@ type RecurringFormGroup = FormGroup<{
   standalone: true,
   selector: 'app-recurring-payment-form',
   imports: [
+    ...FORM_ERROR_DIRECTIVES,
     ReactiveFormsModule,
     TranslocoPipe,
     NgIcon,

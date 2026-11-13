@@ -530,13 +530,63 @@ test('shows password change validation in settings', async ({ page }) => {
   await page.getByRole('button', { name: 'Change password' }).click();
   await expect(page.getByText('Current password is required.')).toBeVisible();
 
-  await fillStableInput(page.locator('#current-password'), DEFAULT_PASSWORD);
+  const currentPassword = page.locator('#current-password');
+  const confirmPassword = page.locator('#confirm-new-password');
+
+  await expect(currentPassword).toHaveAttribute('aria-invalid', 'true');
+  await expect(currentPassword).toHaveAccessibleDescription(
+    'Current password is required.'
+  );
+  await expect(currentPassword).toBeFocused();
+
+  await fillStableInput(currentPassword, DEFAULT_PASSWORD);
   await fillStableInput(page.locator('#new-password'), 'Next1234');
-  await fillStableInput(page.locator('#confirm-new-password'), 'Different123');
+  await fillStableInput(confirmPassword, 'Different123');
 
   await page.getByRole('button', { name: 'Change password' }).click();
 
   await expect(page.getByText('Passwords must match.')).toBeVisible();
+  await expect(currentPassword).toHaveAttribute('aria-invalid', 'false');
+  await expect(confirmPassword).toHaveAttribute('aria-invalid', 'true');
+  await expect(confirmPassword).toHaveAccessibleDescription(
+    'Passwords must match.'
+  );
+});
+
+test('exposes login field errors to assistive technology', async ({ page }) => {
+  await page.goto('/login');
+
+  const form = page.locator('form');
+  const email = form.locator('#email');
+  const password = form.locator('#password');
+
+  await expect(email).toHaveAttribute('aria-invalid', 'false');
+
+  await form.getByRole('button', { name: 'Log in' }).click();
+
+  await expect(email).toHaveAttribute('aria-invalid', 'true');
+  await expect(email).toHaveAccessibleDescription(
+    'Enter a valid email address.'
+  );
+  await expect(email).toBeFocused();
+  await expect(password).toHaveAttribute('aria-invalid', 'true');
+
+  await fillStableInput(email, 'reader@example.com');
+
+  await expect(email).toHaveAttribute('aria-invalid', 'false');
+  await expect(email).toHaveAccessibleDescription('');
+
+  // Leaving a field with an error announces it once through a polite region.
+  await password.focus();
+  await password.blur();
+
+  await expect(page.getByTestId('form-error-announcer')).toHaveText(
+    'Password: Password is required.'
+  );
+  await expect(page.getByTestId('form-error-announcer')).toHaveAttribute(
+    'aria-live',
+    'polite'
+  );
 });
 
 test('confirms a new account, signs in once, and rejects a reused link', async ({
