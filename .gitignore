@@ -16,6 +16,8 @@
 /.env
 /.local_env.e2e
 /.supabase-e2e
+# Per-developer modern-web-guidance settings (set-allow-volatile-features)
+/.mwgrc
 /.env.demo.local
 /.env.backup.local
 /backups/
