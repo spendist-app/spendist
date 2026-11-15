@@ -463,10 +463,9 @@ export class TransactionsPageComponent implements OnDestroy {
     this.syncQuery('replace');
   }
 
-  protected toggleCategorySelectionAndScroll(categoryId: string): void {
+  protected toggleCategorySelection(categoryId: string): void {
     this.store.toggleCategorySelection(categoryId);
     this.syncQuery('push');
-    this.scrollToTransactionsResults();
   }
 
   protected onCategoryCheckboxClick(
@@ -474,15 +473,14 @@ export class TransactionsPageComponent implements OnDestroy {
     categoryId: string
   ): void {
     event.preventDefault();
-    this.toggleCategorySelectionAndScroll(categoryId);
+    this.toggleCategorySelection(categoryId);
   }
 
-  protected toggleCategoryGroupSelectionAndScroll(
+  protected toggleCategoryGroupSelection(
     groupId: string | null
   ): void {
     this.store.toggleCategoryGroupSelection(groupId);
     this.syncQuery('push');
-    this.scrollToTransactionsResults();
   }
 
   protected onCategoryGroupCheckboxClick(
@@ -490,25 +488,22 @@ export class TransactionsPageComponent implements OnDestroy {
     groupId: string | null
   ): void {
     event.preventDefault();
-    this.toggleCategoryGroupSelectionAndScroll(groupId);
+    this.toggleCategoryGroupSelection(groupId);
   }
 
-  protected clearCategorySelectionAndScroll(): void {
+  protected clearCategorySelection(): void {
     this.store.clearCategorySelection();
     this.syncQuery('push');
-    this.scrollToTransactionsResults();
   }
 
-  protected toggleTagSelectionAndScroll(tagId: string): void {
+  protected toggleTagSelection(tagId: string): void {
     this.store.toggleTagSelection(tagId);
     this.syncQuery('push');
-    this.scrollToTransactionsResults();
   }
 
-  protected clearTagSelectionAndScroll(): void {
+  protected clearTagSelection(): void {
     this.store.clearTagSelection();
     this.syncQuery('push');
-    this.scrollToTransactionsResults();
   }
 
   protected categoryHasTransactions(categoryId: string): boolean {
@@ -793,7 +788,14 @@ export class TransactionsPageComponent implements OnDestroy {
     this.pendingNavigationKey = this.queryKey(query);
     const key = this.queryKey(query);
     void this.router
-      .navigate([], { relativeTo: this.route, queryParams: params, replaceUrl })
+      .navigate([], {
+        relativeTo: this.route,
+        queryParams: params,
+        replaceUrl,
+        // Filter changes keep the page where it is: the router would
+        // otherwise jump to the top after every checkbox or keystroke.
+        scroll: 'manual',
+      })
       .then((navigated) => {
         if (!navigated && this.pendingNavigationKey === key)
           this.pendingNavigationKey = null;

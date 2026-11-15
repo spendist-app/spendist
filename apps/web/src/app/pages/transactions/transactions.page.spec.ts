@@ -1,6 +1,8 @@
 import { requiredValue, fixtureElement } from '../../../testing/dom';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { ActivatedRoute, Router } from '@angular/router';
+import { of } from 'rxjs';
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 
 import type { LanguageCode } from '../../i18n/languages';
@@ -691,6 +693,38 @@ describe('TransactionsPageComponent', () => {
 
     expect(toggleCategory).toHaveBeenCalledWith('category-active');
     expect(categoryCheckboxes[0].checked).toBe(true);
+  });
+
+  it('keeps the scroll position when a category filter is toggled', () => {
+    const navigate = vi.fn(() => Promise.resolve(true));
+
+    TestBed.overrideProvider(Router, { useValue: { navigate } });
+    TestBed.overrideProvider(ActivatedRoute, {
+      useValue: { queryParams: of({}), snapshot: { queryParams: {} } },
+    });
+
+    const fixture = TestBed.createComponent(TransactionsPageComponent);
+    fixture.detectChanges();
+
+    const scrollIntoView = vi.fn();
+
+    requiredValue(
+      fixtureElement(fixture).querySelector<HTMLElement>(
+        '#transactions-results'
+      )
+    ).scrollIntoView = scrollIntoView;
+
+    requiredValue(
+      fixtureElement(fixture).querySelector<HTMLInputElement>(
+        '[data-testid="category-group-filter-checkbox"]'
+      )
+    ).click();
+
+    expect(scrollIntoView).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith(
+      [],
+      expect.objectContaining({ scroll: 'manual' })
+    );
   });
 
   it('offers clear without a select-all action', () => {

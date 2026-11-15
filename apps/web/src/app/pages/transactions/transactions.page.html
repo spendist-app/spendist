@@ -46,7 +46,7 @@
             type="button"
             class="btn btn-ghost btn-xs shrink-0"
             [disabled]="!store.hasActiveTagFilter()"
-            (click)="clearTagSelectionAndScroll()"
+            (click)="clearTagSelection()"
           >
             {{ 'transactions.filters.clearTags' | transloco }}
           </button>
@@ -64,7 +64,7 @@
             class="btn btn-ghost btn-xs"
             data-testid="category-filter-clear-all"
             [disabled]="!store.hasActiveCategoryFilter()"
-            (click)="clearCategorySelectionAndScroll()"
+            (click)="clearCategorySelection()"
           >
             {{ 'transactions.filters.clearAllCategories' | transloco }}
           </button>
@@ -231,7 +231,7 @@
           type="button"
           class="btn btn-outline min-h-11 w-full grid-cols-[auto_minmax(0,1fr)_auto] justify-start gap-3 px-3"
           [class.btn-active]="!store.hasActiveTagFilter()"
-          (click)="clearTagSelectionAndScroll()"
+          (click)="clearTagSelection()"
         >
           <span
             class="size-2 rounded-full bg-base-content/20"
@@ -261,7 +261,7 @@
             class="grid min-h-11 w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition hover:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
             [class.bg-base-200]="filtersVm.selectedTagIds.includes(tag.id)"
             [class.text-primary]="filtersVm.selectedTagIds.includes(tag.id)"
-            (click)="toggleTagSelectionAndScroll(tag.id)"
+            (click)="toggleTagSelection(tag.id)"
           >
             <span
               class="size-2 shrink-0 rounded-full"
