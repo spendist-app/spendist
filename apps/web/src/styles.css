@@ -79,20 +79,26 @@ app-navbar {
     --color-base-200: #fffdfb;
     --color-base-300: #f3f4f6;
     --color-base-content: #111827;
-    --color-primary: #0ea5a5;
-    --color-primary-content: #062824;
+    /*
+     * Filled mid-tone colours (teal, green, orange) read poorly with dark
+     * text even when the WCAG 2 ratio passes, and fail it with white. Use
+     * shades deep enough for white text (>= 4.5:1, APCA Lc ~80), which also
+     * keeps text-primary/text-success readable on white.
+     */
+    --color-primary: #0b7a7a;
+    --color-primary-content: #ffffff;
     --color-secondary: #f59e0b;
     --color-secondary-content: #422100;
-    --color-accent: #ea580c;
-    --color-accent-content: #2a0a00;
+    --color-accent: #c2410c;
+    --color-accent-content: #ffffff;
     --color-neutral: #1f2933;
     --color-neutral-content: #f9fafb;
-    --color-info: #0ea5a5;
-    --color-info-content: #022626;
-    --color-success: #16a34a;
-    --color-success-content: #052e17;
-    --color-warning: #d97706;
-    --color-warning-content: #3d1c00;
+    --color-info: #0b7a7a;
+    --color-info-content: #ffffff;
+    --color-success: #15803d;
+    --color-success-content: #ffffff;
+    --color-warning: #b45309;
+    --color-warning-content: #ffffff;
     --color-error: #dc2626;
     --color-error-content: #ffffff;
     --radius-selector: 0.5rem;
@@ -121,8 +127,8 @@ app-navbar {
     --color-neutral-content: #e5e7eb;
     --color-info: #2dd4bf;
     --color-info-content: #042622;
-    --color-success: #16a34a;
-    --color-success-content: #042212;
+    --color-success: #4ade80;
+    --color-success-content: #052e16;
     --color-warning: #fbbf24;
     --color-warning-content: #3c2500;
     --color-error: #dc2626;
