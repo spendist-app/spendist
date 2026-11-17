@@ -302,7 +302,7 @@
                 <span class="label-text text-sm font-semibold">
                   {{ 'places.form.fields.note' | transloco }}
                 </span>
-                <textarea class="textarea textarea-bordered w-full" formControlName="note" maxlength="500"></textarea>
+                <textarea class="textarea textarea-bordered field-sizing-content min-h-24 max-h-60 w-full" formControlName="note" maxlength="500"></textarea>
               </label>
               <div class="flex flex-wrap justify-end gap-2">
                 <button type="button" class="btn btn-ghost btn-sm" [disabled]="newPlacePending()" (click)="closeNewPlaceForm()">
