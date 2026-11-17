@@ -70,10 +70,12 @@ All content in `doc/`, `llm.txt`, and `llm-full.txt` is English. Document curren
 - Keep the Spendist light/dark palette aligned with Tailwind/DaisyUI theme tokens.
 - Avoid unnecessary secondary labels and descriptions. Let the layout explain itself.
 - English and Polish use Transloco. Add matching keys to both translation files; do not hard-code user-facing copy in a component.
-- `LanguageService` persists language and updates `document.lang`; `ThemeService` persists the light/dark choice.
+- `LanguageService` persists language and updates `document.lang`; `ThemeService` follows the system light/dark preference and persists only an override that differs from it (mirrored before first paint by `public/theme-init.js`).
 - Use `@ng-icons/core` and Heroicons. Persist canonical `hero...` names through `HeroIconPickerComponent` and normalize them with `canonicalHeroIconName` in `settings.store.ts`.
 - Prefer native platform features over hand-built UI behaviour. Build modals with a native `<dialog>` opened by `showModal()` (DaisyUI `modal` classes), not a `role="dialog"` overlay with manual focus or `Esc` handling; use the Popover API for menus and tooltips where it fits.
 - Build dropdown menus and panels with `appPopoverMenu` (`shared/popover-menu`): a DaisyUI `dropdown` element placed right after its trigger button becomes an auto popover with anchor positioning, a script fallback, ARIA menu keyboard support and optional hover preview. Link a field's error message with `appFieldError="<error id>"` and add `appFocusFirstInvalid` to the reactive form (`shared/form-errors`), so screen readers get `aria-invalid`, the linked message and focus on the first invalid field.
+- Add `appLightDismiss` (`shared/dialog`) to a read-only modal `<dialog class="modal">` to close it on a click outside its content; `closedby="any"` does not work with DaisyUI's full-viewport `.modal`. Do not use it on dialogs with unsaved input.
+- Keep toast and notice live regions (`role="status"`) permanently in the DOM and render only the message inside them conditionally.
 - Enter/Escape handlers on text inputs must ignore IME composition (`isImeComposing` in `shared/keyboard-events.ts`).
 - Before building or changing UI behaviour (dialogs, popovers, menus, forms, animations, layout, INP/performance, accessibility), look up the current guidance and browser support with `npx -y modern-web-guidance@latest search "<topic>"`, then `retrieve "<id>"`. Apply it within Angular and DaisyUI conventions. Its `legacy-scan` command reports almost nothing for this codebase; do not treat a clean scan as an audit.
 
