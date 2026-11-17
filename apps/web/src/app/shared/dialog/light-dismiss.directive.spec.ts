@@ -20,6 +20,7 @@ function setup() {
   const dialog = requiredValue(
     fixtureElement(fixture).querySelector<HTMLDialogElement>('dialog')
   );
+
   const content = requiredValue(dialog.querySelector('p'));
   const close = vi.fn();
 

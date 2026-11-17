@@ -4,6 +4,7 @@ import { DOCUMENT } from '@angular/common';
 export type ThemeName = 'spendistLight' | 'spendistDark';
 
 const STORAGE_KEY = 'spendist-theme';
+
 const DARK_QUERY = '(prefers-color-scheme: dark)';
 
 /** Browser toolbar colour per theme: the navbar background (base-100). */
@@ -80,6 +81,7 @@ export class ThemeService {
       'meta[name="theme-color"]'
     )) {
       const media = meta.getAttribute('media') ?? '';
+
       const schemeTheme: ThemeName = media.includes('dark')
         ? 'spendistDark'
         : 'spendistLight';

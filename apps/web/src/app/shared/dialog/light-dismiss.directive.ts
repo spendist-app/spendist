@@ -40,10 +40,14 @@ export class LightDismissDirective {
     if (!startedOnBackdrop || event.target !== this.dialog) return;
 
     // requestClose() fires `cancel` first, like Esc; older browsers close.
-    if (typeof this.dialog.requestClose === 'function') {
+    if (supportsRequestClose()) {
       this.dialog.requestClose();
     } else {
       this.dialog.close();
     }
   }
+}
+
+function supportsRequestClose(): boolean {
+  return 'requestClose' in HTMLDialogElement.prototype;
 }

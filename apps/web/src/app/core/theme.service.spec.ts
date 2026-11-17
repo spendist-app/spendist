@@ -5,6 +5,7 @@ const STORAGE_KEY = 'spendist-theme';
 
 function mockSystemScheme(dark: boolean) {
   const listeners: ((event: { matches: boolean }) => void)[] = [];
+
   const query = {
     matches: dark,
     addEventListener: (_type: string, listener: (typeof listeners)[number]) =>
