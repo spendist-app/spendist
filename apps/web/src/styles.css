@@ -81,6 +81,18 @@ app-navbar {
     color-scheme: light;
   }
 
+  /*
+   * Even out short headings and avoid one-word last lines in long prose.
+   * Browsers without support keep the default wrapping.
+   */
+  :is(h1, h2, h3) {
+    text-wrap: balance;
+  }
+
+  :is(.article-body, .legal-content) :is(p, li, blockquote) {
+    text-wrap: pretty;
+  }
+
   :root[data-theme='spendistLight'],
   :root:not([data-theme]) {
     color-scheme: light;
