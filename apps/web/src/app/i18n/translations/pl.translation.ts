@@ -134,6 +134,8 @@ const pl = {
       dark: 'Ciemny',
       useLight: 'Włącz jasny motyw',
       useDark: 'Włącz ciemny motyw',
+      systemLight: 'Systemowy (jasny)',
+      systemDark: 'Systemowy (ciemny)',
     },
     status: {
       checkingSession: 'Sprawdzanie sesji',

@@ -132,6 +132,8 @@ const en = {
       dark: 'Dark',
       useLight: 'Use light theme',
       useDark: 'Use dark theme',
+      systemLight: 'System (light)',
+      systemDark: 'System (dark)',
     },
     status: {
       checkingSession: 'Checking session',

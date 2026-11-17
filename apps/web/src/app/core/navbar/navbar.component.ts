@@ -100,9 +100,15 @@ export class NavbarComponent {
   readonly isDark = computed(
     () => this.themeService.theme() === 'spendistDark'
   );
-  readonly currentThemeLabel = computed(() =>
-    this.isDark() ? 'common.theme.dark' : 'common.theme.light'
-  );
+  readonly currentThemeLabel = computed(() => {
+    if (this.themeService.followsSystem()) {
+      return this.isDark()
+        ? 'common.theme.systemDark'
+        : 'common.theme.systemLight';
+    }
+
+    return this.isDark() ? 'common.theme.dark' : 'common.theme.light';
+  });
   readonly themeToggleLabel = computed(() =>
     this.isDark() ? 'common.theme.useLight' : 'common.theme.useDark'
   );
