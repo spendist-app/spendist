@@ -1,4 +1,4 @@
-import { DOCUMENT, isPlatformBrowser } from '@angular/common';
+import { isPlatformBrowser } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -29,8 +29,17 @@ export class BlogShare {
   readonly url = input.required<string>();
   readonly locale = input.required<'pl' | 'en'>();
   private readonly platformId = inject(PLATFORM_ID);
-  private readonly document = inject(DOCUMENT);
-  protected readonly copied = signal(false);
+  protected readonly copyStatus = signal<'idle' | 'copied' | 'failed'>('idle');
+  protected readonly copyLabelKey = computed(() => {
+    const status = this.copyStatus();
+
+    if (status === 'copied') return 'blog.share.copied';
+
+    if (status === 'failed') return 'blog.share.copyFailed';
+
+    return 'blog.share.copy';
+  });
+  private copyStatusTimer: ReturnType<typeof setTimeout> | null = null;
   protected readonly nativeShareAvailable =
     isPlatformBrowser(this.platformId) && navigator.share;
   protected readonly encodedUrl = computed(() =>
@@ -58,18 +67,21 @@ export class BlogShare {
   protected async copy(): Promise<void> {
     if (!isPlatformBrowser(this.platformId)) return;
 
+    if (this.copyStatusTimer !== null) clearTimeout(this.copyStatusTimer);
+
+    this.copyStatus.set('idle');
+
     try {
       await navigator.clipboard.writeText(this.url());
+      this.copyStatus.set('copied');
     } catch {
-      const input = this.document.createElement('textarea');
-      input.value = this.url();
-      this.document.body.appendChild(input);
-      input.select();
-      this.document.execCommand('copy');
-      input.remove();
+      // Clipboard access can be denied; report it instead of a false success.
+      this.copyStatus.set('failed');
     }
 
-    this.copied.set(true);
-    setTimeout(() => this.copied.set(false), 2000);
+    this.copyStatusTimer = setTimeout(() => {
+      this.copyStatus.set('idle');
+      this.copyStatusTimer = null;
+    }, 2000);
   }
 }

@@ -943,6 +943,7 @@ const pl = {
       native: 'Udostępnij',
       copy: 'Kopiuj link',
       copied: 'Skopiowano',
+      copyFailed: 'Nie udało się skopiować',
     },
     notFound: {
       title: 'Ta strona bloga nie istnieje',

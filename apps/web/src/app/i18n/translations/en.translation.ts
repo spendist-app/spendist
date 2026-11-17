@@ -938,6 +938,7 @@ const en = {
       native: 'Share',
       copy: 'Copy link',
       copied: 'Copied',
+      copyFailed: 'Copy failed',
     },
     notFound: {
       title: 'This blog page does not exist',

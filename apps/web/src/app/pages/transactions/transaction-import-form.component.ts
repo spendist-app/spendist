@@ -1,4 +1,3 @@
-import { DOCUMENT } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -54,7 +53,6 @@ export class TransactionImportFormComponent implements OnDestroy {
   private fileReadVersion = 0;
   protected readonly store = inject(TransactionsStore);
   private readonly languageService = inject(LanguageService);
-  private readonly document = inject(DOCUMENT);
   protected readonly csvHeaders = SPENDIST_CSV_HEADERS;
   protected readonly sourceMode = signal<'file' | 'paste'>('file');
   protected readonly pastedCsv = signal('');
@@ -243,11 +241,7 @@ export class TransactionImportFormComponent implements OnDestroy {
     this.aiPromptCopyFailed.set(false);
 
     try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(this.aiPrompt());
-      } else if (!this.copyWithTextarea(this.aiPrompt())) {
-        throw new Error('Clipboard copy is unavailable.');
-      }
+      await navigator.clipboard.writeText(this.aiPrompt());
 
       this.aiPromptCopied.set(true);
       this.copyStatusTimer = setTimeout(() => {
@@ -518,22 +512,6 @@ export class TransactionImportFormComponent implements OnDestroy {
     if (this.pasteValidationTimer === null) return;
     clearTimeout(this.pasteValidationTimer);
     this.pasteValidationTimer = null;
-  }
-
-  private copyWithTextarea(value: string): boolean {
-    const textarea = this.document.createElement('textarea');
-    textarea.value = value;
-    textarea.setAttribute('readonly', '');
-    textarea.style.position = 'fixed';
-    textarea.style.opacity = '0';
-    this.document.body.appendChild(textarea);
-    textarea.select();
-
-    try {
-      return this.document.execCommand('copy');
-    } finally {
-      textarea.remove();
-    }
   }
 
   private clearCopyStatusTimer(): void {
