@@ -54,7 +54,7 @@ export function buildAiReceiptCsvPrompt(input: AiReceiptPromptInput): string {
   );
 
   const catalog = {
-    wallets: [...input.wallets].sort(compareByName).map((wallet) => ({
+    wallets: input.wallets.toSorted(compareByName).map((wallet) => ({
       wallet: wallet.name,
       wallet_currency: wallet.currency.toUpperCase(),
       is_default: wallet.isDefault,

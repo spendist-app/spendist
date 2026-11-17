@@ -220,7 +220,7 @@ export class TransactionsPageComponent implements OnDestroy {
     this.store.visibleTagSummaries()
   );
   protected readonly sortedPlaces = computed(() =>
-    [...this.store.places()].sort((left, right) =>
+    this.store.places().toSorted((left, right) =>
       left.name.localeCompare(right.name, this.locale())
     )
   );
@@ -820,7 +820,7 @@ export class TransactionsPageComponent implements OnDestroy {
       if (parsed.success) {
         owned[key] = [parsed.data];
       } else if (Array.isArray(value)) {
-        owned[key] = [...value].sort();
+        owned[key] = value.toSorted();
       }
     }
 

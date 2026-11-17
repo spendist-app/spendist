@@ -279,7 +279,7 @@ export class TransactionCreateFormComponent {
     const seen = new Set<string>();
     const recent: TagEntity[] = [];
 
-    const transactions = [...this.store.transactionsView()].sort(
+    const transactions = this.store.transactionsView().toSorted(
       (a, b) => b.occurredAt.getTime() - a.occurredAt.getTime()
     );
 

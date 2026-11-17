@@ -2539,21 +2539,21 @@ export class TransactionsStore {
   private sortGroups(
     groups: readonly CategoryGroupEntity[]
   ): CategoryGroupEntity[] {
-    return [...groups].sort((a, b) => a.name.localeCompare(b.name));
+    return groups.toSorted((a, b) => a.name.localeCompare(b.name));
   }
 
   private sortCategories(
     categories: readonly CategoryEntity[]
   ): CategoryEntity[] {
-    return [...categories].sort((a, b) => a.name.localeCompare(b.name));
+    return categories.toSorted((a, b) => a.name.localeCompare(b.name));
   }
 
   private sortTags(tags: readonly TagEntity[]): TagEntity[] {
-    return [...tags].sort((a, b) => a.name.localeCompare(b.name));
+    return tags.toSorted((a, b) => a.name.localeCompare(b.name));
   }
 
   private sortWallets(wallets: readonly WalletEntity[]): WalletEntity[] {
-    return [...wallets].sort((a, b) => {
+    return wallets.toSorted((a, b) => {
       if (a.isDefault && !b.isDefault) {
         return -1;
       }
@@ -2567,7 +2567,7 @@ export class TransactionsStore {
   }
 
   private sortPlaces(places: readonly PlaceEntity[]): PlaceEntity[] {
-    return [...places].sort((a, b) => {
+    return places.toSorted((a, b) => {
       const byName = a.name.localeCompare(b.name);
 
       return byName === 0 ? (a.city ?? '').localeCompare(b.city ?? '') : byName;
@@ -2577,7 +2577,7 @@ export class TransactionsStore {
   private sortCurrencies(
     currencies: readonly CurrencyOption[]
   ): CurrencyOption[] {
-    return [...currencies].sort((a, b) => a.symbol.localeCompare(b.symbol));
+    return currencies.toSorted((a, b) => a.symbol.localeCompare(b.symbol));
   }
 
   private mapTransactionRow(row: TransactionPageRow): TransactionEntity {

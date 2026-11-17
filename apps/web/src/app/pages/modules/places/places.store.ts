@@ -304,7 +304,7 @@ export class PlacesStore {
   }
 
   private sortPlaces(places: readonly PlaceEntity[]): readonly PlaceEntity[] {
-    return [...places].sort((a, b) => {
+    return places.toSorted((a, b) => {
       const byName = a.name.localeCompare(b.name);
 
       return byName === 0 ? (a.city ?? '').localeCompare(b.city ?? '') : byName;

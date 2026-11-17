@@ -162,7 +162,7 @@ export class RecurringPaymentFormComponent {
     const seen = new Set<string>();
     const recent: RecurringTagSummary[] = [];
 
-    const recurring = [...this.store.recurringTransactions()].sort(
+    const recurring = this.store.recurringTransactions().toSorted(
       (left, right) => right.startDate.getTime() - left.startDate.getTime()
     );
 

@@ -151,7 +151,7 @@ export class AdminPage {
   });
 
   // Newest week first, so the current week is visible without scrolling.
-  readonly weeks = computed(() => [...(this.usage()?.weeks ?? [])].reverse());
+  readonly weeks = computed(() => (this.usage()?.weeks ?? []).toReversed());
 
   readonly emailHealth = computed<EmailHealth | null>(() => {
     const state = this.status();
