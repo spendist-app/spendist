@@ -373,10 +373,12 @@ test('exposes installable PWA metadata', async ({ page }) => {
 
   const manifestLink = page.locator('link[rel="manifest"]');
   await expect(manifestLink).toHaveAttribute('href', 'manifest.webmanifest');
-  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute(
-    'content',
-    '#0EA5A5'
-  );
+  await expect(
+    page.locator('meta[name="theme-color"][media*="light"]')
+  ).toHaveAttribute('content', '#ffffff');
+  await expect(
+    page.locator('meta[name="theme-color"][media*="dark"]')
+  ).toHaveAttribute('content', '#161a1d');
 
   const response = await page.request.get('/manifest.webmanifest');
   expect(response.ok()).toBeTruthy();
