@@ -971,7 +971,7 @@
       >
         <div
           data-settings-editor
-          class="relative z-10 flex h-full w-full flex-col overflow-y-auto bg-base-100 shadow-2xl sm:max-w-lg"
+          class="relative z-10 flex h-full w-full flex-col overflow-y-auto overscroll-contain bg-base-100 shadow-2xl sm:max-w-lg"
         >
           <div
             class="sticky top-0 z-10 flex items-center justify-between border-b border-base-300 bg-base-100 px-5 py-4"
@@ -1382,7 +1382,7 @@
                     </button>
                   </div>
                   <div
-                    class="max-h-64 space-y-2 overflow-auto rounded-2xl border border-base-300 bg-base-100/60 p-3"
+                    class="max-h-64 space-y-2 overflow-auto overscroll-contain rounded-2xl border border-base-300 bg-base-100/60 p-3"
                   >
                     @if (categoriesView().length === 0) {
                     <p class="text-sm text-base-content/70">
@@ -1552,7 +1552,7 @@
                 {{ 'settings.panels.spendistCsv.schema.description' | transloco
                 }}
               </p>
-              <dl class="mt-4 max-h-72 space-y-3 overflow-auto text-sm">
+              <dl class="mt-4 max-h-72 space-y-3 overflow-auto overscroll-contain text-sm">
                 @for (header of spendistCsvHeaders; track header) {
                 <div>
                   <dt class="font-mono text-xs font-semibold text-primary">
@@ -1644,7 +1644,7 @@
                     {{ 'settings.panels.spendistCsv.summary.issues' | transloco:
                     { total: summary.issues.length } }}
                   </p>
-                  <ul class="mt-2 max-h-40 space-y-1 overflow-auto">
+                  <ul class="mt-2 max-h-40 space-y-1 overflow-auto overscroll-contain">
                     @for (issue of summary.issues.slice(0, 8); track
                     issue.rowNumber) {
                     <li>
@@ -1904,7 +1904,7 @@
                   {{ 'settings.panels.kontomierzImport.summary.issues' |
                   transloco: { total: summary.issues.length } }}
                 </p>
-                <ul class="mt-2 max-h-40 space-y-1 overflow-auto">
+                <ul class="mt-2 max-h-40 space-y-1 overflow-auto overscroll-contain">
                   @for (issue of summary.issues.slice(0, 8); track
                   issue.rowNumber) {
                   <li>

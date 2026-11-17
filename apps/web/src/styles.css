@@ -67,6 +67,15 @@ app-navbar {
   pointer-events: none;
 }
 
+/*
+ * Scrolling to the end of a dialog or a dropdown list must not carry on
+ * scrolling the page behind it (scroll chaining).
+ */
+.modal-box,
+.dropdown[popover] {
+  overscroll-behavior: contain;
+}
+
 @layer base {
   :root {
     color-scheme: light;

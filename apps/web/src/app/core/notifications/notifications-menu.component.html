@@ -57,7 +57,7 @@
         <p class="mt-1 text-xs text-base-content/60">{{ 'notifications.empty.body' | transloco }}</p>
       </div>
     } @else {
-      <ul class="max-h-96 overflow-y-auto py-2">
+      <ul class="max-h-96 overflow-y-auto overscroll-contain py-2">
         @for (notification of store.notifications(); track notification.id) {
           <li class="border-b border-base-200 last:border-b-0">
             <article class="flex gap-3 py-3">
