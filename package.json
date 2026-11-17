@@ -106,7 +106,7 @@
     "@nx/vitest": "23.2.1",
     "@nx/web": "23.2.1",
     "@oxlint/plugins": "1.85.0",
-    "@playwright/test": "^1.57.0",
+    "@playwright/test": "^1.65.1",
     "@schematics/angular": "22.2.2",
     "@swc-node/register": "1.11.1",
     "@swc/core": "1.15.8",
