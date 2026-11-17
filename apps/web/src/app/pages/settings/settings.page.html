@@ -827,6 +827,10 @@
               <input
                 id="settings-category-search"
                 type="search"
+                enterkeyhint="search"
+                autocapitalize="none"
+                autocorrect="off"
+                spellcheck="false"
                 class="input input-bordered w-full"
                 [attr.placeholder]="'settings.panels.categories.searchPlaceholder' | transloco"
                 [value]="categoryQuery()"

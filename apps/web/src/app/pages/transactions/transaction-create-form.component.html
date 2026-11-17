@@ -187,6 +187,10 @@
                 <input
                   #placeSearchInput
                   type="search"
+                  enterkeyhint="search"
+                  autocapitalize="none"
+                  autocorrect="off"
+                  spellcheck="false"
                   class="input input-bordered input-sm w-full"
                   [value]="placeSearch()"
                   (input)="onPlaceSearchInput($event)"
