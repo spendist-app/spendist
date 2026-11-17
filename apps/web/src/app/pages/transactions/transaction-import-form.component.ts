@@ -39,11 +39,12 @@ import {
   TransactionImportError,
 } from './transaction-import.models';
 import { TransactionsStore } from './transactions.store';
+import { LightDismissDirective } from '../../shared/dialog/light-dismiss.directive';
 
 @Component({
   standalone: true,
   selector: 'app-transaction-import-form',
-  imports: [FormsModule, NgIcon, TranslocoPipe],
+  imports: [FormsModule, LightDismissDirective, NgIcon, TranslocoPipe],
   templateUrl: './transaction-import-form.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

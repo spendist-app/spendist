@@ -20,6 +20,7 @@ import { LanguageService } from '../language.service';
 import { NotificationsMenuComponent } from '../notifications/notifications-menu.component';
 import { ProfileService } from '../profile.service';
 import { PopoverMenuDirective } from '../../shared/popover-menu/popover-menu.directive';
+import { LightDismissDirective } from '../../shared/dialog/light-dismiss.directive';
 import { ThemeService } from '../theme.service';
 import { appInfoConfig } from '../../config/app-info.config';
 import type { LanguageCode } from '../../i18n/languages';
@@ -28,6 +29,7 @@ import type { LanguageCode } from '../../i18n/languages';
   standalone: true,
   selector: 'app-navbar',
   imports: [
+    LightDismissDirective,
     RouterLink,
     RouterLinkActive,
     TranslocoPipe,
