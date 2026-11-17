@@ -68,10 +68,10 @@ app-navbar {
 }
 
 /*
- * Scrolling to the end of a dialog or a dropdown list must not carry on
- * scrolling the page behind it (scroll chaining).
+ * Scrolling to the end of a dropdown list must not carry on scrolling the
+ * page behind it (scroll chaining). Open modals need no rule: DaisyUI locks
+ * root scrolling while a .modal is open.
  */
-.modal-box,
 .dropdown[popover] {
   overscroll-behavior: contain;
 }
