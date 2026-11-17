@@ -40,7 +40,7 @@
   position: relative;
   display: grid;
   gap: 4rem;
-  min-height: calc(100vh - 5rem);
+  min-height: calc(100dvh - 5rem);
   align-items: center;
   padding-block: 5rem 6rem;
 }
