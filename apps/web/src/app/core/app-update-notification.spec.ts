@@ -46,7 +46,9 @@ describe('AppUpdateNotification', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    expect(fixtureElement(fixture).querySelector('aside')).not.toBeNull();
+    expect(
+      fixtureElement(fixture).querySelector('[role="status"] .alert')
+    ).not.toBeNull();
     expect(
       fixtureElement(fixture).querySelector('button.btn-primary')
     ).not.toBeNull();
@@ -71,6 +73,8 @@ describe('AppUpdateNotification', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    expect(fixtureElement(fixture).querySelector('aside')).toBeNull();
+    expect(
+      fixtureElement(fixture).querySelector('[role="status"] .alert')
+    ).toBeNull();
   });
 });

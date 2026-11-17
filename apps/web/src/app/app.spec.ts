@@ -128,14 +128,16 @@ describe('App', () => {
     fixture.detectChanges();
 
     const compiled = fixtureElement(fixture);
-    const status = compiled.querySelector('[role="status"]');
+    const status = compiled.querySelector('app-global-notice [role="status"]');
     expect(status?.textContent).toContain('Email confirmed');
 
     const dismissButton = status?.querySelector('button');
     dismissButton?.click();
     fixture.detectChanges();
 
-    expect(compiled.querySelector('[role="status"]')).toBeFalsy();
+    // The live region stays in place, empty, for the next notice.
+    expect(status?.isConnected).toBe(true);
+    expect(status?.textContent?.trim()).toBe('');
   });
 
   it('should show guest navigation when signed out', () => {
