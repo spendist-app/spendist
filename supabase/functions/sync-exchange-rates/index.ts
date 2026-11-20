@@ -172,7 +172,9 @@ Deno.serve(async (request) => {
     });
     await notifyAdmins(supabase, payload);
 
-    return json({ error: message, runId: run.id }, 502);
+    // The details stay in the run row and the admin notification; the
+    // response only says which run failed.
+    return json({ error: 'Exchange rate sync failed.', runId: run.id }, 502);
   }
 });
 
