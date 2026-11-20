@@ -104,6 +104,7 @@ These rules come from a security review; keep them when changing the related cod
 - **Privacy:** Data API responses never reveal another user's id or whether an email address has an account; use column grants or RPCs instead of `select *` on shared tables.
 - **Privileges:** `anon` and `authenticated` hold no TRIGGER, TRUNCATE or REFERENCES on application tables (`supabase/tests/data-api-grants.sql` enforces it). Storage object names reject `.` and `..` segments.
 - **Dependencies:** a dependency with a published advisory affecting how Spendist uses it is upgraded before the next release, including pinned `npm:` imports in Edge Functions.
+- **GitHub scanning:** CodeQL code scanning runs in GitHub's default setup (no workflow file) on `master`, pull requests to it, and weekly; secret scanning blocks pushes containing secrets. Check open alerts with `gh api repos/spendist-app/spendist/code-scanning/alerts` and `.../dependabot/alerts` before a release.
 - **Exports:** CSV/spreadsheet exports disarm formulas in every user-named text column (at the start of a cell and after `;` or a tab) and the importer reverses exactly that escaping.
 
 ## Development and verification
