@@ -14,7 +14,7 @@ This policy does not cover independently hosted installations run by other peopl
 
 | Purpose | Data | GDPR legal basis |
 | --- | --- | --- |
-| Creating an account and providing the service | email, display name, username, account ID, language, timezone, currency, optional avatar; transactions, amounts, dates, descriptions, wallets, categories, groups, tags, places, recurring payments, module data and notifications | performance of a contract — Article 6(1)(b) |
+| Creating an account and providing the service | email, display name, username, account ID, language, timezone, currency, optional avatar; transactions, amounts, dates, descriptions, wallets, categories, groups, tags, places and recurring payments with optional logos, module data and notifications | performance of a contract — Article 6(1)(b) |
 | Recording registration | declaration of adulthood, document versions and time of acceptance/acknowledgement | performance of a contract and legitimate interest in recording its formation — Article 6(1)(b) and (f) |
 | Authentication and security | session and authentication information, IP address, request time, browser and device details, technical logs, MCP authorization and audit metadata | performance of a contract and legitimate interest in securing and maintaining the service — Article 6(1)(b) and (f) |
 | Support and complaints | sender address, correspondence and information necessary to handle the request | performance of a contract and legitimate interest in handling requests — Article 6(1)(b) and (f) |
@@ -35,15 +35,18 @@ MCP mutation auditing records client ID, tool, object IDs, timestamps and outcom
 
 ## 4. Providers and recipients
 
-- **Supabase** provides authentication, the database, avatar storage and backend services. The primary project database is in **eu-west-2, London, United Kingdom**. This does not mean all provider operations happen exclusively in that region. [Supabase data processing terms](https://supabase.com/legal/customer-resources/data-processing-addendum).
+- **Supabase** provides authentication, the database, avatar and logo storage and backend services. The primary project database is in **eu-west-2, London, United Kingdom**. This does not mean all provider operations happen exclusively in that region. [Supabase data processing terms](https://supabase.com/legal/customer-resources/data-processing-addendum).
 - **Cloudflare** provides hosting, traffic delivery and security, and forwards incoming `@spendist.app` email to the controller's mailbox. [Cloudflare data processing terms](https://www.cloudflare.com/cloudflare-customer-dpa/).
 - **Google / Gmail** handles incoming correspondence and outgoing messages through the controller's personal mailbox. This is currently not Google Workspace. Messages and metadata are also handled under [Google's privacy policy](https://policies.google.com/privacy?hl=en). Do not email passwords or complete financial exports unless necessary for your request.
+- **jsDelivr**, a public content delivery network, serves the Dashboard Icons logo catalogue only after you choose "Search more logos" while picking a logo. Your browser then fetches the catalogue and the previewed images directly from jsDelivr, which receives your IP address, the search request time and browser technical details. Spendist sends it no account or financial data. A chosen image is copied to your account, so saved logos are not loaded from jsDelivr. [jsDelivr privacy policy](https://www.jsdelivr.com/terms/privacy-policy-jsdelivr-net).
 - **Google Analytics** — public-content statistics after consent, described in section 7. [Google privacy policy](https://policies.google.com/privacy?hl=en) and [Analytics data information](https://support.google.com/analytics/answer/6004245?hl=en).
 - **External clients you authorize and the other Allowance participant** receive data within the scope described in section 3.
 
 Amazon SES is being prepared for transactional messages but is not yet configured. We will update provider information before activating it. Planned configuration is not described as an active service.
 
 New accounts do not fetch automatic DiceBear avatars; older default DiceBear addresses are replaced in the interface with local initials. If you have an avatar at another external URL, retrieving the image may disclose your IP address and browser technical details to that server.
+
+Avatars and logos you upload or pick for places and recurring payments are stored in your folder of a public storage bucket. Anyone who has the exact address of such an image can open it without signing in. The service does not publish these addresses, and a logo address also contains a random identifier. Do not upload images containing personal or financial information as a logo.
 
 Currently only the controller has administrative access to the project. Data may be disclosed to competent authorities when legally required.
 
@@ -53,7 +56,7 @@ The United Kingdom is outside the European Economic Area. Providers with global 
 
 ## 6. Retention
 
-- Account data and your own financial records remain for the lifetime of the account. Successfully completing self-service deletion in Settings deletes the account, avatar files and its associated production records. There is no recovery window. Some information forming the other Allowance participant's own records may remain on their account.
+- Account data and your own financial records remain for the lifetime of the account. Successfully completing self-service deletion in Settings deletes the account, avatar and logo files and its associated production records. There is no recovery window. Some information forming the other Allowance participant's own records may remain on their account.
 - You can also request deletion or exercise other rights by email. We respond without undue delay, normally within one month; if an extension is legally available, we explain the reason and deadline. This is not an automatic waiting period for self-service deletion.
 - Infrastructure logs follow the provider's configuration and current plan. Diagnostic information retained for an outage or incident remains for the time needed to investigate and secure the matter. MCP auditing is associated with the account. We do not promise an unverified universal 90-day log retention period.
 - We retain correspondence as needed to handle the matter; where necessary to document an obligation or claim, the applicable statutory and limitation periods govern retention. Unnecessary correspondence is deleted.
