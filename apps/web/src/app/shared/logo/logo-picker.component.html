@@ -1,0 +1,172 @@
+<dialog
+  #dialog
+  class="modal modal-bottom sm:modal-middle"
+  aria-labelledby="logo-picker-title"
+  (close)="onDialogClosed()"
+>
+  <div class="modal-box flex max-h-[90dvh] flex-col gap-4 overscroll-contain">
+    <h1 id="logo-picker-title" class="text-xl font-semibold">
+      {{ 'logos.picker.title' | transloco }}
+    </h1>
+
+    <label class="input w-full">
+      <span class="sr-only">{{ 'logos.picker.search' | transloco }}</span>
+      <input
+        type="search"
+        autofocus
+        autocomplete="off"
+        data-testid="logo-search"
+        [placeholder]="'logos.picker.search' | transloco"
+        [value]="query()"
+        (input)="onQueryInput($event)"
+        (keydown)="onQueryKeydown($event)"
+      />
+    </label>
+
+    <div class="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain">
+      <section aria-labelledby="logo-picker-simple-icons" class="space-y-2">
+        <h2 id="logo-picker-simple-icons" class="text-sm font-semibold">
+          Simple Icons
+        </h2>
+        @if (simpleIconsState() === 'failed') {
+        <p class="text-sm text-error">
+          {{ 'logos.errors.catalog' | transloco }}
+        </p>
+        } @else if (simpleIconsState() !== 'ready') {
+        <span class="loading loading-dots loading-sm" aria-hidden="true"></span>
+        } @else if (!hasQuery()) {
+        <p class="text-sm text-base-content/60">
+          {{ 'logos.picker.typeToSearch' | transloco }}
+        </p>
+        } @else if (simpleIconResults().length === 0) {
+        <p class="text-sm text-base-content/60">
+          {{ 'logos.picker.noResults' | transloco }}
+        </p>
+        } @else {
+        <ul class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          @for (icon of simpleIconResults(); track icon.slug) {
+          <li>
+            <button
+              type="button"
+              class="btn btn-ghost h-auto w-full justify-start gap-2 px-2 py-2 font-normal"
+              data-testid="logo-simple-icon"
+              [attr.data-slug]="icon.slug"
+              [disabled]="busy()"
+              (click)="pickSimpleIcon(icon)"
+            >
+              <app-logo [logo]="icon.value" size="sm" />
+              <span class="truncate">{{ icon.title }}</span>
+            </button>
+          </li>
+          }
+        </ul>
+        }
+      </section>
+
+      <section aria-labelledby="logo-picker-dashboard-icons" class="space-y-2">
+        <h2 id="logo-picker-dashboard-icons" class="text-sm font-semibold">
+          Dashboard Icons
+        </h2>
+        @switch (dashboardIconsState()) { @case ('idle') {
+        <button
+          type="button"
+          class="btn btn-sm btn-outline"
+          data-testid="logo-dashboard-icons-load"
+          (click)="loadDashboardIcons()"
+        >
+          {{ 'logos.picker.more' | transloco }}
+        </button>
+        <p class="text-xs text-base-content/60">
+          {{ 'logos.picker.moreHint' | transloco }}
+        </p>
+        } @case ('loading') {
+        <span class="loading loading-dots loading-sm" aria-hidden="true"></span>
+        } @case ('failed') {
+        <p class="text-sm text-error">
+          {{ 'logos.errors.catalog' | transloco }}
+        </p>
+        <button
+          type="button"
+          class="btn btn-sm btn-ghost"
+          (click)="loadDashboardIcons()"
+        >
+          {{ 'logos.picker.retry' | transloco }}
+        </button>
+        } @default { @if (!hasQuery()) {
+        <p class="text-sm text-base-content/60">
+          {{ 'logos.picker.typeToSearch' | transloco }}
+        </p>
+        } @else if (dashboardIconResults().length === 0) {
+        <p class="text-sm text-base-content/60">
+          {{ 'logos.picker.noResults' | transloco }}
+        </p>
+        } @else {
+        <ul class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          @for (icon of dashboardIconResults(); track icon.slug) {
+          <li>
+            <button
+              type="button"
+              class="btn btn-ghost h-auto w-full justify-start gap-2 px-2 py-2 font-normal"
+              data-testid="logo-dashboard-icon"
+              [attr.data-slug]="icon.slug"
+              [disabled]="busy()"
+              (click)="pickDashboardIcon(icon)"
+            >
+              <span
+                class="inline-flex size-6 shrink-0 overflow-hidden rounded-md bg-white ring-1 ring-base-300"
+                aria-hidden="true"
+              >
+                <img
+                  [src]="icon.imageUrl"
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  referrerpolicy="no-referrer"
+                  class="size-full object-contain"
+                />
+              </span>
+              <span class="truncate">{{ icon.title }}</span>
+            </button>
+          </li>
+          }
+        </ul>
+        } } }
+      </section>
+
+      <section aria-labelledby="logo-picker-upload" class="space-y-2">
+        <h2 id="logo-picker-upload" class="text-sm font-semibold">
+          {{ 'logos.picker.upload' | transloco }}
+        </h2>
+        <input
+          type="file"
+          class="file-input file-input-sm w-full"
+          data-testid="logo-upload"
+          [attr.accept]="acceptedTypes"
+          [attr.aria-label]="'logos.picker.upload' | transloco"
+          [attr.aria-describedby]="'logo-picker-upload-hint'"
+          [disabled]="busy()"
+          (change)="onFileSelected($event)"
+        />
+        <p id="logo-picker-upload-hint" class="text-xs text-base-content/60">
+          {{ 'logos.picker.uploadHint' | transloco }}
+        </p>
+      </section>
+    </div>
+
+    <div role="status" class="min-h-5 text-sm">
+      @if (busy()) {
+      <span class="text-base-content/70">{{
+        'logos.picker.preparing' | transloco
+      }}</span>
+      } @else if (error(); as message) {
+      <span class="text-error">{{ message }}</span>
+      }
+    </div>
+
+    <div class="modal-action mt-0">
+      <button type="button" class="btn btn-ghost" (click)="cancel()">
+        {{ 'common.actions.cancel' | transloco }}
+      </button>
+    </div>
+  </div>
+</dialog>

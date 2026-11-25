@@ -87,8 +87,12 @@ describe('administrator navigation at the production Worker', () => {
       /script-src [^;]*https:\/\/static\.cloudflareinsights\.com;/
     );
     expect(policy).toMatch(
-      /connect-src [^;]*https:\/\/static\.cloudflareinsights\.com https:\/\/cloudflareinsights\.com;/
+      /connect-src [^;]*https:\/\/static\.cloudflareinsights\.com https:\/\/cloudflareinsights\.com /
     );
+    // The logo picker reads the Dashboard Icons list and images from jsDelivr.
+    expect(policy).toMatch(/connect-src [^;]*https:\/\/cdn\.jsdelivr\.net;/);
+    // No other third-party host may receive data.
+    expect(policy).not.toMatch(/connect-src [^;]*https: /);
     expect(response.headers.get('Content-Security-Policy')).not.toMatch(
       /localhost|127\.0\.0\.1/
     );
