@@ -28,6 +28,7 @@ import {
   generateSpendistCsv,
   parseSpendistCsv,
 } from './spendist-csv-transfer.parser';
+import { placeNameKey } from '../../shared/place-name/place-name';
 
 type CurrencyRow = Tables<'currencies'>;
 
@@ -876,13 +877,14 @@ export class SpendistCsvTransferStore {
   ): Promise<ReadonlyMap<string, PlaceRow>> {
     const places = await this.loadPlaces(userId);
 
-    const existing = new Set(
-      places.map((place) => normalizeLookupKey(place.name))
-    );
+    // Places match by placeNameKey, so "Pepco" in the file reuses an
+    // existing "pepco " instead of creating a duplicate.
+    const existing = new Set(places.map((place) => placeNameKey(place.name)));
 
     const missing = collectMissingNames(
       rows.map((row) => row.place ?? ''),
-      existing
+      existing,
+      placeNameKey
     );
 
     if (missing.length > 0) {
@@ -900,7 +902,7 @@ export class SpendistCsvTransferStore {
 
     return new Map(
       (await this.loadPlaces(userId)).map((place) => [
-        normalizeLookupKey(place.name),
+        placeNameKey(place.name),
         place,
       ])
     );
@@ -928,9 +930,7 @@ export class SpendistCsvTransferStore {
         );
       }
 
-      const place = row.place
-        ? places.get(normalizeLookupKey(row.place))
-        : null;
+      const place = row.place ? places.get(placeNameKey(row.place)) : null;
 
       return {
         owner_id: userId,
@@ -1257,7 +1257,8 @@ function buildExportFileName(month: string | null, filtered: boolean): string {
 
 function collectMissingNames(
   values: readonly string[],
-  existingValues: ReadonlySet<string>
+  existingValues: ReadonlySet<string>,
+  keyOf: (value: string) => string = normalizeLookupKey
 ): readonly string[] {
   const missing = new Map<string, string>();
 
@@ -1268,7 +1269,7 @@ function collectMissingNames(
       continue;
     }
 
-    const key = normalizeLookupKey(normalized);
+    const key = keyOf(normalized);
 
     if (!existingValues.has(key) && !missing.has(key)) {
       missing.set(key, normalized);

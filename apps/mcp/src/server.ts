@@ -315,7 +315,7 @@ export function createSpendistMcpServer(
   operation(
     tools,
     'create_place',
-    'Create a transaction place.',
+    'Create a transaction place. If a place with the same name (ignoring case, spacing and diacritics) already exists, returns it with existing: true instead of creating a duplicate.',
     z.object({
       name: z.string().trim().min(1).max(120),
       street: z.string().max(160).nullable().optional(),
@@ -325,7 +325,7 @@ export function createSpendistMcpServer(
       note: z.string().max(500).nullable().optional(),
     }),
     ({ postalCode, ...values }) =>
-      access.create('places', { ...values, postal_code: postalCode }),
+      access.createPlace({ ...values, postal_code: postalCode }),
     'additive'
   );
   operation(
@@ -346,6 +346,26 @@ export function createSpendistMcpServer(
     'destructive'
   );
 
+  operation(
+    tools,
+    'prepare_merge_places',
+    'Preview merging duplicate places into one target place: transaction count per place, transactions that would move, and empty target fields that would be filled. Issues a five-minute, one-use confirmation token. This does not change data.',
+    z.object({
+      targetPlaceId: z.string().uuid(),
+      sourcePlaceIds: z.array(z.string().uuid()).min(1).max(50),
+    }),
+    ({ targetPlaceId, sourcePlaceIds }) =>
+      access.prepareMergePlaces(targetPlaceId, sourcePlaceIds),
+    'additive'
+  );
+  operation(
+    tools,
+    'merge_places',
+    'Merge the places covered by a valid prepare_merge_places token: move their transactions to the target place, fill its empty fields, and irreversibly delete the source places, atomically.',
+    z.object({ confirmationToken: z.string().uuid() }),
+    ({ confirmationToken }) => access.confirmMergePlaces(confirmationToken),
+    'destructive'
+  );
   operation(
     tools,
     'create_transaction',

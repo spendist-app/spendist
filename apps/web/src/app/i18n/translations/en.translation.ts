@@ -1528,6 +1528,29 @@ const en = {
       emptyResponse: 'Supabase returned empty response.',
       generic: 'Place could not be saved.',
       nameRequired: 'Enter a place name.',
+      duplicate:
+        'A place named “{{ name }}” already exists. Use it, or merge duplicates from the list.',
+      merge: 'Places could not be merged.',
+    },
+    duplicates: {
+      title: 'Possible duplicate places',
+      review: 'Review merge',
+    },
+    merge: {
+      title: 'Merge places',
+      keep: 'Place to keep',
+      select: 'Select {{ name }}',
+      selected: 'Selected: {{ count }}',
+      clearSelection: 'Clear selection',
+      start: 'Merge selected',
+      transactions: 'Transactions: {{ count }}',
+      loading: 'Counting transactions…',
+      summary:
+        'Transactions moved to “{{ name }}”: {{ moved }}. Places deleted: {{ deleted }}.',
+      filled: 'Empty fields filled from the merged places: {{ fields }}.',
+      confirm: 'Merge places',
+      busy: 'Merging…',
+      done: 'Places merged. Transactions moved: {{ moved }}.',
     },
   },
   modules: {

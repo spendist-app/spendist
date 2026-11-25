@@ -17,6 +17,7 @@ import type {
 } from '@spendist/data-access/supabase-types';
 import type { TransactionImportContext } from './transaction-import.models';
 import { excludePreviouslyImportedTransactions } from './transaction-import-deduplication';
+import { findPlaceByName } from '../../shared/place-name/place-name';
 import type {
   CategoryEntity,
   CategoryGroupEntity,
@@ -1462,6 +1463,14 @@ export class TransactionsStore {
 
     if (!name) {
       throw new Error('places.errors.nameRequired');
+    }
+
+    // Reuse a place whose name differs only by case, spacing or diacritics
+    // instead of creating a duplicate.
+    const existing = findPlaceByName(this.state().places, name);
+
+    if (existing) {
+      return existing;
     }
 
     const optional = (value: string, limit: number): string | null =>

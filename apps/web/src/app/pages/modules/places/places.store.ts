@@ -5,6 +5,7 @@ import { AuthService } from '../../../core/auth.service';
 import { logError } from '../../../core/logger';
 import { SUPABASE_CLIENT } from '../../../core/supabase';
 import type { PlaceRow } from '@spendist/data-access/supabase-types';
+import { findPlaceByName } from '../../../shared/place-name/place-name';
 
 export interface PlaceEntity {
   readonly id: string;
@@ -26,6 +27,34 @@ export interface PlacePayload {
   readonly note: string | null;
 }
 
+const PlaceMergePreviewSchema = z.object({
+  targetPlaceId: z.string(),
+  sourcePlaceIds: z.array(z.string()),
+  places: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      city: z.string().nullable(),
+      isTarget: z.boolean(),
+      transactionCount: z.number().int().nonnegative(),
+    })
+  ),
+  movedTransactions: z.number().int().nonnegative(),
+  filledFields: z.array(
+    z.enum(['street', 'city', 'postalCode', 'country', 'note'])
+  ),
+});
+
+const PlaceMergeResultSchema = z.object({
+  mergedPlaceIds: z.array(z.string()),
+  movedTransactions: z.number().int().nonnegative(),
+});
+
+/** What merging the source places into the target place would change. */
+export type PlaceMergePreview = z.infer<typeof PlaceMergePreviewSchema>;
+
+export type PlaceMergeResult = z.infer<typeof PlaceMergeResultSchema>;
+
 interface PlacesState {
   readonly loading: boolean;
   readonly mutationPending: boolean;
@@ -37,6 +66,14 @@ class PlacesStoreError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'PlacesStoreError';
+  }
+}
+
+/** A place with the same normalized name already exists. */
+export class PlaceDuplicateError extends PlacesStoreError {
+  constructor(readonly existing: PlaceEntity) {
+    super('places.errors.duplicate');
+    this.name = 'PlaceDuplicateError';
   }
 }
 
@@ -130,6 +167,7 @@ export class PlacesStore {
   async createPlace(payload: PlacePayload): Promise<PlaceEntity> {
     const userId = this.requireUserId();
     const normalized = this.normalizePayload(payload);
+    this.rejectDuplicateName(normalized.name, null);
     this.setPending(true);
 
     try {
@@ -171,6 +209,7 @@ export class PlacesStore {
   async updatePlace(placeId: string, payload: PlacePayload): Promise<void> {
     const userId = this.requireUserId();
     const normalized = this.normalizePayload(payload);
+    this.rejectDuplicateName(normalized.name, placeId);
     this.setPending(true);
 
     try {
@@ -239,6 +278,57 @@ export class PlacesStore {
     }
   }
 
+  /** Counts the transactions each place has and what a merge would move. */
+  async previewMerge(
+    targetPlaceId: string,
+    sourcePlaceIds: readonly string[]
+  ): Promise<PlaceMergePreview> {
+    const { data, error } = await this.supabase.rpc('place_merge_preview', {
+      p_target_id: targetPlaceId,
+      p_source_ids: [...sourcePlaceIds],
+    });
+
+    if (error) {
+      throw new PlacesStoreError(this.describeError(error));
+    }
+
+    return PlaceMergePreviewSchema.parse(data);
+  }
+
+  /**
+   * Moves every transaction of the source places to the target place, fills
+   * the target's empty fields from the sources and deletes the sources, in one
+   * database transaction.
+   */
+  async mergePlaces(
+    targetPlaceId: string,
+    sourcePlaceIds: readonly string[]
+  ): Promise<PlaceMergeResult> {
+    this.setPending(true);
+
+    try {
+      const { data, error } = await this.supabase.rpc('merge_places', {
+        p_target_id: targetPlaceId,
+        p_source_ids: [...sourcePlaceIds],
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      const result = PlaceMergeResultSchema.parse(data);
+      await this.refresh();
+
+      return result;
+    } catch (error) {
+      const message = this.describeError(error);
+      this.state.update((state) => ({ ...state, error: message }));
+      throw new PlacesStoreError(message);
+    } finally {
+      this.setPending(false);
+    }
+  }
+
   clearError(): void {
     this.state.update((state) => ({
       ...state,
@@ -261,6 +351,14 @@ export class PlacesStore {
       country: this.emptyToNull(payload.country, 80),
       note: this.emptyToNull(payload.note, 500),
     };
+  }
+
+  private rejectDuplicateName(name: string, exceptId: string | null): void {
+    const existing = findPlaceByName(this.places(), name, exceptId);
+
+    if (existing) {
+      throw new PlaceDuplicateError(existing);
+    }
   }
 
   private emptyToNull(

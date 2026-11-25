@@ -1542,6 +1542,29 @@ const pl = {
       emptyResponse: 'Supabase zwrócił pustą odpowiedź.',
       generic: 'Nie udało się zapisać miejsca.',
       nameRequired: 'Podaj nazwę miejsca.',
+      duplicate:
+        'Miejsce „{{ name }}” już istnieje. Użyj go albo scal duplikaty z listy.',
+      merge: 'Nie udało się scalić miejsc.',
+    },
+    duplicates: {
+      title: 'Możliwe zduplikowane miejsca',
+      review: 'Przejrzyj scalenie',
+    },
+    merge: {
+      title: 'Scal miejsca',
+      keep: 'Miejsce, które zostaje',
+      select: 'Zaznacz {{ name }}',
+      selected: 'Zaznaczone: {{ count }}',
+      clearSelection: 'Wyczyść zaznaczenie',
+      start: 'Scal zaznaczone',
+      transactions: 'Transakcje: {{ count }}',
+      loading: 'Liczenie transakcji…',
+      summary:
+        'Transakcje przeniesione do „{{ name }}”: {{ moved }}. Usunięte miejsca: {{ deleted }}.',
+      filled: 'Puste pola uzupełnione danymi ze scalanych miejsc: {{ fields }}.',
+      confirm: 'Scal miejsca',
+      busy: 'Scalanie…',
+      done: 'Miejsca scalone. Przeniesione transakcje: {{ moved }}.',
     },
   },
   modules: {

@@ -1,0 +1,92 @@
+<dialog
+  #dialog
+  class="modal modal-bottom sm:modal-middle"
+  aria-labelledby="place-merge-title"
+  (close)="onDialogClosed()"
+>
+  <div class="modal-box space-y-5">
+    <h1 id="place-merge-title" class="text-xl font-semibold">
+      {{ 'places.merge.title' | transloco }}
+    </h1>
+
+    <fieldset class="space-y-2">
+      <legend class="mb-2 text-sm font-semibold">
+        {{ 'places.merge.keep' | transloco }}
+      </legend>
+
+      @for (place of places(); track place.id) {
+        <label
+          class="flex cursor-pointer items-center gap-3 rounded-2xl border border-base-300 p-3 has-[:checked]:border-primary"
+        >
+          <input
+            type="radio"
+            class="radio radio-primary"
+            name="place-merge-target"
+            [value]="place.id"
+            [checked]="place.id === targetId()"
+            (change)="selectTarget(place.id)"
+          />
+          <span class="min-w-0 flex-1">
+            <span class="block truncate font-semibold">{{ place.name }}</span>
+            @if (place.city) {
+              <span class="block truncate text-sm text-base-content/60">{{ place.city }}</span>
+            }
+          </span>
+          <span class="shrink-0 text-sm text-base-content/70">
+            @if (transactionCount(place.id); as count) {
+              {{ 'places.merge.transactions' | transloco: { count } }}
+            } @else if (preview()) {
+              {{ 'places.merge.transactions' | transloco: { count: 0 } }}
+            } @else {
+              <span class="loading loading-dots loading-xs" aria-hidden="true"></span>
+            }
+          </span>
+        </label>
+      }
+    </fieldset>
+
+    <div role="status" class="min-h-12 text-sm text-base-content/80">
+      @if (preview(); as summary) {
+        <p>
+          {{
+            'places.merge.summary'
+              | transloco
+                : {
+                    name: target()?.name ?? '',
+                    moved: summary.movedTransactions,
+                    deleted: summary.sourcePlaceIds.length
+                  }
+          }}
+        </p>
+        @if (filledFields(); as fields) {
+          <p class="mt-1">{{ 'places.merge.filled' | transloco: { fields } }}</p>
+        }
+      } @else if (!error()) {
+        <p>{{ 'places.merge.loading' | transloco }}</p>
+      }
+    </div>
+
+    @if (error(); as message) {
+      <p class="text-sm text-error">{{ message }}</p>
+    }
+
+    <form method="dialog" class="modal-action">
+      <button type="submit" value="cancel" class="btn btn-ghost" autofocus>
+        {{ 'common.actions.cancel' | transloco }}
+      </button>
+      <button
+        type="button"
+        class="btn btn-primary"
+        [disabled]="!preview() || store.mutationPending()"
+        (click)="confirm()"
+      >
+        @if (store.mutationPending()) {
+          <span class="loading loading-spinner loading-sm" aria-hidden="true"></span>
+          {{ 'places.merge.busy' | transloco }}
+        } @else {
+          {{ 'places.merge.confirm' | transloco }}
+        }
+      </button>
+    </form>
+  </div>
+</dialog>

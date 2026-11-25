@@ -9,8 +9,15 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslocoPipe, TranslocoService } from '@ngneat/transloco';
 import { NgIcon } from '@ng-icons/core';
 import { heroPencilSquare, heroTrash } from '@ng-icons/heroicons/outline';
-import { PlaceEntity, PlacesStore } from './places.store';
+import {
+  PlaceDuplicateError,
+  PlaceEntity,
+  PlaceMergeResult,
+  PlacesStore,
+} from './places.store';
+import { PlaceMergeDialogComponent } from './place-merge-dialog.component';
 import { FORM_ERROR_DIRECTIVES } from '../../../shared/form-errors';
+import { duplicatePlaceGroups } from '../../../shared/place-name/place-name';
 
 @Component({
   standalone: true,
@@ -21,6 +28,7 @@ import { FORM_ERROR_DIRECTIVES } from '../../../shared/form-errors';
     ReactiveFormsModule,
     TranslocoPipe,
     NgIcon,
+    PlaceMergeDialogComponent,
   ],
   providers: [PlacesStore],
   templateUrl: './places.page.html',
@@ -35,6 +43,22 @@ export class PlacesPageComponent {
   protected readonly editingPlaceId = signal<string | null>(null);
   protected readonly formOpen = signal(false);
   protected readonly query = signal('');
+  protected readonly selectedIds = signal<ReadonlySet<string>>(new Set());
+  protected readonly mergeOpen = signal(false);
+  protected readonly duplicateOf = signal<PlaceEntity | null>(null);
+  protected readonly notice = signal<string | null>(null);
+
+  /** Places whose names differ only by case, spacing or diacritics. */
+  protected readonly duplicateGroups = computed(() =>
+    duplicatePlaceGroups(this.store.places())
+  );
+
+  /** Selected places in list order; the first one is kept by default. */
+  protected readonly selectedPlaces = computed(() => {
+    const selected = this.selectedIds();
+
+    return this.store.places().filter((place) => selected.has(place.id));
+  });
   protected readonly form = this.formBuilder.group({
     name: this.formBuilder.control('', {
       validators: [Validators.required, Validators.maxLength(120)],
@@ -98,7 +122,60 @@ export class PlacesPageComponent {
     this.query.set(input?.value ?? '');
   }
 
+  protected isSelected(placeId: string): boolean {
+    return this.selectedIds().has(placeId);
+  }
+
+  protected toggleSelected(placeId: string): void {
+    this.selectedIds.update((selected) => {
+      const next = new Set(selected);
+
+      if (!next.delete(placeId)) {
+        next.add(placeId);
+      }
+
+      return next;
+    });
+  }
+
+  protected clearSelection(): void {
+    this.selectedIds.set(new Set());
+  }
+
+  protected openMerge(
+    places: readonly PlaceEntity[] = this.selectedPlaces()
+  ): void {
+    if (places.length < 2) {
+      return;
+    }
+
+    this.selectedIds.set(new Set(places.map((place) => place.id)));
+    this.notice.set(null);
+    this.store.clearError();
+    this.mergeOpen.set(true);
+  }
+
+  protected closeMerge(): void {
+    this.mergeOpen.set(false);
+  }
+
+  protected onMerged(result: PlaceMergeResult): void {
+    const editingId = this.editingPlaceId();
+
+    if (editingId && result.mergedPlaceIds.includes(editingId)) {
+      this.closeForm();
+    }
+
+    this.clearSelection();
+    this.notice.set(
+      this.transloco.translate('places.merge.done', {
+        moved: result.movedTransactions,
+      })
+    );
+  }
+
   protected openCreateForm(): void {
+    this.duplicateOf.set(null);
     this.editingPlaceId.set(null);
     this.form.reset({
       name: '',
@@ -115,6 +192,7 @@ export class PlacesPageComponent {
   }
 
   protected openEditForm(place: PlaceEntity): void {
+    this.duplicateOf.set(null);
     this.editingPlaceId.set(place.id);
     this.form.reset({
       name: place.name,
@@ -149,6 +227,7 @@ export class PlacesPageComponent {
     }
 
     const raw = this.form.getRawValue();
+    this.duplicateOf.set(null);
 
     const payload = {
       name: raw.name,
@@ -169,8 +248,12 @@ export class PlacesPageComponent {
       }
 
       this.closeForm();
-    } catch {
-      return;
+    } catch (error) {
+      if (error instanceof PlaceDuplicateError) {
+        this.duplicateOf.set(error.existing);
+        this.form.controls.name.setErrors({ duplicate: true });
+        this.form.controls.name.markAsTouched();
+      }
     }
   }
 
@@ -187,6 +270,9 @@ export class PlacesPageComponent {
 
     try {
       await this.store.deletePlace(place.id);
+      this.selectedIds.update(
+        (selected) => new Set([...selected].filter((id) => id !== place.id))
+      );
 
       if (this.editingPlaceId() === place.id) {
         this.closeForm();

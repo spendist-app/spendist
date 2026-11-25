@@ -76,6 +76,19 @@ const CreatedTransactions = z.object({
   replayed: z.boolean(),
 });
 
+const PlaceMergePreview = z.looseObject({
+  targetPlaceId: z.string(),
+  sourcePlaceIds: z.array(z.string()),
+  movedTransactions: z.number().int(),
+  confirmationToken: z.string(),
+  expiresAt: z.string(),
+});
+
+const PlaceMergeResult = z.looseObject({
+  mergedPlaceIds: z.array(z.string()),
+  movedTransactions: z.number().int(),
+});
+
 const ChangedTransactionTags = z.object({
   changed: z.number().int(),
   transactionIds: z.array(z.string()),
@@ -320,6 +333,64 @@ export class SpendistDataAccess {
         return data;
       }
     );
+  }
+
+  /**
+   * Creates a place unless one with the same name (ignoring case, spacing and
+   * diacritics) exists; then that place is returned with `existing: true`.
+   */
+  async createPlace(values: Omit<TableInsert<'places'>, 'owner_id'>) {
+    const { data, error } = await this.client.rpc('places_matching_name', {
+      p_name: values.name,
+    });
+
+    if (error) databaseError(error);
+
+    const [match] = data;
+
+    if (match) return { ...match, existing: true };
+
+    return { ...(await this.create('places', values)), existing: false };
+  }
+
+  /**
+   * Previews merging duplicate places and issues a five-minute, one-use
+   * confirmation token. Does not change places or transactions.
+   */
+  async prepareMergePlaces(targetPlaceId: string, sourcePlaceIds: string[]) {
+    return this.atomicMutation(
+      'prepare_merge_places',
+      'place',
+      targetPlaceId,
+      async () => {
+        const { data, error } = await this.client.rpc(
+          'mcp_prepare_place_merge',
+          {
+            p_target_id: targetPlaceId,
+            p_source_ids: sourcePlaceIds,
+            p_client_id: this.connection.clientId,
+          }
+        );
+
+        if (error) databaseError(error);
+
+        return PlaceMergePreview.parse(data);
+      }
+    );
+  }
+
+  /** Merges the places covered by an unchanged, unused confirmation token. */
+  async confirmMergePlaces(token: string) {
+    return this.atomicMutation('merge_places', 'place', undefined, async () => {
+      const { data, error } = await this.client.rpc('mcp_confirm_place_merge', {
+        p_token: token,
+        p_client_id: this.connection.clientId,
+      });
+
+      if (error) databaseError(error);
+
+      return PlaceMergeResult.parse(data);
+    });
   }
 
   async setDefaultWallet(id: string) {
