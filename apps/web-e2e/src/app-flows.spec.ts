@@ -16,7 +16,8 @@ const DEFAULT_PASSWORD = 'Test1234!';
 
 const DASHBOARD_HEADING = 'Your personalised command centre';
 
-const MAILPIT_URL = 'http://127.0.0.1:55324';
+// Loaded from the E2E env file by playwright.config.ts.
+const MAILPIT_URL = process.env['E2E_MAILPIT_URL'] ?? 'http://127.0.0.1:55324';
 
 const MAILPIT_API_URL = `${MAILPIT_URL}/api/v1`;
 
@@ -460,6 +461,37 @@ async function openSettings(page: Page): Promise<void> {
   await expect(page).toHaveURL(/\/settings$/, { timeout: 15000 });
 }
 
+/**
+ * Pastes through the real clipboard. Firefox drops the data of synthetic
+ * paste events, so copy from a temporary field and press the shortcut. The
+ * field lives inside `container` because a modal dialog makes the rest of
+ * the page inert.
+ */
+async function pasteWithKeyboard(
+  page: Page,
+  container: Locator,
+  target: Locator,
+  text: string
+): Promise<void> {
+  const source = await container.evaluateHandle((element) => {
+    const textarea = document.createElement('textarea');
+    textarea.dataset['e2eClipboardSource'] = '';
+    element.append(textarea);
+
+    return textarea;
+  });
+
+  const sourceField = container.locator('[data-e2e-clipboard-source]');
+  await sourceField.fill(text);
+  await sourceField.selectText();
+  await page.keyboard.press('ControlOrMeta+C');
+  await source.evaluate((element) => element.remove());
+  await source.dispose();
+
+  await target.focus();
+  await page.keyboard.press('ControlOrMeta+V');
+}
+
 function formWithHeading(page: Page, heading: string): Locator {
   return page
     .locator('form')
@@ -490,6 +522,128 @@ test('signs out and blocks protected routes afterwards', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'Log in' })).toBeVisible();
 });
 
+test('operates the account menu popover with keyboard and pointer', async ({
+  page,
+}) => {
+  await ensureAuthenticated(page);
+
+  const trigger = page.getByRole('button', { name: 'Settings' });
+  const menu = page.getByRole('menu', { name: 'Settings' });
+  const items = menu.getByRole('menuitem');
+
+  await trigger.focus();
+  await page.keyboard.press('Enter');
+
+  await expect(menu).toBeVisible();
+  await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+  await expect(items.first()).toBeFocused();
+
+  await page.keyboard.press('ArrowDown');
+  await expect(items.nth(1)).toBeFocused();
+  await page.keyboard.press('End');
+  await expect(items.last()).toBeFocused();
+  await page.keyboard.press('ArrowDown');
+  await expect(items.first()).toBeFocused();
+
+  await page.keyboard.press('Escape');
+  await expect(menu).toBeHidden();
+  await expect(trigger).toBeFocused();
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+
+  // A pointer open stays on the trigger; a click elsewhere closes the menu.
+  await trigger.click();
+  await expect(menu).toBeVisible();
+  await page.getByRole('heading', { name: DASHBOARD_HEADING }).click();
+  await expect(menu).toBeHidden();
+
+  // The menu sits next to its trigger, not centered on the screen.
+  await trigger.click();
+
+  const triggerBox = await trigger.boundingBox();
+  const menuBox = await menu.boundingBox();
+
+  expect(menuBox?.y ?? 0).toBeGreaterThanOrEqual(
+    (triggerBox?.y ?? 0) + (triggerBox?.height ?? 0)
+  );
+  // Aligned to the trigger's end edge (allowing for the avatar's ring).
+  expect(
+    Math.abs(
+      (menuBox?.x ?? 0) +
+        (menuBox?.width ?? 0) -
+        ((triggerBox?.x ?? 0) + (triggerBox?.width ?? 0))
+    )
+  ).toBeLessThanOrEqual(16);
+});
+
+test('offers app installation only when the browser allows it', async ({
+  page,
+}) => {
+  await ensureAuthenticated(page);
+
+  const trigger = page.getByRole('button', { name: 'Settings' });
+  const installItem = page.getByRole('menuitem', { name: 'Install app' });
+
+  // Without Web Install or an install prompt there is no dead button.
+  const webInstall = await page.evaluate(
+    () => 'install' in Navigator.prototype
+  );
+
+  test.skip(webInstall, 'This browser offers navigator.install() directly.');
+
+  await trigger.click();
+  await expect(page.getByRole('menuitem', { name: 'About' })).toBeVisible();
+  await expect(installItem).toHaveCount(0);
+  await page.keyboard.press('Escape');
+
+  // Chromium fires beforeinstallprompt when the app is installable.
+  await page.evaluate(() => {
+    const event = new Event('beforeinstallprompt', { cancelable: true });
+
+    Object.assign(event, {
+      prompt: () => Promise.resolve(),
+      userChoice: Promise.resolve({ outcome: 'accepted' }),
+    });
+    window.dispatchEvent(event);
+  });
+
+  await trigger.click();
+  await installItem.click();
+
+  await expect(
+    page.getByText('Spendist is installed. You can open it from your apps.')
+  ).toBeVisible();
+
+  await trigger.click();
+  await expect(installItem).toHaveCount(0);
+});
+
+test('previews the add menu on mouse hover and keeps it open on click', async ({
+  page,
+  browserName,
+}) => {
+  test.skip(
+    browserName === 'firefox',
+    'Playwright Firefox reports an empty pointerType, which the menu does not treat as a hovering mouse.'
+  );
+
+  await ensureAuthenticated(page);
+  await openTransactions(page);
+
+  const trigger = page.getByTestId('transaction-add-menu-trigger');
+  const menu = page.getByRole('menu', { name: 'Open transaction actions' });
+
+  await trigger.hover();
+  await expect(menu).toBeVisible();
+
+  // A click right after the hover preview keeps the menu open.
+  await trigger.click();
+  await expect(menu).toBeVisible();
+
+  // Leaving both the trigger and the menu closes it.
+  await page.mouse.move(10, 10);
+  await expect(menu).toBeHidden();
+});
+
 test('shows password change validation in settings', async ({ page }) => {
   await ensureAuthenticated(page);
   await openSettings(page);
@@ -498,13 +652,109 @@ test('shows password change validation in settings', async ({ page }) => {
   await page.getByRole('button', { name: 'Change password' }).click();
   await expect(page.getByText('Current password is required.')).toBeVisible();
 
-  await fillStableInput(page.locator('#current-password'), DEFAULT_PASSWORD);
+  const currentPassword = page.locator('#current-password');
+  const confirmPassword = page.locator('#confirm-new-password');
+
+  await expect(currentPassword).toHaveAttribute('aria-invalid', 'true');
+  await expect(currentPassword).toHaveAccessibleDescription(
+    'Current password is required.'
+  );
+  await expect(currentPassword).toBeFocused();
+
+  await fillStableInput(currentPassword, DEFAULT_PASSWORD);
   await fillStableInput(page.locator('#new-password'), 'Next1234');
-  await fillStableInput(page.locator('#confirm-new-password'), 'Different123');
+  await fillStableInput(confirmPassword, 'Different123');
 
   await page.getByRole('button', { name: 'Change password' }).click();
 
   await expect(page.getByText('Passwords must match.')).toBeVisible();
+  await expect(currentPassword).toHaveAttribute('aria-invalid', 'false');
+  await expect(confirmPassword).toHaveAttribute('aria-invalid', 'true');
+  await expect(confirmPassword).toHaveAccessibleDescription(
+    'Passwords must match.'
+  );
+});
+
+test.describe('theme before the app boots', () => {
+  test.use({ colorScheme: 'dark' });
+
+  test.beforeEach(async ({ page }) => {
+    // Without the app bundle, only theme-init.js can set the theme.
+    await page.route(/\/main(-\w+)?\.js(\?|$)/, (route) => route.abort());
+  });
+
+  test('applies the saved theme', async ({ page }) => {
+    await page.goto('/login');
+    await page.evaluate(() =>
+      localStorage.setItem('spendist-theme', 'spendistDark')
+    );
+    await page.reload();
+    await expect(page.locator('html')).toHaveAttribute(
+      'data-theme',
+      'spendistDark'
+    );
+
+    await page.evaluate(() =>
+      localStorage.setItem('spendist-theme', 'spendistLight')
+    );
+    await page.reload();
+    await expect(page.locator('html')).toHaveAttribute(
+      'data-theme',
+      'spendistLight'
+    );
+  });
+
+  test('follows the system theme when none is saved', async ({
+    page,
+    browserName,
+  }) => {
+    test.skip(
+      browserName === 'firefox',
+      'Playwright Firefox does not apply the emulated color scheme to this page.'
+    );
+
+    await page.goto('/login');
+    await expect(page.locator('html')).toHaveAttribute(
+      'data-theme',
+      'spendistDark'
+    );
+  });
+});
+
+test('exposes login field errors to assistive technology', async ({ page }) => {
+  await page.goto('/login');
+
+  const form = page.locator('form');
+  const email = form.locator('#email');
+  const password = form.locator('#password');
+
+  await expect(email).toHaveAttribute('aria-invalid', 'false');
+
+  await form.getByRole('button', { name: 'Log in' }).click();
+
+  await expect(email).toHaveAttribute('aria-invalid', 'true');
+  await expect(email).toHaveAccessibleDescription(
+    'Enter a valid email address.'
+  );
+  await expect(email).toBeFocused();
+  await expect(password).toHaveAttribute('aria-invalid', 'true');
+
+  await fillStableInput(email, 'reader@example.com');
+
+  await expect(email).toHaveAttribute('aria-invalid', 'false');
+  await expect(email).toHaveAccessibleDescription('');
+
+  // Leaving a field with an error announces it once through a polite region.
+  await password.focus();
+  await password.blur();
+
+  await expect(page.getByTestId('form-error-announcer')).toHaveText(
+    'Password: Password is required.'
+  );
+  await expect(page.getByTestId('form-error-announcer')).toHaveAttribute(
+    'aria-live',
+    'polite'
+  );
 });
 
 test('confirms a new account, signs in once, and rejects a reused link', async ({
@@ -773,6 +1023,65 @@ test('adds transaction and keeps it after reload', async ({
   await expect(page.getByText(description)).toBeVisible();
 });
 
+test('opens the transaction form as a native modal dialog', async ({
+  page,
+}, testInfo) => {
+  const description = `E2E dialog ${uniqueSuffix(testInfo)}`;
+
+  await ensureAuthenticated(page);
+  await openTransactions(page);
+  await openTransactionCreateForm(page);
+
+  const dialog = page.getByRole('dialog', { name: 'Add transaction' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toHaveJSProperty('open', true);
+  await expect(
+    dialog.locator('input[formcontrolname="description"]')
+  ).toBeFocused();
+
+  // Opened with showModal(): the page behind it is inert and does not scroll
+  // (DaisyUI locks the root while a modal is open).
+  expect(await dialog.evaluate((element) => element.matches(':modal'))).toBe(
+    true
+  );
+  await expect
+    .poll(() =>
+      page.evaluate(() => getComputedStyle(document.documentElement).overflow)
+    )
+    .toBe('hidden');
+
+  // Esc in an open dropdown closes only the dropdown.
+  await dialog.getByRole('button', { name: 'Category', exact: true }).click();
+  const categorySearch = dialog.getByPlaceholder('Search categories...');
+  await expect(categorySearch).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(categorySearch).toHaveCount(0);
+  await expect(dialog).toBeVisible();
+
+  // "Save and add another" keeps the dialog open and confirms inside it.
+  await dialog
+    .locator('input[formcontrolname="description"]')
+    .fill(description);
+  await selectFirstTransactionCategory(page);
+  await dialog.locator('input[formcontrolname="amount"]').fill('3.20');
+  await dialog.getByRole('button', { name: 'Save and add another' }).click();
+  await expect(dialog.getByRole('status')).toHaveText(
+    'Transaction saved in the database.'
+  );
+  await expect(dialog).toBeVisible();
+
+  // Esc closes the dialog and focus returns to the add button.
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByTestId('transaction-add-menu-trigger')).toBeFocused();
+  await expect(page.getByText(description)).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(() => getComputedStyle(document.documentElement).overflow)
+    )
+    .not.toBe('hidden');
+});
+
 test('exposes bulk entry and applies year, month, and amount sorting', async ({
   page,
 }, testInfo) => {
@@ -800,7 +1109,7 @@ test('exposes bulk entry and applies year, month, and amount sorting', async ({
   await openTransactions(page);
 
   const addTrigger = page.getByTestId('transaction-add-menu-trigger');
-  await addTrigger.hover();
+  await addTrigger.click();
   const bulkAction = page.getByRole('menuitem', { name: 'Add in bulk' });
   await expect(bulkAction).toBeVisible();
   await bulkAction.click();
@@ -815,11 +1124,26 @@ test('exposes bulk entry and applies year, month, and amount sorting', async ({
     (await firstDateInput.boundingBox())?.width ?? 0
   ).toBeGreaterThanOrEqual(128);
 
-  const firstCopyMenu = bulkDialog.locator('details').first();
-  await firstCopyMenu.locator('summary').click();
-  await expect(firstCopyMenu).toHaveAttribute('open', '');
-  await firstCopyMenu.getByRole('button', { name: 'Fill rows below' }).click();
-  await expect(firstCopyMenu).not.toHaveAttribute('open', '');
+  // Copy menus are popovers: in the top layer, above the dialog's scroll box.
+  const firstCopyTrigger = bulkDialog.locator('[aria-haspopup="menu"]').first();
+  const firstCopyMenu = bulkDialog.locator('[role="menu"]').first();
+  await expect(firstCopyMenu).toBeHidden();
+  await firstCopyTrigger.click();
+  await expect(firstCopyMenu).toBeVisible();
+  await expect(firstCopyTrigger).toHaveAttribute('aria-expanded', 'true');
+  await firstCopyMenu
+    .getByRole('menuitem', { name: 'Fill rows below' })
+    .click();
+  await expect(firstCopyMenu).toBeHidden();
+  await expect(firstCopyTrigger).toHaveAttribute('aria-expanded', 'false');
+  await expect(bulkDialog).toBeVisible();
+
+  // Esc closes only the menu, not the dialog around it.
+  await firstCopyTrigger.click();
+  await expect(firstCopyMenu).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(firstCopyMenu).toBeHidden();
+  await expect(bulkDialog).toBeVisible();
 
   await bulkDialog
     .getByRole('button', { name: 'Category', exact: true })
@@ -835,16 +1159,12 @@ test('exposes bulk entry and applies year, month, and amount sorting', async ({
     )
     .toBe('absolute');
 
-  await page.evaluate(() => {
-    const clipboardData = new DataTransfer();
-    clipboardData.setData(
-      'text/plain',
-      '2026-07-10\tPasted with Ctrl+V\t25.50\tPLN\tGroceries\tclipboard\t\t1'
-    );
-    document.dispatchEvent(
-      new ClipboardEvent('paste', { bubbles: true, clipboardData })
-    );
-  });
+  await pasteWithKeyboard(
+    page,
+    bulkDialog,
+    bulkDialog.locator('input[placeholder="Description"]').first(),
+    '2026-07-10\tPasted with Ctrl+V\t25.50\tPLN\tGroceries\tclipboard\t\t1'
+  );
   await expect(
     bulkDialog.locator('input[placeholder="Description"]').first()
   ).toHaveValue('Pasted with Ctrl+V');
@@ -954,7 +1274,7 @@ test('keeps repeated CSV rows on first import and skips a repeat', async ({
   await openTransactions(page);
 
   const importOnce = async () => {
-    await page.getByTestId('transaction-add-menu-trigger').hover();
+    await page.getByTestId('transaction-add-menu-trigger').click();
     await page.getByTestId('transaction-import-open').click();
 
     const importDialog = page.getByRole('dialog', {
@@ -1058,7 +1378,7 @@ test('imports and edits a Biedronka e-receipt before saving', async ({
 
   await ensureAuthenticated(page);
   await openTransactions(page);
-  await page.getByTestId('transaction-add-menu-trigger').hover();
+  await page.getByTestId('transaction-add-menu-trigger').click();
   await page.getByTestId('transaction-import-open').click();
 
   const importDialog = page.getByRole('dialog', {
@@ -1490,12 +1810,16 @@ test('adds recurring payment with selected currency', async ({
     page.getByRole('heading', { name: 'Schedule a recurring payment' })
   ).toHaveCount(0);
   await expect(page.getByText(name)).toBeVisible();
-  await expect(page.getByText('USD')).toBeVisible();
+  await expect(
+    page.getByRole('listitem').filter({ hasText: name }).getByText('USD')
+  ).toBeVisible();
 
   await page.reload();
   await openModule(page, 'Recurring payments', 'Active recurring payments');
   await expect(page.getByText(name)).toBeVisible();
-  await expect(page.getByText('USD')).toBeVisible();
+  await expect(
+    page.getByRole('listitem').filter({ hasText: name }).getByText('USD')
+  ).toBeVisible();
 });
 
 test('backfills transactions for a recurring payment ended in the past', async ({
@@ -1565,7 +1889,10 @@ test('stopped recurring payments keep reopened amounts out of the posting form',
 
   await ensureAuthenticated(page);
   await openModule(page, 'Recurring payments', 'Active recurring payments');
-  await page.getByRole('button', { name: /Add recurring/i }).last().click();
+  await page
+    .getByRole('button', { name: /Add recurring/i })
+    .last()
+    .click();
 
   await page.locator('#recurring-name').fill(name);
   await selectFirstCategoryOption(page);

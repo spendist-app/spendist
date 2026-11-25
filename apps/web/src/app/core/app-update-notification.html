@@ -1,12 +1,11 @@
-@if (updateAvailable()) {
-<aside
-  class="toast toast-top toast-end top-20 z-[70] w-full max-w-sm px-4"
-  aria-live="polite"
-  aria-atomic="true"
+<!-- The live region stays in the DOM so the update notice is announced. -->
+<div
+  class="toast toast-top toast-end top-20 z-[70] w-full max-w-sm px-4 pointer-events-none"
+  role="status"
 >
+  @if (updateAvailable()) {
   <div
-    class="alert grid grid-cols-[auto_1fr_auto] items-start gap-3 rounded-2xl border border-primary/20 bg-base-100 text-base-content shadow-2xl"
-    role="status"
+    class="pointer-events-auto alert grid grid-cols-[auto_1fr_auto] items-start gap-3 rounded-2xl border border-primary/20 bg-base-100 text-base-content shadow-2xl"
   >
     <span
       class="flex size-10 items-center justify-center rounded-xl bg-primary/15 text-xl text-primary"
@@ -41,5 +40,5 @@
       ✕
     </button>
   </div>
-</aside>
-}
+  }
+</div>

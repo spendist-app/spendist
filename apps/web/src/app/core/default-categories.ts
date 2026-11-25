@@ -1,6 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { DEFAULT_LANGUAGE, LanguageCode } from '../i18n/languages';
-import { canonicalHeroIconName } from '../shared/icons/heroicons';
 import { logError } from './logger';
 
 interface CategoryTemplate {
@@ -19,10 +18,13 @@ interface CategoryGroupTemplate {
   readonly categories: readonly CategoryTemplate[];
 }
 
-const CATEGORY_TEMPLATES: readonly CategoryGroupTemplate[] = [
+// Icon names are literal heroicons keys. Resolving them through
+// shared/icons/heroicons would pull every icon set into the initial bundle
+// (this file loads with AuthService); the spec checks they exist.
+export const CATEGORY_TEMPLATES: readonly CategoryGroupTemplate[] = [
   {
     key: 'essentials',
-    icon: canonicalHeroIconName('heroHome') ?? 'heroHome',
+    icon: 'heroHome',
     color: '#0EA5A5',
     name: {
       en: 'Essentials',
@@ -31,7 +33,7 @@ const CATEGORY_TEMPLATES: readonly CategoryGroupTemplate[] = [
     categories: [
       {
         key: 'food',
-        icon: canonicalHeroIconName('heroCake') ?? 'heroCake',
+        icon: 'heroCake',
         color: '#0EA5A5',
         name: {
           en: 'Food',
@@ -40,8 +42,7 @@ const CATEGORY_TEMPLATES: readonly CategoryGroupTemplate[] = [
         children: [
           {
             key: 'groceries',
-            icon:
-              canonicalHeroIconName('heroShoppingCart') ?? 'heroShoppingCart',
+            icon: 'heroShoppingCart',
             color: '#0EA5A5',
             name: {
               en: 'Groceries',
@@ -52,7 +53,7 @@ const CATEGORY_TEMPLATES: readonly CategoryGroupTemplate[] = [
       },
       {
         key: 'shopping',
-        icon: canonicalHeroIconName('heroShoppingCart') ?? 'heroShoppingCart',
+        icon: 'heroShoppingCart',
         color: '#0EA5A5',
         name: {
           en: 'Shopping',
@@ -61,7 +62,7 @@ const CATEGORY_TEMPLATES: readonly CategoryGroupTemplate[] = [
       },
       {
         key: 'transport',
-        icon: canonicalHeroIconName('heroTruck') ?? 'heroTruck',
+        icon: 'heroTruck',
         color: '#0EA5A5',
         name: {
           en: 'Transport',
@@ -70,7 +71,7 @@ const CATEGORY_TEMPLATES: readonly CategoryGroupTemplate[] = [
       },
       {
         key: 'utilities',
-        icon: canonicalHeroIconName('heroBolt') ?? 'heroBolt',
+        icon: 'heroBolt',
         color: '#0EA5A5',
         name: {
           en: 'Utilities',
@@ -81,7 +82,7 @@ const CATEGORY_TEMPLATES: readonly CategoryGroupTemplate[] = [
   },
   {
     key: 'lifestyle',
-    icon: canonicalHeroIconName('heroSparkles') ?? 'heroSparkles',
+    icon: 'heroSparkles',
     color: '#F59E0B',
     name: {
       en: 'Lifestyle',
@@ -90,7 +91,7 @@ const CATEGORY_TEMPLATES: readonly CategoryGroupTemplate[] = [
     categories: [
       {
         key: 'diningOut',
-        icon: canonicalHeroIconName('heroCake') ?? 'heroCake',
+        icon: 'heroCake',
         color: '#F59E0B',
         name: {
           en: 'Dining Out',
@@ -99,7 +100,7 @@ const CATEGORY_TEMPLATES: readonly CategoryGroupTemplate[] = [
       },
       {
         key: 'entertainment',
-        icon: canonicalHeroIconName('heroFilm') ?? 'heroFilm',
+        icon: 'heroFilm',
         color: '#F59E0B',
         name: {
           en: 'Entertainment',
@@ -110,7 +111,7 @@ const CATEGORY_TEMPLATES: readonly CategoryGroupTemplate[] = [
   },
   {
     key: 'income',
-    icon: canonicalHeroIconName('heroBanknotes') ?? 'heroBanknotes',
+    icon: 'heroBanknotes',
     color: '#2DD4BF',
     name: {
       en: 'Income',
@@ -119,7 +120,7 @@ const CATEGORY_TEMPLATES: readonly CategoryGroupTemplate[] = [
     categories: [
       {
         key: 'salary',
-        icon: canonicalHeroIconName('heroBriefcase') ?? 'heroBriefcase',
+        icon: 'heroBriefcase',
         color: '#2DD4BF',
         name: {
           en: 'Salary',
@@ -128,7 +129,7 @@ const CATEGORY_TEMPLATES: readonly CategoryGroupTemplate[] = [
       },
       {
         key: 'sideHustle',
-        icon: canonicalHeroIconName('heroRocketLaunch') ?? 'heroRocketLaunch',
+        icon: 'heroRocketLaunch',
         color: '#2DD4BF',
         name: {
           en: 'Side Hustle',

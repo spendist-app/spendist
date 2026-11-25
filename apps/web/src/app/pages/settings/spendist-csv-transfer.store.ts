@@ -559,7 +559,7 @@ export class SpendistCsvTransferStore {
         category: category?.name ?? '',
         wallet: wallet?.name ?? '',
         wallet_currency: walletCurrency,
-        tags: [...(tagsByTransaction.get(transaction.id) ?? [])].sort((a, b) =>
+        tags: (tagsByTransaction.get(transaction.id) ?? []).toSorted((a, b) =>
           a.localeCompare(b)
         ),
         place: transaction.place_id

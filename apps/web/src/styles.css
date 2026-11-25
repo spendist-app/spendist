@@ -3,9 +3,94 @@
 
 /* You can add global styles to this file, and also import other style files */
 
+/*
+ * Page changes cross-fade (withViewTransitions). The navbar is the same on
+ * every page: give it its own snapshot so it stays put instead of fading.
+ */
+app-navbar {
+  display: block;
+  view-transition-name: app-navbar;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 180ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
+/*
+ * Long lists: skip layout and paint of rows far off screen
+ * (content-visibility). Only for rows below the first screen; the size is a
+ * first estimate, then the browser remembers each row's real height.
+ * Paint containment clips to the row, so nothing may overflow it.
+ */
+.defer-offscreen-render {
+  content-visibility: auto;
+  contain-intrinsic-size: auto none auto 180px;
+}
+
+/*
+ * Popover dropdowns (PopoverMenuDirective). DaisyUI places `.dropdown[popover]`
+ * with anchor positioning; keep a gap to the trigger and flip the menu when it
+ * would overflow the viewport. Margins flip together with the menu.
+ */
+@supports (position-area: bottom) {
+  .dropdown[popover] {
+    /* Replace the UA popover centering (inset: 0; margin: auto). */
+    inset: auto;
+    margin: 0.5rem 0;
+    position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
+  }
+}
+
+/*
+ * Without anchor positioning the menu is placed from script; drop the
+ * centering and the dimmed backdrop DaisyUI uses there. The backdrop would
+ * also sit under the pointer and end a hover preview.
+ */
+.dropdown[popover][data-anchor-fallback] {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+}
+
+.dropdown[popover][data-anchor-fallback]::backdrop {
+  display: none;
+  background: transparent;
+  pointer-events: none;
+}
+
+/*
+ * Scrolling to the end of a dropdown list must not carry on scrolling the
+ * page behind it (scroll chaining). Open modals need no rule: DaisyUI locks
+ * root scrolling while a .modal is open.
+ */
+.dropdown[popover] {
+  overscroll-behavior: contain;
+}
+
 @layer base {
   :root {
     color-scheme: light;
+  }
+
+  /*
+   * Even out short headings and avoid one-word last lines in long prose.
+   * Browsers without support keep the default wrapping.
+   */
+  :is(h1, h2, h3) {
+    text-wrap: balance;
+  }
+
+  :is(.article-body, .legal-content) :is(p, li, blockquote) {
+    text-wrap: pretty;
   }
 
   :root[data-theme='spendistLight'],
@@ -15,20 +100,26 @@
     --color-base-200: #fffdfb;
     --color-base-300: #f3f4f6;
     --color-base-content: #111827;
-    --color-primary: #0ea5a5;
-    --color-primary-content: #062824;
+    /*
+     * Filled mid-tone colours (teal, green, orange) read poorly with dark
+     * text even when the WCAG 2 ratio passes, and fail it with white. Use
+     * shades deep enough for white text (>= 4.5:1, APCA Lc ~80), which also
+     * keeps text-primary/text-success readable on white.
+     */
+    --color-primary: #0b7a7a;
+    --color-primary-content: #ffffff;
     --color-secondary: #f59e0b;
     --color-secondary-content: #422100;
-    --color-accent: #ea580c;
-    --color-accent-content: #2a0a00;
+    --color-accent: #c2410c;
+    --color-accent-content: #ffffff;
     --color-neutral: #1f2933;
     --color-neutral-content: #f9fafb;
-    --color-info: #0ea5a5;
-    --color-info-content: #022626;
-    --color-success: #16a34a;
-    --color-success-content: #052e17;
-    --color-warning: #d97706;
-    --color-warning-content: #3d1c00;
+    --color-info: #0b7a7a;
+    --color-info-content: #ffffff;
+    --color-success: #15803d;
+    --color-success-content: #ffffff;
+    --color-warning: #b45309;
+    --color-warning-content: #ffffff;
     --color-error: #dc2626;
     --color-error-content: #ffffff;
     --radius-selector: 0.5rem;
@@ -57,8 +148,8 @@
     --color-neutral-content: #e5e7eb;
     --color-info: #2dd4bf;
     --color-info-content: #042622;
-    --color-success: #16a34a;
-    --color-success-content: #042212;
+    --color-success: #4ade80;
+    --color-success-content: #052e16;
     --color-warning: #fbbf24;
     --color-warning-content: #3c2500;
     --color-error: #dc2626;

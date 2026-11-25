@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   ElementRef,
   afterNextRender,
   effect,
@@ -30,6 +31,7 @@ import {
 import type { TransactionDirection } from '@spendist/data-access/supabase-types';
 import { parseAmountInput } from './transaction-amount.parser';
 import { heroIconSvg } from '../../shared/icons/heroicons';
+import { isImeComposing } from '../../shared/keyboard-events';
 import { logError } from '../../core/logger';
 import { LanguageService } from '../../core/language.service';
 import { FeatureFlagsService } from '../../core/feature-flags.service';
@@ -41,6 +43,7 @@ import {
   TagPickerComponent,
   TagPickerSelection,
 } from '../../shared/tag-picker/tag-picker.component';
+import { FORM_ERROR_DIRECTIVES } from '../../shared/form-errors';
 
 interface CurrencyOptionView {
   readonly id: number;
@@ -61,6 +64,7 @@ export type TransactionFormSaveResult = 'created' | 'updated';
   selector: 'app-transaction-create-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    ...FORM_ERROR_DIRECTIVES,
     ReactiveFormsModule,
     TranslocoPipe,
     NgIcon,
@@ -82,6 +86,8 @@ export class TransactionCreateFormComponent {
   protected readonly store = inject(TransactionsStore);
   private readonly featureFlags = inject(FeatureFlagsService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly dialog =
+    viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
   protected readonly descriptionInput =
     viewChild<ElementRef<HTMLInputElement>>('descriptionInput');
   protected readonly placeSearchInput =
@@ -135,7 +141,7 @@ export class TransactionCreateFormComponent {
   );
   protected readonly allowanceConnections = computed(() =>
     this.featureFlags.previewVisible()
-      ? (this.store.allowanceConnections?.() ?? [])
+      ? this.store.allowanceConnections?.() ?? []
       : []
   );
   protected readonly showTransactionTarget = computed(
@@ -273,7 +279,7 @@ export class TransactionCreateFormComponent {
     const seen = new Set<string>();
     const recent: TagEntity[] = [];
 
-    const transactions = [...this.store.transactionsView()].sort(
+    const transactions = this.store.transactionsView().toSorted(
       (a, b) => b.occurredAt.getTime() - a.occurredAt.getTime()
     );
 
@@ -345,8 +351,23 @@ export class TransactionCreateFormComponent {
   readonly closed: OutputEmitterRef<void> = output();
   readonly saved: OutputEmitterRef<TransactionFormSaveResult> = output();
 
+  // Page toasts sit below the modal's top layer, so "save and add another"
+  // confirms the save inside the dialog instead.
+  protected readonly savedNoticeVisible = signal(false);
+  private savedNoticeTimer: ReturnType<typeof setTimeout> | null = null;
+
   constructor() {
+    inject(DestroyRef).onDestroy(() => this.clearSavedNoticeTimer());
+
     afterNextRender(() => {
+      const dialog = this.dialog().nativeElement;
+
+      // The native modal makes the page inert, contains focus, handles Esc
+      // and the back gesture, and returns focus to the invoker on close.
+      if ('showModal' in HTMLDialogElement.prototype && !dialog.open) {
+        dialog.showModal();
+      }
+
       if (this.mode() === 'create') {
         this.descriptionInput()?.nativeElement.focus();
       }
@@ -572,7 +593,13 @@ export class TransactionCreateFormComponent {
       return;
     }
 
+    // Enter must not submit the enclosing transaction form either way.
     event.preventDefault();
+
+    if (event instanceof KeyboardEvent && isImeComposing(event)) {
+      return;
+    }
+
     void this.saveNewPlace();
   }
 
@@ -718,8 +745,48 @@ export class TransactionCreateFormComponent {
       return;
     }
 
+    const dialog = this.dialog().nativeElement;
+
+    if (dialog.open) {
+      // The dialog's close event finishes closing the form.
+      dialog.close();
+
+      return;
+    }
+
+    this.finishClose();
+  }
+
+  protected onCancel(event: Event): void {
+    if (this.newPlacePending()) {
+      event.preventDefault();
+    }
+  }
+
+  protected onDialogClosed(): void {
+    this.finishClose();
+  }
+
+  private finishClose(): void {
     this.resetForm();
     this.closed.emit();
+  }
+
+  private showSavedNotice(): void {
+    this.clearSavedNoticeTimer();
+    this.savedNoticeVisible.set(true);
+
+    this.savedNoticeTimer = setTimeout(() => {
+      this.savedNoticeVisible.set(false);
+      this.savedNoticeTimer = null;
+    }, 3500);
+  }
+
+  private clearSavedNoticeTimer(): void {
+    if (this.savedNoticeTimer !== null) {
+      clearTimeout(this.savedNoticeTimer);
+      this.savedNoticeTimer = null;
+    }
   }
 
   protected async submit(
@@ -780,6 +847,7 @@ export class TransactionCreateFormComponent {
 
         if (afterCreate === 'continue') {
           this.resetForm();
+          this.showSavedNotice();
           this.focusDescriptionInput();
 
           return;
@@ -893,6 +961,7 @@ export class TransactionCreateFormComponent {
 
         if (afterCreate === 'continue') {
           this.resetForm();
+          this.showSavedNotice();
           this.focusDescriptionInput();
 
           return;

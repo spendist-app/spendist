@@ -1,4 +1,4 @@
-<section class="mx-auto flex min-h-[calc(100vh-6rem)] w-full max-w-6xl flex-col gap-6 px-4 py-10 sm:py-14">
+<section class="mx-auto flex min-h-[calc(100dvh-6rem)] w-full max-w-6xl flex-col gap-6 px-4 py-10 sm:py-14">
   <header class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
     <div class="space-y-2">
       <h1 class="text-3xl font-semibold sm:text-4xl">
@@ -34,6 +34,10 @@
           </span>
           <input
             type="search"
+            enterkeyhint="search"
+            autocapitalize="none"
+            autocorrect="off"
+            spellcheck="false"
             class="input input-bordered"
             [placeholder]="'places.search.placeholder' | transloco"
             [value]="query()"
@@ -114,7 +118,7 @@
 
     <aside class="rounded-3xl border border-base-300 bg-base-100/80 p-5 shadow-sm sm:p-6">
       @if (formOpen()) {
-        <form class="space-y-4" [formGroup]="form" (ngSubmit)="submit()">
+        <form class="space-y-4" [formGroup]="form" appFocusFirstInvalid (ngSubmit)="submit()">
           <div class="space-y-1">
             <h2 class="text-xl font-semibold">
               {{ formTitleKey() | transloco }}
@@ -125,9 +129,9 @@
             <span class="label-text font-semibold">
               {{ 'places.form.fields.name' | transloco }}
             </span>
-            <input class="input input-bordered" formControlName="name" maxlength="120" />
+            <input class="input input-bordered" formControlName="name" appFieldError="place-name-error" maxlength="120" />
             @if (form.controls.name.touched && form.controls.name.invalid) {
-              <span class="mt-1 text-xs text-error">
+              <span id="place-name-error" class="mt-1 text-xs text-error">
                 {{ 'places.form.validation.name' | transloco }}
               </span>
             }
@@ -167,7 +171,7 @@
             <span class="label-text font-semibold">
               {{ 'places.form.fields.note' | transloco }}
             </span>
-            <textarea class="textarea textarea-bordered min-h-24" formControlName="note" maxlength="500"></textarea>
+            <textarea class="textarea textarea-bordered field-sizing-content min-h-24 max-h-60 w-full" formControlName="note" maxlength="500"></textarea>
           </label>
 
           <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">

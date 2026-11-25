@@ -48,8 +48,7 @@ export class RecurringPaymentListComponent {
   readonly transactions = computed(() =>
     this.store
       .filteredRecurringTransactions()
-      .slice()
-      .sort((a, b) => a.name.localeCompare(b.name))
+      .toSorted((a, b) => a.name.localeCompare(b.name))
   );
 
   constructor() {

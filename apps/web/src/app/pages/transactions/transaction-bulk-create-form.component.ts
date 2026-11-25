@@ -1,13 +1,16 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
   HostListener,
+  afterNextRender,
   computed,
   effect,
   inject,
   input,
   output,
   signal,
+  viewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TranslocoPipe } from '@ngneat/transloco';
@@ -35,6 +38,7 @@ import {
   TransactionsStore,
   WalletEntity,
 } from './transactions.store';
+import { PopoverMenuDirective } from '../../shared/popover-menu/popover-menu.directive';
 
 interface BulkTransactionDraftRow {
   readonly id: number;
@@ -82,7 +86,13 @@ type CopyDirection = 'up' | 'down';
   standalone: true,
   selector: 'app-transaction-bulk-create-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, TranslocoPipe, NgIcon, CategorySelectComponent],
+  imports: [
+    FormsModule,
+    TranslocoPipe,
+    NgIcon,
+    CategorySelectComponent,
+    PopoverMenuDirective,
+  ],
   templateUrl: './transaction-bulk-create-form.component.html',
 })
 export class TransactionBulkCreateFormComponent {
@@ -158,6 +168,21 @@ export class TransactionBulkCreateFormComponent {
 
   readonly closed = output<void>();
   readonly saved = output<number>();
+
+  private readonly dialog =
+    viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
+
+  constructor() {
+    afterNextRender(() => {
+      const dialog = this.dialog().nativeElement;
+
+      // The native modal makes the page inert, contains focus, handles Esc
+      // and the back gesture, and returns focus to the invoker on close.
+      if ('showModal' in HTMLDialogElement.prototype && !dialog.open) {
+        dialog.showModal();
+      }
+    });
+  }
   readonly importCompleted = output<{
     created: number;
     duplicatesSkipped: number;
@@ -206,6 +231,19 @@ export class TransactionBulkCreateFormComponent {
   );
 
   protected onClose(): void {
+    const dialog = this.dialog().nativeElement;
+
+    if (dialog.open) {
+      // The dialog's close event finishes closing the form.
+      dialog.close();
+
+      return;
+    }
+
+    this.closed.emit();
+  }
+
+  protected onDialogClosed(): void {
     this.closed.emit();
   }
 
@@ -298,20 +336,6 @@ export class TransactionBulkCreateFormComponent {
         return shouldCopy ? { ...row, [field]: source[field] } : row;
       })
     );
-  }
-
-  protected copyFieldAndClose(
-    rowId: number,
-    field: CopyableBulkTransactionField,
-    direction: CopyDirection,
-    event: Event
-  ): void {
-    this.copyField(rowId, field, direction);
-
-    const trigger =
-      event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
-
-    trigger?.closest('details')?.removeAttribute('open');
   }
 
   protected clearRow(rowId: number): void {
@@ -487,7 +511,7 @@ export class TransactionBulkCreateFormComponent {
           });
         }
 
-        this.closed.emit();
+        this.onClose();
       }
     } catch (error) {
       logError('TransactionBulkCreateForm', 'Failed to create batch', error);

@@ -1,22 +1,17 @@
 @if (open()) {
-<section
-  class="fixed inset-0 z-40 flex items-end justify-center px-4 py-6 sm:items-center sm:py-12 lg:py-16"
+<dialog
+  #dialog
+  class="modal modal-bottom px-4 py-6 sm:modal-middle sm:py-12 lg:py-16"
+  aria-labelledby="recurring-payment-form-title"
+  (close)="onDialogClosed()"
 >
   <div
-    class="absolute inset-0 bg-base-200/70 backdrop-blur-sm"
-    (click)="onDismiss()"
-    aria-hidden="true"
-  ></div>
-
-  <div
     class="relative z-10 w-full max-w-3xl overflow-hidden rounded-t-3xl border border-base-300 bg-base-100/95 shadow-2xl backdrop-blur sm:rounded-3xl"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="recurring-payment-form-title"
   >
     <form
-      class="flex max-h-[min(88vh,700px)] flex-col gap-6 overflow-y-auto p-6 sm:p-8"
+      class="flex max-h-[min(88dvh,700px)] flex-col gap-6 overflow-y-auto overscroll-contain p-6 sm:p-8"
       [formGroup]="form"
+      appFocusFirstInvalid
       (ngSubmit)="onSubmit()"
       autocomplete="off"
       novalidate
@@ -86,9 +81,11 @@
           </label>
           <input
             id="recurring-name"
+            autofocus
             class="input input-bordered w-full"
             type="text"
             formControlName="name"
+            appFieldError="recurring-name-error"
             [attr.placeholder]="
               'modules.recurringPayments.form.fields.name.placeholder'
                 | transloco
@@ -97,7 +94,7 @@
           />
           @if (nameControl.invalid && (nameControl.dirty ||
           nameControl.touched)) {
-          <p class="text-xs text-error">
+          <p id="recurring-name-error" class="text-xs text-error">
             {{ 'modules.recurringPayments.form.fields.name.error' | transloco }}
           </p>
           }
@@ -154,6 +151,7 @@
             id="recurring-wallet"
             class="select select-bordered w-full"
             formControlName="walletId"
+            appFieldError="recurring-wallet-error"
           >
             <option value="">
               {{
@@ -167,7 +165,7 @@
           </select>
           @if (walletControl.invalid && (walletControl.dirty ||
           walletControl.touched)) {
-          <p class="text-xs text-error">
+          <p id="recurring-wallet-error" class="text-xs text-error">
             {{
               'modules.recurringPayments.form.fields.wallet.error' | transloco
             }}
@@ -236,6 +234,7 @@
               min="0"
               step="0.01"
               formControlName="amount"
+              appFieldError="recurring-amount-error"
               autocomplete="off"
             />
             <select
@@ -253,7 +252,7 @@
           </div>
           @if (amountControl.invalid && (amountControl.dirty ||
           amountControl.touched)) {
-          <p class="text-xs text-error">
+          <p id="recurring-amount-error" class="text-xs text-error">
             {{
               'modules.recurringPayments.form.fields.amount.error' | transloco
             }}
@@ -446,10 +445,11 @@
               class="input input-bordered"
               type="date"
               formControlName="startDate"
+              appFieldError="recurring-start-date-error"
             />
             @if (startDateControl.invalid && (startDateControl.dirty ||
             startDateControl.touched)) {
-            <p class="text-xs text-error">
+            <p id="recurring-start-date-error" class="text-xs text-error">
               {{
                 'modules.recurringPayments.form.fields.startDate.error'
                   | transloco
@@ -522,5 +522,13 @@
       </footer>
     </form>
   </div>
-</section>
+
+  <button
+    type="button"
+    class="absolute inset-0 bg-base-200/70 backdrop-blur-sm"
+    tabindex="-1"
+    aria-hidden="true"
+    (click)="onDismiss()"
+  ></button>
+</dialog>
 }

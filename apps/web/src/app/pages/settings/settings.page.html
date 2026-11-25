@@ -181,6 +181,7 @@
             <form
               class="grid min-w-0 content-start gap-5 md:grid-cols-2"
               [formGroup]="profileForm"
+              appFocusFirstInvalid
             >
               <label class="form-control md:col-span-2">
                 <span class="label-text text-sm font-semibold">
@@ -191,13 +192,14 @@
                   type="text"
                   class="input input-bordered w-full"
                   formControlName="fullName"
+                  appFieldError="profile-full-name-error"
                   autocomplete="name"
                   maxlength="120"
                   (blur)="onFullNameBlur()"
                 />
                 @if (profileFormControls.fullName.touched &&
                 profileFormControls.fullName.invalid) {
-                <span class="mt-1 text-xs text-error">
+                <span id="profile-full-name-error" class="mt-1 text-xs text-error">
                   {{ 'settings.panels.profile.details.fullNameError' | transloco }}
                 </span>
                 }
@@ -285,6 +287,7 @@
           <form
             class="space-y-5"
             [formGroup]="passwordForm"
+            appFocusFirstInvalid
             (ngSubmit)="submitPasswordChange()"
           >
             <header class="space-y-1">
@@ -315,11 +318,12 @@
                   type="password"
                   class="input input-bordered w-full"
                   formControlName="currentPassword"
+                  appFieldError="current-password-error"
                   autocomplete="current-password"
                 />
                 @if (passwordFormControls.currentPassword.touched &&
                 passwordFormControls.currentPassword.invalid) {
-                <span class="mt-1 text-xs text-error">
+                <span id="current-password-error" class="mt-1 text-xs text-error">
                   {{ 'settings.panels.profile.security.errors.currentRequired' | transloco }}
                 </span>
                 }
@@ -334,11 +338,12 @@
                   type="password"
                   class="input input-bordered w-full"
                   formControlName="newPassword"
+                  appFieldError="new-password-error"
                   autocomplete="new-password"
                 />
                 @if (passwordFormControls.newPassword.touched &&
                 passwordFormControls.newPassword.invalid) {
-                <span class="mt-1 text-xs text-error">
+                <span id="new-password-error" class="mt-1 text-xs text-error">
                   {{ 'settings.panels.profile.security.errors.newPassword' | transloco }}
                 </span>
                 }
@@ -353,10 +358,11 @@
                   type="password"
                   class="input input-bordered w-full"
                   formControlName="confirmPassword"
+                  appFieldError="confirm-new-password-error"
                   autocomplete="new-password"
                 />
                 @if (passwordFormMismatch()) {
-                <span class="mt-1 text-xs text-error">
+                <span id="confirm-new-password-error" class="mt-1 text-xs text-error">
                   {{ 'settings.panels.profile.security.errors.confirmPassword' | transloco }}
                 </span>
                 }
@@ -412,6 +418,7 @@
           <form
             class="space-y-4"
             [formGroup]="accountDeletionForm"
+            appFocusFirstInvalid
             (ngSubmit)="submitAccountDeletion()"
           >
             @if (accountDeletionError(); as deletionError) {
@@ -438,11 +445,12 @@
                   type="password"
                   class="input input-bordered w-full"
                   formControlName="password"
+                  appFieldError="delete-account-password-error"
                   autocomplete="current-password"
                 />
                 @if (accountDeletionFormControls.password.touched &&
                 accountDeletionFormControls.password.invalid) {
-                <span class="mt-1 text-xs text-error">
+                <span id="delete-account-password-error" class="mt-1 text-xs text-error">
                   {{ 'settings.panels.profile.accountDeletion.errors.passwordRequired' | transloco }}
                 </span>
                 }
@@ -457,12 +465,13 @@
                   type="text"
                   class="input input-bordered w-full"
                   formControlName="confirmation"
+                  appFieldError="delete-account-confirmation-error"
                   autocomplete="off"
                   spellcheck="false"
                 />
                 @if (accountDeletionFormControls.confirmation.touched &&
                 accountDeletionFormControls.confirmation.invalid) {
-                <span class="mt-1 text-xs text-error">
+                <span id="delete-account-confirmation-error" class="mt-1 text-xs text-error">
                   {{ 'settings.panels.profile.accountDeletion.errors.confirmation' | transloco }}
                 </span>
                 }
@@ -474,6 +483,7 @@
                 type="checkbox"
                 class="checkbox checkbox-error mt-0.5"
                 formControlName="acknowledged"
+                appFieldError="delete-account-acknowledged-error"
               />
               <span class="text-sm">
                 {{ 'settings.panels.profile.accountDeletion.acknowledgement' | transloco }}
@@ -481,7 +491,7 @@
             </label>
             @if (accountDeletionFormControls.acknowledged.touched &&
             accountDeletionFormControls.acknowledged.invalid) {
-            <p class="text-xs text-error">
+            <p id="delete-account-acknowledged-error" class="text-xs text-error">
               {{ 'settings.panels.profile.accountDeletion.errors.acknowledgement' | transloco }}
             </p>
             }
@@ -624,6 +634,7 @@
             <form
               class="space-y-4"
               [formGroup]="walletForm"
+              appFocusFirstInvalid
               (ngSubmit)="submitWalletForm()"
             >
               <header class="space-y-1">
@@ -644,12 +655,13 @@
                   type="text"
                   class="input input-bordered"
                   formControlName="name"
+                  appFieldError="wallet-name-error"
                   maxlength="60"
                   [attr.placeholder]="'settings.panels.wallets.form.namePlaceholder' | transloco"
                 />
                 @if (walletFormControls.name.touched &&
                 walletFormControls.name.invalid) {
-                <span class="mt-1 text-xs text-error">
+                <span id="wallet-name-error" class="mt-1 text-xs text-error">
                   {{ 'settings.panels.wallets.errors.nameRequired' | transloco
                   }}
                 </span>
@@ -815,6 +827,10 @@
               <input
                 id="settings-category-search"
                 type="search"
+                enterkeyhint="search"
+                autocapitalize="none"
+                autocorrect="off"
+                spellcheck="false"
                 class="input input-bordered w-full"
                 [attr.placeholder]="'settings.panels.categories.searchPlaceholder' | transloco"
                 [value]="categoryQuery()"
@@ -950,19 +966,16 @@
       </section>
 
       @if (categoryEditorMode() || groupEditorMode()) {
-      <div
-        class="fixed inset-0 z-50 flex justify-end bg-black/60"
-        (click)="closeEditor()"
-        role="presentation"
+      <dialog
+        #editorDialog
+        class="modal items-stretch justify-items-end"
+        [attr.aria-label]="(categoryEditorMode() ? 'settings.panels.categories.label' : 'settings.panels.categoryGroups.label') | transloco"
+        (cancel)="onEditorCancel($event)"
+        (close)="onEditorDialogClosed()"
       >
         <div
           data-settings-editor
-          role="dialog"
-          aria-modal="true"
-          [attr.aria-label]="(categoryEditorMode() ? 'settings.panels.categories.label' : 'settings.panels.categoryGroups.label') | transloco"
-          class="flex h-full w-full flex-col overflow-y-auto bg-base-100 shadow-2xl sm:max-w-lg"
-          (click)="$event.stopPropagation()"
-          (keydown)="onEditorKeydown($event)"
+          class="relative z-10 flex h-full w-full flex-col overflow-y-auto overscroll-contain bg-base-100 shadow-2xl sm:max-w-lg"
         >
           <div
             class="sticky top-0 z-10 flex items-center justify-between border-b border-base-300 bg-base-100 px-5 py-4"
@@ -995,6 +1008,7 @@
           <form
             class="flex flex-1 flex-col"
             [formGroup]="categoryForm"
+            appFocusFirstInvalid
             (ngSubmit)="submitCategoryForm(mode)"
           >
             <div class="flex-1 space-y-5 p-5">
@@ -1007,12 +1021,13 @@
                   name="name"
                   type="text"
                   formControlName="name"
+                  appFieldError="category-name-error"
                   class="input input-bordered w-full"
                   maxlength="60"
                 />
                 @if (categoryFormControls.name.touched &&
                 categoryFormControls.name.hasError('required')) {
-                <span class="text-xs text-error"
+                <span id="category-name-error" class="text-xs text-error"
                   >{{ 'settings.panels.categories.editor.nameRequired' |
                   transloco }}</span
                 >
@@ -1025,6 +1040,7 @@
                 >
                 <select
                   formControlName="groupId"
+                  appFieldError="category-group-error"
                   class="select select-bordered w-full"
                   (change)="onCategoryGroupChange()"
                 >
@@ -1038,7 +1054,7 @@
                 </select>
                 @if (categoryFormControls.groupId.touched &&
                 categoryFormControls.groupId.hasError('required')) {
-                <span class="text-xs text-error"
+                <span id="category-group-error" class="text-xs text-error"
                   >{{ 'settings.panels.categories.editor.groupRequired' |
                   transloco }}</span
                 >
@@ -1138,6 +1154,7 @@
           <form
             class="flex flex-1 flex-col"
             [formGroup]="categoryGroupForm"
+            appFocusFirstInvalid
             (ngSubmit)="submitGroupForm(mode)"
           >
             <div class="flex-1 space-y-5 p-5">
@@ -1153,12 +1170,13 @@
                   name="name"
                   type="text"
                   formControlName="name"
+                  appFieldError="category-group-name-error"
                   class="input input-bordered w-full"
                   maxlength="60"
                 />
                 @if (categoryGroupFormControls.name.touched &&
                 categoryGroupFormControls.name.hasError('required')) {
-                <span class="text-xs text-error"
+                <span id="category-group-name-error" class="text-xs text-error"
                   >{{ 'settings.panels.categories.groups.nameError' | transloco
                   }}</span
                 >
@@ -1237,7 +1255,15 @@
           </form>
           }
         </div>
-      </div>
+
+        <button
+          type="button"
+          class="absolute inset-0 bg-black/30"
+          tabindex="-1"
+          aria-hidden="true"
+          (click)="closeEditor()"
+        ></button>
+      </dialog>
       }
       } @else if (activePanel() === 'spendistCsv') {
       <section class="space-y-6">
@@ -1274,6 +1300,7 @@
               <form
                 class="space-y-5"
                 [formGroup]="spendistCsvExportForm"
+                appFocusFirstInvalid
                 (ngSubmit)="exportSpendistCsv()"
               >
                 <header class="space-y-1">
@@ -1330,10 +1357,11 @@
                     type="month"
                     class="input input-bordered"
                     formControlName="month"
+                    appFieldError="spendist-csv-month-error"
                   />
                   @if (spendistCsvExportFormControls.month.touched &&
                   spendistCsvExportFormControls.month.invalid) {
-                  <span class="mt-1 text-xs text-error">
+                  <span id="spendist-csv-month-error" class="mt-1 text-xs text-error">
                     {{ 'settings.panels.spendistCsv.errors.invalidMonth' |
                     transloco }}
                   </span>
@@ -1358,7 +1386,7 @@
                     </button>
                   </div>
                   <div
-                    class="max-h-64 space-y-2 overflow-auto rounded-2xl border border-base-300 bg-base-100/60 p-3"
+                    class="max-h-64 space-y-2 overflow-auto overscroll-contain rounded-2xl border border-base-300 bg-base-100/60 p-3"
                   >
                     @if (categoriesView().length === 0) {
                     <p class="text-sm text-base-content/70">
@@ -1528,7 +1556,7 @@
                 {{ 'settings.panels.spendistCsv.schema.description' | transloco
                 }}
               </p>
-              <dl class="mt-4 max-h-72 space-y-3 overflow-auto text-sm">
+              <dl class="mt-4 max-h-72 space-y-3 overflow-auto overscroll-contain text-sm">
                 @for (header of spendistCsvHeaders; track header) {
                 <div>
                   <dt class="font-mono text-xs font-semibold text-primary">
@@ -1620,7 +1648,7 @@
                     {{ 'settings.panels.spendistCsv.summary.issues' | transloco:
                     { total: summary.issues.length } }}
                   </p>
-                  <ul class="mt-2 max-h-40 space-y-1 overflow-auto">
+                  <ul class="mt-2 max-h-40 space-y-1 overflow-auto overscroll-contain">
                     @for (issue of summary.issues.slice(0, 8); track
                     issue.rowNumber) {
                     <li>
@@ -1680,6 +1708,7 @@
             <form
               class="space-y-5"
               [formGroup]="kontomierzImportForm"
+              appFocusFirstInvalid
               (ngSubmit)="analyzeKontomierzFile()"
             >
               <label class="form-control">
@@ -1692,6 +1721,7 @@
                 <select
                   class="select select-bordered"
                   formControlName="walletId"
+                  appFieldError="kontomierz-wallet-error"
                 >
                   <option value="" disabled>
                     {{ 'settings.panels.kontomierzImport.form.walletPlaceholder'
@@ -1705,7 +1735,7 @@
                 </select>
                 @if (kontomierzImportFormControls.walletId.touched &&
                 kontomierzImportFormControls.walletId.invalid) {
-                <span class="mt-1 text-xs text-error">
+                <span id="kontomierz-wallet-error" class="mt-1 text-xs text-error">
                   {{ 'settings.panels.kontomierzImport.errors.walletRequired' |
                   transloco }}
                 </span>
@@ -1878,7 +1908,7 @@
                   {{ 'settings.panels.kontomierzImport.summary.issues' |
                   transloco: { total: summary.issues.length } }}
                 </p>
-                <ul class="mt-2 max-h-40 space-y-1 overflow-auto">
+                <ul class="mt-2 max-h-40 space-y-1 overflow-auto overscroll-contain">
                   @for (issue of summary.issues.slice(0, 8); track
                   issue.rowNumber) {
                   <li>

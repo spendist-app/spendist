@@ -26,6 +26,7 @@ import {
   SUPPORTED_CURRENCIES,
   detectPreferredCurrencyId,
 } from '../../core/currencies';
+import { FORM_ERROR_DIRECTIVES } from '../../shared/form-errors';
 
 const passwordsMatchValidator = (
   passwordKey: string,
@@ -96,7 +97,13 @@ function createUsernameFromName(name: string): string {
 @Component({
   standalone: true,
   selector: 'app-signup-page',
-  imports: [ReactiveFormsModule, RouterLink, TranslocoPipe, TurnstileWidget],
+  imports: [
+    ReactiveFormsModule,
+    ...FORM_ERROR_DIRECTIVES,
+    RouterLink,
+    TranslocoPipe,
+    TurnstileWidget,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './signup.page.html',
 })

@@ -1,6 +1,8 @@
 import { requiredValue, fixtureElement } from '../../../testing/dom';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { ActivatedRoute, Router } from '@angular/router';
+import { of } from 'rxjs';
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 
 import type { LanguageCode } from '../../i18n/languages';
@@ -254,6 +256,41 @@ describe('TransactionsPageComponent', () => {
     vi.useRealTimers();
   });
 
+  it('returns focus to the add button when a closed dialog lost its invoker', () => {
+    const fixture = TestBed.createComponent(TransactionsPageComponent);
+    fixture.detectChanges();
+
+    const trigger = requiredValue(
+      fixtureElement(fixture).querySelector<HTMLButtonElement>(
+        '[data-testid="transaction-add-menu-trigger"]'
+      )
+    );
+
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+
+    fixture.componentInstance['restoreFocusAfterDialog']();
+    TestBed.tick();
+
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it('keeps focus where the closed dialog returned it', () => {
+    const fixture = TestBed.createComponent(TransactionsPageComponent);
+    fixture.detectChanges();
+
+    const invoker = document.createElement('button');
+    document.body.append(invoker);
+    invoker.focus();
+
+    fixture.componentInstance['restoreFocusAfterDialog']();
+    TestBed.tick();
+
+    expect(document.activeElement).toBe(invoker);
+    invoker.remove();
+  });
+
   it('uses the category and tag tabs as the only filter heading', () => {
     const fixture = TestBed.createComponent(TransactionsPageComponent);
     fixture.detectChanges();
@@ -348,6 +385,54 @@ describe('TransactionsPageComponent', () => {
 
     expect(badge.textContent).toContain('Health insurance');
     expect(badge.textContent).not.toContain('1324a167');
+  });
+
+  it('defers rendering of rows below the first screen', () => {
+    const fixture = TestBed.createComponent(TransactionsPageComponent);
+
+    const store = fixture.debugElement.injector.get(TransactionsStoreStub);
+
+    const rows = Array.from({ length: 8 }, (_, index) => ({
+      id: `transaction-${index}`,
+      ownerId: 'user-1',
+      categoryId: 'category-active',
+      occurredAt: new Date('2026-07-25T08:00:00Z'),
+      description: `Row ${index}`,
+      amount: 10,
+      amountInDefault: 10,
+      currency: 'PLN',
+      direction: 'expense' as const,
+      isAutomatic: false,
+      recurringTransactionId: null,
+      recurringTransactionName: null,
+      recurringScheduledFor: null,
+      createdAt: new Date('2026-07-25T08:00:00Z'),
+      updatedAt: new Date('2026-07-25T08:00:00Z'),
+      exchangeRate: 1,
+      walletId: 'wallet-1',
+      placeId: null,
+      sourceModule: 'standard' as const,
+      allowancePairId: null,
+      allowanceRole: null,
+      allowanceConnectionId: null,
+      category: null,
+      group: null,
+      tagIds: [],
+      place: null,
+    }));
+
+    store.filteredTransactions.set(rows);
+    store.loadedTransactionCount.set(rows.length);
+    store.totalMatchingTransactions.set(rows.length);
+    fixture.detectChanges();
+
+    const deferred = Array.from(
+      fixtureElement(fixture).querySelectorAll('li.defer-offscreen-render')
+    ).map((row) => row.textContent ?? '');
+
+    expect(deferred).toHaveLength(2);
+    expect(deferred[0]).toContain('Row 6');
+    expect(deferred[1]).toContain('Row 7');
   });
 
   it('formats category totals with the active locale and default currency', () => {
@@ -610,6 +695,38 @@ describe('TransactionsPageComponent', () => {
     expect(categoryCheckboxes[0].checked).toBe(true);
   });
 
+  it('keeps the scroll position when a category filter is toggled', () => {
+    const navigate = vi.fn(() => Promise.resolve(true));
+
+    TestBed.overrideProvider(Router, { useValue: { navigate } });
+    TestBed.overrideProvider(ActivatedRoute, {
+      useValue: { queryParams: of({}), snapshot: { queryParams: {} } },
+    });
+
+    const fixture = TestBed.createComponent(TransactionsPageComponent);
+    fixture.detectChanges();
+
+    const scrollIntoView = vi.fn();
+
+    requiredValue(
+      fixtureElement(fixture).querySelector<HTMLElement>(
+        '#transactions-results'
+      )
+    ).scrollIntoView = scrollIntoView;
+
+    requiredValue(
+      fixtureElement(fixture).querySelector<HTMLInputElement>(
+        '[data-testid="category-group-filter-checkbox"]'
+      )
+    ).click();
+
+    expect(scrollIntoView).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith(
+      [],
+      expect.objectContaining({ scroll: 'manual' })
+    );
+  });
+
   it('offers clear without a select-all action', () => {
     const fixture = TestBed.createComponent(TransactionsPageComponent);
     fixture.detectChanges();
@@ -725,22 +842,28 @@ describe('TransactionsPageComponent', () => {
     expect(component['createFormOpen']()).toBe(false);
   });
 
-  it('opens the add action menu from the main add button', () => {
+  it('wires the add button to its popover actions menu', async () => {
     const fixture = TestBed.createComponent(TransactionsPageComponent);
-    fixture.detectChanges();
 
-    const component = fixture.componentInstance;
+    await fixture.whenStable();
+
+    const root = fixtureElement(fixture);
 
     const addButton = requiredValue(
-      fixtureElement(fixture).querySelector<HTMLElement>(
+      root.querySelector<HTMLElement>(
         '[data-testid="transaction-add-menu-trigger"]'
       )
     );
 
-    addButton.click();
+    const menu = requiredValue(
+      root.querySelector<HTMLElement>('[role="menu"]')
+    );
 
-    expect(component['addMenuOpen']()).toBe(true);
-    expect(component['createFormOpen']()).toBe(false);
+    expect(menu.getAttribute('popover')).toBe('auto');
+    expect(addButton.getAttribute('commandfor')).toBe(menu.id);
+    expect(addButton.getAttribute('command')).toBe('toggle-popover');
+    expect(addButton.getAttribute('aria-expanded')).toBe('false');
+    expect(fixture.componentInstance['createFormOpen']()).toBe(false);
   });
 
   it('opens single entry from the add action menu', () => {
@@ -760,7 +883,7 @@ describe('TransactionsPageComponent', () => {
 
     const singleButton = requiredValue(
       fixtureElement(fixture).querySelector<HTMLButtonElement>(
-        '#transaction-add-actions button:first-child'
+        '[role="menu"] button:first-child'
       )
     );
 
@@ -823,26 +946,6 @@ describe('TransactionsPageComponent', () => {
     expect(
       fixtureElement(fixture).querySelector('app-transaction-import-form')
     ).toBeTruthy();
-  });
-
-  it('closes the add speed dial with Escape', () => {
-    const fixture = TestBed.createComponent(TransactionsPageComponent);
-    fixture.detectChanges();
-
-    const component = fixture.componentInstance;
-
-    component['openAddMenu']();
-    fixture.detectChanges();
-
-    document.dispatchEvent(
-      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
-    );
-    fixture.detectChanges();
-
-    expect(component['addMenuOpen']()).toBe(false);
-    expect(
-      fixtureElement(fixture).querySelector('#transaction-add-actions')
-    ).toBeNull();
   });
 
   it('shows a transient toast after a transaction is saved', () => {

@@ -18,13 +18,19 @@ Signed-out navigation presents English and Polish as accessible flag buttons. Th
 
 Near its footer, the public landing page presents a compact cross-reference to Tickist, another open-source project from the same creator. Separate external links open the hosted Tickist application and its public GitHub repository in a new tab.
 
-The light/dark theme is saved locally. Without a saved value, the browser's dark-mode preference can be used.
+The theme follows the operating system's light/dark preference, including changes while the app is open. The theme switch in the account menu picks the opposite of the theme shown; that choice is saved locally only when it differs from the system preference, and the menu labels a theme that follows the system. Switching back to the system's scheme removes the saved choice. A saved choice is kept when the system later changes to match it, and other open tabs pick up a change. The browser toolbar colour (`theme-color`) and `color-scheme` follow the theme in use.
+
+The app opts into the operating system text size (`<meta name="text-scale">`) where the browser supports it.
+
+Read-only dialogs (About, CSV schema, AI prompt) also close on a click outside their content. Dialogs with form input close only through their buttons or `Esc`.
+
+Notices (global notices, the app update notice and transaction toasts) render inside permanent `role="status"` live regions, so screen readers announce each new message.
 
 ## Notifications
 
 The notification menu is scoped to the authenticated user and refreshes through Supabase Realtime. It shows recent records and an unread count; users can mark all unread displayed notifications as read. Each notification uses the details stored for its own type, such as a recurring transaction's name, amount, and currency or an Allowance inviter's name. Allowance invitation actions use the stored invitation ID.
 
-Current notification types include automatic recurring transaction creation, a recurring payment ending, exchange-rate synchronisation failure (administrators only), Allowance invitations received, accepted or declined, received allowance, and Allowance expenses added to a recipient's account.
+Current notification types include automatic recurring transaction creation, a recurring payment ending, exchange-rate synchronisation failure (administrators only), a newly confirmed account (administrators only, aggregate count without the account's identity), Allowance invitations received, accepted or declined, received allowance, and Allowance expenses added to a recipient's account.
 
 Each notification can also be sent by email. The Settings profile panel has a global opt-in switch, disabled by default, and per-type checkboxes stored in `profiles.email_notification_muted_types`. Emails contain the notification details (for example the recurring payment name, amount, date, wallet and category) and a footer link to the email preferences at `/settings#email-notifications`; see [Email and administration](email-and-administration.md).
 

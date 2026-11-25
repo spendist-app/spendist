@@ -989,7 +989,7 @@ export class SettingsStore {
   private sortCategories(
     categories: readonly CategoryEntity[]
   ): readonly CategoryEntity[] {
-    return [...categories].sort((a, b) => {
+    return categories.toSorted((a, b) => {
       if (a.groupId !== b.groupId) {
         return a.groupId.localeCompare(b.groupId);
       }
@@ -1001,7 +1001,7 @@ export class SettingsStore {
   private sortWallets(
     wallets: readonly WalletEntity[]
   ): readonly WalletEntity[] {
-    return [...wallets].sort((a, b) => {
+    return wallets.toSorted((a, b) => {
       if (a.isDefault && !b.isDefault) {
         return -1;
       }
@@ -1017,13 +1017,13 @@ export class SettingsStore {
   private sortGroups(
     groups: readonly CategoryGroupEntity[]
   ): readonly CategoryGroupEntity[] {
-    return [...groups].sort((a, b) => a.name.localeCompare(b.name));
+    return groups.toSorted((a, b) => a.name.localeCompare(b.name));
   }
 
   private sortCurrencies(
     currencies: readonly CurrencyOption[]
   ): readonly CurrencyOption[] {
-    return [...currencies].sort((a, b) => a.symbol.localeCompare(b.symbol));
+    return currencies.toSorted((a, b) => a.symbol.localeCompare(b.symbol));
   }
 
   private setCategoryPending(pending: boolean): void {

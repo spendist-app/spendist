@@ -5,10 +5,11 @@ import {
   Component,
   DestroyRef,
   ElementRef,
+  Injector,
   OnDestroy,
   PLATFORM_ID,
+  afterNextRender,
   computed,
-  effect,
   inject,
   signal,
   viewChild,
@@ -50,6 +51,7 @@ import {
   serializeTransactionQuery,
   type TransactionSidebarPanel,
 } from './transactions-query.codec';
+import { PopoverMenuDirective } from '../../shared/popover-menu/popover-menu.directive';
 
 interface MonthOption {
   readonly value: string;
@@ -72,6 +74,7 @@ interface TransactionToast {
     TransactionCreateFormComponent,
     TransactionBulkCreateFormComponent,
     TransactionImportFormComponent,
+    PopoverMenuDirective,
   ],
   providers: [TransactionsStore],
   templateUrl: './transactions.page.html',
@@ -85,8 +88,9 @@ export class TransactionsPageComponent implements OnDestroy {
   protected readonly importPrefill = signal<TransactionBulkPrefill | null>(
     null
   );
-  protected readonly addMenuOpen = signal(false);
-  private readonly addMenu = viewChild<ElementRef<HTMLElement>>('addMenu');
+  private readonly addMenuTrigger =
+    viewChild<ElementRef<HTMLButtonElement>>('addMenuTrigger');
+  private readonly injector = inject(Injector);
   protected readonly formMode = signal<'create' | 'edit'>('create');
   protected readonly editingTransaction = signal<TransactionViewModel | null>(
     null
@@ -216,7 +220,7 @@ export class TransactionsPageComponent implements OnDestroy {
     this.store.visibleTagSummaries()
   );
   protected readonly sortedPlaces = computed(() =>
-    [...this.store.places()].sort((left, right) =>
+    this.store.places().toSorted((left, right) =>
       left.name.localeCompare(right.name, this.locale())
     )
   );
@@ -225,23 +229,6 @@ export class TransactionsPageComponent implements OnDestroy {
     { length: 4 },
     (_, index) => index
   );
-  private readonly scrollLockEffect = effect(() => {
-    if (!isPlatformBrowser(this.platformId)) {
-      return;
-    }
-
-    const body = this.document?.body;
-
-    if (!body) {
-      return;
-    }
-
-    body.classList.toggle(
-      'overflow-hidden',
-      this.createFormOpen() || this.bulkFormOpen() || this.importFormOpen()
-    );
-  });
-
   constructor() {
     this.route?.queryParams.subscribe((params) => this.applyRouteQuery(params));
 
@@ -253,23 +240,9 @@ export class TransactionsPageComponent implements OnDestroy {
       this.handleKeyboardShortcut(event);
     };
 
-    const handleClick = (event: MouseEvent) => {
-      const menu = this.addMenu()?.nativeElement;
-
-      if (
-        this.addMenuOpen() &&
-        menu &&
-        !menu.contains(event.target instanceof Node ? event.target : null)
-      ) {
-        this.closeAddMenu();
-      }
-    };
-
     this.document.addEventListener('keydown', handleKeydown);
-    this.document.addEventListener('click', handleClick);
     this.destroyRef.onDestroy(() => {
       this.document.removeEventListener('keydown', handleKeydown);
-      this.document.removeEventListener('click', handleClick);
     });
   }
 
@@ -490,10 +463,9 @@ export class TransactionsPageComponent implements OnDestroy {
     this.syncQuery('replace');
   }
 
-  protected toggleCategorySelectionAndScroll(categoryId: string): void {
+  protected toggleCategorySelection(categoryId: string): void {
     this.store.toggleCategorySelection(categoryId);
     this.syncQuery('push');
-    this.scrollToTransactionsResults();
   }
 
   protected onCategoryCheckboxClick(
@@ -501,15 +473,14 @@ export class TransactionsPageComponent implements OnDestroy {
     categoryId: string
   ): void {
     event.preventDefault();
-    this.toggleCategorySelectionAndScroll(categoryId);
+    this.toggleCategorySelection(categoryId);
   }
 
-  protected toggleCategoryGroupSelectionAndScroll(
+  protected toggleCategoryGroupSelection(
     groupId: string | null
   ): void {
     this.store.toggleCategoryGroupSelection(groupId);
     this.syncQuery('push');
-    this.scrollToTransactionsResults();
   }
 
   protected onCategoryGroupCheckboxClick(
@@ -517,25 +488,22 @@ export class TransactionsPageComponent implements OnDestroy {
     groupId: string | null
   ): void {
     event.preventDefault();
-    this.toggleCategoryGroupSelectionAndScroll(groupId);
+    this.toggleCategoryGroupSelection(groupId);
   }
 
-  protected clearCategorySelectionAndScroll(): void {
+  protected clearCategorySelection(): void {
     this.store.clearCategorySelection();
     this.syncQuery('push');
-    this.scrollToTransactionsResults();
   }
 
-  protected toggleTagSelectionAndScroll(tagId: string): void {
+  protected toggleTagSelection(tagId: string): void {
     this.store.toggleTagSelection(tagId);
     this.syncQuery('push');
-    this.scrollToTransactionsResults();
   }
 
-  protected clearTagSelectionAndScroll(): void {
+  protected clearTagSelection(): void {
     this.store.clearTagSelection();
     this.syncQuery('push');
-    this.scrollToTransactionsResults();
   }
 
   protected categoryHasTransactions(categoryId: string): boolean {
@@ -553,7 +521,6 @@ export class TransactionsPageComponent implements OnDestroy {
   }
 
   protected openCreateForm(): void {
-    this.closeAddMenu();
     this.store.dismissMutationError();
     this.bulkFormOpen.set(false);
     this.importFormOpen.set(false);
@@ -564,13 +531,6 @@ export class TransactionsPageComponent implements OnDestroy {
   }
 
   protected handleKeyboardShortcut(event: KeyboardEvent): void {
-    if (event.key === 'Escape' && this.addMenuOpen()) {
-      event.preventDefault();
-      this.closeAddMenu();
-
-      return;
-    }
-
     const isAddShortcut =
       event.key.toLowerCase() === 'n' &&
       !event.ctrlKey &&
@@ -621,7 +581,6 @@ export class TransactionsPageComponent implements OnDestroy {
   }
 
   protected openBulkCreateForm(): void {
-    this.closeAddMenu();
     this.handleFormClosed();
     this.store.dismissMutationError();
     this.importFormOpen.set(false);
@@ -630,7 +589,6 @@ export class TransactionsPageComponent implements OnDestroy {
   }
 
   protected openImportForm(): void {
-    this.closeAddMenu();
     this.handleFormClosed();
     this.bulkFormOpen.set(false);
     this.importPrefill.set(null);
@@ -648,33 +606,26 @@ export class TransactionsPageComponent implements OnDestroy {
     this.bulkFormOpen.set(true);
   }
 
-  protected openAddMenu(): void {
-    this.addMenuOpen.set(true);
+  /**
+   * A closing <dialog> returns focus to its invoker. Forms opened from the
+   * add menu lose that invoker when the menu closes, so focus stays in the
+   * closed dialog and falls to the document body once it is removed; send it
+   * back to the add button instead.
+   */
+  protected restoreFocusAfterDialog(): void {
+    afterNextRender(() => this.focusAddTriggerIfFocusLost(), {
+      injector: this.injector,
+    });
   }
 
-  protected handleAddMenuPointerLeave(): void {
-    const menu = this.addMenu()?.nativeElement;
+  private focusAddTriggerIfFocusLost(): void {
+    const active = this.document.activeElement;
 
-    if (menu?.contains(this.document.activeElement)) {
+    if (active && active !== this.document.body && active.isConnected) {
       return;
     }
 
-    this.closeAddMenu();
-  }
-
-  protected handleAddMenuFocusOut(event: FocusEvent): void {
-    const menu = this.addMenu()?.nativeElement;
-    const nextTarget = event.relatedTarget;
-
-    if (menu && nextTarget instanceof Node && menu.contains(nextTarget)) {
-      return;
-    }
-
-    this.closeAddMenu();
-  }
-
-  protected closeAddMenu(): void {
-    this.addMenuOpen.set(false);
+    this.addMenuTrigger()?.nativeElement.focus();
   }
 
   protected handleBulkFormClosed(): void {
@@ -770,10 +721,6 @@ export class TransactionsPageComponent implements OnDestroy {
   }
 
   ngOnDestroy(): void {
-    if (isPlatformBrowser(this.platformId)) {
-      this.document?.body?.classList.remove('overflow-hidden');
-    }
-
     for (const timer of this.toastTimers.values()) {
       clearTimeout(timer);
     }
@@ -841,7 +788,14 @@ export class TransactionsPageComponent implements OnDestroy {
     this.pendingNavigationKey = this.queryKey(query);
     const key = this.queryKey(query);
     void this.router
-      .navigate([], { relativeTo: this.route, queryParams: params, replaceUrl })
+      .navigate([], {
+        relativeTo: this.route,
+        queryParams: params,
+        replaceUrl,
+        // Filter changes keep the page where it is: the router would
+        // otherwise jump to the top after every checkbox or keystroke.
+        scroll: 'manual',
+      })
       .then((navigated) => {
         if (!navigated && this.pendingNavigationKey === key)
           this.pendingNavigationKey = null;
@@ -866,7 +820,7 @@ export class TransactionsPageComponent implements OnDestroy {
       if (parsed.success) {
         owned[key] = [parsed.data];
       } else if (Array.isArray(value)) {
-        owned[key] = [...value].sort();
+        owned[key] = value.toSorted();
       }
     }
 

@@ -101,6 +101,11 @@ const samples = [
     'notification',
     { type: 'exchange_rates_sync_failed' },
   ],
+  [
+    'notification-new-account',
+    'notification',
+    { type: 'new_account_confirmed', accounts_total: '26' },
+  ],
 ];
 
 await mkdir(outputRoot, { recursive: true });

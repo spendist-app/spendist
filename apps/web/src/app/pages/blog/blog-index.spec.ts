@@ -56,8 +56,8 @@ describe('BlogIndex', () => {
     const cards =
       fixtureElement(fixture).querySelectorAll<HTMLElement>('.article-card');
 
-    expect(cards).toHaveLength(3);
-    expect(cards[0]?.textContent).toContain('Recurring Payments');
+    expect(cards).toHaveLength(4);
+    expect(cards[0]?.textContent).toContain('First expenses in Spendist');
     expect(
       fixtureElement(fixture).querySelector('.empty-state h2')
     ).not.toBeTruthy();

@@ -12,11 +12,13 @@ describe('blog content', () => {
     expect(blogPath('pl')).toBe('/pl/blog');
     expect(blogPath('en')).toBe('/en/blog');
     expect(blogArticles('pl').map(({ slug }) => slug)).toEqual([
+      'pierwsze-wydatki-i-podsumowanie-w-spendist',
       'czym-jest-spendist',
       'dlaczego-powstal-spendist',
       'platnosci-cykliczne-w-domowym-budzecie',
     ]);
     expect(blogArticles('en').map(({ slug }) => slug)).toEqual([
+      'first-expenses-and-summary-in-spendist',
       'recurring-payments-household-budget',
       'what-is-spendist',
       'why-was-spendist-created',

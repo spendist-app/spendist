@@ -1,4 +1,4 @@
-    <section class="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
+    <section class="flex min-h-[calc(100dvh-4rem)] items-center justify-center px-4 py-12">
       <div class="w-full max-w-md space-y-8 rounded-2xl bg-base-100/70 p-8 shadow-xl backdrop-blur">
         <header class="space-y-2 text-center">
           <h1 class="text-3xl font-semibold leading-tight">
@@ -24,7 +24,7 @@
           </p>
         }
 
-        <form class="space-y-6" [formGroup]="form" (ngSubmit)="login()">
+        <form class="space-y-6" [formGroup]="form" appFocusFirstInvalid (ngSubmit)="login()">
           <fieldset class="grid gap-4">
             <div class="form-control">
               <label class="label" for="email">
@@ -36,12 +36,13 @@
                 id="email"
                 type="email"
                 formControlName="email"
+                appFieldError="login-email-error"
                 class="input input-bordered w-full"
                 autocomplete="email"
                 required
               />
               @if (controls.email.touched && controls.email.invalid) {
-                <span class="label-text-alt text-error">
+                <span id="login-email-error" class="label-text-alt text-error">
                   {{ 'auth.login.emailError' | transloco }}
                 </span>
               }
@@ -60,12 +61,13 @@
                 id="password"
                 type="password"
                 formControlName="password"
+                appFieldError="login-password-error"
                 class="input input-bordered w-full"
                 autocomplete="current-password"
                 required
               />
               @if (controls.password.touched && controls.password.invalid) {
-                <span class="label-text-alt text-error">
+                <span id="login-password-error" class="label-text-alt text-error">
                   {{ 'auth.login.passwordError' | transloco }}
                 </span>
               }

@@ -15,12 +15,8 @@
     <button
       type="button"
       class="share-action btn btn-circle btn-ghost"
-      [attr.aria-label]="
-        (copied() ? 'blog.share.copied' : 'blog.share.copy') | transloco
-      "
-      [attr.title]="
-        (copied() ? 'blog.share.copied' : 'blog.share.copy') | transloco
-      "
+      [attr.aria-label]="'blog.share.copy' | transloco"
+      [attr.title]="copyLabelKey() | transloco"
       (click)="copy()"
     >
       <ng-icon [svg]="linkIcon" size="21" aria-hidden="true"></ng-icon>
@@ -56,7 +52,7 @@
       <ng-icon [svg]="xIcon" size="18" aria-hidden="true"></ng-icon>
     </a>
   </div>
-  <span class="sr-only" aria-live="polite">
-    @if (copied()) { {{ 'blog.share.copied' | transloco }} }
+  <span class="sr-only" role="status">
+    @if (copyStatus() !== 'idle') { {{ copyLabelKey() | transloco }} }
   </span>
 </section>

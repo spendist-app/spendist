@@ -18,6 +18,7 @@ import { Router, RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@ngneat/transloco';
 import { AuthService } from '../../core/auth.service';
 import { AccountSwitchPrompt } from '../../shared/account-switch/account-switch-prompt';
+import { FORM_ERROR_DIRECTIVES } from '../../shared/form-errors';
 
 const passwordsMatchValidator = (
   passwordKey: string,
@@ -49,6 +50,7 @@ function buildPasswordValidators(): ValidatorFn[] {
   imports: [
     AccountSwitchPrompt,
     ReactiveFormsModule,
+    ...FORM_ERROR_DIRECTIVES,
     RouterLink,
     TranslocoPipe,
   ],

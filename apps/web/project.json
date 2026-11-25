@@ -70,6 +70,33 @@
           "optimization": false,
           "extractLicenses": false,
           "sourceMap": true
+        },
+        "e2e": {
+          "optimization": false,
+          "extractLicenses": false,
+          "sourceMap": true,
+          "assets": [
+            {
+              "glob": "**/*",
+              "input": "apps/web/public",
+              "ignore": ["env.js"]
+            },
+            {
+              "glob": "env.js",
+              "input": "apps/web/e2e-public",
+              "output": "/"
+            },
+            {
+              "glob": "llm.txt",
+              "input": ".",
+              "output": "/"
+            },
+            {
+              "glob": "llm-full.txt",
+              "input": ".",
+              "output": "/"
+            }
+          ]
         }
       },
       "defaultConfiguration": "production"
@@ -101,6 +128,10 @@
         },
         "development": {
           "buildTarget": "web:build:development"
+        },
+        "e2e": {
+          "buildTarget": "web:build:e2e",
+          "port": 4300
         }
       },
       "defaultConfiguration": "development"

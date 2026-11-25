@@ -48,4 +48,42 @@ describe('BlogShare', () => {
       encodeURIComponent('https://spendist.app/en/blog/useful-article')
     );
   });
+
+  it('announces a failed copy instead of a false success', async () => {
+    const clipboardDescriptor = Object.getOwnPropertyDescriptor(
+      navigator,
+      'clipboard'
+    );
+
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: vi.fn().mockRejectedValue(new Error('denied')) },
+    });
+
+    await TestBed.configureTestingModule({
+      imports: [BlogShare],
+      providers: [...provideAppTransloco()],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(BlogShare);
+    fixture.componentRef.setInput('title', 'A useful article');
+    fixture.componentRef.setInput(
+      'url',
+      'https://spendist.app/en/blog/useful-article'
+    );
+    fixture.componentRef.setInput('locale', 'en');
+    fixture.detectChanges();
+    await fixture.componentInstance['copy']();
+
+    expect(fixture.componentInstance['copyStatus']()).toBe('failed');
+    expect(fixture.componentInstance['copyLabelKey']()).toBe(
+      'blog.share.copyFailed'
+    );
+
+    if (clipboardDescriptor) {
+      Object.defineProperty(navigator, 'clipboard', clipboardDescriptor);
+    } else {
+      Reflect.deleteProperty(navigator, 'clipboard');
+    }
+  });
 });

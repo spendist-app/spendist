@@ -8,6 +8,8 @@ begin
   foreach v_signature in array array[
     'public.invoke_scheduled_edge_function(text,text,jsonb)',
     'public.notify_admins_exchange_rates_sync_failed(jsonb)',
+    'public.notify_admins_new_account()',
+    'public.is_operator_account(uuid,text,jsonb)',
     'public.activate_all_due_mortgage_transactions(date)',
     'public.set_allowance_invitation_delivery(uuid,text)',
     'public.create_allowance_invitation(text)'

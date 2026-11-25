@@ -1,22 +1,17 @@
-<section
-  class="fixed inset-0 z-30 flex items-end justify-center px-3 py-3 sm:items-center sm:px-4 sm:py-6"
+<dialog
+  #dialog
+  class="modal modal-bottom px-3 py-3 sm:modal-middle sm:px-4 sm:py-6"
+  aria-labelledby="transaction-form-title"
+  (cancel)="onCancel($event)"
+  (close)="onDialogClosed()"
 >
-  <button
-    type="button"
-    class="absolute inset-0 bg-base-200/70 backdrop-blur-sm"
-    aria-label="Close transaction form"
-    (click)="onClose()"
-  ></button>
-
   <div
     class="relative z-10 flex max-h-[calc(100dvh-1.5rem)] w-full max-w-3xl flex-col overflow-hidden rounded-t-3xl border border-base-300 bg-base-100/95 shadow-2xl backdrop-blur sm:max-h-[calc(100dvh-3rem)] sm:rounded-3xl"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="transaction-form-title"
   >
     <form
       class="flex min-h-0 flex-1 flex-col"
       [formGroup]="form"
+      appFocusFirstInvalid
       (ngSubmit)="submit()"
       autocomplete="off"
       novalidate
@@ -64,7 +59,7 @@
         </button>
       </header>
 
-      <div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4 sm:px-6">
+      <div class="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 py-4 sm:px-6">
         @if (store.mutationError(); as error) {
         <div
           class="alert alert-error flex items-start gap-3 rounded-2xl border border-error/20 bg-error/10 p-4 text-sm"
@@ -192,16 +187,20 @@
                 <input
                   #placeSearchInput
                   type="search"
+                  enterkeyhint="search"
+                  autocapitalize="none"
+                  autocorrect="off"
+                  spellcheck="false"
                   class="input input-bordered input-sm w-full"
                   [value]="placeSearch()"
                   (input)="onPlaceSearchInput($event)"
-                  (keydown.escape)="closePlaceDropdown()"
+                  (keydown.escape)="$event.preventDefault(); closePlaceDropdown()"
                   placeholder="{{
                     'transactions.form.placeholders.placeSearch' | transloco
                   }}"
                   autocomplete="off"
                 />
-                <div class="mt-2 max-h-56 overflow-y-auto" role="listbox">
+                <div class="mt-2 max-h-56 overflow-y-auto overscroll-contain" role="listbox">
                   <button
                     type="button"
                     class="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm transition hover:bg-base-200"
@@ -267,11 +266,12 @@
                   type="text"
                   class="input input-bordered w-full"
                   formControlName="name"
+                  appFieldError="transaction-new-place-name-error"
                   maxlength="120"
                   (keydown.enter)="onNewPlaceEnter($event)"
                 />
                 @if (newPlaceForm.controls.name.touched && newPlaceForm.controls.name.invalid) {
-                <span class="mt-1 text-xs text-error">
+                <span id="transaction-new-place-name-error" class="mt-1 text-xs text-error">
                   {{ 'places.form.validation.name' | transloco }}
                 </span>
                 }
@@ -306,7 +306,7 @@
                 <span class="label-text text-sm font-semibold">
                   {{ 'places.form.fields.note' | transloco }}
                 </span>
-                <textarea class="textarea textarea-bordered w-full" formControlName="note" maxlength="500"></textarea>
+                <textarea class="textarea textarea-bordered field-sizing-content min-h-24 max-h-60 w-full" formControlName="note" maxlength="500"></textarea>
               </label>
               <div class="flex flex-wrap justify-end gap-2">
                 <button type="button" class="btn btn-ghost btn-sm" [disabled]="newPlacePending()" (click)="closeNewPlaceForm()">
@@ -333,6 +333,8 @@
             <div class="join w-full">
               <input
                 formControlName="amount"
+                aria-describedby="transaction-amount-help"
+                appFieldError="transaction-amount-error"
                 type="text"
                 inputmode="text"
                 class="input join-item input-bordered flex-1 min-w-0 font-mono"
@@ -352,11 +354,11 @@
                 }
               </select>
             </div>
-            <span class="mt-1 text-xs text-base-content/70">
+            <span id="transaction-amount-help" class="mt-1 text-xs text-base-content/70">
               {{ 'transactions.form.help.amountExpression' | transloco }}
             </span>
             @if (form.controls.amount.touched && form.controls.amount.invalid) {
-            <span class="mt-1 text-xs text-error">
+            <span id="transaction-amount-error" class="mt-1 text-xs text-error">
               {{ 'transactions.form.validation.amount' | transloco }}
             </span>
             }
@@ -394,7 +396,9 @@
 
           @if (!isEditMode() && !isRecipientExpenseTarget()) {
           <label class="form-control">
-            <span class="label-text text-sm font-semibold text-base-content">
+            <span
+              class="label-text block text-sm font-semibold text-base-content"
+            >
               {{ 'transactions.form.fields.quantity' | transloco }}
             </span>
             <input
@@ -404,7 +408,7 @@
               max="50"
               class="input input-bordered"
             />
-            <span class="label-text-alt text-xs text-base-content/60">
+            <span class="label-text-alt block text-xs text-base-content/60">
               {{ 'transactions.form.help.quantity' | transloco }}
             </span>
           </label>
@@ -548,6 +552,15 @@
       <footer
         class="sticky bottom-0 z-20 flex shrink-0 flex-col gap-3 border-t border-base-200 bg-base-100/95 px-5 py-4 backdrop-blur sm:flex-row sm:items-center sm:justify-end sm:px-6"
       >
+        <p
+          class="text-sm text-success sm:mr-auto"
+          role="status"
+          aria-live="polite"
+        >
+          @if (savedNoticeVisible()) {
+          {{ 'transactions.toasts.created' | transloco }}
+          }
+        </p>
         <button type="button" class="btn btn-ghost" (click)="onClose()">
           {{ 'common.actions.cancel' | transloco }}
         </button>
@@ -576,4 +589,12 @@
       </footer>
     </form>
   </div>
-</section>
+
+  <button
+    type="button"
+    class="absolute inset-0 bg-base-200/70 backdrop-blur-sm"
+    tabindex="-1"
+    aria-hidden="true"
+    (click)="onClose()"
+  ></button>
+</dialog>

@@ -42,6 +42,8 @@ All content in `doc/`, `llm.txt`, and `llm-full.txt` is English. Document curren
 - Use the repo-local `add-spendist-blog-post` skill when asked to add/import a blog entry from Markdown. It must create `apps/web/content/blog/{pl|en}/{slug}.md` and default to `draft: true`.
 - Add Markdown to `apps/web/content/blog/{pl|en}/{slug}.md` and categories to that locale's `categories.json`.
 - Put original article raster files in `apps/web/image-sources/blog/{locale}/{slug}/`; use `cover.{ext}` for the cover and one lowercase kebab-case filename per body asset. Run `npm run images:generate`; never hand-edit generated files under `apps/web/public/media/`.
+- Take application screenshots for articles and public pages on the production site with the dedicated demo accounts: the Polish demo account for Polish material, the English one for English material. Do not use a local instance, a throwaway account, or real user data. The operator keeps the account details outside this repository. Sign-in has a captcha; ask the operator to pass it rather than working around it, and do not save data on a demo account.
+- New screenshots must not show the mouse pointer or a browser-automation cursor overlay. Move the pointer out of the captured area, or hide the overlay, before capturing, and check each image before it is added.
 - Keep drafts as `draft: true`; only `draft: false` enters public output. Run `npm run blog:generate` after every content, category, public-blog-route, or generator change.
 - Commit the source content and all generated outputs together: `blog-content.generated.ts`, `sitemap.xml`, `robots.txt`, and both locale RSS feeds. The Nx build must keep `blog-content-check` enabled.
 - Keep tags as query-string filters with `noindex,follow`; only published articles, valid pagination, and non-empty category archives belong in the sitemap.
@@ -68,8 +70,14 @@ All content in `doc/`, `llm.txt`, and `llm-full.txt` is English. Document curren
 - Keep the Spendist light/dark palette aligned with Tailwind/DaisyUI theme tokens.
 - Avoid unnecessary secondary labels and descriptions. Let the layout explain itself.
 - English and Polish use Transloco. Add matching keys to both translation files; do not hard-code user-facing copy in a component.
-- `LanguageService` persists language and updates `document.lang`; `ThemeService` persists the light/dark choice.
+- `LanguageService` persists language and updates `document.lang`; `ThemeService` follows the system light/dark preference and persists only an override that differs from it (mirrored before first paint by `public/theme-init.js`).
 - Use `@ng-icons/core` and Heroicons. Persist canonical `hero...` names through `HeroIconPickerComponent` and normalize them with `canonicalHeroIconName` in `settings.store.ts`.
+- Prefer native platform features over hand-built UI behaviour. Build modals with a native `<dialog>` opened by `showModal()` (DaisyUI `modal` classes), not a `role="dialog"` overlay with manual focus or `Esc` handling; use the Popover API for menus and tooltips where it fits.
+- Build dropdown menus and panels with `appPopoverMenu` (`shared/popover-menu`): a DaisyUI `dropdown` element placed right after its trigger button becomes an auto popover with anchor positioning, a script fallback, ARIA menu keyboard support and optional hover preview. Link a field's error message with `appFieldError="<error id>"` and add `appFocusFirstInvalid` to the reactive form (`shared/form-errors`), so screen readers get `aria-invalid`, the linked message and focus on the first invalid field.
+- Add `appLightDismiss` (`shared/dialog`) to a read-only modal `<dialog class="modal">` to close it on a click outside its content; `closedby="any"` does not work with DaisyUI's full-viewport `.modal`. Do not use it on dialogs with unsaved input.
+- Keep toast and notice live regions (`role="status"`) permanently in the DOM and render only the message inside them conditionally.
+- Enter/Escape handlers on text inputs must ignore IME composition (`isImeComposing` in `shared/keyboard-events.ts`).
+- Before building or changing UI behaviour (dialogs, popovers, menus, forms, animations, layout, INP/performance, accessibility), look up the current guidance and browser support with `npx -y modern-web-guidance@latest search "<topic>"`, then `retrieve "<id>"`. Apply it within Angular and DaisyUI conventions. Its `legacy-scan` command reports almost nothing for this codebase; do not treat a clean scan as an audit.
 
 ## Database and security rules
 
@@ -104,6 +112,7 @@ These rules come from a security review; keep them when changing the related cod
 - Use the `nx-workspace` skill before exploring workspace configuration. Use `nx-generate` before scaffolding. Use `supabase` for every schema, migration, RLS, Edge Function, or local Supabase task.
 - Run tasks through Nx and npm: `npm exec -- nx run web:lint`, `npm exec -- nx run web:test`, `npm exec -- nx run web:build`, and `npm exec -- nx run web-e2e:e2e` as applicable. Check help or Nx documentation before unfamiliar flags.
 - Unit specs live next to source. E2E tests live in `apps/web-e2e` and must use `.local_env.e2e` or `.env.e2e` with `SUPABASE_E2E_DB_URL`, never a remote or production database.
+- Locally, E2E runs against a separate Supabase stack (`npm run e2e:supabase:start`; project `spendist-app-e2e` in the git-ignored `.supabase-e2e/`, generated from `supabase/config.toml` with ports shifted by -2000: API 53321, DB 53322, Mailpit 53324) and its own dev server (`web:serve:e2e`, port 4300, which serves `apps/web/e2e-public/env.js` instead of `public/env.js` so the browser uses the E2E API). Keep the ports in `e2e-supabase.mjs`, `e2e-public/env.js`, the `server.ts` CSP and `supabase/config.toml` redirect URLs in sync. E2E resets that stack, so the development database (55321/55322) and a running `npm start` stay untouched. `.local_env.e2e` sets `SUPABASE_E2E_WORKDIR=.supabase-e2e`, `E2E_MAILPIT_URL` and URLs on those ports; global setup starts the stack when needed and refuses to reset a database that matches `SUPABASE_DB_URL` from `.local_env`. CI starts the same E2E project on a fresh runner.
 - Add focused regression coverage for user-visible behavior. Add/update E2E coverage when auth or guards change.
 - Before hand-off, run the smallest relevant Nx checks and `git diff --check`. State any check that could not run and why.
 

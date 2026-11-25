@@ -37,6 +37,10 @@
 
       <input
         type="search"
+        enterkeyhint="search"
+        autocapitalize="none"
+        autocorrect="off"
+        spellcheck="false"
         class="input input-bordered input-sm w-full"
         [attr.placeholder]="searchPlaceholder() ?? ('common.iconPicker.searchPlaceholder' | transloco)"
         [value]="search()"
@@ -45,7 +49,7 @@
         [disabled]="disabled()"
       />
 
-      <div class="mt-2 grid max-h-64 grid-cols-[repeat(auto-fit,minmax(4.5rem,1fr))] gap-3 overflow-y-auto">
+      <div class="mt-2 grid max-h-64 grid-cols-[repeat(auto-fit,minmax(4.5rem,1fr))] gap-3 overflow-y-auto overscroll-contain">
         @if (allowNone()) {
           <button
             type="button"

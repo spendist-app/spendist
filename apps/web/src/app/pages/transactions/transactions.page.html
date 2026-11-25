@@ -46,7 +46,7 @@
             type="button"
             class="btn btn-ghost btn-xs shrink-0"
             [disabled]="!store.hasActiveTagFilter()"
-            (click)="clearTagSelectionAndScroll()"
+            (click)="clearTagSelection()"
           >
             {{ 'transactions.filters.clearTags' | transloco }}
           </button>
@@ -64,7 +64,7 @@
             class="btn btn-ghost btn-xs"
             data-testid="category-filter-clear-all"
             [disabled]="!store.hasActiveCategoryFilter()"
-            (click)="clearCategorySelectionAndScroll()"
+            (click)="clearCategorySelection()"
           >
             {{ 'transactions.filters.clearAllCategories' | transloco }}
           </button>
@@ -231,7 +231,7 @@
           type="button"
           class="btn btn-outline min-h-11 w-full grid-cols-[auto_minmax(0,1fr)_auto] justify-start gap-3 px-3"
           [class.btn-active]="!store.hasActiveTagFilter()"
-          (click)="clearTagSelectionAndScroll()"
+          (click)="clearTagSelection()"
         >
           <span
             class="size-2 rounded-full bg-base-content/20"
@@ -261,7 +261,7 @@
             class="grid min-h-11 w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition hover:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
             [class.bg-base-200]="filtersVm.selectedTagIds.includes(tag.id)"
             [class.text-primary]="filtersVm.selectedTagIds.includes(tag.id)"
-            (click)="toggleTagSelectionAndScroll(tag.id)"
+            (click)="toggleTagSelection(tag.id)"
           >
             <span
               class="size-2 shrink-0 rounded-full"
@@ -328,6 +328,10 @@
               </span>
               <input
                 type="search"
+                enterkeyhint="search"
+                autocapitalize="none"
+                autocorrect="off"
+                spellcheck="false"
                 data-testid="transaction-search-filter"
                 class="input input-bordered w-full"
                 [value]="filtersVm.searchTerm"
@@ -596,6 +600,7 @@
           transaction)) {
           <li
             class="border-l-4 rounded-2xl border border-base-300 bg-base-100/90 p-4 shadow-sm sm:p-5"
+            [class.defer-offscreen-render]="$index >= 6"
             [style.borderLeftColor]="transaction.category?.color ?? '#CBD5F5'"
           >
             <div
@@ -690,9 +695,8 @@
                 <div class="flex items-center gap-2">
                   <button
                     type="button"
-                    class="btn btn-ghost btn-square btn-xs tooltip"
+                    class="btn btn-ghost btn-square btn-xs tooltip tooltip-bottom"
                     [attr.aria-label]="'transactions.list.actions.edit' | transloco"
-                    [attr.title]="'transactions.list.actions.edit' | transloco"
                     [attr.data-tip]="'transactions.list.actions.edit' | transloco"
                     [disabled]="transaction.sourceModule === 'mortgage'"
                     (click)="openEditForm(transaction)"
@@ -705,9 +709,8 @@
                   </button>
                   <button
                     type="button"
-                    class="btn btn-ghost btn-square btn-xs tooltip"
+                    class="btn btn-ghost btn-square btn-xs tooltip tooltip-bottom"
                     [attr.aria-label]="'transactions.list.actions.duplicate' | transloco"
-                    [attr.title]="'transactions.list.actions.duplicate' | transloco"
                     [attr.data-tip]="'transactions.list.actions.duplicate' | transloco"
                     (click)="openDuplicate(transaction)"
                   >
@@ -719,9 +722,8 @@
                   </button>
                   <button
                     type="button"
-                    class="btn btn-ghost btn-square btn-xs tooltip text-error"
+                    class="btn btn-ghost btn-square btn-xs tooltip tooltip-bottom text-error"
                     [attr.aria-label]="'transactions.list.actions.delete' | transloco"
-                    [attr.title]="'transactions.list.actions.delete' | transloco"
                     [attr.data-tip]="'transactions.list.actions.delete' | transloco"
                     [disabled]="store.transactionMutationPending() || transaction.allowanceRole === 'recipient' || transaction.sourceModule === 'mortgage'"
                     (click)="confirmDelete(transaction)"
@@ -773,13 +775,14 @@
   </div>
 </section>
 
-@if (transactionToasts().length > 0) {
-<div class="toast toast-top toast-end top-20 z-50 w-full max-w-sm px-4">
+<!-- The live region stays in the DOM so each added toast is announced. -->
+<div
+  class="toast toast-top toast-end top-20 z-50 w-full max-w-sm px-4 pointer-events-none"
+  role="status"
+>
   @for (toast of transactionToasts(); track toast.id) {
   <div
-    class="alert alert-success flex items-start gap-3 rounded-lg border border-success/20 bg-success text-success-content shadow-lg"
-    role="status"
-    aria-live="polite"
+    class="pointer-events-auto alert alert-success flex items-start gap-3 rounded-lg border border-success/20 bg-success text-success-content shadow-lg"
   >
     <span class="min-w-0 flex-1 text-sm font-medium">
       {{ toast.messageKey | transloco: toast.params }}
@@ -795,23 +798,29 @@
   </div>
   }
 </div>
-}
 
-<div
-  #addMenu
-  tabindex="-1"
-  class="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-3 sm:bottom-8 sm:right-8"
-  (pointerenter)="openAddMenu()"
-  (pointerleave)="handleAddMenuPointerLeave()"
-  (focusin)="openAddMenu()"
-  (focusout)="handleAddMenuFocusOut($event)"
-  (keydown.escape)="closeAddMenu(); $event.stopPropagation()"
->
-  @if (addMenuOpen()) {
+<div class="fixed bottom-6 right-6 z-40 sm:bottom-8 sm:right-8">
+  <button
+    type="button"
+    #addMenuTrigger
+    data-testid="transaction-add-menu-trigger"
+    class="btn btn-primary btn-circle shadow-lg transition-transform hover:scale-105"
+    [attr.aria-label]="'transactions.actions.openMenu' | transloco"
+    [attr.title]="'transactions.actions.openMenuShortcutHint' | transloco"
+    aria-haspopup="menu"
+    aria-keyshortcuts="Alt+N N"
+  >
+    <ng-icon [svg]="addIcon" size="24" aria-hidden="true"></ng-icon>
+    <span class="sr-only"
+      >{{ 'transactions.actions.openMenu' | transloco }}</span
+    >
+  </button>
   <div
-    id="transaction-add-actions"
     role="menu"
-    class="flex w-max flex-col items-end gap-2"
+    class="dropdown dropdown-top dropdown-end w-max flex-col items-end gap-2 overflow-visible [&:popover-open]:flex"
+    [appPopoverMenu]="addMenuTrigger"
+    [appPopoverMenuOpenOnHover]="true"
+    [attr.aria-label]="'transactions.actions.openMenu' | transloco"
   >
     <button
       type="button"
@@ -843,25 +852,6 @@
       {{ 'transactions.actions.addFromFile' | transloco }}
     </button>
   </div>
-  }
-
-  <button
-    type="button"
-    data-testid="transaction-add-menu-trigger"
-    class="btn btn-primary btn-circle shadow-lg transition-transform hover:scale-105"
-    [attr.aria-label]="'transactions.actions.openMenu' | transloco"
-    [attr.title]="'transactions.actions.openMenuShortcutHint' | transloco"
-    [attr.aria-expanded]="addMenuOpen()"
-    aria-haspopup="menu"
-    aria-controls="transaction-add-actions"
-    aria-keyshortcuts="Alt+N N"
-    (click)="openAddMenu()"
-  >
-    <ng-icon [svg]="addIcon" size="24" aria-hidden="true"></ng-icon>
-    <span class="sr-only"
-      >{{ 'transactions.actions.openMenu' | transloco }}</span
-    >
-  </button>
 </div>
 
 @if (createFormOpen()) { @let mode = formMode(); @let editing =
@@ -870,19 +860,19 @@ activeTransaction(); @let duplicate = duplicateSource();
   [mode]="mode"
   [transaction]="editing"
   [prefill]="duplicate"
-  (closed)="handleFormClosed()"
+  (closed)="handleFormClosed(); restoreFocusAfterDialog()"
   (saved)="handleFormSaved($event)"
 ></app-transaction-create-form>
 } @if (bulkFormOpen()) {
 <app-transaction-bulk-create-form
   [prefill]="importPrefill()"
-  (closed)="handleBulkFormClosed()"
+  (closed)="handleBulkFormClosed(); restoreFocusAfterDialog()"
   (saved)="handleBulkFormSaved($event)"
   (importCompleted)="handleImportCompleted($event)"
 ></app-transaction-bulk-create-form>
 } @if (importFormOpen()) {
 <app-transaction-import-form
-  (closed)="handleImportClosed()"
+  (closed)="handleImportClosed(); restoreFocusAfterDialog()"
   (prepared)="handleImportPrepared($event)"
 ></app-transaction-import-form>
 }

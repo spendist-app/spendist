@@ -1090,7 +1090,7 @@ export class RecurringPaymentsStore {
     for (const [recurringId, tags] of map.entries()) {
       map.set(
         recurringId,
-        [...tags].sort((a, b) => a.name.localeCompare(b.name))
+        tags.toSorted((a, b) => a.name.localeCompare(b.name))
       );
     }
 
@@ -1159,7 +1159,7 @@ export class RecurringPaymentsStore {
   }
 
   private sortWallets(wallets: readonly WalletEntity[]): WalletEntity[] {
-    return [...wallets].sort((a, b) => {
+    return wallets.toSorted((a, b) => {
       if (a.isDefault && !b.isDefault) {
         return -1;
       }
@@ -1203,7 +1203,7 @@ export class RecurringPaymentsStore {
   private sortCurrencies(
     currencies: readonly CurrencyOption[]
   ): CurrencyOption[] {
-    return [...currencies].sort((a, b) => a.symbol.localeCompare(b.symbol));
+    return currencies.toSorted((a, b) => a.symbol.localeCompare(b.symbol));
   }
 
   private normalizeCurrency(

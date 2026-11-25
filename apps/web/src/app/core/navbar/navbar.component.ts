@@ -1,9 +1,12 @@
 import { z } from 'zod';
 import {
   Component,
+  ElementRef,
+  afterRenderEffect,
   computed,
   inject,
   signal,
+  viewChild,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
@@ -11,9 +14,13 @@ import { TranslocoPipe } from '@ngneat/transloco';
 import { AdminAccessService } from '../admin-access.service';
 import { AuthService } from '../auth.service';
 import { FeatureFlagsService } from '../feature-flags.service';
+import { GlobalNoticeService } from '../global-notice.service';
+import { InstallAppService } from '../install-app.service';
 import { LanguageService } from '../language.service';
 import { NotificationsMenuComponent } from '../notifications/notifications-menu.component';
 import { ProfileService } from '../profile.service';
+import { PopoverMenuDirective } from '../../shared/popover-menu/popover-menu.directive';
+import { LightDismissDirective } from '../../shared/dialog/light-dismiss.directive';
 import { ThemeService } from '../theme.service';
 import { appInfoConfig } from '../../config/app-info.config';
 import type { LanguageCode } from '../../i18n/languages';
@@ -22,10 +29,12 @@ import type { LanguageCode } from '../../i18n/languages';
   standalone: true,
   selector: 'app-navbar',
   imports: [
+    LightDismissDirective,
     RouterLink,
     RouterLinkActive,
     TranslocoPipe,
     NotificationsMenuComponent,
+    PopoverMenuDirective,
   ],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './navbar.component.html',
@@ -34,14 +43,16 @@ export class NavbarComponent {
   readonly auth = inject(AuthService);
   readonly adminAccess = inject(AdminAccessService);
   readonly featureFlags = inject(FeatureFlagsService);
+  readonly installApp = inject(InstallAppService);
+  private readonly notices = inject(GlobalNoticeService);
   private readonly profileService = inject(ProfileService);
   private readonly router = inject(Router);
   private readonly themeService = inject(ThemeService);
   private readonly languageService = inject(LanguageService);
 
-  readonly modulesMenuOpen = signal(false);
-  readonly accountMenuOpen = signal(false);
   readonly aboutModalOpen = signal(false);
+  private readonly aboutDialog =
+    viewChild<ElementRef<HTMLDialogElement>>('aboutDialog');
   readonly languages = this.languageService.availableLanguages;
   readonly activeLanguage = computed(() =>
     this.languageService.currentLanguage()
@@ -50,8 +61,6 @@ export class NavbarComponent {
   readonly buildCommit = appInfoConfig.buildCommit;
   readonly buildCommitShort = shortCommit(appInfoConfig.buildCommit);
   readonly avatarUrl = computed(() => this.profileService.avatarUrl());
-  private modulesCloseTimer: ReturnType<typeof setTimeout> | null = null;
-  private accountCloseTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly initials = computed(() => {
     const profile = this.profileService.profile();
@@ -74,128 +83,74 @@ export class NavbarComponent {
     return resolveInitials(nameCandidate);
   });
 
+  constructor() {
+    // Runs only in the browser. The native modal makes the page inert,
+    // handles Esc and the back gesture, and returns focus on close.
+    afterRenderEffect(() => {
+      const dialog = this.aboutDialog()?.nativeElement;
+
+      if (
+        dialog &&
+        'showModal' in HTMLDialogElement.prototype &&
+        !dialog.open
+      ) {
+        dialog.showModal();
+      }
+    });
+  }
+
   readonly isDark = computed(
     () => this.themeService.theme() === 'spendistDark'
   );
-  readonly currentThemeLabel = computed(() =>
-    this.isDark() ? 'common.theme.dark' : 'common.theme.light'
-  );
+  readonly currentThemeLabel = computed(() => {
+    if (this.themeService.followsSystem()) {
+      return this.isDark()
+        ? 'common.theme.systemDark'
+        : 'common.theme.systemLight';
+    }
+
+    return this.isDark() ? 'common.theme.dark' : 'common.theme.light';
+  });
   readonly themeToggleLabel = computed(() =>
     this.isDark() ? 'common.theme.useLight' : 'common.theme.useDark'
   );
 
-  openModulesMenu(): void {
-    this.cancelModulesClose();
-    this.modulesMenuOpen.set(true);
-  }
-
-  closeModulesMenu(): void {
-    this.cancelModulesClose();
-    this.modulesMenuOpen.set(false);
-  }
-
-  scheduleCloseModulesMenu(): void {
-    this.cancelModulesClose();
-    this.modulesCloseTimer = setTimeout(() => {
-      this.modulesMenuOpen.set(false);
-      this.modulesCloseTimer = null;
-    }, 180);
-  }
-
-  toggleModulesMenu(): void {
-    this.cancelModulesClose();
-    this.modulesMenuOpen.update((open) => !open);
-  }
-
-  closeAccountMenu(): void {
-    this.cancelAccountClose();
-    this.accountMenuOpen.set(false);
-  }
-
   openAboutModal(): void {
-    this.closeAccountMenu();
-    this.closeModulesMenu();
     this.aboutModalOpen.set(true);
   }
 
   closeAboutModal(): void {
+    const dialog = this.aboutDialog()?.nativeElement;
+
+    if (dialog?.open) {
+      // The dialog's close event finishes closing the modal.
+      dialog.close();
+
+      return;
+    }
+
     this.aboutModalOpen.set(false);
   }
 
-  scheduleCloseAccountMenu(): void {
-    this.cancelAccountClose();
-    this.accountCloseTimer = setTimeout(() => {
-      this.accountMenuOpen.set(false);
-      this.accountCloseTimer = null;
-    }, 180);
+  protected onAboutDialogClosed(): void {
+    this.aboutModalOpen.set(false);
   }
 
-  toggleAccountMenu(): void {
-    this.cancelAccountClose();
-    this.accountMenuOpen.update((open) => !open);
-  }
+  async installAppFromMenu(): Promise<void> {
+    const outcome = await this.installApp.install();
 
-  handleModulesFocusOut(event: FocusEvent): void {
-    const nextElement =
-      event.relatedTarget instanceof HTMLElement ? event.relatedTarget : null;
-
-    const currentTarget =
-      event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
-
-    if (!currentTarget) {
-      this.closeModulesMenu();
-
-      return;
+    if (outcome === 'installed') {
+      this.notices.showSuccess('navbar.install.success');
+    } else if (outcome === 'failed') {
+      this.notices.showInfo('navbar.install.failed');
     }
-
-    if (!nextElement || !currentTarget.contains(nextElement)) {
-      this.scheduleCloseModulesMenu();
-    }
-  }
-
-  handleAccountFocusOut(event: FocusEvent): void {
-    const nextElement =
-      event.relatedTarget instanceof HTMLElement ? event.relatedTarget : null;
-
-    const currentTarget =
-      event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
-
-    if (!currentTarget) {
-      this.closeAccountMenu();
-
-      return;
-    }
-
-    if (!nextElement || !currentTarget.contains(nextElement)) {
-      this.scheduleCloseAccountMenu();
-    }
-  }
-
-  private cancelModulesClose(): void {
-    if (!this.modulesCloseTimer) {
-      return;
-    }
-
-    clearTimeout(this.modulesCloseTimer);
-    this.modulesCloseTimer = null;
-  }
-
-  private cancelAccountClose(): void {
-    if (!this.accountCloseTimer) {
-      return;
-    }
-
-    clearTimeout(this.accountCloseTimer);
-    this.accountCloseTimer = null;
   }
 
   toggleTheme(): void {
     this.themeService.toggleTheme();
-    this.closeAccountMenu();
   }
 
   async signOut(): Promise<void> {
-    this.closeAccountMenu();
     await this.auth.signOut();
     await this.router.navigateByUrl('/');
   }

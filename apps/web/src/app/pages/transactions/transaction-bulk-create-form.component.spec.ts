@@ -387,23 +387,38 @@ describe('TransactionBulkCreateFormComponent', () => {
     expect(component['activeRows']()).toHaveLength(1);
   });
 
-  it('closes the copy menu after applying an action', () => {
+  it('copies a field down from the row copy menu popover', async () => {
     const fixture = TestBed.createComponent(TransactionBulkCreateFormComponent);
-    fixture.detectChanges();
 
-    const firstMenu = requiredValue(
-      fixtureElement(fixture).querySelector<HTMLDetailsElement>('details')
+    await fixture.whenStable();
+
+    const component = fixture.componentInstance;
+    const root = fixtureElement(fixture);
+    const [first, second] = component['rows']();
+
+    component['updateRow'](requiredValue(first).id, 'tags', 'home');
+    await fixture.whenStable();
+
+    // Copy menus per row: date, currency, category, tags, place.
+    const tagsMenu = requiredValue(
+      root.querySelectorAll<HTMLElement>('[role="menu"]')[3]
     );
 
-    const copyBelow = requiredValue(
-      firstMenu.querySelector<HTMLButtonElement>('ul li:last-child button')
+    const trigger = requiredValue(
+      root.querySelector<HTMLButtonElement>(`[commandfor="${tagsMenu.id}"]`)
     );
 
-    firstMenu.open = true;
-    copyBelow.click();
-    fixture.detectChanges();
+    expect(tagsMenu.getAttribute('popover')).toBe('auto');
+    expect(trigger.getAttribute('aria-haspopup')).toBe('menu');
 
-    expect(firstMenu.open).toBe(false);
+    requiredValue(
+      tagsMenu.querySelector<HTMLButtonElement>('li:last-child button')
+    ).click();
+
+    expect(
+      component['rows']().find((row) => row.id === requiredValue(second).id)
+        ?.tags
+    ).toBe('home');
   });
 
   it('accepts the new pasted column order with quantity', async () => {
@@ -428,6 +443,127 @@ describe('TransactionBulkCreateFormComponent', () => {
       description: 'Toilet paper',
       categoryId: 'category-household',
       placeId: 'place-barber',
+    });
+  });
+
+  describe('native dialog', () => {
+    const showModal = vi.fn(function (this: HTMLDialogElement) {
+      this.setAttribute('open', '');
+    });
+
+    const close = vi.fn(function (this: HTMLDialogElement) {
+      this.removeAttribute('open');
+      this.dispatchEvent(new Event('close'));
+    });
+
+    beforeEach(() => {
+      showModal.mockClear();
+      close.mockClear();
+
+      // jsdom does not implement the modal dialog API.
+      Object.defineProperty(HTMLDialogElement.prototype, 'showModal', {
+        configurable: true,
+        value: showModal,
+      });
+
+      Object.defineProperty(HTMLDialogElement.prototype, 'close', {
+        configurable: true,
+        value: close,
+      });
+    });
+
+    afterEach(() => {
+      Reflect.deleteProperty(HTMLDialogElement.prototype, 'showModal');
+      Reflect.deleteProperty(HTMLDialogElement.prototype, 'close');
+    });
+
+    function renderDialog() {
+      const fixture = TestBed.createComponent(
+        TransactionBulkCreateFormComponent
+      );
+
+      fixture.detectChanges();
+
+      const dialog = requiredValue(
+        fixtureElement(fixture).querySelector<HTMLDialogElement>('dialog')
+      );
+
+      return { fixture, dialog };
+    }
+
+    it('opens as a native modal named by the form title', async () => {
+      const { fixture, dialog } = renderDialog();
+      await fixture.whenStable();
+
+      expect(showModal).toHaveBeenCalledTimes(1);
+      expect(dialog.open).toBe(true);
+      expect(dialog.getAttribute('aria-labelledby')).toBe(
+        'transaction-bulk-form-title'
+      );
+      expect(dialog.querySelector('[role="dialog"]')).toBeNull();
+      expect(dialog.querySelector('[aria-modal]')).toBeNull();
+    });
+
+    it('closes through the dialog close event and emits closed once', async () => {
+      const { fixture, dialog } = renderDialog();
+      await fixture.whenStable();
+
+      let closedCount = 0;
+      fixture.componentInstance['closed'].subscribe(() => {
+        closedCount += 1;
+      });
+
+      fixture.componentInstance['onClose']();
+
+      expect(close).toHaveBeenCalledTimes(1);
+      expect(dialog.open).toBe(false);
+      expect(closedCount).toBe(1);
+    });
+
+    it('emits closed when the browser closes the dialog after Esc', async () => {
+      const { fixture, dialog } = renderDialog();
+      await fixture.whenStable();
+
+      let closedCount = 0;
+      fixture.componentInstance['closed'].subscribe(() => {
+        closedCount += 1;
+      });
+
+      const cancel = new Event('cancel', { cancelable: true });
+      dialog.dispatchEvent(cancel);
+      dialog.dispatchEvent(new Event('close'));
+
+      expect(cancel.defaultPrevented).toBe(false);
+      expect(closedCount).toBe(1);
+    });
+
+    it('closes the dialog once after a successful save', async () => {
+      const { fixture, dialog } = renderDialog();
+      await fixture.whenStable();
+
+      const component = fixture.componentInstance;
+      let closedCount = 0;
+      let savedCount = 0;
+
+      component['closed'].subscribe(() => {
+        closedCount += 1;
+      });
+
+      component['saved'].subscribe(() => {
+        savedCount += 1;
+      });
+
+      component['onPaste'](
+        pasteEvent(
+          '2026-07-05\tLunch\t12,50\tPLN\texpense\tFood\tDefault Wallet\tmeal\tBarber'
+        )
+      );
+      await component['submit']();
+
+      expect(savedCount).toBe(1);
+      expect(close).toHaveBeenCalledTimes(1);
+      expect(dialog.open).toBe(false);
+      expect(closedCount).toBe(1);
     });
   });
 });

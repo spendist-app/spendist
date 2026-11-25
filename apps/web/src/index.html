@@ -9,7 +9,18 @@
     />
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#0EA5A5" />
+    <meta name="text-scale" content="scale" />
+    <meta name="color-scheme" content="light dark" />
+    <meta
+      name="theme-color"
+      media="(prefers-color-scheme: light)"
+      content="#ffffff"
+    />
+    <meta
+      name="theme-color"
+      media="(prefers-color-scheme: dark)"
+      content="#161a1d"
+    />
     <meta
       property="og:image"
       content="https://spendist.app/brand/social/social-share-1200x630.png"
@@ -29,6 +40,8 @@
       sizes="180x180"
       href="icons/spendist-apple-touch-icon-180x180.png"
     />
+    <!-- Blocking on purpose: sets data-theme before the first paint. -->
+    <script src="/theme-init.js"></script>
     <script src="/env.js" defer></script>
   </head>
   <body>

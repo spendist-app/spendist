@@ -104,13 +104,14 @@ describe('EmailPreferences', () => {
     expect(component.muted()).toEqual(['allowance_received']);
   });
 
-  it('shows the exchange rate type only to administrators', async () => {
+  it('shows administrator-only types only to administrators', async () => {
     const { component } = await setup({
       email_notifications: true,
       email_notification_muted_types: [],
     });
 
     expect(component.types()).not.toContain('exchange_rates_sync_failed');
+    expect(component.types()).not.toContain('new_account_confirmed');
 
     TestBed.resetTestingModule();
 
@@ -120,6 +121,7 @@ describe('EmailPreferences', () => {
     );
 
     expect(admin.component.types()).toContain('exchange_rates_sync_failed');
+    expect(admin.component.types()).toContain('new_account_confirmed');
   });
 
   it('keeps the previous state when saving fails', async () => {

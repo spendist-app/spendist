@@ -28,14 +28,18 @@
     <input
       #searchInput
       type="search"
+      enterkeyhint="search"
+      autocapitalize="none"
+      autocorrect="off"
+      spellcheck="false"
       class="input input-bordered input-sm w-full"
       [value]="search()"
       (input)="onSearchInput($event)"
-      (keydown.escape)="closeDropdown()"
+      (keydown.escape)="$event.preventDefault(); closeDropdown()"
       [attr.placeholder]="searchPlaceholder()"
       autocomplete="off"
     />
-    <div class="mt-2 max-h-56 overflow-y-auto" role="listbox">
+    <div class="mt-2 max-h-56 overflow-y-auto overscroll-contain" role="listbox">
       @if (filteredGroups().length > 0) { @for (group of filteredGroups(); track
       group.groupName) {
       <div class="py-1">

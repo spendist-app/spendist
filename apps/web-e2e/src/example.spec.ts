@@ -101,7 +101,7 @@ test('serves separate, indexable English and Polish blog indexes', async ({
   await expect(
     page.getByRole('navigation', { name: 'Blog categories' })
   ).toBeVisible();
-  await expect(page.locator('.article-card')).toHaveCount(3);
+  await expect(page.locator('.article-card')).toHaveCount(4);
 
   await page.goto('/pl/blog');
   await expect(
@@ -127,7 +127,7 @@ test('serves separate, indexable English and Polish blog indexes', async ({
   await expect(
     page.getByRole('navigation', { name: 'Kategorie bloga' })
   ).toBeVisible();
-  await expect(page.locator('.article-card')).toHaveCount(3);
+  await expect(page.locator('.article-card')).toHaveCount(4);
 });
 
 test('publishes blog discovery files', async ({ page }) => {
@@ -157,9 +157,9 @@ test('publishes blog discovery files', async ({ page }) => {
   expect(robotsText).toContain('Disallow: /transactions');
   expect(robotsText).toContain('Sitemap: https://spendist.app/sitemap.xml');
   expect(englishFeedText).toContain('<language>en</language>');
-  expect(englishFeedText.match(/<item>/g) ?? []).toHaveLength(3);
+  expect(englishFeedText.match(/<item>/g) ?? []).toHaveLength(4);
   expect(polishFeedText).toContain('<language>pl</language>');
-  expect(polishFeedText.match(/<item>/g) ?? []).toHaveLength(3);
+  expect(polishFeedText.match(/<item>/g) ?? []).toHaveLength(4);
 });
 
 test('keeps tag filters out of the index and publishes article metadata', async ({
@@ -373,10 +373,12 @@ test('exposes installable PWA metadata', async ({ page }) => {
 
   const manifestLink = page.locator('link[rel="manifest"]');
   await expect(manifestLink).toHaveAttribute('href', 'manifest.webmanifest');
-  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute(
-    'content',
-    '#0EA5A5'
-  );
+  await expect(
+    page.locator('meta[name="theme-color"][media*="light"]')
+  ).toHaveAttribute('content', '#ffffff');
+  await expect(
+    page.locator('meta[name="theme-color"][media*="dark"]')
+  ).toHaveAttribute('content', '#161a1d');
 
   const response = await page.request.get('/manifest.webmanifest');
   expect(response.ok()).toBeTruthy();
