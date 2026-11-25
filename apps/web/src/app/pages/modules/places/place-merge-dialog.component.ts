@@ -11,6 +11,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { TranslocoPipe, TranslocoService } from '@ngneat/transloco';
+import { LogoComponent } from '../../../shared/logo/logo.component';
 import {
   PlaceEntity,
   PlaceMergePreview,
@@ -26,7 +27,7 @@ import {
   standalone: true,
   selector: 'app-place-merge-dialog',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TranslocoPipe],
+  imports: [TranslocoPipe, LogoComponent],
   templateUrl: './place-merge-dialog.component.html',
 })
 export class PlaceMergeDialogComponent {
@@ -48,11 +49,19 @@ export class PlaceMergeDialogComponent {
     () => this.places().find((place) => place.id === this.targetId()) ?? null
   );
 
-  protected readonly filledFields = computed(() =>
-    (this.preview()?.filledFields ?? [])
-      .map((field) => this.transloco.translate(`places.form.fields.${field}`))
-      .join(', ')
-  );
+  protected readonly filledFields = computed(() => {
+    const preview = this.preview();
+
+    const fields = (preview?.filledFields ?? []).map((field) =>
+      this.transloco.translate(`places.form.fields.${field}`)
+    );
+
+    if (preview?.fillsLogo) {
+      fields.push(this.transloco.translate('logos.field.label'));
+    }
+
+    return fields.join(', ');
+  });
 
   constructor() {
     afterNextRender(() => {

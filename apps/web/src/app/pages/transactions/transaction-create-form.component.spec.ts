@@ -71,6 +71,7 @@ class TransactionsStoreStub {
       postalCode: null,
       country: null,
       note: null,
+      logo: 'simple-icons:netflix:e50914',
     },
   ]);
   readonly currencies = signal([
@@ -131,6 +132,7 @@ class TransactionsStoreStub {
       postalCode: payload.postalCode || null,
       country: payload.country || null,
       note: payload.note || null,
+      logo: null,
     };
 
     this.places.update((places) => [...places, place]);

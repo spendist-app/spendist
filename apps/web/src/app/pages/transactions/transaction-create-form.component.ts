@@ -44,6 +44,7 @@ import {
   TagPickerSelection,
 } from '../../shared/tag-picker/tag-picker.component';
 import { FORM_ERROR_DIRECTIVES } from '../../shared/form-errors';
+import { LogoComponent } from '../../shared/logo/logo.component';
 
 interface CurrencyOptionView {
   readonly id: number;
@@ -70,6 +71,7 @@ export type TransactionFormSaveResult = 'created' | 'updated';
     NgIcon,
     CategorySelectComponent,
     TagPickerComponent,
+    LogoComponent,
   ],
   templateUrl: './transaction-create-form.component.html',
 })
@@ -320,14 +322,15 @@ export class TransactionCreateFormComponent {
   protected readonly newPlaceFormOpen = signal(false);
   protected readonly newPlacePending = signal(false);
   protected readonly newPlaceError = signal<string | null>(null);
-  protected readonly selectedPlaceLabel = computed(() => {
+  protected readonly selectedPlace = computed(() => {
     const placeId = this.selectedPlaceId();
 
-    if (!placeId) {
-      return '';
-    }
-
-    const place = this.places().find((item) => item.id === placeId);
+    return placeId
+      ? (this.places().find((item) => item.id === placeId) ?? null)
+      : null;
+  });
+  protected readonly selectedPlaceLabel = computed(() => {
+    const place = this.selectedPlace();
 
     return place ? this.formatPlaceLabel(place) : '';
   });

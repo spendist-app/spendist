@@ -18,6 +18,7 @@ import type {
 import type { TransactionImportContext } from './transaction-import.models';
 import { excludePreviouslyImportedTransactions } from './transaction-import-deduplication';
 import { findPlaceByName } from '../../shared/place-name/place-name';
+import { parseLogo } from '../../shared/logo/logo';
 import type {
   CategoryEntity,
   CategoryGroupEntity,
@@ -120,6 +121,7 @@ export interface PlaceEntity {
   readonly postalCode: string | null;
   readonly country: string | null;
   readonly note: string | null;
+  readonly logo: string | null;
 }
 
 export interface CreatePlacePayload {
@@ -2694,6 +2696,7 @@ export class TransactionsStore {
       postalCode: row.postal_code ?? null,
       country: row.country ?? null,
       note: row.note ?? null,
+      logo: parseLogo(row.logo) ? row.logo : null,
     };
   }
 

@@ -18,6 +18,9 @@ import {
 import { PlaceMergeDialogComponent } from './place-merge-dialog.component';
 import { FORM_ERROR_DIRECTIVES } from '../../../shared/form-errors';
 import { duplicatePlaceGroups } from '../../../shared/place-name/place-name';
+import { LogoComponent } from '../../../shared/logo/logo.component';
+import { LogoFieldComponent } from '../../../shared/logo/logo-field.component';
+import { type LogoDraft, emptyLogoDraft } from '../../../shared/logo/logo';
 
 @Component({
   standalone: true,
@@ -29,6 +32,8 @@ import { duplicatePlaceGroups } from '../../../shared/place-name/place-name';
     TranslocoPipe,
     NgIcon,
     PlaceMergeDialogComponent,
+    LogoComponent,
+    LogoFieldComponent,
   ],
   providers: [PlacesStore],
   templateUrl: './places.page.html',
@@ -47,6 +52,7 @@ export class PlacesPageComponent {
   protected readonly mergeOpen = signal(false);
   protected readonly duplicateOf = signal<PlaceEntity | null>(null);
   protected readonly notice = signal<string | null>(null);
+  protected readonly logoDraft = signal<LogoDraft>(emptyLogoDraft());
 
   /** Places whose names differ only by case, spacing or diacritics. */
   protected readonly duplicateGroups = computed(() =>
@@ -185,6 +191,7 @@ export class PlacesPageComponent {
       country: '',
       note: '',
     });
+    this.logoDraft.set(emptyLogoDraft());
     this.form.markAsPristine();
     this.form.markAsUntouched();
     this.store.clearError();
@@ -202,6 +209,7 @@ export class PlacesPageComponent {
       country: place.country ?? '',
       note: place.note ?? '',
     });
+    this.logoDraft.set(emptyLogoDraft(place.logo));
     this.form.markAsPristine();
     this.form.markAsUntouched();
     this.store.clearError();
@@ -236,6 +244,7 @@ export class PlacesPageComponent {
       postalCode: raw.postalCode,
       country: raw.country,
       note: raw.note,
+      logo: this.logoDraft(),
     };
 
     try {

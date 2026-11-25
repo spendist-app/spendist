@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  Injector,
   computed,
   inject,
   input,
@@ -80,7 +81,9 @@ const SIZE_CLASSES = {
   `,
 })
 export class LogoComponent {
-  private readonly logos = inject(LogoService);
+  // Resolved only for file logos, so pages that show bundled icons do not
+  // need the Supabase client.
+  private readonly injector = inject(Injector);
 
   /** Stored logo value. */
   readonly logo = input<string | null>(null);
@@ -111,7 +114,7 @@ export class LogoComponent {
 
   protected readonly fileUrl = computed(() =>
     this.parsed()?.kind === 'file'
-      ? this.logos.imageUrl(this.logo(), this.ownerId())
+      ? this.injector.get(LogoService).imageUrl(this.logo(), this.ownerId())
       : null
   );
 }

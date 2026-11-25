@@ -394,7 +394,7 @@ describe('TransactionsPageComponent', () => {
     expect(badge.textContent).not.toContain('1324a167');
   });
 
-  it('shows every tag of a transaction and filters by a clicked tag', () => {
+  it('shows the place logo and every tag, and filters by a clicked tag', () => {
     const fixture = TestBed.createComponent(TransactionsPageComponent);
 
     const store = fixture.debugElement.injector.get(TransactionsStoreStub);
@@ -443,7 +443,17 @@ describe('TransactionsPageComponent', () => {
         group: null,
         tagIds: [piggyBank.id, christmas.id],
         tags: [christmas, piggyBank],
-        place: null,
+        place: {
+          id: 'place-1',
+          ownerId: 'user-1',
+          name: 'Lidl',
+          street: null,
+          city: 'Gliwice',
+          postalCode: null,
+          country: null,
+          note: null,
+          logo: 'simple-icons:lidl:0050aa',
+        },
       },
     ]);
     store.loadedTransactionCount.set(1);
@@ -467,6 +477,15 @@ describe('TransactionsPageComponent', () => {
     requiredValue(tagButtons[1]).click();
 
     expect(store.toggleTagSelection).toHaveBeenCalledWith(piggyBank.id);
+
+    const place = requiredValue(
+      fixtureElement(fixture).querySelector<HTMLElement>(
+        '[data-testid="transaction-place"]'
+      )
+    );
+
+    expect(place.textContent).toContain('Lidl');
+    expect(place.querySelector('[data-logo="lidl"]')).not.toBeNull();
   });
 
   it('defers rendering of rows below the first screen', () => {
@@ -627,9 +646,9 @@ describe('TransactionsPageComponent', () => {
 
     expect(groupNames()).toEqual(['Daily', 'Travel']);
     expect(
-      fixture.componentInstance['visibleGroupedCategories']()[0]?.categories.map(
-        (category) => category.id
-      )
+      fixture.componentInstance[
+        'visibleGroupedCategories'
+      ]()[0]?.categories.map((category) => category.id)
     ).toEqual(['category-empty', 'category-active']);
   });
 

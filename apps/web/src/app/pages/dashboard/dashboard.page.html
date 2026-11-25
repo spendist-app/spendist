@@ -199,6 +199,8 @@
           <div
             class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
           >
+            <div class="flex min-w-0 items-start gap-3">
+            <app-logo [logo]="place.logo" size="md" />
             <div class="min-w-0 space-y-1">
               <h3 class="truncate text-lg font-semibold text-base-content">
                 {{ place.placeName }}
@@ -211,6 +213,7 @@
                 formatDate(place.latestTransactionAt) }}
               </p>
               }
+            </div>
             </div>
 
             <dl class="grid shrink-0 grid-cols-2 gap-4 text-right">

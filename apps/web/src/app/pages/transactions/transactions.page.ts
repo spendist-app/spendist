@@ -54,6 +54,7 @@ import {
   type TransactionSidebarPanel,
 } from './transactions-query.codec';
 import { PopoverMenuDirective } from '../../shared/popover-menu/popover-menu.directive';
+import { LogoComponent } from '../../shared/logo/logo.component';
 
 interface MonthOption {
   readonly value: string;
@@ -77,6 +78,7 @@ interface TransactionToast {
     TransactionBulkCreateFormComponent,
     TransactionImportFormComponent,
     PopoverMenuDirective,
+    LogoComponent,
   ],
   providers: [TransactionsStore],
   templateUrl: './transactions.page.html',

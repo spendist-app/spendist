@@ -144,6 +144,9 @@
                 [attr.aria-label]="'transactions.form.fields.place' | transloco"
                 (click)="togglePlaceDropdown()"
               >
+                @if (selectedPlace(); as place) {
+                <app-logo [logo]="place.logo" size="sm" />
+                }
                 <span
                   class="min-w-0 flex-1 truncate"
                   [class.text-base-content/50]="!selectedPlaceLabel()"
@@ -217,12 +220,13 @@
                   filteredPlaces(); track place.id) {
                   <button
                     type="button"
-                    class="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm transition hover:bg-base-200"
+                    class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition hover:bg-base-200"
                     [class.bg-base-200]="selectedPlaceId() === place.id"
                     (click)="selectPlace(place.id)"
                     role="option"
                     [attr.aria-selected]="selectedPlaceId() === place.id"
                   >
+                    <app-logo [logo]="place.logo" size="sm" />
                     <span class="min-w-0 truncate">
                       {{ formatPlaceLabel(place) }}
                     </span>

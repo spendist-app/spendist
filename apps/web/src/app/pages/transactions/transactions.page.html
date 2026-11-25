@@ -691,9 +691,15 @@
                     (transaction.group; as group) { · {{ group.name }} }
                   </p>
                   @if (transaction.place; as place) {
-                  <p class="text-sm text-base-content/60">
-                    {{ 'transactions.list.place' | transloco }}: {{ place.name
-                    }} @if (place.city) { · {{ place.city }} }
+                  <p
+                    class="flex items-center gap-1.5 text-sm text-base-content/60"
+                    data-testid="transaction-place"
+                  >
+                    <app-logo [logo]="place.logo" size="xs" />
+                    <span>
+                      {{ 'transactions.list.place' | transloco }}: {{ place.name
+                      }} @if (place.city) { · {{ place.city }} }
+                    </span>
                   </p>
                   } @if (transaction.tags.length > 0) {
                   <ul

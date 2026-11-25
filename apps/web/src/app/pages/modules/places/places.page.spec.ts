@@ -7,6 +7,8 @@ import { AuthService } from '../../../core/auth.service';
 import { SUPABASE_CLIENT } from '../../../core/supabase';
 import { provideAppTransloco } from '../../../i18n/transloco.providers';
 import { PlacesPageComponent } from './places.page';
+import { LogoCatalogService } from '../../../shared/logo/logo-catalog.service';
+import { catalogKey } from '../../../shared/logo/logo';
 
 const OWNER_ID = '40000000-0000-0000-0000-000000000001';
 
@@ -35,6 +37,15 @@ const targ = placeRow('place-1', 'Targ Piast');
 const targDuplicate = placeRow('place-2', 'targ  piast', 'Gliwice');
 
 const pepco = placeRow('place-3', 'Pepco');
+
+const netflixIcon = {
+  source: 'simple-icons' as const,
+  slug: 'netflix',
+  hex: 'e50914',
+  title: 'Netflix',
+  value: 'simple-icons:netflix:e50914',
+  keys: [catalogKey('Netflix')],
+};
 
 class AuthServiceStub {
   readonly loading = signal(false);
@@ -108,6 +119,10 @@ async function renderPage(loads: PlaceRow[][]) {
       AuthServiceStub,
       { provide: AuthService, useExisting: AuthServiceStub },
       { provide: SUPABASE_CLIENT, useValue: supabase },
+      {
+        provide: LogoCatalogService,
+        useValue: { loadSimpleIcons: async () => [netflixIcon] },
+      },
     ],
   }).compileComponents();
 
@@ -132,6 +147,68 @@ function buttonWithText(root: HTMLElement, text: string): HTMLButtonElement {
 }
 
 describe('PlacesPageComponent', () => {
+  // jsdom has no modal dialog support.
+  beforeEach(() => {
+    Object.defineProperty(HTMLDialogElement.prototype, 'showModal', {
+      configurable: true,
+      value: vi.fn(function (this: HTMLDialogElement) {
+        this.setAttribute('open', '');
+      }),
+    });
+
+    Object.defineProperty(HTMLDialogElement.prototype, 'close', {
+      configurable: true,
+      value: vi.fn(function (this: HTMLDialogElement) {
+        this.removeAttribute('open');
+        this.dispatchEvent(new Event('close'));
+      }),
+    });
+  });
+
+  afterEach(() => {
+    Reflect.deleteProperty(HTMLDialogElement.prototype, 'showModal');
+    Reflect.deleteProperty(HTMLDialogElement.prototype, 'close');
+  });
+
+  it('shows a place logo and saves a chosen brand logo', async () => {
+    const { fixture, element, supabase } = await renderPage([
+      [{ ...pepco, logo: 'simple-icons:lidl:0050aa' }],
+    ]);
+
+    expect(element.querySelector('article [data-logo="lidl"]')).not.toBeNull();
+
+    buttonWithText(element, 'Add place').click();
+    await fixture.whenStable();
+
+    const name = element.querySelector<HTMLInputElement>(
+      'input[formcontrolname="name"]'
+    );
+
+    if (!name) throw new Error('Name field was not rendered.');
+
+    name.value = 'Netflix';
+    name.dispatchEvent(new Event('input'));
+    buttonWithText(element, 'Choose logo').click();
+    await fixture.whenStable();
+
+    element
+      .querySelector<HTMLButtonElement>('dialog [data-slug="netflix"]')
+      ?.click();
+    await fixture.whenStable();
+
+    expect(element.querySelector('form [data-logo="netflix"]')).not.toBeNull();
+
+    element.querySelector('form')?.dispatchEvent(new Event('submit'));
+    await fixture.whenStable();
+
+    expect(supabase.insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Netflix',
+        logo: 'simple-icons:netflix:e50914',
+      })
+    );
+  });
+
   it('suggests merging places whose names differ only by case and spacing', async () => {
     const { element } = await renderPage([[targ, targDuplicate, pepco]]);
 
