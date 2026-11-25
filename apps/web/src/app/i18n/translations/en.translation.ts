@@ -1156,6 +1156,8 @@ const en = {
       },
       uncategorized: 'No category',
       place: 'Place',
+      tags: 'Tags',
+      tagFilter: 'Filter by tag {{ name }}',
       direction: {
         income: 'Income',
         expense: 'Expense',

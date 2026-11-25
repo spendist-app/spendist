@@ -166,6 +166,8 @@ export interface TransactionViewModel extends TransactionEntity {
   readonly category: CategoryEntity | null;
   readonly group: CategoryGroupEntity | null;
   readonly tagIds: readonly string[];
+  /** Tags attached to the transaction, sorted by name. */
+  readonly tags: readonly TagEntity[];
   readonly place: PlaceEntity | null;
 }
 
@@ -467,6 +469,7 @@ export class TransactionsStore {
 
     const groupsById = new Map(state.groups.map((group) => [group.id, group]));
     const placesById = new Map(state.places.map((place) => [place.id, place]));
+    const tagsById = new Map(state.tags.map((tag) => [tag.id, tag]));
     const tagsMap = state.transactionTags;
 
     return state.transactions.map((transaction) => {
@@ -476,11 +479,20 @@ export class TransactionsStore {
         ? groupsById.get(category.groupId) ?? null
         : null;
 
+      const tagIds = tagsMap.get(transaction.id) ?? [];
+
       return {
         ...transaction,
         category,
         group,
-        tagIds: tagsMap.get(transaction.id) ?? [],
+        tagIds,
+        tags: this.sortTags(
+          tagIds.flatMap((tagId) => {
+            const tag = tagsById.get(tagId);
+
+            return tag ? [tag] : [];
+          })
+        ),
         place: transaction.placeId
           ? placesById.get(transaction.placeId) ?? null
           : null,

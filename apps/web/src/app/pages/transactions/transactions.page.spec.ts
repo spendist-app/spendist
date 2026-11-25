@@ -210,9 +210,7 @@ class TransactionsStoreStub {
     return;
   }
 
-  toggleTagSelection(): void {
-    return;
-  }
+  readonly toggleTagSelection = vi.fn<(tagId: string) => void>();
 
   dismissMutationError(): void {
     return;
@@ -369,6 +367,7 @@ describe('TransactionsPageComponent', () => {
         category: null,
         group: null,
         tagIds: [],
+        tags: [],
         place: null,
       },
     ]);
@@ -385,6 +384,81 @@ describe('TransactionsPageComponent', () => {
 
     expect(badge.textContent).toContain('Health insurance');
     expect(badge.textContent).not.toContain('1324a167');
+  });
+
+  it('shows every tag of a transaction and filters by a clicked tag', () => {
+    const fixture = TestBed.createComponent(TransactionsPageComponent);
+
+    const store = fixture.debugElement.injector.get(TransactionsStoreStub);
+
+    const piggyBank = {
+      id: 'tag-piggy-bank',
+      ownerId: 'user-1',
+      name: 'Świnka',
+      color: '#F472B6',
+      icon: null,
+    };
+
+    const christmas = {
+      id: 'tag-christmas',
+      ownerId: 'user-1',
+      name: 'Gwiazdka 2024',
+      color: null,
+      icon: null,
+    };
+
+    store.filteredTransactions.set([
+      {
+        id: 'transaction-tagged',
+        ownerId: 'user-1',
+        categoryId: 'category-active',
+        occurredAt: new Date('2026-11-24T08:00:00Z'),
+        description: 'Gift',
+        amount: 50,
+        amountInDefault: 50,
+        currency: 'PLN',
+        direction: 'expense',
+        isAutomatic: false,
+        recurringTransactionId: null,
+        recurringTransactionName: null,
+        recurringScheduledFor: null,
+        createdAt: new Date('2026-11-24T08:00:00Z'),
+        updatedAt: new Date('2026-11-24T08:00:00Z'),
+        exchangeRate: 1,
+        walletId: 'wallet-1',
+        placeId: null,
+        sourceModule: 'standard',
+        allowancePairId: null,
+        allowanceRole: null,
+        allowanceConnectionId: null,
+        category: null,
+        group: null,
+        tagIds: [piggyBank.id, christmas.id],
+        tags: [christmas, piggyBank],
+        place: null,
+      },
+    ]);
+    store.loadedTransactionCount.set(1);
+    store.totalMatchingTransactions.set(1);
+
+    fixture.detectChanges();
+
+    const tagList = requiredValue(
+      fixtureElement(fixture).querySelector<HTMLElement>(
+        '[data-testid="transaction-tags"]'
+      )
+    );
+
+    const tagButtons = [...tagList.querySelectorAll('button')];
+
+    expect(tagButtons.map((button) => button.textContent?.trim())).toEqual([
+      'Gwiazdka 2024',
+      'Świnka',
+    ]);
+
+    requiredValue(tagButtons[1]).click();
+
+    expect(store.toggleTagSelection).toHaveBeenCalledWith(piggyBank.id);
   });
 
   it('defers rendering of rows below the first screen', () => {
@@ -418,6 +492,7 @@ describe('TransactionsPageComponent', () => {
       category: null,
       group: null,
       tagIds: [],
+      tags: [],
       place: null,
     }));
 

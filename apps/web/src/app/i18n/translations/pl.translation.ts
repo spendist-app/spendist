@@ -1164,6 +1164,8 @@ const pl = {
       },
       uncategorized: 'Brak kategorii',
       place: 'Miejsce',
+      tags: 'Tagi',
+      tagFilter: 'Filtruj po tagu {{ name }}',
       direction: {
         income: 'Przychód',
         expense: 'Wydatek',

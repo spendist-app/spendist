@@ -681,6 +681,35 @@
                     {{ 'transactions.list.place' | transloco }}: {{ place.name
                     }} @if (place.city) { · {{ place.city }} }
                   </p>
+                  } @if (transaction.tags.length > 0) {
+                  <ul
+                    class="flex flex-wrap gap-1.5"
+                    data-testid="transaction-tags"
+                    [attr.aria-label]="'transactions.list.tags' | transloco"
+                  >
+                    @for (tag of transaction.tags; track tag.id) {
+                    <li>
+                      <button
+                        type="button"
+                        class="badge badge-outline badge-sm h-auto min-h-6 max-w-48 gap-1.5 py-0.5 hover:bg-base-200"
+                        [class.badge-primary]="filtersVm.selectedTagIds.includes(tag.id)"
+                        [attr.aria-pressed]="filtersVm.selectedTagIds.includes(tag.id)"
+                        [attr.aria-label]="'transactions.list.tagFilter' | transloco: { name: tag.name }"
+                        (click)="toggleTagSelection(tag.id)"
+                      >
+                        <span
+                          class="size-2 shrink-0 rounded-full"
+                          [style.backgroundColor]="tag.color ?? '#0EA5A5'"
+                          aria-hidden="true"
+                        ></span>
+                        @if (tag.icon && heroIconSvg(tag.icon); as iconSvg) {
+                        <ng-icon [svg]="iconSvg" size="12" aria-hidden="true"></ng-icon>
+                        }
+                        <span class="truncate">{{ tag.name }}</span>
+                      </button>
+                    </li>
+                    }
+                  </ul>
                   }
                   <p
                     class="text-xs uppercase tracking-wide text-base-content/40"
