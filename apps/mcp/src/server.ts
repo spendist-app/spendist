@@ -47,6 +47,11 @@ const IdempotencyKey = z
     'Optional client-chosen key. Retrying the same request with the same key returns the first result instead of creating duplicates.'
   );
 
+const TagChange = z.object({
+  transactionIds: z.array(z.string().uuid()).min(1).max(100),
+  tagIds: z.array(z.string().uuid()).min(1).max(50),
+});
+
 const Recurring = z.object({
   name: z.string().trim().min(1).max(120),
   amount: z.string().regex(/^\d+(?:\.\d{1,2})?$/),
@@ -364,8 +369,26 @@ export function createSpendistMcpServer(
   );
   operation(
     tools,
+    'add_tags_to_transactions',
+    'Add the same tags to 1 to 100 transactions in one atomic call. Tags already present are kept.',
+    TagChange,
+    ({ transactionIds, tagIds }) =>
+      access.changeTransactionTags(transactionIds, tagIds, true),
+    'additive'
+  );
+  operation(
+    tools,
+    'remove_tags_from_transactions',
+    'Remove the given tags from 1 to 100 transactions in one atomic call.',
+    TagChange,
+    ({ transactionIds, tagIds }) =>
+      access.changeTransactionTags(transactionIds, tagIds, false),
+    'destructive'
+  );
+  operation(
+    tools,
     'update_transaction',
-    'Update one transaction.',
+    'Update one transaction. tagIds replaces all of its tags; an empty array clears them. Returns the transaction with its transaction_tags.',
     Id.extend({
       changes: Transaction.partial().refine(
         (value) => Object.keys(value).length > 0

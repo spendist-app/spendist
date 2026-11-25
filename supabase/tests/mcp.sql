@@ -291,6 +291,74 @@ begin
     raise exception 'Oversized batch was not rejected: %', v_error;
   end if;
 
+  v_transaction_id := (v_result #>> '{items,0,id}')::uuid;
+
+  -- Updating only tagIds replaces tags without touching the row.
+  v_result := public.mcp_update_transaction(
+    v_transaction_id, jsonb_build_object('tagIds', jsonb_build_array(v_tag_b))
+  );
+  if v_result #>> '{transaction_tags,0,tag_id}' <> v_tag_b::text
+     or jsonb_array_length(v_result->'transaction_tags') <> 1
+     or v_result->>'description' <> 'Batch row 1' then
+    raise exception 'Tag-only MCP update failed: %', v_result;
+  end if;
+
+  v_result := public.mcp_update_transaction(
+    v_transaction_id,
+    jsonb_build_object('tagIds', jsonb_build_array(v_tag_a, v_tag_b), 'description', 'Renamed')
+  );
+  if jsonb_array_length(v_result->'transaction_tags') <> 2
+     or v_result->>'description' <> 'Renamed' then
+    raise exception 'MCP update with tags and description failed: %', v_result;
+  end if;
+
+  v_result := public.mcp_update_transaction(
+    v_transaction_id, jsonb_build_object('tagIds', '[]'::jsonb)
+  );
+  if jsonb_array_length(v_result->'transaction_tags') <> 0 then
+    raise exception 'Empty tagIds did not clear transaction tags: %', v_result;
+  end if;
+
+  v_error := null;
+  begin
+    perform public.mcp_update_transaction(
+      v_transaction_id, jsonb_build_object('tagIds', jsonb_build_array(gen_random_uuid()))
+    );
+  exception when others then
+    v_error := sqlerrm;
+  end;
+  if v_error not like 'Tag % was not found.' then
+    raise exception 'Missing tag was accepted by MCP update: %', v_error;
+  end if;
+
+  v_error := null;
+  begin
+    perform public.mcp_update_transaction(
+      v_transaction_id,
+      jsonb_build_object(
+        'description', 'Must roll back',
+        'tagIds', jsonb_build_array('30000000-0000-0000-0000-000000000099')
+      )
+    );
+  exception when others then
+    v_error := sqlerrm;
+  end;
+  if v_error not like 'Tag % was not found.'
+     or (select description from public.transactions where id = v_transaction_id) <> 'Renamed' then
+    raise exception 'Another user''s tag was accepted by MCP update: %', v_error;
+  end if;
+
+  v_error := null;
+  begin
+    perform public.mcp_update_transaction(
+      gen_random_uuid(), jsonb_build_object('tagIds', '[]'::jsonb)
+    );
+  exception when others then
+    v_error := sqlerrm;
+  end;
+  if v_error not like 'Transaction % was not found.' then
+    raise exception 'Missing transaction did not return a clear error: %', v_error;
+  end if;
 
 end;
 $$;
@@ -298,14 +366,41 @@ $$;
 do $$
 declare
   v_owner_id constant uuid := '20000000-0000-0000-0000-000000000001';
-  v_category_id uuid;
-  v_wallet_id uuid;
+  v_ids uuid[];
+  v_tag uuid;
+  v_result jsonb;
   v_error text;
 begin
-  select id into v_wallet_id from public.wallets
-   where owner_id = v_owner_id and is_default;
-  select id into v_category_id from public.categories
-   where owner_id = v_owner_id and name = 'MCP batch category';
+  -- Bulk tag changes cover many transactions in one call.
+  select array_agg(id) into v_ids from public.transactions
+   where owner_id = v_owner_id and description like 'Batch row %';
+  select id into v_tag from public.tags
+   where owner_id = v_owner_id and name = 'MCP tag B';
+
+  v_result := public.mcp_change_transaction_tags(v_ids, array[v_tag], true);
+  if (select count(*) from public.transaction_tags
+       where owner_id = v_owner_id and tag_id = v_tag and transaction_id = any (v_ids))
+     <> cardinality(v_ids) then
+    raise exception 'Bulk tag add did not tag every transaction: %', v_result;
+  end if;
+
+  v_result := public.mcp_change_transaction_tags(v_ids, array[v_tag], false);
+  if exists (select 1 from public.transaction_tags
+              where tag_id = v_tag and transaction_id = any (v_ids)) then
+    raise exception 'Bulk tag removal left tags behind: %', v_result;
+  end if;
+
+  v_error := null;
+  begin
+    perform public.mcp_change_transaction_tags(
+      v_ids, array['30000000-0000-0000-0000-000000000099'::uuid], true
+    );
+  exception when others then
+    v_error := sqlerrm;
+  end;
+  if v_error not like 'Tag % was not found.' then
+    raise exception 'Bulk tag add accepted another user''s tag: %', v_error;
+  end if;
 
   -- An OAuth client without the user's write grant cannot write.
   perform set_config(
@@ -319,13 +414,7 @@ begin
 
   v_error := null;
   begin
-    perform public.mcp_create_transactions(jsonb_build_array(jsonb_build_object(
-      'amount', '1.00',
-      'categoryId', v_category_id,
-      'walletId', v_wallet_id,
-      'occurredAt', '2026-11-20T12:00:00+01:00',
-      'direction', 'expense'
-    )));
+    perform public.mcp_change_transaction_tags(v_ids, array[v_tag], true);
   exception when others then
     v_error := sqlerrm;
   end;

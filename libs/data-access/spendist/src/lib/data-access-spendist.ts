@@ -76,6 +76,12 @@ const CreatedTransactions = z.object({
   replayed: z.boolean(),
 });
 
+const ChangedTransactionTags = z.object({
+  changed: z.number().int(),
+  transactionIds: z.array(z.string()),
+  tagIds: z.array(z.string()),
+});
+
 function assertAmount(value: string): number {
   if (!/^\d+(?:\.\d{1,2})?$/.test(value)) {
     throw new Error(
@@ -425,71 +431,56 @@ export class SpendistDataAccess {
     });
   }
 
+  /**
+   * Updates one transaction. A change that contains only `tagIds` replaces the
+   * tags without updating the transaction row; tags are replaced atomically.
+   */
   async updateTransaction(id: string, input: Partial<TransactionInput>) {
-    const ownerId = await this.authenticate();
+    return this.atomicMutation(
+      'update_transaction',
+      'transaction',
+      id,
+      async () => {
+        const { data, error } = await this.client.rpc(
+          'mcp_update_transaction',
+          {
+            p_id: id,
+            p_changes: transactionJson(input),
+            p_client_id: this.connection.clientId,
+          }
+        );
 
-    return this.mutate('update_transaction', 'transaction', id, async () => {
-      const { tagIds, ...values } = input;
-      const payload: PublicTables['transactions']['Update'] = {};
+        if (error) databaseError(error);
 
-      if (values.amount !== undefined) {
-        payload.amount = assertAmount(values.amount);
-        payload.amount_in_default = payload.amount;
+        return TransactionWithTags.parse(data);
       }
+    );
+  }
 
-      if (values.categoryId !== undefined)
-        payload.category_id = values.categoryId;
+  /** Adds or removes the same tags on up to 100 transactions in one call. */
+  async changeTransactionTags(
+    transactionIds: string[],
+    tagIds: string[],
+    add: boolean
+  ) {
+    const toolName = add
+      ? 'add_tags_to_transactions'
+      : 'remove_tags_from_transactions';
 
-      if (values.walletId !== undefined) {
-        payload.wallet_id = values.walletId;
-        payload.currency = await this.walletCurrency(values.walletId);
-      }
-
-      if (values.occurredAt !== undefined)
-        payload.occurred_at = values.occurredAt;
-
-      if (values.direction !== undefined) payload.direction = values.direction;
-
-      if (values.description !== undefined)
-        payload.description = values.description;
-
-      if (values.placeId !== undefined) payload.place_id = values.placeId;
-
-      const { data, error } = await this.client
-        .from('transactions')
-        .update(payload)
-        .eq('owner_id', ownerId)
-        .eq('id', id)
-        .select()
-        .single();
+    return this.atomicMutation(toolName, 'transaction', undefined, async () => {
+      const { data, error } = await this.client.rpc(
+        'mcp_change_transaction_tags',
+        {
+          p_transaction_ids: transactionIds,
+          p_tag_ids: tagIds,
+          p_add: add,
+          p_client_id: this.connection.clientId,
+        }
+      );
 
       if (error) databaseError(error);
 
-      if (tagIds) {
-        const { error: clearError } = await this.client
-          .from('transaction_tags')
-          .delete()
-          .eq('owner_id', ownerId)
-          .eq('transaction_id', id);
-
-        if (clearError) databaseError(clearError);
-
-        if (tagIds.length) {
-          const rows = [...new Set(tagIds)].map((tagId) => ({
-            owner_id: ownerId,
-            transaction_id: id,
-            tag_id: tagId,
-          }));
-
-          const { error: tagError } = await this.client
-            .from('transaction_tags')
-            .insert(rows);
-
-          if (tagError) databaseError(tagError);
-        }
-      }
-
-      return data;
+      return ChangedTransactionTags.parse(data);
     });
   }
 

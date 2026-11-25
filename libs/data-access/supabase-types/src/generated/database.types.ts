@@ -1751,6 +1751,15 @@ export type Database = {
         Args: { p_app_metadata: Json; p_email: string; p_id: string }
         Returns: boolean
       }
+      mcp_change_transaction_tags: {
+        Args: {
+          p_add: boolean
+          p_client_id?: string
+          p_tag_ids: string[]
+          p_transaction_ids: string[]
+        }
+        Returns: Json
+      }
       mcp_create_transactions: {
         Args: {
           p_client_id?: string
@@ -1769,6 +1778,10 @@ export type Database = {
         Returns: Json
       }
       mcp_transactions_with_tags: { Args: { p_ids: string[] }; Returns: Json }
+      mcp_update_transaction: {
+        Args: { p_changes: Json; p_client_id?: string; p_id: string }
+        Returns: Json
+      }
       mcp_write_client: { Args: { p_fallback: string }; Returns: string }
       monthly_cashflow_summary: {
         Args: { p_months?: number; p_wallet_id?: string }

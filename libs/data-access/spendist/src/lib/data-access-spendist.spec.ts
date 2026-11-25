@@ -149,4 +149,51 @@ describe('SpendistDataAccess', () => {
       outcome: 'failed',
     });
   });
+
+  it('updates only the tags of a transaction with one request', async () => {
+    const fetch = stubFetch(json(JSON.stringify(row('tx-1'))));
+    const access = new SpendistDataAccess(connection);
+
+    const result = await access.updateTransaction('tx-1', {
+      tagIds: ['10000000-0000-0000-0000-000000000003'],
+    });
+
+    expect(result.transaction_tags).toEqual([
+      { tag_id: '10000000-0000-0000-0000-000000000003' },
+    ]);
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+
+    const { url, body } = request(fetch, 0);
+
+    expect(url).toContain('/rest/v1/rpc/mcp_update_transaction');
+
+    expect(body['p_changes']).toEqual({
+      tagIds: ['10000000-0000-0000-0000-000000000003'],
+    });
+  });
+
+  it('adds tags to many transactions with one request', async () => {
+    const fetch = stubFetch(
+      json(
+        JSON.stringify({
+          changed: 2,
+          transactionIds: ['a', 'b'],
+          tagIds: ['t'],
+        })
+      )
+    );
+
+    const access = new SpendistDataAccess(connection);
+
+    const result = await access.changeTransactionTags(['a', 'b'], ['t'], true);
+
+    expect(result.changed).toBe(2);
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+
+    expect(request(fetch, 0).url).toContain(
+      '/rest/v1/rpc/mcp_change_transaction_tags'
+    );
+  });
 });
