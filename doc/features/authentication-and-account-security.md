@@ -27,7 +27,7 @@ The application seeds default categories after an initial or newly signed-in ses
 - Email confirmation requires the callback URL to be allowed in the hosted Supabase project's Auth URL configuration. Local development enables confirmations and routes messages to Mailpit.
 - Passwords need at least eight characters with lowercase, uppercase and a digit. The browser checks this in production builds and Supabase Auth enforces it (`supabase/config.toml`; the hosted project's Auth settings must match). Password change requires a recent sign-in: Settings re-verifies the current password first, and recovery uses the fresh recovery session.
 
-Financial records and notifications remain user-scoped through backend access controls. Browser roles hold no TRIGGER, TRUNCATE or REFERENCES privileges on application tables. Avatar uploads must stay inside the user's own folder, with names of at most 255 characters and no `.` or `..` path segments. The operator storage backup skips objects with such names or failed downloads and lists them in its manifest instead of aborting.
+Financial records and notifications remain user-scoped through backend access controls. Browser roles hold no TRIGGER, TRUNCATE or REFERENCES privileges on application tables. Avatar and logo uploads must stay inside the user's own folder, with names of at most 255 characters and no `.` or `..` path segments; logo names must also be a UUID with a `.webp` or `.png` extension. The operator storage backup skips objects with such names or failed downloads and lists them in its manifest instead of aborting.
 
 ## Account deletion
 
@@ -43,7 +43,7 @@ and requires all of the following:
 
 The browser calls the `delete-account` Supabase Edge Function. The function
 validates the bearer token, reauthenticates the same user with the supplied
-password, deletes avatar objects under that user's Storage folder, and then
+password, deletes the avatar and logo objects under that user's Storage folders, and then
 calls `delete_user_account`, which in one database transaction detaches
 Allowance records shared with other accounts and permanently deletes the
 Supabase Auth user; if the delete fails, nothing is detached. Detaching removes
@@ -55,7 +55,7 @@ cascade from the Auth user. The local session is cleared and the user returns to
 the public landing page after success.
 
 The function never accepts a user ID from the browser and never exposes its
-service-role credential. If password verification, avatar cleanup, or Auth
+service-role credential. If password verification, avatar or logo cleanup, or Auth
 deletion fails, the UI reports failure instead of claiming that the account was
 deleted.
 

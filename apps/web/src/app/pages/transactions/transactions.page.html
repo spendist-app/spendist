@@ -663,6 +663,10 @@
                       data-testid="recurring-source-badge"
                       [title]="transaction.recurringTransactionName ?? ''"
                     >
+                      <app-logo
+                        [logo]="transaction.recurringTransactionLogo"
+                        size="xs"
+                      />
                       {{ 'transactions.list.recurringSource' | transloco }}:
                       <span class="max-w-48 truncate font-medium">
                         {{ transaction.recurringTransactionName ||

@@ -6,6 +6,7 @@ import {
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideAppTransloco } from '../../../i18n/transloco.providers';
+import { LogoService } from '../../../shared/logo/logo.service';
 import { RecurringPaymentFormComponent } from './recurring-payment-form.component';
 import {
   RecurringPaymentsStore,
@@ -159,6 +160,7 @@ describe('RecurringPaymentFormComponent', () => {
           provide: RecurringPaymentsStore,
           useExisting: RecurringPaymentsStoreStub,
         },
+        { provide: LogoService, useValue: { releasePending: vi.fn() } },
         ...provideAppTransloco(),
       ],
     }).compileComponents();
@@ -416,6 +418,7 @@ describe('RecurringPaymentFormComponent', () => {
       pausedAt: null,
       sourceModule: 'standard',
       allowanceConnectionId: null,
+      logo: 'simple-icons:openai:412991',
     });
     fixture.componentRef.setInput('open', true);
     fixture.detectChanges();
@@ -433,6 +436,7 @@ describe('RecurringPaymentFormComponent', () => {
         currency: 'USD',
         startDate: '2026-06-10',
         schedule: dailyCronForLocalTime('12:30'),
+        logo: { value: 'simple-icons:openai:412991', pending: null },
       })
     );
   });

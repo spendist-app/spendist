@@ -780,6 +780,7 @@ describe('TransactionCreateFormComponent', () => {
       isAutomatic: false,
       recurringTransactionId: null,
       recurringTransactionName: null,
+      recurringTransactionLogo: null,
       recurringScheduledFor: null,
       createdAt: new Date('2026-05-29T08:15:00Z'),
       updatedAt: new Date('2026-05-30T11:45:00Z'),

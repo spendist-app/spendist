@@ -4,6 +4,8 @@
 
 Recurring payments model expected repeated income or expense, such as a subscription, salary, or bill. A record supports fixed or variable amount, direction, currency, wallet, category, tags, schedule, and optional end date.
 
+A recurring payment can also have a brand logo, chosen with the same picker as places (bundled Simple Icons, Dashboard Icons from jsDelivr on request, or an uploaded image; see the Logos section of `doc/features/places-and-dashboard-insights.md`). The logo appears on the payment's card, next to its pending occurrences and in the recurring-source badge of generated transactions. Allowance schedules are created without a logo.
+
 Users can create, edit, delete, and filter recurring records by active, stopped, or all status. The module also exposes statistics, category/tag summaries, a monthly plan, and pending occurrences.
 
 Variable-amount occurrences ask for an actual amount only while their recurring record is active. Stopping a record hides its outstanding amount prompts, including a prompt reopened after its posted transaction is deleted. Resuming the record makes still-unposted occurrences available again.

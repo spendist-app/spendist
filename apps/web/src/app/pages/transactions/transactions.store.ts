@@ -49,6 +49,7 @@ interface TransactionEntity {
   readonly isAutomatic: boolean;
   readonly recurringTransactionId: string | null;
   readonly recurringTransactionName: string | null;
+  readonly recurringTransactionLogo: string | null;
   readonly recurringScheduledFor: Date | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
@@ -219,10 +220,15 @@ interface TransactionTagExpenseSummaryRow {
     | null;
 }
 
+interface RecurringSourceRow {
+  readonly name: string;
+  readonly logo: string | null;
+}
+
 interface TransactionPageRow extends TransactionRow {
   readonly recurring_transactions:
-    | { readonly name: string }
-    | readonly { readonly name: string }[]
+    | RecurringSourceRow
+    | readonly RecurringSourceRow[]
     | null;
 }
 
@@ -942,7 +948,7 @@ export class TransactionsStore {
 
     let query = this.supabase
       .from('transactions')
-      .select('*, recurring_transactions(name)', { count: 'exact' })
+      .select('*, recurring_transactions(name, logo)', { count: 'exact' })
       .eq('owner_id', userId)
       .eq('transaction_state', 'completed');
 
@@ -2654,7 +2660,8 @@ export class TransactionsStore {
       direction: row.direction,
       isAutomatic: !!row.is_automatic,
       recurringTransactionId: row.recurring_transaction_id ?? null,
-      recurringTransactionName: this.recurringTransactionName(row),
+      recurringTransactionName: this.recurringSource(row)?.name ?? null,
+      recurringTransactionLogo: this.recurringSourceLogo(row),
       recurringScheduledFor: row.recurring_scheduled_for
         ? new Date(row.recurring_scheduled_for)
         : null,
@@ -2676,14 +2683,20 @@ export class TransactionsStore {
     };
   }
 
-  private recurringTransactionName(row: TransactionPageRow): string | null {
+  private recurringSource(row: TransactionPageRow): RecurringSourceRow | null {
     const relation = row.recurring_transactions;
 
     if (!relation) {
       return null;
     }
 
-    return 'name' in relation ? relation.name : relation[0]?.name ?? null;
+    return 'name' in relation ? relation : relation[0] ?? null;
+  }
+
+  private recurringSourceLogo(row: TransactionPageRow): string | null {
+    const logo = this.recurringSource(row)?.logo ?? null;
+
+    return parseLogo(logo) ? logo : null;
   }
 
   private mapPlaceRow(row: PlaceRow): PlaceEntity {

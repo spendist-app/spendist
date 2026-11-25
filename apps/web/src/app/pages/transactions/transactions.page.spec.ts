@@ -362,6 +362,7 @@ describe('TransactionsPageComponent', () => {
         isAutomatic: true,
         recurringTransactionId: '1324a167-0000-0000-0000-000000000000',
         recurringTransactionName: 'Health insurance',
+        recurringTransactionLogo: 'simple-icons:netflix:e50914',
         recurringScheduledFor: new Date('2026-07-25T08:00:00Z'),
         createdAt: new Date('2026-07-25T08:00:00Z'),
         updatedAt: new Date('2026-07-25T08:00:00Z'),
@@ -392,6 +393,7 @@ describe('TransactionsPageComponent', () => {
 
     expect(badge.textContent).toContain('Health insurance');
     expect(badge.textContent).not.toContain('1324a167');
+    expect(badge.querySelector('[data-logo="netflix"]')).not.toBeNull();
   });
 
   it('shows the place logo and every tag, and filters by a clicked tag', () => {
@@ -429,6 +431,7 @@ describe('TransactionsPageComponent', () => {
         isAutomatic: false,
         recurringTransactionId: null,
         recurringTransactionName: null,
+        recurringTransactionLogo: null,
         recurringScheduledFor: null,
         createdAt: new Date('2026-11-24T08:00:00Z'),
         updatedAt: new Date('2026-11-24T08:00:00Z'),
@@ -506,6 +509,7 @@ describe('TransactionsPageComponent', () => {
       isAutomatic: false,
       recurringTransactionId: null,
       recurringTransactionName: null,
+      recurringTransactionLogo: null,
       recurringScheduledFor: null,
       createdAt: new Date('2026-07-25T08:00:00Z'),
       updatedAt: new Date('2026-07-25T08:00:00Z'),

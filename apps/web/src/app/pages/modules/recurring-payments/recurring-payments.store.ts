@@ -7,6 +7,8 @@ import {
 import { AuthService } from '../../../core/auth.service';
 import { logError } from '../../../core/logger';
 import { SUPABASE_CLIENT } from '../../../core/supabase';
+import { LogoService } from '../../../shared/logo/logo.service';
+import { type LogoDraft, parseLogo } from '../../../shared/logo/logo';
 import {
   calculateRecurringMonthlyPlan,
   type RecurringMonthlyPlan,
@@ -72,12 +74,14 @@ export interface RecurringTransactionEntity {
   readonly pausedAt: Date | null;
   readonly sourceModule: 'standard' | 'allowance';
   readonly allowanceConnectionId: string | null;
+  readonly logo: string | null;
 }
 
 export interface RecurringOccurrenceEntity {
   readonly id: string;
   readonly recurringTransactionId: string;
   readonly recurringName: string;
+  readonly recurringLogo: string | null;
   readonly scheduledFor: Date;
   readonly amount: number | null;
   readonly currency: string;
@@ -147,6 +151,7 @@ export interface CreateRecurringTransactionPayload {
   readonly direction: RecurringTransactionDirection;
   readonly tagIds: readonly string[];
   readonly walletId: string | null;
+  readonly logo: LogoDraft;
 }
 
 export type UpdateRecurringTransactionPayload =
@@ -175,6 +180,7 @@ function parseNumber(value: string | number | null | undefined): number {
 export class RecurringPaymentsStore {
   private readonly supabase = inject(SUPABASE_CLIENT);
   private readonly auth = inject(AuthService);
+  private readonly logos = inject(LogoService);
 
   private readonly userId = signal<string | null>(null);
   private readonly state = signal<RecurringPaymentsState>({
@@ -660,29 +666,35 @@ export class RecurringPaymentsStore {
       this.normalizeCurrency(payload.currency) ?? wallet.currency;
 
     try {
-      const insertResult = await this.supabase
-        .from('recurring_transactions')
-        .insert({
-          owner_id: userId,
-          category_id: payload.categoryId,
-          name: trimmedName,
-          start_date: payload.startDate,
-          end_date: payload.endDate,
-          schedule: trimmedSchedule,
-          amount: payload.amountMode === 'variable' ? 0 : payload.amount,
-          amount_mode: payload.amountMode,
-          currency,
-          exchange_rate: null,
-          direction: payload.direction,
-          wallet_id: wallet.id,
-        })
-        .select('id')
-        .single();
+      const inserted = await this.logos.save(
+        payload.logo,
+        null,
+        async (logo) => {
+          const insertResult = await this.supabase
+            .from('recurring_transactions')
+            .insert({
+              owner_id: userId,
+              category_id: payload.categoryId,
+              name: trimmedName,
+              start_date: payload.startDate,
+              end_date: payload.endDate,
+              schedule: trimmedSchedule,
+              amount: payload.amountMode === 'variable' ? 0 : payload.amount,
+              amount_mode: payload.amountMode,
+              currency,
+              exchange_rate: null,
+              direction: payload.direction,
+              wallet_id: wallet.id,
+              logo,
+            })
+            .select('id')
+            .single();
 
-      const inserted =
-        this.ensureNoErrorSingle<Pick<RecurringTransactionRow, 'id'>>(
-          insertResult
-        );
+          return this.ensureNoErrorSingle<Pick<RecurringTransactionRow, 'id'>>(
+            insertResult
+          );
+        }
+      );
 
       if (payload.tagIds.length > 0) {
         const tagRows = payload.tagIds.map((tagId) => ({
@@ -746,29 +758,34 @@ export class RecurringPaymentsStore {
     const currency =
       this.normalizeCurrency(payload.currency) ?? wallet.currency;
 
-    try {
-      const updateResult = await this.supabase
-        .from('recurring_transactions')
-        .update({
-          owner_id: userId,
-          category_id: payload.categoryId,
-          name: trimmedName,
-          start_date: payload.startDate,
-          end_date: payload.endDate,
-          schedule: trimmedSchedule,
-          amount: payload.amountMode === 'variable' ? 0 : payload.amount,
-          amount_mode: payload.amountMode,
-          currency,
-          exchange_rate: null,
-          direction: payload.direction,
-          wallet_id: wallet.id,
-        })
-        .eq('id', recurringId)
-        .eq('owner_id', userId)
-        .select('id')
-        .single();
+    const previousLogo = this.findRecurring(recurringId)?.logo ?? null;
 
-      this.ensureNoErrorSingle(updateResult);
+    try {
+      await this.logos.save(payload.logo, previousLogo, async (logo) => {
+        const updateResult = await this.supabase
+          .from('recurring_transactions')
+          .update({
+            owner_id: userId,
+            category_id: payload.categoryId,
+            name: trimmedName,
+            start_date: payload.startDate,
+            end_date: payload.endDate,
+            schedule: trimmedSchedule,
+            amount: payload.amountMode === 'variable' ? 0 : payload.amount,
+            amount_mode: payload.amountMode,
+            currency,
+            exchange_rate: null,
+            direction: payload.direction,
+            wallet_id: wallet.id,
+            logo,
+          })
+          .eq('id', recurringId)
+          .eq('owner_id', userId)
+          .select('id')
+          .single();
+
+        return this.ensureNoErrorSingle(updateResult);
+      });
 
       const clearTagsResult = await this.supabase
         .from('recurring_transaction_tags')
@@ -830,6 +847,8 @@ export class RecurringPaymentsStore {
       this.editingId.set(null);
     }
 
+    const logo = this.findRecurring(recurringId)?.logo ?? null;
+
     try {
       const deleteResult = await this.supabase
         .from('recurring_transactions')
@@ -839,6 +858,7 @@ export class RecurringPaymentsStore {
         .select('id');
 
       this.ensureNoErrorDelete(deleteResult);
+      await this.logos.removeFile(logo);
       await this.refresh();
     } catch (error) {
       const message = this.describeError(error);
@@ -1031,7 +1051,16 @@ export class RecurringPaymentsStore {
       sourceModule:
         row.source_module === 'allowance' ? 'allowance' : 'standard',
       allowanceConnectionId: row.allowance_connection_id ?? null,
+      logo: parseLogo(row.logo) ? row.logo : null,
     };
+  }
+
+  private findRecurring(
+    recurringId: string
+  ): RecurringTransactionEntity | undefined {
+    return this.state().recurringTransactions.find(
+      (recurring) => recurring.id === recurringId
+    );
   }
 
   private isNaturallyEnded(
@@ -1058,6 +1087,7 @@ export class RecurringPaymentsStore {
       id: row.id,
       recurringTransactionId: row.recurring_transaction_id,
       recurringName: recurring?.name ?? '',
+      recurringLogo: recurring?.logo ?? null,
       scheduledFor: new Date(row.scheduled_for),
       amount: row.amount == null ? null : parseNumber(row.amount),
       currency: row.currency,

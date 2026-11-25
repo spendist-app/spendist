@@ -9,6 +9,7 @@ import {
   input,
   output,
   signal,
+  untracked,
   viewChild,
   WritableSignal,
 } from '@angular/core';
@@ -41,6 +42,9 @@ import {
   WalletEntity,
 } from './recurring-payments.store';
 import { FORM_ERROR_DIRECTIVES } from '../../../shared/form-errors';
+import { LogoFieldComponent } from '../../../shared/logo/logo-field.component';
+import { LogoService } from '../../../shared/logo/logo.service';
+import { type LogoDraft, emptyLogoDraft } from '../../../shared/logo/logo';
 
 type ScheduleFrequency = 'daily' | 'weekly' | 'monthly';
 
@@ -72,6 +76,7 @@ type RecurringFormGroup = FormGroup<{
     NgIcon,
     CategorySelectComponent,
     TagPickerComponent,
+    LogoFieldComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './recurring-payment-form.component.html',
@@ -153,6 +158,8 @@ export class RecurringPaymentFormComponent {
   readonly scheduleDayOfMonthControl = this.form.controls.scheduleDayOfMonth;
   readonly startDateControl = this.form.controls.startDate;
   readonly selectedTagSelections = signal<readonly TagPickerSelection[]>([]);
+  protected readonly logoDraft = signal<LogoDraft>(emptyLogoDraft());
+  private readonly logos = inject(LogoService);
   readonly selectedTags = computed(() =>
     this.selectedTagSelections()
       .map((selection) => selection.id)
@@ -162,9 +169,11 @@ export class RecurringPaymentFormComponent {
     const seen = new Set<string>();
     const recent: RecurringTagSummary[] = [];
 
-    const recurring = this.store.recurringTransactions().toSorted(
-      (left, right) => right.startDate.getTime() - left.startDate.getTime()
-    );
+    const recurring = this.store
+      .recurringTransactions()
+      .toSorted(
+        (left, right) => right.startDate.getTime() - left.startDate.getTime()
+      );
 
     for (const transaction of recurring) {
       for (const tag of transaction.tags) {
@@ -330,6 +339,7 @@ export class RecurringPaymentFormComponent {
       this.selectedTagSelections.set(
         editing.tags.map((tag) => ({ id: tag.id, name: tag.name }))
       );
+      this.replaceLogoDraft(emptyLogoDraft(editing.logo));
       this.selectedCurrencyView.set(editing.currency);
       this.currencyFollowsWallet.set(false);
       this.form.controls.tagIds.setValue(tagIds, { emitEvent: false });
@@ -469,6 +479,7 @@ export class RecurringPaymentFormComponent {
         schedule: this.buildCronSchedule() || schedule || '',
         tagIds,
         walletId: resolvedWalletId,
+        logo: this.logoDraft(),
       };
 
       if (editing) {
@@ -568,6 +579,11 @@ export class RecurringPaymentFormComponent {
     this.setScheduleDayOfMonth(this.normalizeDayOfMonth(target?.value ?? 1));
   }
 
+  private replaceLogoDraft(draft: LogoDraft): void {
+    this.logos.releasePending(untracked(this.logoDraft).pending);
+    this.logoDraft.set(draft);
+  }
+
   private resetForm(): void {
     const defaultWalletId = this.store.defaultWalletId();
     this.currencyFollowsWallet.set(true);
@@ -592,6 +608,7 @@ export class RecurringPaymentFormComponent {
       { emitEvent: false }
     );
     this.selectedTagSelections.set([]);
+    this.replaceLogoDraft(emptyLogoDraft());
     this.submissionError.set(null);
     this.form.controls.tagIds.setValue([], { emitEvent: false });
     this.setScheduleFrequency('monthly', false);
