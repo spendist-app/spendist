@@ -140,3 +140,43 @@ describe('administrator navigation at the production Worker', () => {
     expect(response.headers.get('Cache-Control')).toContain('no-store');
   });
 });
+
+describe('bundled brand logos at the production Worker', () => {
+  it('lets browsers cache a bundled logo for a week', async () => {
+    const response = await worker.fetch(
+      new Request('https://spendist.app/logos/simple-icons/netflix.svg', {
+        headers: { accept: 'image/avif,image/webp,image/svg+xml,*/*' },
+      }),
+      {
+        ASSETS: {
+          fetch: async () =>
+            new Response('<svg></svg>', {
+              headers: { 'content-type': 'image/svg+xml' },
+            }),
+        },
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toBe(
+      'public, max-age=604800'
+    );
+  });
+
+  it('answers a missing logo with 404 instead of the application page', async () => {
+    const fetchAsset = vi.fn(
+      async () => new Response(null, { status: 404 })
+    );
+
+    const response = await worker.fetch(
+      new Request('https://spendist.app/logos/simple-icons/missing.svg', {
+        headers: { accept: 'image/avif,image/webp,image/svg+xml,*/*' },
+      }),
+      { ASSETS: { fetch: fetchAsset } }
+    );
+
+    expect(response.status).toBe(404);
+    expect(response.headers.get('cache-control')).toBeNull();
+    expect(fetchAsset).toHaveBeenCalledTimes(1);
+  });
+});

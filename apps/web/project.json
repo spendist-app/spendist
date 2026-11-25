@@ -32,6 +32,16 @@
             "glob": "llm-full.txt",
             "input": ".",
             "output": "/"
+          },
+          {
+            "glob": "*.svg",
+            "input": "node_modules/simple-icons/icons",
+            "output": "/logos/simple-icons"
+          },
+          {
+            "glob": "simple-icons.json",
+            "input": "node_modules/simple-icons/data",
+            "output": "/logos"
           }
         ],
         "styles": ["apps/web/src/styles.css"],
@@ -95,6 +105,16 @@
               "glob": "llm-full.txt",
               "input": ".",
               "output": "/"
+            },
+            {
+              "glob": "*.svg",
+              "input": "node_modules/simple-icons/icons",
+              "output": "/logos/simple-icons"
+            },
+            {
+              "glob": "simple-icons.json",
+              "input": "node_modules/simple-icons/data",
+              "output": "/logos"
             }
           ]
         }

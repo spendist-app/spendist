@@ -200,6 +200,11 @@ const withSecurityHeaders = (
     headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
   }
 
+  // Bundled brand icons change only with a pinned package upgrade.
+  if (pathname.startsWith('/logos/') && response.status === 200) {
+    headers.set('Cache-Control', 'public, max-age=604800');
+  }
+
   if (/^\/llms?(?:-full)?\.txt$/.test(pathname)) {
     headers.set('Content-Type', 'text/plain; charset=utf-8');
   }
