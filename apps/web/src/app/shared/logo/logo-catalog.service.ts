@@ -14,6 +14,15 @@ const SIMPLE_ICONS_INDEX = '/logos/simple-icons.json';
 const DASHBOARD_ICONS_BASE =
   'https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@main';
 
+/**
+ * Sends jsDelivr requests past the Angular service worker. A service worker
+ * keeps the CSP of the script it was installed from, and an unchanged
+ * `ngsw-worker.js` is never reinstalled, so a worker installed before
+ * jsDelivr joined `connect-src` fails these fetches with a 504. Bypassed
+ * requests follow the page's current CSP instead.
+ */
+const SERVICE_WORKER_BYPASS = 'ngsw-bypass=1';
+
 const SimpleIconsIndexSchema = z.array(
   z.object({
     title: z.string(),
@@ -119,10 +128,13 @@ export class LogoCatalogService {
   private async fetchDashboardIcons(): Promise<
     readonly DashboardIconCandidate[]
   > {
-    const response = await fetch(`${DASHBOARD_ICONS_BASE}/tree.json`, {
-      credentials: 'omit',
-      referrerPolicy: 'no-referrer',
-    }).catch(() => null);
+    const response = await fetch(
+      `${DASHBOARD_ICONS_BASE}/tree.json?${SERVICE_WORKER_BYPASS}`,
+      {
+        credentials: 'omit',
+        referrerPolicy: 'no-referrer',
+      }
+    ).catch(() => null);
 
     if (!response?.ok) {
       throw new Error('logos.errors.catalog');
@@ -150,7 +162,7 @@ export class LogoCatalogService {
           source: 'dashboard-icons' as const,
           slug,
           title,
-          imageUrl: `${DASHBOARD_ICONS_BASE}/webp/${slug}.webp`,
+          imageUrl: `${DASHBOARD_ICONS_BASE}/webp/${slug}.webp?${SERVICE_WORKER_BYPASS}`,
           keys: [catalogKey(slug)],
         },
       ];
