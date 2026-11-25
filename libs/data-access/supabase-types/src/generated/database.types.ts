@@ -925,6 +925,7 @@ export type Database = {
           country: string | null
           creation_date: string
           id: string
+          logo: string | null
           name: string
           note: string | null
           owner_id: string
@@ -937,6 +938,7 @@ export type Database = {
           country?: string | null
           creation_date?: string
           id?: string
+          logo?: string | null
           name: string
           note?: string | null
           owner_id: string
@@ -949,6 +951,7 @@ export type Database = {
           country?: string | null
           creation_date?: string
           id?: string
+          logo?: string | null
           name?: string
           note?: string | null
           owner_id?: string
@@ -1160,6 +1163,7 @@ export type Database = {
           id: string
           is_paused: boolean
           last_run_at: string | null
+          logo: string | null
           name: string
           owner_id: string
           paused_at: string | null
@@ -1183,6 +1187,7 @@ export type Database = {
           id?: string
           is_paused?: boolean
           last_run_at?: string | null
+          logo?: string | null
           name: string
           owner_id: string
           paused_at?: string | null
@@ -1206,6 +1211,7 @@ export type Database = {
           id?: string
           is_paused?: boolean
           last_run_at?: string | null
+          logo?: string | null
           name?: string
           owner_id?: string
           paused_at?: string | null
@@ -1890,6 +1896,7 @@ export type Database = {
           city: string
           country: string
           latest_transaction_at: string
+          logo: string
           place_id: string
           place_name: string
           postal_code: string
@@ -1915,6 +1922,7 @@ export type Database = {
           country: string | null
           creation_date: string
           id: string
+          logo: string | null
           name: string
           note: string | null
           owner_id: string

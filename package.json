@@ -38,6 +38,7 @@
     "db:test:mcp": "docker exec -i supabase_db_spendist-app psql -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/tests/mcp.sql",
     "db:test:mortgages": "docker exec -i supabase_db_spendist-app psql -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/tests/mortgages.sql",
     "db:test:places": "docker exec -i supabase_db_spendist-app psql -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/tests/places.sql",
+    "db:test:logos": "docker exec -i supabase_db_spendist-app psql -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/tests/logos.sql",
     "db:test:admin-usage": "docker exec -i supabase_db_spendist-app psql -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/tests/admin-usage.sql",
     "db:test:privileges": "docker exec -i supabase_db_spendist-app psql -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/tests/function-privileges.sql",
     "db:backup:remote": "dotenv -e .env -e .env.backup.local -- node tools/backup/backup.mjs",

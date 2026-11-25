@@ -87,12 +87,12 @@ begin
   values (v_owner_id, v_group_id, 'Places test category')
   returning id into v_category_id;
 
-  insert into public.places (id, owner_id, name, city, note) values
-    (v_target, v_owner_id, 'Targ Piast', null, null),
-    (v_source, v_owner_id, '  targ   piast ', 'Gliwice', 'Saturday market'),
-    (v_third, v_owner_id, 'Targ Piast', null, null),
-    (v_fourth, v_owner_id, 'Targ Piast', 'Katowice', null),
-    (v_failing, v_owner_id, 'Pepco', null, null);
+  insert into public.places (id, owner_id, name, city, note, logo) values
+    (v_target, v_owner_id, 'Targ Piast', null, null, null),
+    (v_source, v_owner_id, '  targ   piast ', 'Gliwice', 'Saturday market', 'simple-icons:lidl:0050aa'),
+    (v_third, v_owner_id, 'Targ Piast', null, null, null),
+    (v_fourth, v_owner_id, 'Targ Piast', 'Katowice', null, 'file:6b1d3c0e-1f2a-4b3c-8d4e-5f6a7b8c9d0e.webp'),
+    (v_failing, v_owner_id, 'Pepco', null, null, null);
 
   insert into public.recurring_transactions (
     owner_id, category_id, wallet_id, name, start_date, schedule, amount, currency
@@ -124,7 +124,9 @@ begin
      or v_preview #>> '{places,0,id}' <> v_target::text
      or (v_preview #>> '{places,0,transactionCount}')::int <> 2
      or (v_preview #>> '{places,1,transactionCount}')::int <> 3
-     or v_preview->'filledFields' <> '["city", "note"]'::jsonb then
+     or v_preview->'filledFields' <> '["city", "note"]'::jsonb
+     or (v_preview->>'fillsLogo')::boolean is not true
+     or v_preview #>> '{places,1,logo}' <> 'simple-icons:lidl:0050aa' then
     raise exception 'Merge preview is wrong: %', v_preview;
   end if;
 
@@ -135,6 +137,7 @@ begin
   if (v_result->>'movedTransactions')::int <> 3
      or v_result #>> '{place,city}' <> 'Gliwice'
      or v_result #>> '{place,note}' <> 'Saturday market'
+     or v_result #>> '{place,logo}' <> 'simple-icons:lidl:0050aa'
      or exists (select 1 from public.places where id = v_source)
      or (select count(*) from public.transactions where place_id = v_target) <> 5
      or not exists (
@@ -146,10 +149,15 @@ begin
   end if;
 
   -- Merging three places at once; filled target fields are not overwritten.
+  if (public.place_merge_preview(v_target, array[v_third, v_fourth])->>'fillsLogo')::boolean then
+    raise exception 'Preview offered to replace an existing logo';
+  end if;
+
   v_result := public.merge_places(v_target, array[v_third, v_fourth, v_third]);
 
   if (v_result->>'movedTransactions')::int <> 2
      or v_result #>> '{place,city}' <> 'Gliwice'
+     or v_result #>> '{place,logo}' <> 'simple-icons:lidl:0050aa'
      or (select count(*) from public.places where id in (v_third, v_fourth)) <> 0
      or (select count(*) from public.transactions where place_id = v_target) <> 7 then
     raise exception 'Three-place merge failed: %', v_result;
@@ -190,6 +198,55 @@ begin
      or not exists (select 1 from public.places where id = v_failing) then
     raise exception 'Merging into another user''s place was not rejected: %', v_error;
   end if;
+
+  -- The dashboard summary returns the logo with each place.
+  if not exists (
+    select 1
+      from public.place_expense_summary(
+        extract(year from now() at time zone 'utc')::integer, null
+      ) summary
+     where summary.place_id = v_target
+       and summary.logo = 'simple-icons:lidl:0050aa'
+  ) then
+    raise exception 'Place summary did not return the logo';
+  end if;
+
+  -- Only the two logo shapes are accepted, on places and recurring payments.
+  v_error := null;
+  begin
+    update public.places set logo = 'https://example.test/logo.png' where id = v_target;
+  exception when check_violation then
+    v_error := sqlerrm;
+  end;
+  if v_error is null then
+    raise exception 'A place accepted a logo URL';
+  end if;
+
+  v_error := null;
+  begin
+    update public.places set logo = 'simple-icons:Lidl:0050AA' where id = v_target;
+  exception when check_violation then
+    v_error := sqlerrm;
+  end;
+  if v_error is null then
+    raise exception 'A place accepted a logo with upper-case characters';
+  end if;
+
+  v_error := null;
+  begin
+    update public.recurring_transactions
+       set logo = 'file:../other-user/logo.png'
+     where id = v_recurring_id;
+  exception when check_violation then
+    v_error := sqlerrm;
+  end;
+  if v_error is null then
+    raise exception 'A recurring payment accepted a logo path';
+  end if;
+
+  update public.recurring_transactions
+     set logo = 'file:6b1d3c0e-1f2a-4b3c-8d4e-5f6a7b8c9d0e.png'
+   where id = v_recurring_id;
 
   -- A failure half-way rolls back every change of the merge.
   insert into public.transactions (

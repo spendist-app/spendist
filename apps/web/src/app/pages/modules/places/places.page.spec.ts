@@ -24,6 +24,7 @@ function placeRow(
     postal_code: null,
     country: null,
     note: null,
+    logo: null,
     creation_date: '2026-11-20T10:00:00Z',
     updated_at: '2026-11-20T10:00:00Z',
   };
