@@ -8,10 +8,20 @@ import type {
 
 export type TransactionSidebarPanel = 'categories' | 'tags';
 
+/** Order of category groups (and categories inside them) in the sidebar. */
+export type CategorySortId = 'name' | 'amount' | 'changed';
+
+export const CATEGORY_SORTS: readonly CategorySortId[] = [
+  'name',
+  'amount',
+  'changed',
+];
+
 export interface TransactionUrlState {
   readonly filters: TransactionsFilters;
   readonly panel: TransactionSidebarPanel;
   readonly hideEmpty: boolean;
+  readonly categorySort: CategorySortId;
   readonly advanced: boolean;
 }
 
@@ -28,6 +38,7 @@ export const TRANSACTION_QUERY_KEYS = [
   'sort',
   'panel',
   'hideEmpty',
+  'categorySort',
   'advanced',
 ] as const;
 
@@ -60,6 +71,7 @@ export function defaultTransactionUrlState(
     },
     panel: 'categories',
     hideEmpty: false,
+    categorySort: 'name',
     advanced: false,
   };
 }
@@ -102,6 +114,7 @@ export function parseTransactionQuery(
       : maximumCandidate;
 
   const sortCandidate = stringValue(params['sort']);
+  const categorySortCandidate = stringValue(params['categorySort']);
 
   const sort =
     SORTS.find((candidate) => candidate === sortCandidate) ?? 'dateDesc';
@@ -121,6 +134,9 @@ export function parseTransactionQuery(
     },
     panel: stringValue(params['panel']) === 'tags' ? 'tags' : 'categories',
     hideEmpty: stringValue(params['hideEmpty']) === '1',
+    categorySort:
+      CATEGORY_SORTS.find((candidate) => candidate === categorySortCandidate) ??
+      'name',
     advanced: stringValue(params['advanced']) === '1',
   };
 }
@@ -135,6 +151,10 @@ export function serializeTransactionQuery(
   if (state.panel !== 'categories') result['panel'] = state.panel;
 
   if (state.hideEmpty) result['hideEmpty'] = '1';
+
+  if (state.categorySort !== 'name') {
+    result['categorySort'] = state.categorySort;
+  }
 
   if (state.advanced) result['advanced'] = '1';
   const categories = canonicalList(state.filters.selectedCategoryIds);

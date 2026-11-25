@@ -1094,6 +1094,12 @@ const en = {
       allCategories: 'All categories',
       allTags: 'All tags',
       onlyCategoriesWithTransactions: 'Hide empty categories',
+      categorySort: {
+        label: 'Sort categories',
+        name: 'Name',
+        amount: 'Amount',
+        changed: 'Recently changed',
+      },
       categoryCount: '{{ total }} categories',
       noVisibleTags: 'No tags with expenses in this period.',
       ungroupedTitle: 'Unassigned',

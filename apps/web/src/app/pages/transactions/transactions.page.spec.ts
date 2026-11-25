@@ -123,8 +123,16 @@ class TransactionsStoreStub {
     return 0;
   }
 
-  groupExpenseTotal(): number {
-    return 0;
+  groupExpenseTotal(groupId: string): number {
+    return groupId === 'group-2' ? 90 : 25;
+  }
+
+  groupChangedAt(groupId: string): number {
+    return groupId === 'group-2' ? 1 : 2;
+  }
+
+  categoryChangedAt(categoryId: string): number {
+    return categoryId === 'category-empty' ? 2 : 1;
   }
 
   categoryExpenseTotal(categoryId: string): number {
@@ -554,6 +562,75 @@ describe('TransactionsPageComponent', () => {
     expect(
       component['visibleUngroupedCategories']().map((category) => category.id)
     ).toEqual(['category-ungrouped-active']);
+  });
+
+  it('sorts category groups by amount or by the latest change', () => {
+    const navigate = vi.fn(() => Promise.resolve(true));
+
+    TestBed.overrideProvider(Router, { useValue: { navigate } });
+    TestBed.overrideProvider(ActivatedRoute, {
+      useValue: { queryParams: of({}), snapshot: { queryParams: {} } },
+    });
+
+    const fixture = TestBed.createComponent(TransactionsPageComponent);
+
+    const store = fixture.debugElement.injector.get(TransactionsStoreStub);
+
+    const [daily] = store.groupedCategories();
+
+    store.groupedCategories.set([
+      requiredValue(daily),
+      {
+        ...requiredValue(daily),
+        id: 'group-2',
+        name: 'Travel',
+        categories: [
+          {
+            ...requiredValue(daily?.categories[0]),
+            id: 'category-travel',
+            name: 'Flights',
+            groupId: 'group-2',
+          },
+        ],
+      },
+    ]);
+    fixture.detectChanges();
+
+    const sort = requiredValue(
+      fixtureElement(fixture).querySelector<HTMLSelectElement>(
+        '[data-testid="category-sort"]'
+      )
+    );
+
+    const groupNames = () =>
+      [...fixtureElement(fixture).querySelectorAll('nav section h3')].map(
+        (heading) => heading.textContent?.trim()
+      );
+
+    expect(groupNames()).toEqual(['Daily', 'Travel']);
+
+    sort.value = 'amount';
+    sort.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    expect(groupNames()).toEqual(['Travel', 'Daily']);
+    expect(navigate).toHaveBeenLastCalledWith(
+      [],
+      expect.objectContaining({
+        queryParams: expect.objectContaining({ categorySort: 'amount' }),
+      })
+    );
+
+    sort.value = 'changed';
+    sort.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    expect(groupNames()).toEqual(['Daily', 'Travel']);
+    expect(
+      fixture.componentInstance['visibleGroupedCategories']()[0]?.categories.map(
+        (category) => category.id
+      )
+    ).toEqual(['category-empty', 'category-active']);
   });
 
   it('keeps advanced filters collapsed until requested', () => {

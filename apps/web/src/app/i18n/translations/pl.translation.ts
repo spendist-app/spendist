@@ -1102,6 +1102,12 @@ const pl = {
       allCategories: 'Wszystkie kategorie',
       allTags: 'Wszystkie tagi',
       onlyCategoriesWithTransactions: 'Ukryj puste kategorie',
+      categorySort: {
+        label: 'Sortuj kategorie',
+        name: 'Nazwa',
+        amount: 'Kwota',
+        changed: 'Ostatnio zmienione',
+      },
       categoryCount: '{{ total }} kategorii',
       noVisibleTags: 'Brak tagów z wydatkami w tym okresie.',
       ungroupedTitle: 'Bez grupy',

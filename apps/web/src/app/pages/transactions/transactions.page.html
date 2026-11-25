@@ -70,18 +70,32 @@
           </button>
         </div>
 
-        <button
-          type="button"
-          class="btn btn-sm justify-start"
-          [class.btn-primary]="showOnlyCategoriesWithTransactions()"
-          [class.btn-ghost]="!showOnlyCategoriesWithTransactions()"
-          [attr.aria-pressed]="showOnlyCategoriesWithTransactions()"
-          data-testid="category-hide-empty-filter"
-          (click)="onCategoryActivityFilterChange(!showOnlyCategoriesWithTransactions())"
-        >
-          <ng-icon [svg]="filterIcon" size="16" aria-hidden="true" />
-          {{ 'transactions.filters.onlyCategoriesWithTransactions' | transloco }}
-        </button>
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <button
+            type="button"
+            class="btn btn-sm justify-start"
+            [class.btn-primary]="showOnlyCategoriesWithTransactions()"
+            [class.btn-ghost]="!showOnlyCategoriesWithTransactions()"
+            [attr.aria-pressed]="showOnlyCategoriesWithTransactions()"
+            data-testid="category-hide-empty-filter"
+            (click)="onCategoryActivityFilterChange(!showOnlyCategoriesWithTransactions())"
+          >
+            <ng-icon [svg]="filterIcon" size="16" aria-hidden="true" />
+            {{ 'transactions.filters.onlyCategoriesWithTransactions' | transloco }}
+          </button>
+          <select
+            class="select select-ghost select-sm w-auto"
+            data-testid="category-sort"
+            [attr.aria-label]="'transactions.filters.categorySort.label' | transloco"
+            (change)="onCategorySortChange($event)"
+          >
+            @for (option of categorySortOptions; track option) {
+            <option [value]="option" [selected]="categorySort() === option">
+              {{ 'transactions.filters.categorySort.' + option | transloco }}
+            </option>
+            }
+          </select>
+        </div>
 
         <nav class="space-y-5">
           @for (group of visibleGroupedCategories(); track group.id) {

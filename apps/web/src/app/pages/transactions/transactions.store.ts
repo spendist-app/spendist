@@ -67,6 +67,8 @@ interface TransactionsState {
   readonly transactionMutationPending: boolean;
   readonly categories: readonly CategoryEntity[];
   readonly groups: readonly CategoryGroupEntity[];
+  /** Last `updated_at` of each category group and category, in ms. */
+  readonly changedAt: ReadonlyMap<string, number>;
   readonly transactions: readonly TransactionEntity[];
   readonly transactionPage: number;
   readonly totalMatchingTransactions: number;
@@ -310,6 +312,7 @@ export class TransactionsStore {
     transactionMutationPending: false,
     categories: [],
     groups: [],
+    changedAt: new Map(),
     transactions: [],
     transactionPage: FIRST_TRANSACTION_PAGE,
     totalMatchingTransactions: 0,
@@ -529,6 +532,7 @@ export class TransactionsStore {
           transactionMutationPending: false,
           categories: [],
           groups: [],
+          changedAt: new Map(),
           transactions: [],
           transactionPage: FIRST_TRANSACTION_PAGE,
           totalMatchingTransactions: 0,
@@ -581,6 +585,23 @@ export class TransactionsStore {
 
   groupExpenseTotal(groupId: string | null): number {
     return this.state().groupSummaries.get(groupId)?.totalAmount ?? 0;
+  }
+
+  categoryChangedAt(categoryId: string): number {
+    return this.state().changedAt.get(categoryId) ?? 0;
+  }
+
+  /** Latest change of the group itself or of any category inside it. */
+  groupChangedAt(groupId: string): number {
+    const changedAt = this.state().changedAt;
+
+    return this.state()
+      .categories.filter((category) => category.groupId === groupId)
+      .reduce(
+        (latest, category) =>
+          Math.max(latest, changedAt.get(category.id) ?? 0),
+        changedAt.get(groupId) ?? 0
+      );
   }
 
   groupTransactionCount(groupId: string | null): number {
@@ -748,6 +769,11 @@ export class TransactionsStore {
         transactionMutationPending: false,
         categories,
         groups,
+        changedAt: new Map(
+          [...(groupsResult.data ?? []), ...(categoriesResult.data ?? [])].map(
+            (row) => [row.id, Date.parse(row.updated_at)]
+          )
+        ),
         transactions: [],
         transactionPage: FIRST_TRANSACTION_PAGE,
         totalMatchingTransactions: 0,

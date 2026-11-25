@@ -49,6 +49,8 @@ import {
   TRANSACTION_QUERY_KEYS,
   parseTransactionQuery,
   serializeTransactionQuery,
+  CATEGORY_SORTS,
+  type CategorySortId,
   type TransactionSidebarPanel,
 } from './transactions-query.codec';
 import { PopoverMenuDirective } from '../../shared/popover-menu/popover-menu.directive';
@@ -192,28 +194,43 @@ export class TransactionsPageComponent implements OnDestroy {
   protected readonly showOnlyCategoriesWithTransactions = signal(false);
   protected readonly sidebarTab = signal<TransactionSidebarPanel>('categories');
   protected readonly advancedFiltersExpanded = signal(false);
-  protected readonly visibleGroupedCategories = computed(() =>
-    this.store
+  protected readonly categorySort = signal<CategorySortId>('name');
+  protected readonly categorySortOptions = CATEGORY_SORTS;
+  protected readonly visibleGroupedCategories = computed(() => {
+    const groups = this.store
       .groupedCategories()
       .map((group) => ({
         ...group,
-        categories: this.showOnlyCategoriesWithTransactions()
-          ? group.categories.filter((category) =>
-              this.categoryHasTransactions(category.id)
-            )
-          : group.categories,
+        categories: this.orderCategories(
+          this.showOnlyCategoriesWithTransactions()
+            ? group.categories.filter((category) =>
+                this.categoryHasTransactions(category.id)
+              )
+            : group.categories
+        ),
       }))
-      .filter((group) => group.categories.length > 0)
-  );
+      .filter((group) => group.categories.length > 0);
+
+    const sort = this.categorySort();
+
+    if (sort === 'name') return groups;
+
+    const rank = (groupId: string) =>
+      sort === 'amount'
+        ? this.store.groupExpenseTotal(groupId)
+        : this.store.groupChangedAt(groupId);
+
+    return groups.toSorted((left, right) => rank(right.id) - rank(left.id));
+  });
   protected readonly visibleUngroupedCategories = computed(() => {
     const categories = this.store.ungroupedCategories();
 
-    if (!this.showOnlyCategoriesWithTransactions()) {
-      return categories;
-    }
-
-    return categories.filter((category) =>
-      this.categoryHasTransactions(category.id)
+    return this.orderCategories(
+      this.showOnlyCategoriesWithTransactions()
+        ? categories.filter((category) =>
+            this.categoryHasTransactions(category.id)
+          )
+        : categories
     );
   });
   protected readonly visibleTags = computed(() =>
@@ -461,6 +478,32 @@ export class TransactionsPageComponent implements OnDestroy {
 
     this.showOnlyCategoriesWithTransactions.set(enabled);
     this.syncQuery('replace');
+  }
+
+  protected onCategorySortChange(event: Event): void {
+    const value =
+      event.target instanceof HTMLSelectElement ? event.target.value : '';
+
+    this.categorySort.set(
+      CATEGORY_SORTS.find((candidate) => candidate === value) ?? 'name'
+    );
+    this.syncQuery('replace');
+  }
+
+  /** Keeps name order for ties, so equal amounts stay alphabetical. */
+  private orderCategories<T extends { readonly id: string }>(
+    categories: readonly T[]
+  ): readonly T[] {
+    const sort = this.categorySort();
+
+    if (sort === 'name') return categories;
+
+    const rank = (categoryId: string) =>
+      sort === 'amount'
+        ? this.store.categoryExpenseTotal(categoryId)
+        : this.store.categoryChangedAt(categoryId);
+
+    return categories.toSorted((left, right) => rank(right.id) - rank(left.id));
   }
 
   protected toggleCategorySelection(categoryId: string): void {
@@ -746,6 +789,7 @@ export class TransactionsPageComponent implements OnDestroy {
     const key = this.queryKey(canonical);
     this.sidebarTab.set(state.panel);
     this.showOnlyCategoriesWithTransactions.set(state.hideEmpty);
+    this.categorySort.set(state.categorySort);
     this.advancedFiltersExpanded.set(state.advanced);
 
     if (this.pendingNavigationKey === key) {
@@ -766,6 +810,7 @@ export class TransactionsPageComponent implements OnDestroy {
       filters: this.store.activeFilters(),
       panel: this.sidebarTab(),
       hideEmpty: this.showOnlyCategoriesWithTransactions(),
+      categorySort: this.categorySort(),
       advanced: this.advancedFiltersExpanded(),
     });
 
