@@ -10,11 +10,24 @@ Spendist provides an MCP server for user-authorized personal-finance workflows. 
 - The Settings profile panel has a Connected applications card that explains MCP, shows the server URL `https://mcp.spendist.app/mcp` with a copy button, and gives three connection steps (add a custom connector or MCP server in the AI assistant, sign in and approve access, manage access later).
 - Users can review and revoke OAuth grants at `/settings/connected-apps`; revocation invalidates the client's refresh-token access.
 - Read tools cover the profile, wallets, currencies, category groups, categories, tags, places, transactions, recurring payments, notifications, Allowance state, dashboard summaries, audit metadata, and a portable JSON export.
-- Write tools are registered only for tokens with write access. They cover the ordinary creation and update flows for wallets, taxonomy, places, transactions, recurring payments, recurring occurrences, notification read state, and default-wallet selection.
+- Write tools are registered only for tokens with write access. They cover the ordinary creation and update flows for wallets, taxonomy, places, transactions, recurring payments, recurring occurrences, notification read state, and default-wallet selection, plus bulk tagging (`add_tags_to_transactions`, `remove_tags_from_transactions`) and merging duplicate places (`prepare_merge_places`, `merge_places`). `create_place` returns an existing place with the same normalized name, marked `existing: true`, instead of creating a duplicate. Place and recurring payment tools accept an optional `logo` from the Simple Icons catalogue only (`simple-icons:<slug>:<hex>`, or null to remove it); MCP clients cannot upload logo files, and an unknown slug shows no logo. Removing or replacing an uploaded logo through MCP leaves its file in Storage until the account is deleted.
 - Relationships are always represented by stable UUIDs. Monetary inputs are decimal strings so an MCP host does not silently round user-entered values.
-- Tools that overwrite or remove data (updates, default-wallet selection, pause/resume, occurrence completion, marking notifications read, and `confirm_delete`) carry `destructiveHint: true`; create tools and `prepare_delete` are additive.
+- Tools that overwrite or remove data (updates, default-wallet selection, pause/resume, occurrence completion, marking notifications read, `remove_tags_from_transactions`, `merge_places`, and `confirm_delete`) carry `destructiveHint: true`; create tools, `add_tags_to_transactions`, `prepare_delete`, and `prepare_merge_places` are additive.
 - Successful tool results keep the JSON payload as the first text block and add a second block stating that names, descriptions, notes, and other string fields are untrusted user-authored data. The server instructions say the same.
+- Merging places is a two-call flow like deletion. `prepare_merge_places` returns the preview described in [Places](places-and-dashboard-insights.md#merging-places) and a confirmation token that expires after five minutes. `merge_places` accepts the token once, only for the same user and only while the places are unchanged, and runs the same atomic merge as the web application. Its audit row stores the merged place IDs in `target_ids` and the number of moved transactions in `affected_count`.
 - Deletion is a two-call flow. `prepare_delete` returns the expected effects and a confirmation token that expires after five minutes. `confirm_delete` accepts the token only for the same user and unchanged record and consumes it once.
+
+## Transaction writes
+
+Transaction writes run as one database call and one database transaction each, through `SECURITY INVOKER` RPCs, so RLS and the owner-scoped foreign keys still apply. The Cloudflare Worker limits subrequests per invocation (50 on the Free plan); a successful transaction write costs one Supabase request regardless of the number of rows, plus the token check.
+
+- `create_transactions` accepts 1–100 transactions (`mcp_create_transactions`). Either every row is stored or none is. An error names the first failing row, for example `Transaction 3: Wallet <id> was not found.` `create_transaction` uses the same RPC with one row.
+- Both create tools accept an optional `idempotencyKey` (1–200 characters). A retry with the same key and the same payload returns the first result with `replayed: true` instead of creating duplicates; the same key with a different payload is rejected. Keys are scoped to the user, OAuth client and tool. A replay returns only transactions that still exist.
+- `update_transaction` (`mcp_update_transaction`) changes only the fields present. `tagIds` replaces the whole tag set atomically and `[]` clears it; a change of only `tagIds` does not touch the transaction row. A missing transaction returns `Transaction <id> was not found.`
+- `add_tags_to_transactions` and `remove_tags_from_transactions` (`mcp_change_transaction_tags`) apply 1–50 tags to 1–100 transactions in one call. Adding keeps tags already present.
+- Create, update and bulk-tag results include `transaction_tags` (`[{ "tag_id": ... }]`), the same shape as `get_transaction`.
+- Wallets, categories, places and tags must belong to the user; another user's ID is reported as not found. Descriptions are limited to 500 characters.
+- These RPCs reject OAuth-client tokens whose `spendist_mcp_write` claim is not `true`, even when called outside the MCP server.
 
 ## Authorization and data ownership
 
@@ -26,7 +39,7 @@ Supabase Auth only accepts the standard scopes `openid`, `email`, `profile`, `ph
 
 Write access is a Spendist scope named `spendist:write`. The user grants it per client on the consent page; the decision is stored in `public.mcp_client_write_grants` through `set_mcp_client_write_access`, which rejects tokens that carry an OAuth `client_id`, so a connected client cannot grant itself write access. The access-token hook sets the boolean `spendist_mcp_write` claim, and the Worker maps it to the `spendist:write` scope. Revoking a client at `/settings/connected-apps` also removes its write grant. A `spendist:write` value inside the standard `scope` claim is ignored.
 
-Limitation: the scope check is enforced by the MCP server. An OAuth access token is still a Supabase user token, so a client that calls the Supabase API directly is limited only by RLS ownership, not by the MCP write scope. **Planned:** enforce the write grant in database policies for OAuth-client tokens.
+Limitation: the scope check is enforced by the MCP server and, for transaction writes, by the MCP transaction RPCs. An OAuth access token is still a Supabase user token, so a client that calls the Supabase tables directly is limited only by RLS ownership, not by the MCP write scope. **Planned:** enforce the write grant in database policies for OAuth-client tokens.
 
 The Cloudflare Worker verifies issuer, audience, expiry, MCP claim, user identity, and the token with Supabase Auth. Every database operation then uses the user's bearer token plus the public publishable key. The server has no service-role key, so existing RLS ownership policies remain authoritative.
 
@@ -43,7 +56,10 @@ STDIO uses a user-supplied access token from `SPENDIST_ACCESS_TOKEN` and is read
 
 ## Audit and privacy
 
-Every mutation first creates an owner-scoped `mcp_audit_events` row. Audit rows contain the client ID, tool name, target type and ID, request ID, outcome, error code, and timestamps. They never contain tool arguments, descriptions, monetary values, tokens, or export payloads. A mutation does not run if its audit-start record cannot be created.
+Every mutation is recorded in an owner-scoped `mcp_audit_events` row. Audit rows contain the client ID, tool name, target type and ID, request ID, outcome, error code, and timestamps. They never contain tool arguments, descriptions, monetary values, tokens, or export payloads.
+
+- Most mutations first create a `started` row and do not run if it cannot be created; the row is then completed as `succeeded` or `failed`.
+- Transaction RPCs write a `succeeded` row in the same database transaction as the data. It also stores the created or changed transaction IDs (`target_ids`, at most 100) and, for create calls with a key, the `idempotency_key` and an MD5 `request_hash` of the payload used to detect key reuse. When the RPC fails, everything rolls back and the server records one `failed` row afterwards.
 
 ## Deliberate limits
 
@@ -62,6 +78,8 @@ Every mutation first creates an owner-scoped `mcp_audit_events` row. Audit rows 
 - Production deployment: `.github/workflows/production.yml`
 - OAuth consent UI: `apps/web/src/app/pages/oauth-consent/`
 - Security migrations: `supabase/migrations/202608100015_add_mcp_security.sql` and `supabase/migrations/202610091400_add_mcp_write_grants.sql`
+- Transaction write RPCs: `supabase/migrations/202611251410_add_mcp_batch_transaction_rpcs.sql` and `supabase/migrations/202611251420_add_mcp_transaction_tag_rpcs.sql`; SQL tests in `supabase/tests/mcp.sql` (`npm run db:test:mcp`)
+- Place merging: `supabase/migrations/202611251530_add_place_merging.sql`; SQL tests in `supabase/tests/places.sql` (`npm run db:test:places`)
 - Scope policy: `apps/mcp/src/scopes.ts`
 
 `mcp.spendist.app` uses a proxied Cloudflare DNS record and a zone Worker Route owned by the separate `spendist-mcp` Worker; it is not an alias to the `spendist-app` web Worker. The DNS record must exist before deployment, and Wrangler attaches the route when the MCP Worker is deployed. The production workflow validates the MCP application, atomically supplies the required Supabase and OAuth secrets during deployment, and verifies both the public health response and RFC 9728 protected-resource metadata.

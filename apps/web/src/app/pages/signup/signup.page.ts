@@ -89,9 +89,9 @@ function createUsernameFromName(name: string): string {
     return normalized;
   }
 
-  const timestamp = Math.random().toString(36).slice(2, 6);
+  const suffix = crypto.randomUUID().slice(0, 4);
 
-  return `user_${timestamp}`;
+  return `user_${suffix}`;
 }
 
 @Component({

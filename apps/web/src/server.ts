@@ -26,7 +26,17 @@ const contentSecurityPolicyDirectives = {
   scriptSrc: ["'self'", 'https://challenges.cloudflare.com'],
   scriptSrcAttr: ["'none'"],
   styleSrc: ["'self'", "'unsafe-inline'"],
-  imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+  // Local Supabase Storage (development and E2E) serves logos over HTTP.
+  imgSrc: [
+    "'self'",
+    'data:',
+    'blob:',
+    'https:',
+    'http://127.0.0.1:55321',
+    'http://localhost:55321',
+    'http://127.0.0.1:53321',
+    'http://localhost:53321',
+  ],
   fontSrc: ["'self'", 'data:', 'https:'],
   connectSrc: [
     "'self'",

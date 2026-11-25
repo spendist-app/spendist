@@ -24,6 +24,8 @@ const DELETE_ORDER = [
 
 const AVATAR_BUCKET = 'avatars';
 
+const LOGO_BUCKET = 'logos';
+
 function marker(locale) {
   return {
     data_role: 'demo',
@@ -130,6 +132,45 @@ async function removeDemoAvatar(client, userId) {
   failOnError(error, 'Could not remove the replaced demo avatar');
 }
 
+async function listDemoLogoPaths(client, userId) {
+  const { data, error } = await client.storage
+    .from(LOGO_BUCKET)
+    .list(userId, { limit: 1000 });
+
+  failOnError(error, 'Could not list demo logos');
+
+  return data.map((item) => `${userId}/${item.name}`);
+}
+
+async function removeDemoLogos(client, userId) {
+  const paths = await listDemoLogoPaths(client, userId);
+
+  if (paths.length === 0) return;
+
+  const { error } = await client.storage.from(LOGO_BUCKET).remove(paths);
+  failOnError(error, 'Could not remove the replaced demo logos');
+}
+
+async function seedDemoLogos(client, dataset) {
+  await removeDemoLogos(client, dataset.profile.id);
+
+  for (const file of dataset.logoFiles) {
+    const image = await readFile(
+      new URL(`./assets/logos/${file.asset}`, import.meta.url)
+    );
+
+    const { error } = await client.storage
+      .from(LOGO_BUCKET)
+      .upload(file.objectPath, image, {
+        cacheControl: '31536000',
+        contentType: 'image/png',
+        upsert: true,
+      });
+
+    failOnError(error, `Could not upload demo logo ${file.asset}`);
+  }
+}
+
 async function resolveDemoUser(client, locale, mode, password) {
   const fixture = FIXTURES[locale];
   const existing = await findUser(client, fixture.email);
@@ -142,6 +183,7 @@ async function resolveDemoUser(client, locale, mode, password) {
 
   if (mode === 'replace' && existing) {
     await removeDemoAvatar(client, existing.id);
+    await removeDemoLogos(client, existing.id);
     const { error } = await client.auth.admin.deleteUser(existing.id, false);
     failOnError(error, `Could not replace ${fixture.email}`);
 
@@ -288,6 +330,15 @@ async function verifyDataset(client, dataset, avatarUrl) {
     dataset.notifications.length
   );
 
+  const logoPaths = await listDemoLogoPaths(client, dataset.profile.id);
+
+  if (
+    logoPaths.length !== dataset.logoFiles.length ||
+    dataset.logoFiles.some((file) => !logoPaths.includes(file.objectPath))
+  ) {
+    throw new Error('Verification failed for the demo logo files.');
+  }
+
   const { data: profile, error: profileError } = await client
     .from('profiles')
     .select('avatar_url')
@@ -326,6 +377,7 @@ export async function applyDemoSeed({
     const user = await resolveDemoUser(client, locale, mode, password);
     const dataset = generateDemoDataset(locale, user.id);
     validateDataset(dataset);
+    await seedDemoLogos(client, dataset);
     await writeDataset(client, dataset);
     const avatarUrl = await seedDemoAvatar(client, FIXTURES[locale], user.id);
 

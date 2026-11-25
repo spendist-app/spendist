@@ -17,6 +17,8 @@ import type {
 } from '@spendist/data-access/supabase-types';
 import type { TransactionImportContext } from './transaction-import.models';
 import { excludePreviouslyImportedTransactions } from './transaction-import-deduplication';
+import { findPlaceByName } from '../../shared/place-name/place-name';
+import { parseLogo } from '../../shared/logo/logo';
 import type {
   CategoryEntity,
   CategoryGroupEntity,
@@ -47,6 +49,7 @@ interface TransactionEntity {
   readonly isAutomatic: boolean;
   readonly recurringTransactionId: string | null;
   readonly recurringTransactionName: string | null;
+  readonly recurringTransactionLogo: string | null;
   readonly recurringScheduledFor: Date | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
@@ -66,6 +69,8 @@ interface TransactionsState {
   readonly transactionMutationPending: boolean;
   readonly categories: readonly CategoryEntity[];
   readonly groups: readonly CategoryGroupEntity[];
+  /** Last `updated_at` of each category group and category, in ms. */
+  readonly changedAt: ReadonlyMap<string, number>;
   readonly transactions: readonly TransactionEntity[];
   readonly transactionPage: number;
   readonly totalMatchingTransactions: number;
@@ -117,6 +122,7 @@ export interface PlaceEntity {
   readonly postalCode: string | null;
   readonly country: string | null;
   readonly note: string | null;
+  readonly logo: string | null;
 }
 
 export interface CreatePlacePayload {
@@ -165,6 +171,8 @@ export interface TransactionViewModel extends TransactionEntity {
   readonly category: CategoryEntity | null;
   readonly group: CategoryGroupEntity | null;
   readonly tagIds: readonly string[];
+  /** Tags attached to the transaction, sorted by name. */
+  readonly tags: readonly TagEntity[];
   readonly place: PlaceEntity | null;
 }
 
@@ -212,10 +220,15 @@ interface TransactionTagExpenseSummaryRow {
     | null;
 }
 
+interface RecurringSourceRow {
+  readonly name: string;
+  readonly logo: string | null;
+}
+
 interface TransactionPageRow extends TransactionRow {
   readonly recurring_transactions:
-    | { readonly name: string }
-    | readonly { readonly name: string }[]
+    | RecurringSourceRow
+    | readonly RecurringSourceRow[]
     | null;
 }
 
@@ -307,6 +320,7 @@ export class TransactionsStore {
     transactionMutationPending: false,
     categories: [],
     groups: [],
+    changedAt: new Map(),
     transactions: [],
     transactionPage: FIRST_TRANSACTION_PAGE,
     totalMatchingTransactions: 0,
@@ -466,6 +480,7 @@ export class TransactionsStore {
 
     const groupsById = new Map(state.groups.map((group) => [group.id, group]));
     const placesById = new Map(state.places.map((place) => [place.id, place]));
+    const tagsById = new Map(state.tags.map((tag) => [tag.id, tag]));
     const tagsMap = state.transactionTags;
 
     return state.transactions.map((transaction) => {
@@ -475,11 +490,20 @@ export class TransactionsStore {
         ? groupsById.get(category.groupId) ?? null
         : null;
 
+      const tagIds = tagsMap.get(transaction.id) ?? [];
+
       return {
         ...transaction,
         category,
         group,
-        tagIds: tagsMap.get(transaction.id) ?? [],
+        tagIds,
+        tags: this.sortTags(
+          tagIds.flatMap((tagId) => {
+            const tag = tagsById.get(tagId);
+
+            return tag ? [tag] : [];
+          })
+        ),
         place: transaction.placeId
           ? placesById.get(transaction.placeId) ?? null
           : null,
@@ -516,6 +540,7 @@ export class TransactionsStore {
           transactionMutationPending: false,
           categories: [],
           groups: [],
+          changedAt: new Map(),
           transactions: [],
           transactionPage: FIRST_TRANSACTION_PAGE,
           totalMatchingTransactions: 0,
@@ -568,6 +593,23 @@ export class TransactionsStore {
 
   groupExpenseTotal(groupId: string | null): number {
     return this.state().groupSummaries.get(groupId)?.totalAmount ?? 0;
+  }
+
+  categoryChangedAt(categoryId: string): number {
+    return this.state().changedAt.get(categoryId) ?? 0;
+  }
+
+  /** Latest change of the group itself or of any category inside it. */
+  groupChangedAt(groupId: string): number {
+    const changedAt = this.state().changedAt;
+
+    return this.state()
+      .categories.filter((category) => category.groupId === groupId)
+      .reduce(
+        (latest, category) =>
+          Math.max(latest, changedAt.get(category.id) ?? 0),
+        changedAt.get(groupId) ?? 0
+      );
   }
 
   groupTransactionCount(groupId: string | null): number {
@@ -735,6 +777,11 @@ export class TransactionsStore {
         transactionMutationPending: false,
         categories,
         groups,
+        changedAt: new Map(
+          [...(groupsResult.data ?? []), ...(categoriesResult.data ?? [])].map(
+            (row) => [row.id, Date.parse(row.updated_at)]
+          )
+        ),
         transactions: [],
         transactionPage: FIRST_TRANSACTION_PAGE,
         totalMatchingTransactions: 0,
@@ -901,7 +948,7 @@ export class TransactionsStore {
 
     let query = this.supabase
       .from('transactions')
-      .select('*, recurring_transactions(name)', { count: 'exact' })
+      .select('*, recurring_transactions(name, logo)', { count: 'exact' })
       .eq('owner_id', userId)
       .eq('transaction_state', 'completed');
 
@@ -1462,6 +1509,14 @@ export class TransactionsStore {
 
     if (!name) {
       throw new Error('places.errors.nameRequired');
+    }
+
+    // Reuse a place whose name differs only by case, spacing or diacritics
+    // instead of creating a duplicate.
+    const existing = findPlaceByName(this.state().places, name);
+
+    if (existing) {
+      return existing;
     }
 
     const optional = (value: string, limit: number): string | null =>
@@ -2605,7 +2660,8 @@ export class TransactionsStore {
       direction: row.direction,
       isAutomatic: !!row.is_automatic,
       recurringTransactionId: row.recurring_transaction_id ?? null,
-      recurringTransactionName: this.recurringTransactionName(row),
+      recurringTransactionName: this.recurringSource(row)?.name ?? null,
+      recurringTransactionLogo: this.recurringSourceLogo(row),
       recurringScheduledFor: row.recurring_scheduled_for
         ? new Date(row.recurring_scheduled_for)
         : null,
@@ -2627,14 +2683,20 @@ export class TransactionsStore {
     };
   }
 
-  private recurringTransactionName(row: TransactionPageRow): string | null {
+  private recurringSource(row: TransactionPageRow): RecurringSourceRow | null {
     const relation = row.recurring_transactions;
 
     if (!relation) {
       return null;
     }
 
-    return 'name' in relation ? relation.name : relation[0]?.name ?? null;
+    return 'name' in relation ? relation : relation[0] ?? null;
+  }
+
+  private recurringSourceLogo(row: TransactionPageRow): string | null {
+    const logo = this.recurringSource(row)?.logo ?? null;
+
+    return parseLogo(logo) ? logo : null;
   }
 
   private mapPlaceRow(row: PlaceRow): PlaceEntity {
@@ -2647,6 +2709,7 @@ export class TransactionsStore {
       postalCode: row.postal_code ?? null,
       country: row.country ?? null,
       note: row.note ?? null,
+      logo: parseLogo(row.logo) ? row.logo : null,
     };
   }
 

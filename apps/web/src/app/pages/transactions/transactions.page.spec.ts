@@ -123,8 +123,16 @@ class TransactionsStoreStub {
     return 0;
   }
 
-  groupExpenseTotal(): number {
-    return 0;
+  groupExpenseTotal(groupId: string): number {
+    return groupId === 'group-2' ? 90 : 25;
+  }
+
+  groupChangedAt(groupId: string): number {
+    return groupId === 'group-2' ? 1 : 2;
+  }
+
+  categoryChangedAt(categoryId: string): number {
+    return categoryId === 'category-empty' ? 2 : 1;
   }
 
   categoryExpenseTotal(categoryId: string): number {
@@ -210,9 +218,7 @@ class TransactionsStoreStub {
     return;
   }
 
-  toggleTagSelection(): void {
-    return;
-  }
+  readonly toggleTagSelection = vi.fn<(tagId: string) => void>();
 
   dismissMutationError(): void {
     return;
@@ -356,6 +362,7 @@ describe('TransactionsPageComponent', () => {
         isAutomatic: true,
         recurringTransactionId: '1324a167-0000-0000-0000-000000000000',
         recurringTransactionName: 'Health insurance',
+        recurringTransactionLogo: 'simple-icons:netflix:e50914',
         recurringScheduledFor: new Date('2026-07-25T08:00:00Z'),
         createdAt: new Date('2026-07-25T08:00:00Z'),
         updatedAt: new Date('2026-07-25T08:00:00Z'),
@@ -369,6 +376,7 @@ describe('TransactionsPageComponent', () => {
         category: null,
         group: null,
         tagIds: [],
+        tags: [],
         place: null,
       },
     ]);
@@ -385,6 +393,102 @@ describe('TransactionsPageComponent', () => {
 
     expect(badge.textContent).toContain('Health insurance');
     expect(badge.textContent).not.toContain('1324a167');
+    expect(badge.querySelector('[data-logo="netflix"]')).not.toBeNull();
+  });
+
+  it('shows the place logo and every tag, and filters by a clicked tag', () => {
+    const fixture = TestBed.createComponent(TransactionsPageComponent);
+
+    const store = fixture.debugElement.injector.get(TransactionsStoreStub);
+
+    const piggyBank = {
+      id: 'tag-piggy-bank',
+      ownerId: 'user-1',
+      name: 'Świnka',
+      color: '#F472B6',
+      icon: null,
+    };
+
+    const christmas = {
+      id: 'tag-christmas',
+      ownerId: 'user-1',
+      name: 'Gwiazdka 2024',
+      color: null,
+      icon: null,
+    };
+
+    store.filteredTransactions.set([
+      {
+        id: 'transaction-tagged',
+        ownerId: 'user-1',
+        categoryId: 'category-active',
+        occurredAt: new Date('2026-11-24T08:00:00Z'),
+        description: 'Gift',
+        amount: 50,
+        amountInDefault: 50,
+        currency: 'PLN',
+        direction: 'expense',
+        isAutomatic: false,
+        recurringTransactionId: null,
+        recurringTransactionName: null,
+        recurringTransactionLogo: null,
+        recurringScheduledFor: null,
+        createdAt: new Date('2026-11-24T08:00:00Z'),
+        updatedAt: new Date('2026-11-24T08:00:00Z'),
+        exchangeRate: 1,
+        walletId: 'wallet-1',
+        placeId: null,
+        sourceModule: 'standard',
+        allowancePairId: null,
+        allowanceRole: null,
+        allowanceConnectionId: null,
+        category: null,
+        group: null,
+        tagIds: [piggyBank.id, christmas.id],
+        tags: [christmas, piggyBank],
+        place: {
+          id: 'place-1',
+          ownerId: 'user-1',
+          name: 'Lidl',
+          street: null,
+          city: 'Gliwice',
+          postalCode: null,
+          country: null,
+          note: null,
+          logo: 'simple-icons:lidl:0050aa',
+        },
+      },
+    ]);
+    store.loadedTransactionCount.set(1);
+    store.totalMatchingTransactions.set(1);
+
+    fixture.detectChanges();
+
+    const tagList = requiredValue(
+      fixtureElement(fixture).querySelector<HTMLElement>(
+        '[data-testid="transaction-tags"]'
+      )
+    );
+
+    const tagButtons = [...tagList.querySelectorAll('button')];
+
+    expect(tagButtons.map((button) => button.textContent?.trim())).toEqual([
+      'Gwiazdka 2024',
+      'Świnka',
+    ]);
+
+    requiredValue(tagButtons[1]).click();
+
+    expect(store.toggleTagSelection).toHaveBeenCalledWith(piggyBank.id);
+
+    const place = requiredValue(
+      fixtureElement(fixture).querySelector<HTMLElement>(
+        '[data-testid="transaction-place"]'
+      )
+    );
+
+    expect(place.textContent).toContain('Lidl');
+    expect(place.querySelector('[data-logo="lidl"]')).not.toBeNull();
   });
 
   it('defers rendering of rows below the first screen', () => {
@@ -405,6 +509,7 @@ describe('TransactionsPageComponent', () => {
       isAutomatic: false,
       recurringTransactionId: null,
       recurringTransactionName: null,
+      recurringTransactionLogo: null,
       recurringScheduledFor: null,
       createdAt: new Date('2026-07-25T08:00:00Z'),
       updatedAt: new Date('2026-07-25T08:00:00Z'),
@@ -418,6 +523,7 @@ describe('TransactionsPageComponent', () => {
       category: null,
       group: null,
       tagIds: [],
+      tags: [],
       place: null,
     }));
 
@@ -479,6 +585,75 @@ describe('TransactionsPageComponent', () => {
     expect(
       component['visibleUngroupedCategories']().map((category) => category.id)
     ).toEqual(['category-ungrouped-active']);
+  });
+
+  it('sorts category groups by amount or by the latest change', () => {
+    const navigate = vi.fn(() => Promise.resolve(true));
+
+    TestBed.overrideProvider(Router, { useValue: { navigate } });
+    TestBed.overrideProvider(ActivatedRoute, {
+      useValue: { queryParams: of({}), snapshot: { queryParams: {} } },
+    });
+
+    const fixture = TestBed.createComponent(TransactionsPageComponent);
+
+    const store = fixture.debugElement.injector.get(TransactionsStoreStub);
+
+    const [daily] = store.groupedCategories();
+
+    store.groupedCategories.set([
+      requiredValue(daily),
+      {
+        ...requiredValue(daily),
+        id: 'group-2',
+        name: 'Travel',
+        categories: [
+          {
+            ...requiredValue(daily?.categories[0]),
+            id: 'category-travel',
+            name: 'Flights',
+            groupId: 'group-2',
+          },
+        ],
+      },
+    ]);
+    fixture.detectChanges();
+
+    const sort = requiredValue(
+      fixtureElement(fixture).querySelector<HTMLSelectElement>(
+        '[data-testid="category-sort"]'
+      )
+    );
+
+    const groupNames = () =>
+      [...fixtureElement(fixture).querySelectorAll('nav section h3')].map(
+        (heading) => heading.textContent?.trim()
+      );
+
+    expect(groupNames()).toEqual(['Daily', 'Travel']);
+
+    sort.value = 'amount';
+    sort.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    expect(groupNames()).toEqual(['Travel', 'Daily']);
+    expect(navigate).toHaveBeenLastCalledWith(
+      [],
+      expect.objectContaining({
+        queryParams: expect.objectContaining({ categorySort: 'amount' }),
+      })
+    );
+
+    sort.value = 'changed';
+    sort.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    expect(groupNames()).toEqual(['Daily', 'Travel']);
+    expect(
+      fixture.componentInstance[
+        'visibleGroupedCategories'
+      ]()[0]?.categories.map((category) => category.id)
+    ).toEqual(['category-empty', 'category-active']);
   });
 
   it('keeps advanced filters collapsed until requested', () => {

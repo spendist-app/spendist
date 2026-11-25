@@ -1,4 +1,4 @@
-export const DATASET_VERSION = '2026-07-v2';
+export const DATASET_VERSION = '2026-11-v3';
 
 export const DEMO_SEED_ID = 'spendist-screenshots';
 
@@ -6,6 +6,16 @@ export const DATE_RANGE = Object.freeze({
   start: '2026-01-01',
   end: '2026-07-28',
 });
+
+// Logo images are fictional emblems kept in assets/logos; every row that uses
+// one gets its own uploaded copy, as the app removes a row's file on change.
+const placeLogos = {
+  'green-market': { asset: 'logo-market.png' },
+  bakery: { asset: 'logo-bakery.png' },
+  coffee: { asset: 'logo-coffee.png' },
+  cinema: { asset: 'logo-cinema.png' },
+  fitness: { asset: 'logo-fitness.png' },
+};
 
 const sharedColors = {
   home: '#14b8a6',
@@ -167,10 +177,16 @@ export const FIXTURES = {
     recurringNames: {
       salary: 'Pensja',
       rent: 'Czynsz',
-      internet: 'Internet domowy',
-      streaming: 'Serwis streamingowy',
+      internet: 'Internet Orange',
+      streaming: 'Netflix',
       fitness: 'Karnet sportowy',
       electricity: 'Rachunek za prąd',
+    },
+    placeLogos,
+    recurringLogos: {
+      internet: { icon: 'simple-icons:orange:ff7900' },
+      streaming: { icon: 'simple-icons:netflix:e50914' },
+      fitness: { asset: 'logo-fitness.png' },
     },
   },
   en: {
@@ -311,10 +327,16 @@ export const FIXTURES = {
     recurringNames: {
       salary: 'Salary',
       rent: 'Rent',
-      internet: 'Home internet',
-      streaming: 'Streaming service',
+      internet: 'Verizon Fios',
+      streaming: 'Netflix',
       fitness: 'Gym membership',
       electricity: 'Electricity bill',
+    },
+    placeLogos,
+    recurringLogos: {
+      internet: { icon: 'simple-icons:verizon:cd040b' },
+      streaming: { icon: 'simple-icons:netflix:e50914' },
+      fitness: { asset: 'logo-fitness.png' },
     },
   },
 };

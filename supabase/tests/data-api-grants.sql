@@ -41,6 +41,7 @@ begin
       ('allowance_delegated_expenses', 'service_role', 'SELECT,INSERT,UPDATE,DELETE'),
       ('mcp_audit_events', 'authenticated', 'SELECT,INSERT,UPDATE'),
       ('mcp_delete_confirmations', 'authenticated', 'SELECT,INSERT,UPDATE,DELETE'),
+      ('mcp_place_merge_confirmations', 'authenticated', 'SELECT,INSERT,UPDATE,DELETE'),
       ('mcp_client_write_grants', 'authenticated', 'SELECT'),
       ('mcp_client_write_grants', 'supabase_auth_admin', 'SELECT'),
       ('wibor_rates', 'authenticated', 'SELECT'),
@@ -73,7 +74,8 @@ begin
       'recurring_transaction_occurrences','notifications','places','currencies',
       'exchange_rates','exchange_rate_sync_runs','allowance_invitations',
       'allowance_connections','allowance_delegated_expenses','mcp_audit_events',
-      'mcp_delete_confirmations','mcp_client_write_grants','wibor_rates',
+      'mcp_delete_confirmations','mcp_place_merge_confirmations',
+      'mcp_client_write_grants','wibor_rates',
       'mortgage_loans','mortgage_rate_periods','mortgage_overpayments',
       'mortgage_holidays','mortgage_schedule_entries'
     ])

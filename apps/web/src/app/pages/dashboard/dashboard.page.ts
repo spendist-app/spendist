@@ -8,12 +8,13 @@ import { TranslocoPipe } from '@ngneat/transloco';
 import { LanguageService } from '../../core/language.service';
 import type { LanguageCode } from '../../i18n/languages';
 import { DashboardStore } from './dashboard.store';
+import { LogoComponent } from '../../shared/logo/logo.component';
 
 @Component({
   standalone: true,
   selector: 'app-dashboard-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TranslocoPipe],
+  imports: [TranslocoPipe, LogoComponent],
   providers: [DashboardStore],
   templateUrl: './dashboard.page.html',
 })

@@ -20,11 +20,12 @@ import {
 } from './recurring-payments.store';
 import { logError } from '../../../core/logger';
 import { nextScheduledOccurrence } from './recurring-schedule';
+import { LogoComponent } from '../../../shared/logo/logo.component';
 
 @Component({
   standalone: true,
   selector: 'app-recurring-payment-list',
-  imports: [CommonModule, TranslocoPipe, NgIcon],
+  imports: [CommonModule, TranslocoPipe, NgIcon, LogoComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './recurring-payment-list.component.html',
 })

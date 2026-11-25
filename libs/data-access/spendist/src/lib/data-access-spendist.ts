@@ -18,6 +18,8 @@ export interface SpendistConnection {
   publishableKey: string;
   accessToken: string;
   clientId: string;
+  /** User ID already verified for this access token, e.g. by the Worker gate. */
+  userId?: string;
 }
 
 export interface PageInput {
@@ -46,6 +48,7 @@ export interface RecurringInput {
   direction: Direction;
   endDate?: string | null;
   tagIds?: string[];
+  logo?: string | null;
 }
 
 type PublicTables = Database['public']['Tables'];
@@ -62,6 +65,36 @@ type ManagedTable =
 type TableInsert<T extends TableName> = PublicTables[T]['Insert'];
 
 type TableUpdate<T extends TableName> = PublicTables[T]['Update'];
+
+/** One transaction row with its tag IDs, as returned by the MCP write RPCs. */
+const TransactionWithTags = z.looseObject({
+  id: z.string(),
+  transaction_tags: z.array(z.object({ tag_id: z.string() })),
+});
+
+const CreatedTransactions = z.object({
+  items: z.array(TransactionWithTags),
+  replayed: z.boolean(),
+});
+
+const PlaceMergePreview = z.looseObject({
+  targetPlaceId: z.string(),
+  sourcePlaceIds: z.array(z.string()),
+  movedTransactions: z.number().int(),
+  confirmationToken: z.string(),
+  expiresAt: z.string(),
+});
+
+const PlaceMergeResult = z.looseObject({
+  mergedPlaceIds: z.array(z.string()),
+  movedTransactions: z.number().int(),
+});
+
+const ChangedTransactionTags = z.object({
+  changed: z.number().int(),
+  transactionIds: z.array(z.string()),
+  tagIds: z.array(z.string()),
+});
 
 function assertAmount(value: string): number {
   if (!/^\d+(?:\.\d{1,2})?$/.test(value)) {
@@ -117,6 +150,7 @@ export class SpendistDataAccess {
   private userId?: string;
 
   constructor(readonly connection: SpendistConnection) {
+    this.userId = connection.userId;
     this.client = createClient<Database>(
       connection.supabaseUrl,
       connection.publishableKey,
@@ -302,6 +336,64 @@ export class SpendistDataAccess {
     );
   }
 
+  /**
+   * Creates a place unless one with the same name (ignoring case, spacing and
+   * diacritics) exists; then that place is returned with `existing: true`.
+   */
+  async createPlace(values: Omit<TableInsert<'places'>, 'owner_id'>) {
+    const { data, error } = await this.client.rpc('places_matching_name', {
+      p_name: values.name,
+    });
+
+    if (error) databaseError(error);
+
+    const [match] = data;
+
+    if (match) return { ...match, existing: true };
+
+    return { ...(await this.create('places', values)), existing: false };
+  }
+
+  /**
+   * Previews merging duplicate places and issues a five-minute, one-use
+   * confirmation token. Does not change places or transactions.
+   */
+  async prepareMergePlaces(targetPlaceId: string, sourcePlaceIds: string[]) {
+    return this.atomicMutation(
+      'prepare_merge_places',
+      'place',
+      targetPlaceId,
+      async () => {
+        const { data, error } = await this.client.rpc(
+          'mcp_prepare_place_merge',
+          {
+            p_target_id: targetPlaceId,
+            p_source_ids: sourcePlaceIds,
+            p_client_id: this.connection.clientId,
+          }
+        );
+
+        if (error) databaseError(error);
+
+        return PlaceMergePreview.parse(data);
+      }
+    );
+  }
+
+  /** Merges the places covered by an unchanged, unused confirmation token. */
+  async confirmMergePlaces(token: string) {
+    return this.atomicMutation('merge_places', 'place', undefined, async () => {
+      const { data, error } = await this.client.rpc('mcp_confirm_place_merge', {
+        p_token: token,
+        p_client_id: this.connection.clientId,
+      });
+
+      if (error) databaseError(error);
+
+      return PlaceMergeResult.parse(data);
+    });
+  }
+
   async setDefaultWallet(id: string) {
     const ownerId = await this.authenticate();
 
@@ -355,133 +447,112 @@ export class SpendistDataAccess {
     return relation.symbol;
   }
 
-  async createTransaction(input: TransactionInput) {
-    const ownerId = await this.authenticate();
-    const amount = assertAmount(input.amount);
-    const currency = await this.walletCurrency(input.walletId);
-
-    return this.mutate(
+  /**
+   * Creates one transaction through the same atomic RPC as a batch, so the row,
+   * its tags and the audit event are stored together.
+   */
+  async createTransaction(input: TransactionInput, idempotencyKey?: string) {
+    const { items } = await this.insertTransactions(
       'create_transaction',
+      [input],
+      idempotencyKey
+    );
+
+    const [item] = items;
+
+    if (!item) throw new Error('Transaction was not created.');
+
+    return item;
+  }
+
+  /**
+   * Creates 1-100 transactions in one database call and one database
+   * transaction: either every row is stored or none is. The cost in Worker
+   * subrequests does not depend on the batch size.
+   */
+  async createTransactions(
+    inputs: TransactionInput[],
+    idempotencyKey?: string
+  ) {
+    if (inputs.length < 1 || inputs.length > 100)
+      throw new Error('Batch size must be between 1 and 100.');
+
+    return this.insertTransactions(
+      'create_transactions',
+      inputs,
+      idempotencyKey
+    );
+  }
+
+  private async insertTransactions(
+    toolName: 'create_transaction' | 'create_transactions',
+    inputs: TransactionInput[],
+    idempotencyKey: string | undefined
+  ) {
+    return this.atomicMutation(toolName, 'transaction', undefined, async () => {
+      const { data, error } = await this.client.rpc('mcp_create_transactions', {
+        p_transactions: inputs.map(transactionJson),
+        p_idempotency_key: idempotencyKey,
+        p_client_id: this.connection.clientId,
+        p_tool_name: toolName,
+      });
+
+      if (error) databaseError(error);
+
+      return CreatedTransactions.parse(data);
+    });
+  }
+
+  /**
+   * Updates one transaction. A change that contains only `tagIds` replaces the
+   * tags without updating the transaction row; tags are replaced atomically.
+   */
+  async updateTransaction(id: string, input: Partial<TransactionInput>) {
+    return this.atomicMutation(
+      'update_transaction',
       'transaction',
-      undefined,
+      id,
       async () => {
-        const { tagIds = [], ...rest } = input;
-
-        const payload: PublicTables['transactions']['Insert'] = {
-          amount,
-          amount_in_default: amount,
-          category_id: rest.categoryId,
-          currency,
-          description: rest.description ?? null,
-          direction: rest.direction,
-          occurred_at: rest.occurredAt,
-          owner_id: ownerId,
-          place_id: rest.placeId ?? null,
-          wallet_id: rest.walletId,
-        };
-
-        const { data, error } = await this.client
-          .from('transactions')
-          .insert(payload)
-          .select()
-          .single();
+        const { data, error } = await this.client.rpc(
+          'mcp_update_transaction',
+          {
+            p_id: id,
+            p_changes: transactionJson(input),
+            p_client_id: this.connection.clientId,
+          }
+        );
 
         if (error) databaseError(error);
 
-        if (tagIds.length) {
-          const rows = [...new Set(tagIds)].map((tagId) => ({
-            owner_id: ownerId,
-            transaction_id: data.id,
-            tag_id: tagId,
-          }));
-
-          const { error: tagError } = await this.client
-            .from('transaction_tags')
-            .insert(rows);
-
-          if (tagError) databaseError(tagError);
-        }
-
-        return data;
+        return TransactionWithTags.parse(data);
       }
     );
   }
 
-  async createTransactions(inputs: TransactionInput[]) {
-    if (inputs.length < 1 || inputs.length > 100)
-      throw new Error('Batch size must be between 1 and 100.');
-    const items = [];
+  /** Adds or removes the same tags on up to 100 transactions in one call. */
+  async changeTransactionTags(
+    transactionIds: string[],
+    tagIds: string[],
+    add: boolean
+  ) {
+    const toolName = add
+      ? 'add_tags_to_transactions'
+      : 'remove_tags_from_transactions';
 
-    for (const input of inputs) items.push(await this.createTransaction(input));
-
-    return { items };
-  }
-
-  async updateTransaction(id: string, input: Partial<TransactionInput>) {
-    const ownerId = await this.authenticate();
-
-    return this.mutate('update_transaction', 'transaction', id, async () => {
-      const { tagIds, ...values } = input;
-      const payload: PublicTables['transactions']['Update'] = {};
-
-      if (values.amount !== undefined) {
-        payload.amount = assertAmount(values.amount);
-        payload.amount_in_default = payload.amount;
-      }
-
-      if (values.categoryId !== undefined)
-        payload.category_id = values.categoryId;
-
-      if (values.walletId !== undefined) {
-        payload.wallet_id = values.walletId;
-        payload.currency = await this.walletCurrency(values.walletId);
-      }
-
-      if (values.occurredAt !== undefined)
-        payload.occurred_at = values.occurredAt;
-
-      if (values.direction !== undefined) payload.direction = values.direction;
-
-      if (values.description !== undefined)
-        payload.description = values.description;
-
-      if (values.placeId !== undefined) payload.place_id = values.placeId;
-
-      const { data, error } = await this.client
-        .from('transactions')
-        .update(payload)
-        .eq('owner_id', ownerId)
-        .eq('id', id)
-        .select()
-        .single();
+    return this.atomicMutation(toolName, 'transaction', undefined, async () => {
+      const { data, error } = await this.client.rpc(
+        'mcp_change_transaction_tags',
+        {
+          p_transaction_ids: transactionIds,
+          p_tag_ids: tagIds,
+          p_add: add,
+          p_client_id: this.connection.clientId,
+        }
+      );
 
       if (error) databaseError(error);
 
-      if (tagIds) {
-        const { error: clearError } = await this.client
-          .from('transaction_tags')
-          .delete()
-          .eq('owner_id', ownerId)
-          .eq('transaction_id', id);
-
-        if (clearError) databaseError(clearError);
-
-        if (tagIds.length) {
-          const rows = [...new Set(tagIds)].map((tagId) => ({
-            owner_id: ownerId,
-            transaction_id: id,
-            tag_id: tagId,
-          }));
-
-          const { error: tagError } = await this.client
-            .from('transaction_tags')
-            .insert(rows);
-
-          if (tagError) databaseError(tagError);
-        }
-      }
-
-      return data;
+      return ChangedTransactionTags.parse(data);
     });
   }
 
@@ -524,6 +595,7 @@ export class SpendistDataAccess {
             schedule: input.schedule,
             start_date: input.startDate,
             wallet_id: input.walletId,
+            logo: input.logo ?? null,
           })
           .select()
           .single();
@@ -582,6 +654,8 @@ export class SpendistDataAccess {
 
         if (values.direction !== undefined)
           payload.direction = values.direction;
+
+        if (values.logo !== undefined) payload.logo = values.logo;
 
         const { data, error } = await this.client
           .from('recurring_transactions')
@@ -938,6 +1012,38 @@ export class SpendistDataAccess {
     };
   }
 
+  /**
+   * Runs an RPC that records its own audit event in the same database
+   * transaction as the write. A failed RPC rolls that event back, so only the
+   * failure is recorded here, with one extra request.
+   */
+  private async atomicMutation<T>(
+    toolName: string,
+    targetType: string,
+    targetId: string | undefined,
+    action: () => Promise<T>
+  ): Promise<T> {
+    try {
+      return await action();
+    } catch (error) {
+      const ownerId = await this.authenticate();
+
+      await this.client.from('mcp_audit_events').insert({
+        owner_id: ownerId,
+        client_id: this.connection.clientId,
+        tool_name: toolName,
+        target_type: targetType,
+        target_id: targetId ?? null,
+        request_id: crypto.randomUUID(),
+        outcome: 'failed',
+        error_code:
+          error instanceof Error ? error.message.slice(0, 120) : 'unknown',
+        finished_at: new Date().toISOString(),
+      });
+      throw error;
+    }
+  }
+
   private async mutate<T>(
     toolName: string,
     targetType: string,
@@ -984,6 +1090,17 @@ export class SpendistDataAccess {
       throw error;
     }
   }
+}
+
+/** Transaction fields in the JSON shape the MCP write RPCs accept. */
+function transactionJson(input: Partial<TransactionInput>): Json {
+  const value: Record<string, Json> = {};
+
+  for (const [key, field] of Object.entries(input)) {
+    if (field !== undefined) value[key] = field;
+  }
+
+  return value;
 }
 
 export interface SummaryInput {

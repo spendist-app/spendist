@@ -26,6 +26,16 @@ const OptionalStyle = {
   icon: z.string().max(100).nullable().optional(),
 };
 
+// Only bundled Simple Icons logos: MCP clients cannot upload files.
+const CatalogLogo = z
+  .string()
+  .regex(/^simple-icons:[a-z0-9_]{1,64}:[0-9a-f]{6}$/)
+  .nullable()
+  .optional()
+  .describe(
+    'Logo from the Simple Icons catalogue as simple-icons:<slug>:<hex>, using the slug and lower-case brand colour from simpleicons.org (for example simple-icons:netflix:e50914), or null to remove the logo. An unknown slug shows no logo.'
+  );
+
 const Transaction = z.object({
   amount: z.string().regex(/^\d+(?:\.\d{1,2})?$/),
   categoryId: z.string().uuid(),
@@ -35,6 +45,21 @@ const Transaction = z.object({
   description: z.string().max(500).nullable().optional(),
   placeId: z.string().uuid().nullable().optional(),
   tagIds: z.array(z.string().uuid()).max(50).optional(),
+});
+
+const IdempotencyKey = z
+  .string()
+  .trim()
+  .min(1)
+  .max(200)
+  .optional()
+  .describe(
+    'Optional client-chosen key. Retrying the same request with the same key returns the first result instead of creating duplicates.'
+  );
+
+const TagChange = z.object({
+  transactionIds: z.array(z.string().uuid()).min(1).max(100),
+  tagIds: z.array(z.string().uuid()).min(1).max(50),
 });
 
 const Recurring = z.object({
@@ -47,6 +72,7 @@ const Recurring = z.object({
   schedule: z.string().trim().min(1).max(120),
   direction: Direction,
   tagIds: z.array(z.string().uuid()).max(50).optional(),
+  logo: CatalogLogo,
 });
 
 type ToolKind = 'read' | 'additive' | 'destructive';
@@ -300,7 +326,7 @@ export function createSpendistMcpServer(
   operation(
     tools,
     'create_place',
-    'Create a transaction place.',
+    'Create a transaction place. If a place with the same name (ignoring case, spacing and diacritics) already exists, returns it with existing: true instead of creating a duplicate.',
     z.object({
       name: z.string().trim().min(1).max(120),
       street: z.string().max(160).nullable().optional(),
@@ -308,9 +334,10 @@ export function createSpendistMcpServer(
       postalCode: z.string().max(32).nullable().optional(),
       country: z.string().max(120).nullable().optional(),
       note: z.string().max(500).nullable().optional(),
+      logo: CatalogLogo,
     }),
     ({ postalCode, ...values }) =>
-      access.create('places', { ...values, postal_code: postalCode }),
+      access.createPlace({ ...values, postal_code: postalCode }),
     'additive'
   );
   operation(
@@ -325,6 +352,7 @@ export function createSpendistMcpServer(
       postalCode: z.string().max(32).nullable().optional(),
       country: z.string().max(120).nullable().optional(),
       note: z.string().max(500).nullable().optional(),
+      logo: CatalogLogo,
     }),
     ({ id, postalCode, ...values }) =>
       access.update('places', id, { ...values, postal_code: postalCode }),
@@ -333,24 +361,67 @@ export function createSpendistMcpServer(
 
   operation(
     tools,
+    'prepare_merge_places',
+    'Preview merging duplicate places into one target place: transaction count per place, transactions that would move, and empty target fields that would be filled. Issues a five-minute, one-use confirmation token. This does not change data.',
+    z.object({
+      targetPlaceId: z.string().uuid(),
+      sourcePlaceIds: z.array(z.string().uuid()).min(1).max(50),
+    }),
+    ({ targetPlaceId, sourcePlaceIds }) =>
+      access.prepareMergePlaces(targetPlaceId, sourcePlaceIds),
+    'additive'
+  );
+  operation(
+    tools,
+    'merge_places',
+    'Merge the places covered by a valid prepare_merge_places token: move their transactions to the target place, fill its empty fields, and irreversibly delete the source places, atomically.',
+    z.object({ confirmationToken: z.string().uuid() }),
+    ({ confirmationToken }) => access.confirmMergePlaces(confirmationToken),
+    'destructive'
+  );
+  operation(
+    tools,
     'create_transaction',
-    'Create one transaction. Monetary amounts are decimal strings; relationships are IDs.',
-    Transaction,
-    (input) => access.createTransaction(input),
+    'Create one transaction. Monetary amounts are decimal strings; relationships are IDs. Returns the transaction with its transaction_tags.',
+    Transaction.extend({ idempotencyKey: IdempotencyKey }),
+    ({ idempotencyKey, ...input }) =>
+      access.createTransaction(input, idempotencyKey),
     'additive'
   );
   operation(
     tools,
     'create_transactions',
-    'Create 1 to 100 transactions.',
-    z.object({ transactions: z.array(Transaction).min(1).max(100) }),
-    ({ transactions }) => access.createTransactions(transactions),
+    'Create 1 to 100 transactions atomically: either all are stored or none is, and an error names the failing row. Returns the transactions with their transaction_tags.',
+    z.object({
+      transactions: z.array(Transaction).min(1).max(100),
+      idempotencyKey: IdempotencyKey,
+    }),
+    ({ transactions, idempotencyKey }) =>
+      access.createTransactions(transactions, idempotencyKey),
     'additive'
   );
   operation(
     tools,
+    'add_tags_to_transactions',
+    'Add the same tags to 1 to 100 transactions in one atomic call. Tags already present are kept.',
+    TagChange,
+    ({ transactionIds, tagIds }) =>
+      access.changeTransactionTags(transactionIds, tagIds, true),
+    'additive'
+  );
+  operation(
+    tools,
+    'remove_tags_from_transactions',
+    'Remove the given tags from 1 to 100 transactions in one atomic call.',
+    TagChange,
+    ({ transactionIds, tagIds }) =>
+      access.changeTransactionTags(transactionIds, tagIds, false),
+    'destructive'
+  );
+  operation(
+    tools,
     'update_transaction',
-    'Update one transaction.',
+    'Update one transaction. tagIds replaces all of its tags; an empty array clears them. Returns the transaction with its transaction_tags.',
     Id.extend({
       changes: Transaction.partial().refine(
         (value) => Object.keys(value).length > 0

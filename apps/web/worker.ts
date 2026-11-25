@@ -154,14 +154,15 @@ const withSecurityHeaders = (
     // Production pages talk only to Supabase; do not allow exfiltration to arbitrary HTTPS hosts.
     // The Angular service worker fetches the Turnstile and Web Analytics
     // scripts itself, which connect-src governs; the beacon reports to
-    // cloudflareinsights.com.
+    // cloudflareinsights.com. The logo picker reads the Dashboard Icons list
+    // and images from jsDelivr, and the service worker fetches its previews.
     headers.set(
       'Content-Security-Policy',
       CONTENT_SECURITY_POLICY.replace(
         "connect-src 'self' https: http://127.0.0.1:55321 http://localhost:55321 ws://127.0.0.1:55321 ws://localhost:55321",
         `connect-src 'self' ${supabaseConnectSources(
           env
-        )} https://challenges.cloudflare.com https://static.cloudflareinsights.com https://cloudflareinsights.com`
+        )} https://challenges.cloudflare.com https://static.cloudflareinsights.com https://cloudflareinsights.com https://cdn.jsdelivr.net`
       )
     );
   }
@@ -198,6 +199,11 @@ const withSecurityHeaders = (
 
   if (SERVICE_WORKER_ASSET_PATHS.has(pathname)) {
     headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+  }
+
+  // Bundled brand icons change only with a pinned package upgrade.
+  if (pathname.startsWith('/logos/') && response.status === 200) {
+    headers.set('Cache-Control', 'public, max-age=604800');
   }
 
   if (/^\/llms?(?:-full)?\.txt$/.test(pathname)) {

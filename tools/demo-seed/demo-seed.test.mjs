@@ -32,6 +32,8 @@ for (const locale of ['pl', 'en']) {
     assert.equal(summary.categories, 29);
     assert.equal(summary.tags, 8);
     assert.equal(summary.places, 8);
+    assert.equal(summary.logos, 8);
+    assert.equal(summary.logoFiles, 6);
     assert.equal(summary.recurringTransactions, 6);
     assert.equal(summary.recurringOccurrences, 7);
     assert.equal(summary.notifications, 4);
@@ -52,6 +54,33 @@ test('localized demo avatars are repository-managed', async () => {
     avatarObjectPath('10000000-0000-4000-8000-000000000001'),
     '10000000-0000-4000-8000-000000000001/avatar.png'
   );
+});
+
+test('demo logos are owned files or bundled icons, one file per row', async () => {
+  for (const locale of ['pl', 'en']) {
+    const dataset = generateDemoDataset(locale, OWNER);
+
+    const fileLogos = [
+      ...dataset.places,
+      ...dataset.recurringTransactions,
+    ].flatMap((item) => (item.logo?.startsWith('file:') ? [item.logo] : []));
+
+    assert.equal(new Set(fileLogos).size, dataset.logoFiles.length);
+
+    for (const file of dataset.logoFiles) {
+      assert.match(
+        file.objectPath,
+        new RegExp(`^${OWNER}/[0-9a-f-]{36}\\.png$`)
+      );
+      await access(new URL(`./assets/logos/${file.asset}`, import.meta.url));
+    }
+
+    assert.ok(
+      dataset.recurringTransactions.some(
+        (item) => item.logo === 'simple-icons:netflix:e50914'
+      )
+    );
+  }
 });
 
 test('CLI defaults to a no-write dry run', () => {

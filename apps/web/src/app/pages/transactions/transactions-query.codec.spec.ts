@@ -41,6 +41,7 @@ describe('transaction query codec', () => {
         sort: 'amountDesc',
         panel: 'tags',
         hideEmpty: '1',
+        categorySort: 'amount',
         advanced: '1',
       },
       now
@@ -58,6 +59,7 @@ describe('transaction query codec', () => {
       sort: 'amountDesc',
       panel: 'tags',
       hideEmpty: '1',
+      categorySort: 'amount',
       advanced: '1',
     });
   });
@@ -75,6 +77,7 @@ describe('transaction query codec', () => {
         sort: 'random',
         panel: 'x',
         hideEmpty: 'yes',
+        categorySort: 'size',
       },
       now
     );

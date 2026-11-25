@@ -87,8 +87,12 @@ describe('administrator navigation at the production Worker', () => {
       /script-src [^;]*https:\/\/static\.cloudflareinsights\.com;/
     );
     expect(policy).toMatch(
-      /connect-src [^;]*https:\/\/static\.cloudflareinsights\.com https:\/\/cloudflareinsights\.com;/
+      /connect-src [^;]*https:\/\/static\.cloudflareinsights\.com https:\/\/cloudflareinsights\.com /
     );
+    // The logo picker reads the Dashboard Icons list and images from jsDelivr.
+    expect(policy).toMatch(/connect-src [^;]*https:\/\/cdn\.jsdelivr\.net;/);
+    // No other third-party host may receive data.
+    expect(policy).not.toMatch(/connect-src [^;]*https: /);
     expect(response.headers.get('Content-Security-Policy')).not.toMatch(
       /localhost|127\.0\.0\.1/
     );
@@ -138,5 +142,45 @@ describe('administrator navigation at the production Worker', () => {
 
     expect(await response.text()).toBe('');
     expect(response.headers.get('Cache-Control')).toContain('no-store');
+  });
+});
+
+describe('bundled brand logos at the production Worker', () => {
+  it('lets browsers cache a bundled logo for a week', async () => {
+    const response = await worker.fetch(
+      new Request('https://spendist.app/logos/simple-icons/netflix.svg', {
+        headers: { accept: 'image/avif,image/webp,image/svg+xml,*/*' },
+      }),
+      {
+        ASSETS: {
+          fetch: async () =>
+            new Response('<svg></svg>', {
+              headers: { 'content-type': 'image/svg+xml' },
+            }),
+        },
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toBe(
+      'public, max-age=604800'
+    );
+  });
+
+  it('answers a missing logo with 404 instead of the application page', async () => {
+    const fetchAsset = vi.fn(
+      async () => new Response(null, { status: 404 })
+    );
+
+    const response = await worker.fetch(
+      new Request('https://spendist.app/logos/simple-icons/missing.svg', {
+        headers: { accept: 'image/avif,image/webp,image/svg+xml,*/*' },
+      }),
+      { ASSETS: { fetch: fetchAsset } }
+    );
+
+    expect(response.status).toBe(404);
+    expect(response.headers.get('cache-control')).toBeNull();
+    expect(fetchAsset).toHaveBeenCalledTimes(1);
   });
 });

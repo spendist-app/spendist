@@ -140,6 +140,7 @@ interface PlaceExpenseSummaryEntry {
   readonly totalAmount: number;
   readonly transactionCount: number;
   readonly latestTransactionAt: Date | null;
+  readonly logo: string | null;
 }
 
 interface PlaceExpenseSummaryState {
@@ -1152,6 +1153,7 @@ export class DashboardStore {
       latestTransactionAt: row.latest_transaction_at
         ? this.normalizeDate(row.latest_transaction_at)
         : null,
+      logo: row.logo ?? null,
     };
   }
 

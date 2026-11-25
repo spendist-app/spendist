@@ -419,41 +419,53 @@ export type Database = {
       }
       mcp_audit_events: {
         Row: {
+          affected_count: number | null
           client_id: string
           created_at: string
           error_code: string | null
           finished_at: string | null
           id: string
+          idempotency_key: string | null
           outcome: string
           owner_id: string
+          request_hash: string | null
           request_id: string
           target_id: string | null
+          target_ids: string[] | null
           target_type: string | null
           tool_name: string
         }
         Insert: {
+          affected_count?: number | null
           client_id?: string
           created_at?: string
           error_code?: string | null
           finished_at?: string | null
           id?: string
+          idempotency_key?: string | null
           outcome?: string
           owner_id: string
+          request_hash?: string | null
           request_id: string
           target_id?: string | null
+          target_ids?: string[] | null
           target_type?: string | null
           tool_name: string
         }
         Update: {
+          affected_count?: number | null
           client_id?: string
           created_at?: string
           error_code?: string | null
           finished_at?: string | null
           id?: string
+          idempotency_key?: string | null
           outcome?: string
           owner_id?: string
+          request_hash?: string | null
           request_id?: string
           target_id?: string | null
+          target_ids?: string[] | null
           target_type?: string | null
           tool_name?: string
         }
@@ -551,6 +563,54 @@ export type Database = {
           },
           {
             foreignKeyName: "mcp_delete_confirmations_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_transactions_overview"
+            referencedColumns: ["owner_id"]
+          },
+        ]
+      }
+      mcp_place_merge_confirmations: {
+        Row: {
+          created_at: string
+          expires_at: string
+          owner_id: string
+          source_ids: string[]
+          state_hash: string
+          target_id: string
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          owner_id: string
+          source_ids: string[]
+          state_hash: string
+          target_id: string
+          token?: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          owner_id?: string
+          source_ids?: string[]
+          state_hash?: string
+          target_id?: string
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mcp_place_merge_confirmations_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mcp_place_merge_confirmations_owner_id_fkey"
             columns: ["owner_id"]
             isOneToOne: false
             referencedRelation: "recurring_transactions_overview"
@@ -865,6 +925,7 @@ export type Database = {
           country: string | null
           creation_date: string
           id: string
+          logo: string | null
           name: string
           note: string | null
           owner_id: string
@@ -877,6 +938,7 @@ export type Database = {
           country?: string | null
           creation_date?: string
           id?: string
+          logo?: string | null
           name: string
           note?: string | null
           owner_id: string
@@ -889,6 +951,7 @@ export type Database = {
           country?: string | null
           creation_date?: string
           id?: string
+          logo?: string | null
           name?: string
           note?: string | null
           owner_id?: string
@@ -1100,6 +1163,7 @@ export type Database = {
           id: string
           is_paused: boolean
           last_run_at: string | null
+          logo: string | null
           name: string
           owner_id: string
           paused_at: string | null
@@ -1123,6 +1187,7 @@ export type Database = {
           id?: string
           is_paused?: boolean
           last_run_at?: string | null
+          logo?: string | null
           name: string
           owner_id: string
           paused_at?: string | null
@@ -1146,6 +1211,7 @@ export type Database = {
           id?: string
           is_paused?: boolean
           last_run_at?: string | null
+          logo?: string | null
           name?: string
           owner_id?: string
           paused_at?: string | null
@@ -1742,6 +1808,54 @@ export type Database = {
         Args: { p_app_metadata: Json; p_email: string; p_id: string }
         Returns: boolean
       }
+      mcp_change_transaction_tags: {
+        Args: {
+          p_add: boolean
+          p_client_id?: string
+          p_tag_ids: string[]
+          p_transaction_ids: string[]
+        }
+        Returns: Json
+      }
+      mcp_confirm_place_merge: {
+        Args: { p_client_id?: string; p_token: string }
+        Returns: Json
+      }
+      mcp_create_transactions: {
+        Args: {
+          p_client_id?: string
+          p_idempotency_key?: string
+          p_tool_name?: string
+          p_transactions: Json
+        }
+        Returns: Json
+      }
+      mcp_owned_tag_ids: {
+        Args: { p_label: string; p_tag_ids: Json }
+        Returns: string[]
+      }
+      mcp_prepare_place_merge: {
+        Args: {
+          p_client_id?: string
+          p_source_ids: string[]
+          p_target_id: string
+        }
+        Returns: Json
+      }
+      mcp_transaction_columns: {
+        Args: { p_label: string; p_require_all: boolean; p_values: Json }
+        Returns: Json
+      }
+      mcp_transactions_with_tags: { Args: { p_ids: string[] }; Returns: Json }
+      mcp_update_transaction: {
+        Args: { p_changes: Json; p_client_id?: string; p_id: string }
+        Returns: Json
+      }
+      mcp_write_client: { Args: { p_fallback: string }; Returns: string }
+      merge_places: {
+        Args: { p_source_ids: string[]; p_target_id: string }
+        Returns: Json
+      }
       monthly_cashflow_summary: {
         Args: { p_months?: number; p_wallet_id?: string }
         Returns: {
@@ -1782,6 +1896,7 @@ export type Database = {
           city: string
           country: string
           latest_transaction_at: string
+          logo: string
           place_id: string
           place_name: string
           postal_code: string
@@ -1789,6 +1904,38 @@ export type Database = {
           total_amount: number
           transaction_count: number
         }[]
+      }
+      place_merge_preview: {
+        Args: { p_source_ids: string[]; p_target_id: string }
+        Returns: Json
+      }
+      place_merge_sources: {
+        Args: { p_source_ids: string[]; p_target_id: string }
+        Returns: string[]
+      }
+      place_merge_state: { Args: { p_place_ids: string[] }; Returns: string }
+      place_name_key: { Args: { p_name: string }; Returns: string }
+      places_matching_name: {
+        Args: { p_name: string }
+        Returns: {
+          city: string | null
+          country: string | null
+          creation_date: string
+          id: string
+          logo: string | null
+          name: string
+          note: string | null
+          owner_id: string
+          postal_code: string | null
+          street: string | null
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "places"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       resolve_preferred_currency_id: {
         Args: { user_meta: Json }

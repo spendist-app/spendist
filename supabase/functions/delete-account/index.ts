@@ -6,9 +6,13 @@ type DeleteAccountBody = {
   password?: string;
 };
 
-const AVATAR_BUCKET = 'avatars';
+// Buckets that keep user files in a `{userId}/` folder.
+const USER_FILE_BUCKETS = [
+  { bucket: 'avatars', failureCode: 'avatar_cleanup_failed' },
+  { bucket: 'logos', failureCode: 'logo_cleanup_failed' },
+] as const;
 
-const MAX_AVATAR_BATCHES = 20;
+const MAX_CLEANUP_BATCHES = 20;
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Headers':
@@ -92,10 +96,12 @@ async function handleRequest(request: Request): Promise<Response> {
     return json({ code: 'invalid_password' }, 403);
   }
 
-  const avatarError = await deleteAvatarObjects(admin, user.id);
+  for (const { bucket, failureCode } of USER_FILE_BUCKETS) {
+    const cleanupError = await deleteUserObjects(admin, bucket, user.id);
 
-  if (avatarError) {
-    return json({ code: 'avatar_cleanup_failed' }, 500);
+    if (cleanupError) {
+      return json({ code: failureCode }, 500);
+    }
   }
 
   // Detaching Allowance records shared with another account and deleting the
@@ -111,13 +117,14 @@ async function handleRequest(request: Request): Promise<Response> {
   return json({ deleted: true }, 200);
 }
 
-async function deleteAvatarObjects(
+async function deleteUserObjects(
   admin: SupabaseClient,
+  bucket: string,
   userId: string
 ): Promise<Error | null> {
-  for (let batch = 0; batch < MAX_AVATAR_BATCHES; batch += 1) {
+  for (let batch = 0; batch < MAX_CLEANUP_BATCHES; batch += 1) {
     const { data, error } = await admin.storage
-      .from(AVATAR_BUCKET)
+      .from(bucket)
       .list(userId, { limit: 1000 });
 
     if (error) {
@@ -133,7 +140,7 @@ async function deleteAvatarObjects(
     }
 
     const { error: removeError } = await admin.storage
-      .from(AVATAR_BUCKET)
+      .from(bucket)
       .remove(paths);
 
     if (removeError) {
@@ -141,7 +148,7 @@ async function deleteAvatarObjects(
     }
   }
 
-  return new Error('Avatar cleanup exceeded the batch limit.');
+  return new Error(`Cleanup of ${bucket} exceeded the batch limit.`);
 }
 
 async function parseBody(request: Request): Promise<DeleteAccountBody> {

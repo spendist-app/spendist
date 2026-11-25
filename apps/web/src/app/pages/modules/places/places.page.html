@@ -11,6 +11,42 @@
     </button>
   </header>
 
+  <p role="status" class="text-sm font-semibold text-success empty:hidden">
+    @if (notice(); as message) {
+      {{ message }}
+    }
+  </p>
+
+  @if (duplicateGroups().length > 0) {
+    <section
+      class="rounded-2xl border border-warning/40 bg-warning/5 p-4"
+      aria-labelledby="places-duplicates-title"
+    >
+      <h2 id="places-duplicates-title" class="text-sm font-semibold">
+        {{ 'places.duplicates.title' | transloco }}
+      </h2>
+      <ul class="mt-2 space-y-2">
+        @for (group of duplicateGroups(); track group[0].id) {
+          <li class="flex flex-wrap items-center justify-between gap-2 text-sm">
+            <span class="min-w-0">
+              @for (place of group; track place.id; let last = $last) {
+                <span class="font-medium">“{{ place.name }}”</span>@if (!last) {<span>, </span>}
+              }
+            </span>
+            <button
+              type="button"
+              class="btn btn-sm btn-outline"
+              [disabled]="store.mutationPending()"
+              (click)="openMerge(group)"
+            >
+              {{ 'places.duplicates.review' | transloco }}
+            </button>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
   @if (store.error(); as error) {
     <div class="rounded-2xl border border-error/40 bg-error/5 p-4">
       <p class="text-sm font-semibold text-error">
@@ -49,6 +85,26 @@
         </p>
       </div>
 
+      @if (selectedIds().size > 0) {
+        <div class="mt-4 flex flex-wrap items-center gap-2 rounded-2xl bg-base-200 p-3">
+          <span class="text-sm font-semibold">
+            {{ 'places.merge.selected' | transloco: { count: selectedIds().size } }}
+          </span>
+          <span class="flex-1"></span>
+          <button type="button" class="btn btn-ghost btn-sm" (click)="clearSelection()">
+            {{ 'places.merge.clearSelection' | transloco }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary btn-sm"
+            [disabled]="selectedIds().size < 2 || store.mutationPending()"
+            (click)="openMerge()"
+          >
+            {{ 'places.merge.start' | transloco }}
+          </button>
+        </div>
+      }
+
       <div class="mt-6">
         @if (store.loading()) {
           <div class="space-y-3">
@@ -69,20 +125,30 @@
             @for (place of visiblePlaces(); track place.id) {
               <article class="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm">
                 <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                  <div class="min-w-0 space-y-1">
-                    <h2 class="truncate text-lg font-semibold text-base-content">
-                      {{ place.name }}
-                    </h2>
-                    @if (formatAddress(place); as address) {
-                      <p class="text-sm text-base-content/70">{{ address }}</p>
-                    } @else {
-                      <p class="text-sm text-base-content/50">
-                        {{ 'places.noAddress' | transloco }}
-                      </p>
-                    }
-                    @if (place.note) {
-                      <p class="text-sm text-base-content/60">{{ place.note }}</p>
-                    }
+                  <div class="flex min-w-0 items-start gap-3">
+                    <input
+                      type="checkbox"
+                      class="checkbox checkbox-sm mt-1.5"
+                      [checked]="isSelected(place.id)"
+                      [attr.aria-label]="'places.merge.select' | transloco: { name: place.name }"
+                      (change)="toggleSelected(place.id)"
+                    />
+                    <app-logo [logo]="place.logo" size="md" />
+                    <div class="min-w-0 space-y-1">
+                      <h2 class="truncate text-lg font-semibold text-base-content">
+                        {{ place.name }}
+                      </h2>
+                      @if (formatAddress(place); as address) {
+                        <p class="text-sm text-base-content/70">{{ address }}</p>
+                      } @else {
+                        <p class="text-sm text-base-content/50">
+                          {{ 'places.noAddress' | transloco }}
+                        </p>
+                      }
+                      @if (place.note) {
+                        <p class="text-sm text-base-content/60">{{ place.note }}</p>
+                      }
+                    </div>
                   </div>
 
                   <div class="flex shrink-0 gap-2">
@@ -132,10 +198,16 @@
             <input class="input input-bordered" formControlName="name" appFieldError="place-name-error" maxlength="120" />
             @if (form.controls.name.touched && form.controls.name.invalid) {
               <span id="place-name-error" class="mt-1 text-xs text-error">
-                {{ 'places.form.validation.name' | transloco }}
+                @if (form.controls.name.hasError('duplicate') && duplicateOf(); as existing) {
+                  {{ 'places.errors.duplicate' | transloco: { name: existing.name } }}
+                } @else {
+                  {{ 'places.form.validation.name' | transloco }}
+                }
               </span>
             }
           </label>
+
+          <app-logo-field [(draft)]="logoDraft" [name]="form.controls.name.value" />
 
           <label class="form-control">
             <span class="label-text font-semibold">
@@ -204,3 +276,11 @@
     </aside>
   </div>
 </section>
+
+@if (mergeOpen()) {
+  <app-place-merge-dialog
+    [places]="selectedPlaces()"
+    (merged)="onMerged($event)"
+    (closed)="closeMerge()"
+  />
+}

@@ -144,6 +144,24 @@ function recurringDefinitions(fixture) {
   }));
 }
 
+const LOGO_PATTERN =
+  /^(simple-icons:[a-z0-9_]{1,64}:[0-9a-f]{6}|file:[0-9a-f-]{36}\.(webp|png))$/;
+
+/**
+ * Turns a fixture logo into the stored value. An asset logo becomes a file
+ * logo with its own deterministic object in the owner's `logos` folder.
+ */
+function resolveLogo(locale, ownerId, key, spec, logoFiles) {
+  if (!spec) return null;
+
+  if (spec.icon) return spec.icon;
+
+  const fileName = `${uuidFor(locale, 'logo', key)}.png`;
+  logoFiles.push({ asset: spec.asset, objectPath: `${ownerId}/${fileName}` });
+
+  return `file:${fileName}`;
+}
+
 function transactionDescription(fixture, categoryKey, random) {
   const options =
     fixture.descriptions[categoryKey] ?? fixture.descriptions.default;
@@ -245,6 +263,8 @@ export function generateDemoDataset(locale, ownerId) {
     fixture.places.map(([key]) => [key, uuidFor(locale, 'place', key)])
   );
 
+  const logoFiles = [];
+
   const places = fixture.places.map(([key, name, street, postalCode]) => ({
     id: placeIds[key],
     owner_id: ownerId,
@@ -257,6 +277,13 @@ export function generateDemoDataset(locale, ownerId) {
       locale === 'pl'
         ? 'Fikcyjne miejsce demonstracyjne'
         : 'Fictional demo location',
+    logo: resolveLogo(
+      locale,
+      ownerId,
+      `place:${key}`,
+      fixture.placeLogos[key],
+      logoFiles
+    ),
   }));
 
   const walletIds = Object.fromEntries(
@@ -289,6 +316,13 @@ export function generateDemoDataset(locale, ownerId) {
     category_id: categoryIds[item.categoryKey],
     wallet_id: walletIds.main,
     name: item.name,
+    logo: resolveLogo(
+      locale,
+      ownerId,
+      `recurring:${item.key}`,
+      fixture.recurringLogos[item.key],
+      logoFiles
+    ),
     start_date: '2026-01-01',
     end_date: null,
     schedule: `0 8 ${item.day} * *`,
@@ -544,6 +578,7 @@ export function generateDemoDataset(locale, ownerId) {
     transactionTags,
     occurrences,
     notifications,
+    logoFiles,
   };
 }
 
@@ -576,6 +611,10 @@ export function summarizeDataset(dataset) {
     categories: dataset.categories.length,
     tags: dataset.tags.length,
     places: dataset.places.length,
+    logos:
+      dataset.places.filter((item) => item.logo).length +
+      dataset.recurringTransactions.filter((item) => item.logo).length,
+    logoFiles: dataset.logoFiles.length,
     recurringTransactions: dataset.recurringTransactions.length,
     recurringOccurrences: dataset.occurrences.length,
     notifications: dataset.notifications.length,
@@ -636,6 +675,22 @@ export function validateDataset(dataset) {
     )
   )
     errors.push('Unsupported currency.');
+
+  const logos = [...dataset.places, ...dataset.recurringTransactions].flatMap(
+    (item) => (item.logo ? [item.logo] : [])
+  );
+
+  if (logos.some((logo) => logo.length > 96 || !LOGO_PATTERN.test(logo)))
+    errors.push('Logos must match the database logo format.');
+
+  if (
+    dataset.logoFiles.some(
+      (file) =>
+        !file.objectPath.startsWith(`${dataset.profile.id}/`) ||
+        !logos.includes(`file:${file.objectPath.split('/')[1]}`)
+    )
+  )
+    errors.push('Every logo file must belong to the owner and one row.');
 
   if (errors.length) throw new Error(errors.join(' '));
 

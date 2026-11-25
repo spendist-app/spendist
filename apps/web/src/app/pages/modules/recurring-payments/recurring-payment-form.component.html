@@ -100,6 +100,11 @@
           }
         </div>
 
+        <app-logo-field
+          [(draft)]="logoDraft"
+          [name]="nameControl.value ?? ''"
+        />
+
         <div class="grid gap-2">
           <label
             class="text-sm font-semibold text-base-content"

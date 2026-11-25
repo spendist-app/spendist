@@ -71,6 +71,7 @@ class TransactionsStoreStub {
       postalCode: null,
       country: null,
       note: null,
+      logo: 'simple-icons:netflix:e50914',
     },
   ]);
   readonly currencies = signal([
@@ -131,6 +132,7 @@ class TransactionsStoreStub {
       postalCode: payload.postalCode || null,
       country: payload.country || null,
       note: payload.note || null,
+      logo: null,
     };
 
     this.places.update((places) => [...places, place]);
@@ -778,6 +780,7 @@ describe('TransactionCreateFormComponent', () => {
       isAutomatic: false,
       recurringTransactionId: null,
       recurringTransactionName: null,
+      recurringTransactionLogo: null,
       recurringScheduledFor: null,
       createdAt: new Date('2026-05-29T08:15:00Z'),
       updatedAt: new Date('2026-05-30T11:45:00Z'),

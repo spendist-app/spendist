@@ -5,6 +5,9 @@ import { AuthService } from '../../../core/auth.service';
 import { logError } from '../../../core/logger';
 import { SUPABASE_CLIENT } from '../../../core/supabase';
 import type { PlaceRow } from '@spendist/data-access/supabase-types';
+import { findPlaceByName } from '../../../shared/place-name/place-name';
+import { LogoService } from '../../../shared/logo/logo.service';
+import { type LogoDraft, parseLogo } from '../../../shared/logo/logo';
 
 export interface PlaceEntity {
   readonly id: string;
@@ -15,6 +18,7 @@ export interface PlaceEntity {
   readonly postalCode: string | null;
   readonly country: string | null;
   readonly note: string | null;
+  readonly logo: string | null;
 }
 
 export interface PlacePayload {
@@ -24,7 +28,40 @@ export interface PlacePayload {
   readonly postalCode: string | null;
   readonly country: string | null;
   readonly note: string | null;
+  readonly logo: LogoDraft;
 }
+
+const PlaceMergePreviewSchema = z.object({
+  targetPlaceId: z.string(),
+  sourcePlaceIds: z.array(z.string()),
+  places: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      city: z.string().nullable(),
+      logo: z.string().nullable().catch(null),
+      isTarget: z.boolean(),
+      transactionCount: z.number().int().nonnegative(),
+    })
+  ),
+  movedTransactions: z.number().int().nonnegative(),
+  filledFields: z.array(
+    z.enum(['street', 'city', 'postalCode', 'country', 'note'])
+  ),
+  /** The kept place has no logo and takes one from a merged place. */
+  fillsLogo: z.boolean().catch(false),
+});
+
+const PlaceMergeResultSchema = z.object({
+  place: z.object({ logo: z.string().nullable().catch(null) }).optional(),
+  mergedPlaceIds: z.array(z.string()),
+  movedTransactions: z.number().int().nonnegative(),
+});
+
+/** What merging the source places into the target place would change. */
+export type PlaceMergePreview = z.infer<typeof PlaceMergePreviewSchema>;
+
+export type PlaceMergeResult = z.infer<typeof PlaceMergeResultSchema>;
 
 interface PlacesState {
   readonly loading: boolean;
@@ -40,10 +77,19 @@ class PlacesStoreError extends Error {
   }
 }
 
+/** A place with the same normalized name already exists. */
+export class PlaceDuplicateError extends PlacesStoreError {
+  constructor(readonly existing: PlaceEntity) {
+    super('places.errors.duplicate');
+    this.name = 'PlaceDuplicateError';
+  }
+}
+
 @Injectable()
 export class PlacesStore {
   private readonly supabase = inject(SUPABASE_CLIENT);
   private readonly auth = inject(AuthService);
+  private readonly logos = inject(LogoService);
   private readonly userId = signal<string | null>(null);
   private readonly state = signal<PlacesState>({
     loading: true,
@@ -130,28 +176,33 @@ export class PlacesStore {
   async createPlace(payload: PlacePayload): Promise<PlaceEntity> {
     const userId = this.requireUserId();
     const normalized = this.normalizePayload(payload);
+    this.rejectDuplicateName(normalized.name, null);
     this.setPending(true);
 
     try {
-      const { data, error } = await this.supabase
-        .from('places')
-        .insert({
-          owner_id: userId,
-          name: normalized.name,
-          street: normalized.street,
-          city: normalized.city,
-          postal_code: normalized.postalCode,
-          country: normalized.country,
-          note: normalized.note,
-        })
-        .select('*')
-        .single();
+      const place = await this.logos.save(payload.logo, null, async (logo) => {
+        const { data, error } = await this.supabase
+          .from('places')
+          .insert({
+            owner_id: userId,
+            name: normalized.name,
+            street: normalized.street,
+            city: normalized.city,
+            postal_code: normalized.postalCode,
+            country: normalized.country,
+            note: normalized.note,
+            logo,
+          })
+          .select('*')
+          .single();
 
-      if (error) {
-        throw error;
-      }
+        if (error) {
+          throw error;
+        }
 
-      const place = this.mapPlaceRow(this.requireRow(data));
+        return this.mapPlaceRow(this.requireRow(data));
+      });
+
       this.state.update((state) => ({
         ...state,
         error: null,
@@ -171,29 +222,39 @@ export class PlacesStore {
   async updatePlace(placeId: string, payload: PlacePayload): Promise<void> {
     const userId = this.requireUserId();
     const normalized = this.normalizePayload(payload);
+    this.rejectDuplicateName(normalized.name, placeId);
+    const previousLogo = this.findPlace(placeId)?.logo ?? null;
     this.setPending(true);
 
     try {
-      const { data, error } = await this.supabase
-        .from('places')
-        .update({
-          name: normalized.name,
-          street: normalized.street,
-          city: normalized.city,
-          postal_code: normalized.postalCode,
-          country: normalized.country,
-          note: normalized.note,
-        })
-        .eq('owner_id', userId)
-        .eq('id', placeId)
-        .select('*')
-        .single();
+      const place = await this.logos.save(
+        payload.logo,
+        previousLogo,
+        async (logo) => {
+          const { data, error } = await this.supabase
+            .from('places')
+            .update({
+              name: normalized.name,
+              street: normalized.street,
+              city: normalized.city,
+              postal_code: normalized.postalCode,
+              country: normalized.country,
+              note: normalized.note,
+              logo,
+            })
+            .eq('owner_id', userId)
+            .eq('id', placeId)
+            .select('*')
+            .single();
 
-      if (error) {
-        throw error;
-      }
+          if (error) {
+            throw error;
+          }
 
-      const place = this.mapPlaceRow(this.requireRow(data));
+          return this.mapPlaceRow(this.requireRow(data));
+        }
+      );
+
       this.state.update((state) => ({
         ...state,
         error: null,
@@ -212,6 +273,7 @@ export class PlacesStore {
 
   async deletePlace(placeId: string): Promise<void> {
     const userId = this.requireUserId();
+    const logo = this.findPlace(placeId)?.logo ?? null;
     this.setPending(true);
 
     try {
@@ -230,6 +292,73 @@ export class PlacesStore {
         error: null,
         places: state.places.filter((place) => place.id !== placeId),
       }));
+      await this.logos.removeFile(logo);
+    } catch (error) {
+      const message = this.describeError(error);
+      this.state.update((state) => ({ ...state, error: message }));
+      throw new PlacesStoreError(message);
+    } finally {
+      this.setPending(false);
+    }
+  }
+
+  /** Counts the transactions each place has and what a merge would move. */
+  async previewMerge(
+    targetPlaceId: string,
+    sourcePlaceIds: readonly string[]
+  ): Promise<PlaceMergePreview> {
+    const { data, error } = await this.supabase.rpc('place_merge_preview', {
+      p_target_id: targetPlaceId,
+      p_source_ids: [...sourcePlaceIds],
+    });
+
+    if (error) {
+      throw new PlacesStoreError(this.describeError(error));
+    }
+
+    return PlaceMergePreviewSchema.parse(data);
+  }
+
+  /**
+   * Moves every transaction of the source places to the target place, fills
+   * the target's empty fields from the sources and deletes the sources, in one
+   * database transaction.
+   */
+  async mergePlaces(
+    targetPlaceId: string,
+    sourcePlaceIds: readonly string[]
+  ): Promise<PlaceMergeResult> {
+    const logosBefore = [targetPlaceId, ...sourcePlaceIds].map(
+      (placeId) => this.findPlace(placeId)?.logo ?? null
+    );
+
+    this.setPending(true);
+
+    try {
+      const { data, error } = await this.supabase.rpc('merge_places', {
+        p_target_id: targetPlaceId,
+        p_source_ids: [...sourcePlaceIds],
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      const result = PlaceMergeResultSchema.parse(data);
+      await this.refresh();
+
+      // The kept place may adopt one merged logo; files of the others go.
+      // The kept logo comes from the merge result, never from a refresh that
+      // might have failed.
+      if (result.place) {
+        const keptLogo = result.place.logo;
+
+        for (const logo of new Set(logosBefore)) {
+          if (logo !== keptLogo) await this.logos.removeFile(logo);
+        }
+      }
+
+      return result;
     } catch (error) {
       const message = this.describeError(error);
       this.state.update((state) => ({ ...state, error: message }));
@@ -246,7 +375,7 @@ export class PlacesStore {
     }));
   }
 
-  private normalizePayload(payload: PlacePayload): PlacePayload {
+  private normalizePayload(payload: PlacePayload): Omit<PlacePayload, 'logo'> {
     const name = payload.name.trim();
 
     if (!name) {
@@ -261,6 +390,18 @@ export class PlacesStore {
       country: this.emptyToNull(payload.country, 80),
       note: this.emptyToNull(payload.note, 500),
     };
+  }
+
+  private findPlace(placeId: string): PlaceEntity | undefined {
+    return this.places().find((place) => place.id === placeId);
+  }
+
+  private rejectDuplicateName(name: string, exceptId: string | null): void {
+    const existing = findPlaceByName(this.places(), name, exceptId);
+
+    if (existing) {
+      throw new PlaceDuplicateError(existing);
+    }
   }
 
   private emptyToNull(
@@ -300,6 +441,7 @@ export class PlacesStore {
       postalCode: row.postal_code ?? null,
       country: row.country ?? null,
       note: row.note ?? null,
+      logo: parseLogo(row.logo) ? row.logo : null,
     };
   }
 
