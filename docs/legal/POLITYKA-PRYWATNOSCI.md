@@ -14,7 +14,7 @@ Polityka nie dotyczy własnych instancji oprogramowania prowadzonych przez osoby
 
 | Cel | Dane | Podstawa prawna |
 | --- | --- | --- |
-| Utworzenie Konta i działanie Aplikacji | e-mail, nazwa profilu, nazwa użytkownika, identyfikator Konta, język, strefa czasowa, waluta, opcjonalny avatar; transakcje, kwoty, daty, opisy, portfele, kategorie, grupy, tagi, miejsca, płatności cykliczne, dane modułów i powiadomienia | wykonanie umowy — art. 6 ust. 1 lit. b RODO |
+| Utworzenie Konta i działanie Aplikacji | e-mail, nazwa profilu, nazwa użytkownika, identyfikator Konta, język, strefa czasowa, waluta, opcjonalny avatar; transakcje, kwoty, daty, opisy, portfele, kategorie, grupy, tagi, miejsca i płatności cykliczne z opcjonalnymi logo, dane modułów i powiadomienia | wykonanie umowy — art. 6 ust. 1 lit. b RODO |
 | Potwierdzenie rejestracji | oświadczenie o ukończeniu 18 lat, wersje dokumentów i czas ich zaakceptowania/zapoznania się z nimi | wykonanie umowy oraz uzasadniony interes w dokumentowaniu jej zawarcia — art. 6 ust. 1 lit. b i f RODO |
 | Logowanie i bezpieczeństwo | informacje o sesji i uwierzytelnianiu, adres IP, czas żądania, urządzenie i przeglądarka, logi techniczne; metadane autoryzacji i audytu MCP | wykonanie umowy oraz uzasadniony interes w zabezpieczeniu i utrzymaniu usługi — art. 6 ust. 1 lit. b i f RODO |
 | Kontakt i reklamacje | adres nadawcy, treść korespondencji i informacje potrzebne do obsługi zgłoszenia | wykonanie umowy oraz uzasadniony interes w obsłudze zgłoszeń — art. 6 ust. 1 lit. b i f RODO |
@@ -35,15 +35,18 @@ Audyt zmian MCP zapisuje identyfikator klienta, narzędzie, identyfikatory obiek
 
 ## 4. Dostawcy i odbiorcy
 
-- **Supabase** — uwierzytelnianie, baza danych, pliki avatarów i backend. Główna baza projektu znajduje się w regionie **eu-west-2, Londyn, Wielka Brytania**. Nie oznacza to, że wszystkie operacje dostawcy odbywają się tylko w tym regionie. [Warunki przetwarzania Supabase](https://supabase.com/legal/customer-resources/data-processing-addendum).
+- **Supabase** — uwierzytelnianie, baza danych, pliki avatarów i logo oraz backend. Główna baza projektu znajduje się w regionie **eu-west-2, Londyn, Wielka Brytania**. Nie oznacza to, że wszystkie operacje dostawcy odbywają się tylko w tym regionie. [Warunki przetwarzania Supabase](https://supabase.com/legal/customer-resources/data-processing-addendum).
 - **Cloudflare** — hosting, obsługa i ochrona ruchu, a także przekierowanie wiadomości przychodzących do `@spendist.app` do skrzynki Administratora. [Warunki przetwarzania Cloudflare](https://www.cloudflare.com/cloudflare-customer-dpa/).
 - **Google / Gmail** — odbieranie korespondencji i wysyłanie wiadomości przez prywatną skrzynkę Administratora. Nie jest to obecnie Google Workspace. Wiadomości i ich metadane są obsługiwane również zgodnie z [polityką prywatności Google](https://policies.google.com/privacy?hl=pl). Nie należy przesyłać pocztą haseł ani pełnych eksportów finansowych, jeśli nie jest to potrzebne do zgłoszenia.
+- **jsDelivr**, publiczna sieć dostarczania treści, udostępnia katalog logo Dashboard Icons wyłącznie po wybraniu przez Użytkownika opcji „Szukaj więcej logo” podczas wyboru logo. Przeglądarka pobiera wtedy katalog i podglądy obrazków bezpośrednio z jsDelivr, który otrzymuje adres IP, czas zapytania i dane techniczne przeglądarki. Spendist nie przekazuje mu danych Konta ani danych finansowych. Wybrany obrazek jest kopiowany na Konto, więc zapisane logo nie są pobierane z jsDelivr. [Polityka prywatności jsDelivr](https://www.jsdelivr.com/terms/privacy-policy-jsdelivr-net).
 - **Google Analytics** — statystyki publicznych treści po zgodzie, opisane w pkt 7. [Polityka prywatności Google](https://policies.google.com/privacy?hl=pl) i [informacje o danych w Analytics](https://support.google.com/analytics/answer/6004245?hl=pl).
 - **Zewnętrzni klienci autoryzowani przez Użytkownika** oraz drugi uczestnik Kieszonkowego — tylko w zakresie opisanym w pkt 3.
 
 Amazon SES jest przygotowywany do wiadomości transakcyjnych, ale nie jest jeszcze skonfigurowany. Przed jego uruchomieniem zaktualizujemy informacje o używanej usłudze. Nie traktujemy planowanej konfiguracji jako działającej.
 
 Nowe Konta nie pobierają automatycznych avatarów z DiceBear; wcześniejsze domyślne adresy DiceBear są zastępowane w interfejsie lokalnymi inicjałami. Jeżeli Użytkownik ma avatar z innego zewnętrznego adresu, pobranie obrazka może ujawnić temu serwerowi adres IP i dane techniczne przeglądarki.
+
+Avatary oraz logo wgrane lub wybrane dla miejsc i płatności cyklicznych są przechowywane w folderze Użytkownika w publicznym zasobniku plików. Każda osoba znająca dokładny adres takiego obrazka może go otworzyć bez logowania. Serwis nie publikuje tych adresów, a adres logo zawiera dodatkowo losowy identyfikator. Nie należy wgrywać jako logo obrazków zawierających dane osobowe lub finansowe.
 
 Dostęp administracyjny do projektu ma obecnie wyłącznie Administrator. Dane mogą zostać udostępnione właściwym organom, jeżeli wymaga tego prawo.
 
@@ -53,7 +56,7 @@ Wielka Brytania znajduje się poza Europejskim Obszarem Gospodarczym. Dostawcy k
 
 ## 6. Jak długo przechowujemy dane
 
-- Dane Konta i własne rekordy finansowe przechowujemy przez czas istnienia Konta. Samodzielne usunięcie Konta w ustawieniach usuwa Konto, pliki avatarów i przypisane mu rekordy produkcyjne po poprawnym zakończeniu operacji. Nie ma okresu przywracania Konta. Niektóre informacje stanowiące własne rekordy drugiego uczestnika Kieszonkowego mogą pozostać na jego Koncie.
+- Dane Konta i własne rekordy finansowe przechowujemy przez czas istnienia Konta. Samodzielne usunięcie Konta w ustawieniach usuwa Konto, pliki avatarów i logo oraz przypisane mu rekordy produkcyjne po poprawnym zakończeniu operacji. Nie ma okresu przywracania Konta. Niektóre informacje stanowiące własne rekordy drugiego uczestnika Kieszonkowego mogą pozostać na jego Koncie.
 - Wniosek o usunięcie lub realizację innych praw można również przesłać e-mailem. Odpowiadamy bez zbędnej zwłoki, zasadniczo w ciągu miesiąca; jeżeli przepisy pozwalają na przedłużenie, poinformujemy o przyczynie i terminie. Nie jest to okres automatycznego odroczenia samodzielnego usunięcia Konta.
 - Logi infrastruktury są przechowywane zgodnie z konfiguracją i aktualnym planem dostawcy. Dane diagnostyczne, które wyodrębnimy w związku z awarią lub incydentem, zachowujemy przez czas wyjaśniania i zabezpieczenia sprawy. Audyt dostępu MCP jest związany z Kontem. Nie deklarujemy wspólnego, niezweryfikowanego okresu 90 dni dla wszystkich logów.
 - Korespondencję zachowujemy przez czas potrzebny do obsługi sprawy, a gdy jest niezbędna do udokumentowania obowiązku lub roszczenia — przez właściwy okres wynikający z prawa i przedawnienia. Niepotrzebną korespondencję usuwamy.
