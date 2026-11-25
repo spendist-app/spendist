@@ -18,6 +18,8 @@ export interface SpendistConnection {
   publishableKey: string;
   accessToken: string;
   clientId: string;
+  /** User ID already verified for this access token, e.g. by the Worker gate. */
+  userId?: string;
 }
 
 export interface PageInput {
@@ -62,6 +64,17 @@ type ManagedTable =
 type TableInsert<T extends TableName> = PublicTables[T]['Insert'];
 
 type TableUpdate<T extends TableName> = PublicTables[T]['Update'];
+
+/** One transaction row with its tag IDs, as returned by the MCP write RPCs. */
+const TransactionWithTags = z.looseObject({
+  id: z.string(),
+  transaction_tags: z.array(z.object({ tag_id: z.string() })),
+});
+
+const CreatedTransactions = z.object({
+  items: z.array(TransactionWithTags),
+  replayed: z.boolean(),
+});
 
 function assertAmount(value: string): number {
   if (!/^\d+(?:\.\d{1,2})?$/.test(value)) {
@@ -117,6 +130,7 @@ export class SpendistDataAccess {
   private userId?: string;
 
   constructor(readonly connection: SpendistConnection) {
+    this.userId = connection.userId;
     this.client = createClient<Database>(
       connection.supabaseUrl,
       connection.publishableKey,
@@ -355,66 +369,60 @@ export class SpendistDataAccess {
     return relation.symbol;
   }
 
-  async createTransaction(input: TransactionInput) {
-    const ownerId = await this.authenticate();
-    const amount = assertAmount(input.amount);
-    const currency = await this.walletCurrency(input.walletId);
-
-    return this.mutate(
+  /**
+   * Creates one transaction through the same atomic RPC as a batch, so the row,
+   * its tags and the audit event are stored together.
+   */
+  async createTransaction(input: TransactionInput, idempotencyKey?: string) {
+    const { items } = await this.insertTransactions(
       'create_transaction',
-      'transaction',
-      undefined,
-      async () => {
-        const { tagIds = [], ...rest } = input;
+      [input],
+      idempotencyKey
+    );
 
-        const payload: PublicTables['transactions']['Insert'] = {
-          amount,
-          amount_in_default: amount,
-          category_id: rest.categoryId,
-          currency,
-          description: rest.description ?? null,
-          direction: rest.direction,
-          occurred_at: rest.occurredAt,
-          owner_id: ownerId,
-          place_id: rest.placeId ?? null,
-          wallet_id: rest.walletId,
-        };
+    const [item] = items;
 
-        const { data, error } = await this.client
-          .from('transactions')
-          .insert(payload)
-          .select()
-          .single();
+    if (!item) throw new Error('Transaction was not created.');
 
-        if (error) databaseError(error);
+    return item;
+  }
 
-        if (tagIds.length) {
-          const rows = [...new Set(tagIds)].map((tagId) => ({
-            owner_id: ownerId,
-            transaction_id: data.id,
-            tag_id: tagId,
-          }));
+  /**
+   * Creates 1-100 transactions in one database call and one database
+   * transaction: either every row is stored or none is. The cost in Worker
+   * subrequests does not depend on the batch size.
+   */
+  async createTransactions(
+    inputs: TransactionInput[],
+    idempotencyKey?: string
+  ) {
+    if (inputs.length < 1 || inputs.length > 100)
+      throw new Error('Batch size must be between 1 and 100.');
 
-          const { error: tagError } = await this.client
-            .from('transaction_tags')
-            .insert(rows);
-
-          if (tagError) databaseError(tagError);
-        }
-
-        return data;
-      }
+    return this.insertTransactions(
+      'create_transactions',
+      inputs,
+      idempotencyKey
     );
   }
 
-  async createTransactions(inputs: TransactionInput[]) {
-    if (inputs.length < 1 || inputs.length > 100)
-      throw new Error('Batch size must be between 1 and 100.');
-    const items = [];
+  private async insertTransactions(
+    toolName: 'create_transaction' | 'create_transactions',
+    inputs: TransactionInput[],
+    idempotencyKey: string | undefined
+  ) {
+    return this.atomicMutation(toolName, 'transaction', undefined, async () => {
+      const { data, error } = await this.client.rpc('mcp_create_transactions', {
+        p_transactions: inputs.map(transactionJson),
+        p_idempotency_key: idempotencyKey,
+        p_client_id: this.connection.clientId,
+        p_tool_name: toolName,
+      });
 
-    for (const input of inputs) items.push(await this.createTransaction(input));
+      if (error) databaseError(error);
 
-    return { items };
+      return CreatedTransactions.parse(data);
+    });
   }
 
   async updateTransaction(id: string, input: Partial<TransactionInput>) {
@@ -938,6 +946,38 @@ export class SpendistDataAccess {
     };
   }
 
+  /**
+   * Runs an RPC that records its own audit event in the same database
+   * transaction as the write. A failed RPC rolls that event back, so only the
+   * failure is recorded here, with one extra request.
+   */
+  private async atomicMutation<T>(
+    toolName: string,
+    targetType: string,
+    targetId: string | undefined,
+    action: () => Promise<T>
+  ): Promise<T> {
+    try {
+      return await action();
+    } catch (error) {
+      const ownerId = await this.authenticate();
+
+      await this.client.from('mcp_audit_events').insert({
+        owner_id: ownerId,
+        client_id: this.connection.clientId,
+        tool_name: toolName,
+        target_type: targetType,
+        target_id: targetId ?? null,
+        request_id: crypto.randomUUID(),
+        outcome: 'failed',
+        error_code:
+          error instanceof Error ? error.message.slice(0, 120) : 'unknown',
+        finished_at: new Date().toISOString(),
+      });
+      throw error;
+    }
+  }
+
   private async mutate<T>(
     toolName: string,
     targetType: string,
@@ -984,6 +1024,17 @@ export class SpendistDataAccess {
       throw error;
     }
   }
+}
+
+/** Transaction fields in the JSON shape the MCP write RPCs accept. */
+function transactionJson(input: Partial<TransactionInput>): Json {
+  const value: Record<string, Json> = {};
+
+  for (const [key, field] of Object.entries(input)) {
+    if (field !== undefined) value[key] = field;
+  }
+
+  return value;
 }
 
 export interface SummaryInput {

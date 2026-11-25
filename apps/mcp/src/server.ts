@@ -37,6 +37,16 @@ const Transaction = z.object({
   tagIds: z.array(z.string().uuid()).max(50).optional(),
 });
 
+const IdempotencyKey = z
+  .string()
+  .trim()
+  .min(1)
+  .max(200)
+  .optional()
+  .describe(
+    'Optional client-chosen key. Retrying the same request with the same key returns the first result instead of creating duplicates.'
+  );
+
 const Recurring = z.object({
   name: z.string().trim().min(1).max(120),
   amount: z.string().regex(/^\d+(?:\.\d{1,2})?$/),
@@ -334,17 +344,22 @@ export function createSpendistMcpServer(
   operation(
     tools,
     'create_transaction',
-    'Create one transaction. Monetary amounts are decimal strings; relationships are IDs.',
-    Transaction,
-    (input) => access.createTransaction(input),
+    'Create one transaction. Monetary amounts are decimal strings; relationships are IDs. Returns the transaction with its transaction_tags.',
+    Transaction.extend({ idempotencyKey: IdempotencyKey }),
+    ({ idempotencyKey, ...input }) =>
+      access.createTransaction(input, idempotencyKey),
     'additive'
   );
   operation(
     tools,
     'create_transactions',
-    'Create 1 to 100 transactions.',
-    z.object({ transactions: z.array(Transaction).min(1).max(100) }),
-    ({ transactions }) => access.createTransactions(transactions),
+    'Create 1 to 100 transactions atomically: either all are stored or none is, and an error names the failing row. Returns the transactions with their transaction_tags.',
+    z.object({
+      transactions: z.array(Transaction).min(1).max(100),
+      idempotencyKey: IdempotencyKey,
+    }),
+    ({ transactions, idempotencyKey }) =>
+      access.createTransactions(transactions, idempotencyKey),
     'additive'
   );
   operation(

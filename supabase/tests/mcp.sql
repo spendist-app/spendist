@@ -133,4 +133,208 @@ begin
 end;
 $$;
 
+insert into auth.users (
+  id, aud, role, email, encrypted_password, email_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data, created_at, updated_at
+) values (
+  '20000000-0000-0000-0000-000000000002',
+  'authenticated', 'authenticated', 'mcp-other@example.test', '',
+  timezone('utc', now()), '{"provider":"email","providers":["email"]}',
+  '{"full_name":"MCP Other","language":"en","wallet_currency_id":1}',
+  timezone('utc', now()), timezone('utc', now())
+);
+
+set local role authenticated;
+
+do $$
+declare
+  v_other_id constant uuid := '20000000-0000-0000-0000-000000000002';
+begin
+  perform set_config('request.jwt.claim.sub', v_other_id::text, true);
+  perform set_config(
+    'request.jwt.claims',
+    json_build_object('sub', v_other_id, 'role', 'authenticated')::text,
+    true
+  );
+
+  insert into public.tags (id, owner_id, name)
+  values ('30000000-0000-0000-0000-000000000099', v_other_id, 'Foreign tag');
+end;
+$$;
+
+do $$
+declare
+  v_owner_id constant uuid := '20000000-0000-0000-0000-000000000001';
+  v_wallet_id uuid;
+  v_group_id uuid;
+  v_category_id uuid;
+  v_tag_a uuid;
+  v_tag_b uuid;
+  v_batch jsonb;
+  v_result jsonb;
+  v_replay jsonb;
+  v_before bigint;
+  v_transaction_id uuid;
+  v_error text;
+begin
+  perform set_config('request.jwt.claim.sub', v_owner_id::text, true);
+  perform set_config(
+    'request.jwt.claims',
+    json_build_object(
+      'sub', v_owner_id, 'role', 'authenticated',
+      'client_id', 'test-client', 'spendist_mcp_write', true
+    )::text,
+    true
+  );
+
+  select id into v_wallet_id from public.wallets
+   where owner_id = v_owner_id and is_default;
+  insert into public.categories_group (owner_id, name)
+  values (v_owner_id, 'MCP batch group') returning id into v_group_id;
+  insert into public.categories (owner_id, group_id, name)
+  values (v_owner_id, v_group_id, 'MCP batch category')
+  returning id into v_category_id;
+  insert into public.tags (owner_id, name) values (v_owner_id, 'MCP tag A')
+  returning id into v_tag_a;
+  insert into public.tags (owner_id, name) values (v_owner_id, 'MCP tag B')
+  returning id into v_tag_b;
+
+  select jsonb_agg(jsonb_build_object(
+    'amount', (n + 0.5)::text,
+    'categoryId', v_category_id,
+    'walletId', v_wallet_id,
+    'occurredAt', '2026-11-20T12:00:00+01:00',
+    'direction', 'expense',
+    'description', 'Batch row ' || n,
+    'tagIds', jsonb_build_array(v_tag_a, v_tag_a)
+  ) order by n)
+    into v_batch
+    from generate_series(1, 100) as n;
+
+  select count(*) into v_before from public.transactions where owner_id = v_owner_id;
+
+  -- A batch of 100 rows is stored in one call, in input order, with tags.
+  v_result := public.mcp_create_transactions(v_batch, 'batch-100', 'ignored');
+
+  if jsonb_array_length(v_result->'items') <> 100
+     or (v_result->>'replayed')::boolean
+     or v_result #>> '{items,0,description}' <> 'Batch row 1'
+     or v_result #>> '{items,99,description}' <> 'Batch row 100'
+     or jsonb_array_length(v_result #> '{items,0,transaction_tags}') <> 1
+     or (select count(*) from public.transactions where owner_id = v_owner_id) <> v_before + 100 then
+    raise exception 'MCP batch create did not store 100 tagged transactions: %', v_result;
+  end if;
+
+  if not exists (
+    select 1 from public.mcp_audit_events
+     where owner_id = v_owner_id
+       and client_id = 'test-client'
+       and tool_name = 'create_transactions'
+       and outcome = 'succeeded'
+       and cardinality(target_ids) = 100
+  ) then
+    raise exception 'MCP batch create did not record one audit event';
+  end if;
+
+  -- Retrying with the same key replays the result instead of duplicating.
+  v_replay := public.mcp_create_transactions(v_batch, 'batch-100', 'ignored');
+
+  if not (v_replay->>'replayed')::boolean
+     or v_replay->'items' <> v_result->'items'
+     or (select count(*) from public.transactions where owner_id = v_owner_id) <> v_before + 100 then
+    raise exception 'MCP batch idempotency key did not replay the first result';
+  end if;
+
+  v_error := null;
+  begin
+    perform public.mcp_create_transactions(v_batch - 0, 'batch-100', 'ignored');
+  exception when others then
+    v_error := sqlerrm;
+  end;
+  if v_error is distinct from 'idempotencyKey was already used for a different request.' then
+    raise exception 'Reused idempotency key with another payload was not rejected: %', v_error;
+  end if;
+
+  -- One invalid row rejects the whole batch and names that row.
+  v_error := null;
+  begin
+    perform public.mcp_create_transactions(
+      jsonb_set(v_batch, '{2,walletId}', to_jsonb(gen_random_uuid()))
+    );
+  exception when others then
+    v_error := sqlerrm;
+  end;
+  if v_error not like 'Transaction 3: Wallet % was not found.'
+     or (select count(*) from public.transactions where owner_id = v_owner_id) <> v_before + 100 then
+    raise exception 'Invalid batch row was not rejected atomically: %', v_error;
+  end if;
+
+  v_error := null;
+  begin
+    perform public.mcp_create_transactions(
+      jsonb_set(v_batch, '{4,tagIds}', jsonb_build_array('30000000-0000-0000-0000-000000000099'))
+    );
+  exception when others then
+    v_error := sqlerrm;
+  end;
+  if v_error not like 'Transaction 5: Tag % was not found.' then
+    raise exception 'Another user''s tag was accepted in a batch: %', v_error;
+  end if;
+
+  v_error := null;
+  begin
+    perform public.mcp_create_transactions(v_batch || v_batch);
+  exception when others then
+    v_error := sqlerrm;
+  end;
+  if v_error is distinct from 'Batch size must be between 1 and 100.' then
+    raise exception 'Oversized batch was not rejected: %', v_error;
+  end if;
+
+
+end;
+$$;
+
+do $$
+declare
+  v_owner_id constant uuid := '20000000-0000-0000-0000-000000000001';
+  v_category_id uuid;
+  v_wallet_id uuid;
+  v_error text;
+begin
+  select id into v_wallet_id from public.wallets
+   where owner_id = v_owner_id and is_default;
+  select id into v_category_id from public.categories
+   where owner_id = v_owner_id and name = 'MCP batch category';
+
+  -- An OAuth client without the user's write grant cannot write.
+  perform set_config(
+    'request.jwt.claims',
+    json_build_object(
+      'sub', v_owner_id, 'role', 'authenticated',
+      'client_id', 'read-only-client', 'spendist_mcp_write', false
+    )::text,
+    true
+  );
+
+  v_error := null;
+  begin
+    perform public.mcp_create_transactions(jsonb_build_array(jsonb_build_object(
+      'amount', '1.00',
+      'categoryId', v_category_id,
+      'walletId', v_wallet_id,
+      'occurredAt', '2026-11-20T12:00:00+01:00',
+      'direction', 'expense'
+    )));
+  exception when others then
+    v_error := sqlerrm;
+  end;
+  if v_error is distinct from 'This client has no write access to Spendist' then
+    raise exception 'OAuth client without write grant could write: %', v_error;
+  end if;
+end;
+$$;
+
+reset role;
+
 rollback;

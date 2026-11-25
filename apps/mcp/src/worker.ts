@@ -11,12 +11,16 @@ import {
   type McpHttpHandler,
 } from '@modelcontextprotocol/server';
 import { Hono } from 'hono';
+import { z } from 'zod';
 import { requireEnvironment, type McpEnvironment } from './config';
 import { SupabaseTokenVerifier } from './auth';
 import { MCP_REQUESTABLE_SCOPES, allowsWrite } from './scopes';
 import { createSpendistMcpServer } from './server';
 
 preloadSchemas();
+
+/** User ID that SupabaseTokenVerifier verified for the bearer token. */
+const VerifiedUser = z.object({ userId: z.string().uuid() });
 
 const app = new Hono<{ Bindings: McpEnvironment }>();
 
@@ -85,6 +89,7 @@ function handlerFor(env: McpEnvironment): McpHttpHandler {
           publishableKey: env.SUPABASE_PUBLISHABLE_KEY,
           accessToken: authInfo.token,
           clientId: authInfo.clientId,
+          userId: VerifiedUser.safeParse(authInfo.extra).data?.userId,
         },
         { allowWrite: allowsWrite(authInfo.scopes) }
       );

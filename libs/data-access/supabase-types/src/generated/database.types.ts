@@ -424,10 +424,13 @@ export type Database = {
           error_code: string | null
           finished_at: string | null
           id: string
+          idempotency_key: string | null
           outcome: string
           owner_id: string
+          request_hash: string | null
           request_id: string
           target_id: string | null
+          target_ids: string[] | null
           target_type: string | null
           tool_name: string
         }
@@ -437,10 +440,13 @@ export type Database = {
           error_code?: string | null
           finished_at?: string | null
           id?: string
+          idempotency_key?: string | null
           outcome?: string
           owner_id: string
+          request_hash?: string | null
           request_id: string
           target_id?: string | null
+          target_ids?: string[] | null
           target_type?: string | null
           tool_name: string
         }
@@ -450,10 +456,13 @@ export type Database = {
           error_code?: string | null
           finished_at?: string | null
           id?: string
+          idempotency_key?: string | null
           outcome?: string
           owner_id?: string
+          request_hash?: string | null
           request_id?: string
           target_id?: string | null
+          target_ids?: string[] | null
           target_type?: string | null
           tool_name?: string
         }
@@ -1742,6 +1751,25 @@ export type Database = {
         Args: { p_app_metadata: Json; p_email: string; p_id: string }
         Returns: boolean
       }
+      mcp_create_transactions: {
+        Args: {
+          p_client_id?: string
+          p_idempotency_key?: string
+          p_tool_name?: string
+          p_transactions: Json
+        }
+        Returns: Json
+      }
+      mcp_owned_tag_ids: {
+        Args: { p_label: string; p_tag_ids: Json }
+        Returns: string[]
+      }
+      mcp_transaction_columns: {
+        Args: { p_label: string; p_require_all: boolean; p_values: Json }
+        Returns: Json
+      }
+      mcp_transactions_with_tags: { Args: { p_ids: string[] }; Returns: Json }
+      mcp_write_client: { Args: { p_fallback: string }; Returns: string }
       monthly_cashflow_summary: {
         Args: { p_months?: number; p_wallet_id?: string }
         Returns: {
