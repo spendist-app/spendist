@@ -197,3 +197,29 @@ describe('SpendistDataAccess', () => {
     );
   });
 });
+
+describe('recurring payment logos', () => {
+  it('changes only the logo of a recurring payment', async () => {
+    const fetch = stubFetch(
+      json(JSON.stringify({ id: 'audit-1' })),
+      json(
+        JSON.stringify({
+          id: 'recurring-1',
+          logo: 'simple-icons:netflix:e50914',
+        })
+      ),
+      json('null')
+    );
+
+    const access = new SpendistDataAccess(connection);
+
+    await access.updateRecurring('recurring-1', {
+      logo: 'simple-icons:netflix:e50914',
+    });
+
+    const update = request(fetch, 1);
+
+    expect(update.url).toContain('/rest/v1/recurring_transactions');
+    expect(update.body).toEqual({ logo: 'simple-icons:netflix:e50914' });
+  });
+});

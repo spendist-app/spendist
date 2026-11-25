@@ -48,6 +48,7 @@ export interface RecurringInput {
   direction: Direction;
   endDate?: string | null;
   tagIds?: string[];
+  logo?: string | null;
 }
 
 type PublicTables = Database['public']['Tables'];
@@ -594,6 +595,7 @@ export class SpendistDataAccess {
             schedule: input.schedule,
             start_date: input.startDate,
             wallet_id: input.walletId,
+            logo: input.logo ?? null,
           })
           .select()
           .single();
@@ -652,6 +654,8 @@ export class SpendistDataAccess {
 
         if (values.direction !== undefined)
           payload.direction = values.direction;
+
+        if (values.logo !== undefined) payload.logo = values.logo;
 
         const { data, error } = await this.client
           .from('recurring_transactions')

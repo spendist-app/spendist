@@ -26,6 +26,16 @@ const OptionalStyle = {
   icon: z.string().max(100).nullable().optional(),
 };
 
+// Only bundled Simple Icons logos: MCP clients cannot upload files.
+const CatalogLogo = z
+  .string()
+  .regex(/^simple-icons:[a-z0-9_]{1,64}:[0-9a-f]{6}$/)
+  .nullable()
+  .optional()
+  .describe(
+    'Logo from the Simple Icons catalogue as simple-icons:<slug>:<hex>, using the slug and lower-case brand colour from simpleicons.org (for example simple-icons:netflix:e50914), or null to remove the logo. An unknown slug shows no logo.'
+  );
+
 const Transaction = z.object({
   amount: z.string().regex(/^\d+(?:\.\d{1,2})?$/),
   categoryId: z.string().uuid(),
@@ -62,6 +72,7 @@ const Recurring = z.object({
   schedule: z.string().trim().min(1).max(120),
   direction: Direction,
   tagIds: z.array(z.string().uuid()).max(50).optional(),
+  logo: CatalogLogo,
 });
 
 type ToolKind = 'read' | 'additive' | 'destructive';
@@ -323,6 +334,7 @@ export function createSpendistMcpServer(
       postalCode: z.string().max(32).nullable().optional(),
       country: z.string().max(120).nullable().optional(),
       note: z.string().max(500).nullable().optional(),
+      logo: CatalogLogo,
     }),
     ({ postalCode, ...values }) =>
       access.createPlace({ ...values, postal_code: postalCode }),
@@ -340,6 +352,7 @@ export function createSpendistMcpServer(
       postalCode: z.string().max(32).nullable().optional(),
       country: z.string().max(120).nullable().optional(),
       note: z.string().max(500).nullable().optional(),
+      logo: CatalogLogo,
     }),
     ({ id, postalCode, ...values }) =>
       access.update('places', id, { ...values, postal_code: postalCode }),
